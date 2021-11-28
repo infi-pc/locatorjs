@@ -23,13 +23,16 @@ export default function transformVisprComponents(babel: Babel): {
 
   return {
     visitor: {
-      Program() {
-        // Reset import name state when entering a new file
-        fileName = null;
+      Program(path, state) {
+        if (!state.filename) {
+          throw new Error("No file name");
+        }
+        fileName = state.filename      
       },
 
       JSXElement(path) {
-        console.log(path);
+        console.log(path.node);
+
         // console.log(path.node)
         // const ast = parse(`{ boo: "flop" }`);
         const newAttr = t.jSXAttribute(
