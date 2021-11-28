@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es5",
+        "noEmit": true,
+        "jsx": "react",
+        "lib": ["esnext", "dom"],
+        "moduleResolution": "node",
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "esModuleInterop": true
+    }
+}

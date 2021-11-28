@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "jest tests/",
+    "watch": "tsc src/index.ts --watch"
+  },
+  "dependencies": {
+    "@babel/plugin-syntax-jsx": "^7.16.0",
+    "@babel/preset-react": "^7.16.0",
+    "@babel/traverse": "^7.16.3",
+    "@types/babel__traverse": "^7.14.2",
+    "babel-plugin-tester": "^10.1.0",
+    "jest": "^27.3.1"
+  },
+  "devDependencies": {}
+}

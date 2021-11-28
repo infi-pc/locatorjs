@@ -1,0 +1,65 @@
+{
+    "name": "@types/prettier",
+    "version": "2.4.2",
+    "description": "TypeScript definitions for prettier",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/prettier",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "Ika",
+            "url": "https://github.com/ikatyang",
+            "githubUsername": "ikatyang"
+        },
+        {
+            "name": "Ifiok Jr.",
+            "url": "https://github.com/ifiokjr",
+            "githubUsername": "ifiokjr"
+        },
+        {
+            "name": "Florian Imdahl",
+            "url": "https://github.com/ffflorian",
+            "githubUsername": "ffflorian"
+        },
+        {
+            "name": "Sosuke Suzuki",
+            "url": "https://github.com/sosukesuzuki",
+            "githubUsername": "sosukesuzuki"
+        },
+        {
+            "name": "Christopher Quadflieg",
+            "url": "https://github.com/Shinigami92",
+            "githubUsername": "Shinigami92"
+        },
+        {
+            "name": "Kevin Deisz",
+            "url": "https://github.com/kddeisz",
+            "githubUsername": "kddeisz"
+        },
+        {
+            "name": "Georgii Dolzhykov",
+            "url": "https://github.com/thorn0",
+            "githubUsername": "thorn0"
+        },
+        {
+            "name": "JounQin",
+            "url": "https://github.com/JounQin",
+            "githubUsername": "JounQin"
+        },
+        {
+            "name": "Chuah Chee Shian",
+            "url": "https://github.com/shian15810",
+            "githubUsername": "shian15810"
+        }
+    ],
+    "main": "",
+    "types": "index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/prettier"
+    },
+    "scripts": {},
+    "dependencies": {},
+    "typesPublisherContentHash": "fbbf69a42a9af70719f5336d6565fac123fe71715b7b828169d5e5d1dc07de33",
+    "typeScriptVersion": "3.7"
+}
