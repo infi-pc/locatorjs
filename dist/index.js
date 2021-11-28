@@ -5,13 +5,20 @@ function transformVisprComponents(babel) {
     var fileName = null;
     return {
         visitor: {
-            Program: function (path, state) {
-                if (!state.filename) {
-                    throw new Error("No file name");
+            Program: {
+                enter: function (path, state) {
+                    console.log("1. Program");
+                    if (!state.filename) {
+                        throw new Error("No file name");
+                    }
+                    fileName = state.filename;
+                },
+                exit: function (path, state) {
+                    console.log("3. Exit");
                 }
-                fileName = state.filename;
             },
             JSXElement: function (path) {
+                console.log("2. JSXElement");
                 console.log(path.node);
                 // console.log(path.node)
                 // const ast = parse(`{ boo: "flop" }`);

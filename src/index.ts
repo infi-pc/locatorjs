@@ -22,15 +22,22 @@ export default function transformVisprComponents(babel: Babel): {
   let fileName: string | null = null;
 
   return {
-    visitor: {
-      Program(path, state) {
-        if (!state.filename) {
-          throw new Error("No file name");
-        }
-        fileName = state.filename      
+    visitor: {      
+      Program: {
+        enter(path, state) {
+          console.log("1. Program");
+          if (!state.filename) {
+            throw new Error("No file name");
+          }
+          fileName = state.filename;
+        },
+        exit(path, state) {
+          console.log("3. Exit");
+        },
       },
 
       JSXElement(path) {
+        console.log("2. JSXElement");
         console.log(path.node);
 
         // console.log(path.node)
