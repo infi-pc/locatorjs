@@ -8,4 +8,5 @@ pluginTester({
   plugin,
   fixtures: path.join(__dirname, 'fixtures'),
   // babelOptions: require('./../babel.config.js'),
+  snapshot: true,
 })

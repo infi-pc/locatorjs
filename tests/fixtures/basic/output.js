@@ -1,3 +1,23 @@
 export default () => {
-  return <Aaaa data-vispr-id={"hello"}></Aaaa>;
+  return <Aaaa data-vispr-id={"0"}></Aaaa>;
 };
+
+require("visprPlugin/src/runtime.js").register({
+  path: "/Users/michaelmusil/www/templates/visprPlugin/tests/fixtures/basic/code.js",
+  nextId: 1,
+  expressions: [
+    {
+      name: "Aaaa",
+      loc: {
+        start: {
+          line: 2,
+          column: 11,
+        },
+        end: {
+          line: 2,
+          column: 24,
+        },
+      },
+    },
+  ],
+});

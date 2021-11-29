@@ -2,6 +2,7 @@
   "private": true,
   "scripts": {
     "test": "jest tests/",
+    "test:update": "jest tests/ -u",
     "watch": "tsc src/index.ts --watch --outDir dist"
   },
   "dependencies": {
