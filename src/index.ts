@@ -21,28 +21,26 @@ type ExpressionInfo = {
 };
 
 type FileStorage = {
-  path: string;
+  filePath: string;
   nextId: number;
   expressions: ExpressionInfo[];
 };
 
-const RUNTIME_PATH = "visprPlugin/src/runtime.js";
+const RUNTIME_PATH = "@vispr/dist/runtime";
 
 export default function transformVisprComponents(babel: Babel): {
   visitor: Visitor<PluginOptions>;
 } {
   const t = babel.types;
-  let fileStorage: FileStorage = {
-    path: "",
-    nextId: 0,
-    expressions: [],
-  };
+  let fileStorage: FileStorage | null = null;
 
   function addToStorage(expression: ExpressionInfo) {
-    const id = fileStorage.nextId;
-    fileStorage.expressions[id] = expression;
-    fileStorage.nextId++;
-    return id;
+    if (fileStorage) {
+      const id = fileStorage.nextId;
+      fileStorage.expressions[id] = expression;
+      fileStorage.nextId++;
+      return id;
+    }
   }
 
   return {
@@ -53,9 +51,20 @@ export default function transformVisprComponents(babel: Babel): {
           if (!state.filename) {
             throw new Error("No file name");
           }
-          fileStorage.path = state.filename;
+          if (state.filename.includes("node_modules")) {
+            fileStorage = null
+          } else {
+            fileStorage = {
+              filePath: state.filename,
+              nextId: 0,
+              expressions: [],
+            }
+          }
         },
         exit(path, state) {
+          if (!fileStorage) {
+            return
+          }
           const dataCode = JSON.stringify(fileStorage)
 
           const dataAst = parseExpression(dataCode, {
@@ -77,11 +86,13 @@ export default function transformVisprComponents(babel: Babel): {
               ),
             )
           );
-          console.log("3. Exit");
         },
       },
 
       JSXElement(path) {
+        if (!fileStorage) {
+          return
+        }
         if (path.node.openingElement.name.type === "JSXIdentifier") {
           const id = addToStorage({
             name: path.node.openingElement.name.name,
@@ -90,7 +101,7 @@ export default function transformVisprComponents(babel: Babel): {
           const newAttr = t.jSXAttribute(
             t.jSXIdentifier("data-vispr-id"),
             t.jSXExpressionContainer(
-              t.stringLiteral(String(id))
+              t.stringLiteral(fileStorage.filePath + "::" + String(id))
               // t.ObjectExpression([
               // ])
             )
