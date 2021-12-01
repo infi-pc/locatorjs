@@ -1,26 +1,40 @@
 const dataByFilename: { [filename: string]: any } = {};
+const baseColor = "#e90139";
+const hoverColor = "#C70139";
+const PADDING = 6;
+let currentElementRef: null | WeakRef<HTMLElement> = null;
 
-const baseColor = "#e90139"
-const hoverColor = "#C70139"
+if (typeof window !== "undefined") {
+  document.addEventListener("keyup", globalKeyUpListener);
+  const locatorDisabledCookie = getCookie("LOCATOR_DISABLED");
+  let locatorDisabled = locatorDisabledCookie === "true";
+  if (!locatorDisabled) {
+    init(!locatorDisabledCookie);
+  }
+}
 
 export function register(input: any) {
-  console.log(input);
   dataByFilename[input.filePath] = input;
 }
 
 function buidLink(filePath: string, loc: any) {
   return `vscode://file${filePath}:${loc.start.line}:${loc.start.column + 1}`;
 }
-const PADDING = 6;
 
 function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
-  if (isAltKey) {
-      document.body.style.cursor = 'pointer';
-  } else {
-      document.body.style.cursor = 'default';
+  const el = document.getElementById("locatorjs-layer");
+  if (!el) {
+    // in cases it's destroyed in the meantime
+    return;
   }
-  if (found.dataset && found.dataset.visprId) {
-    const [filePath, id] = found.dataset.visprId.split("::");
+
+  if (isAltKey) {
+    document.body.style.cursor = "pointer";
+  } else {
+    document.body.style.cursor = "";
+  }
+  if (found.dataset && found.dataset.locatorjsId) {
+    const [filePath, id] = found.dataset.locatorjsId.split("::");
     const data = dataByFilename[filePath];
     const expData = data.expressions[id];
     if (expData) {
@@ -50,7 +64,7 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       labelWrapper.style.padding = "2px 10px 10px 10px";
       // labelWrapper.style.backgroundColor = "#00ff00";
       labelWrapper.style.pointerEvents = "auto";
-      labelWrapper.id = "vispr-label-wrapper";
+      labelWrapper.id = "locatorjs-label-wrapper";
       topPart.appendChild(labelWrapper);
 
       const label = document.createElement("a");
@@ -64,13 +78,9 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       label.style.borderRadius = "4px";
       label.style.fontFamily = "Helvetica, sans-serif, Arial";
       label.innerText = expData.name;
-      label.id = "vispr-label";
+      label.id = "locatorjs-label";
       labelWrapper.appendChild(label);
 
-      const el = document.getElementById("vispr-layer");
-      if (!el) {
-        throw new Error("no layer found");
-      }
       el.innerHTML = "";
       el.appendChild(rect);
 
@@ -79,94 +89,118 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
   }
 }
 
-if (typeof window !== "undefined") {
+function scrollListener() {
+  // hide layers when scrolling
+  const el = document.getElementById("locatorjs-layer");
+  if (!el) {
+    throw new Error("no layer found");
+  }
+  currentElementRef = null;
+  el.innerHTML = "";
+}
+
+function mouseOverListener(e: MouseEvent) {
+  const target = e.target;
+  if (target && target instanceof HTMLElement) {
+    if (
+      target.id == "locatorjs-label" ||
+      target.id == "locatorjs-label-wrapper"
+    ) {
+      return;
+    }
+
+    const found = target.closest("[data-locatorjs-id]");
+    if (found && found instanceof HTMLElement) {
+      currentElementRef = new WeakRef(found);
+      rerenderLayer(found, e.altKey);
+    }
+  }
+}
+
+function keyDownListener(e: KeyboardEvent) {
+  if (currentElementRef) {
+    const el = currentElementRef.deref();
+    if (el) {
+      rerenderLayer(el, e.altKey);
+    }
+  }
+}
+
+function keyUpListener(e: KeyboardEvent) {
+  if (currentElementRef) {
+    const el = currentElementRef.deref();
+    if (el) {
+      rerenderLayer(el, e.altKey);
+    }
+  }
+}
+
+function globalKeyUpListener(e: KeyboardEvent) {
+  if (e.code === "KeyD" && e.altKey) {
+    const el = document.getElementById("locatorjs-layer");
+    if (el) {
+      destroy();
+      setCookie("LOCATOR_DISABLED", "true");
+    } else {
+      init(false);
+      setCookie("LOCATOR_DISABLED", "false");
+    }
+    return;
+  }
+}
+
+function clickListener(e: MouseEvent) {
+  if (!e.altKey) {
+    return;
+  }
+  const target = e.target;
+  if (target && target instanceof HTMLElement) {
+    const found: HTMLElement | null = target.closest("[data-locatorjs-id]");
+    if (!found || !found.dataset || !found.dataset.locatorjsId) {
+      return;
+    }
+    const [filePath, id] = found.dataset.locatorjsId.split("::");
+    const data = dataByFilename[filePath];
+    console.log(data);
+    console.log();
+    const exp = data.expressions[Number(id)];
+    // window.location.href =
+    const link = buidLink(filePath, exp.loc);
+    console.log(link);
+    window.open(link);
+    //   window.open(link, "_blank");
+  }
+}
+
+function init(showOnboarding: boolean) {
+  if (document.getElementById("locatorjs-layer")) {
+    // already initialized
+    return;
+  }
+
   // add style tag to head
   const style = document.createElement("style");
+
   style.innerHTML = `
-        #vispr-label {
+        #locatorjs-label {
             cursor: pointer;
             background-color: ${baseColor};
         }
-        #vispr-label:hover {
+        #locatorjs-label:hover {
             background-color: ${hoverColor};
         }
     `;
   document.head.appendChild(style);
 
-  document.addEventListener("scroll", () => {
-    // hide layers when scrolling
-    const el = document.getElementById("vispr-layer");
-    if (!el) {
-      throw new Error("no layer found");
-    }
-    currentElementRef = null;
-    el.innerHTML = "";
-  });
-
-  document.addEventListener(
-    "mouseover",
-    (e) => {
-      const target = e.target;
-      if (target && target instanceof HTMLElement) {
-        if (target.id == "vispr-label" || target.id == "vispr-label-wrapper") {
-          return;
-        }
-
-        const found = target.closest("[data-vispr-id]");
-        if (found && found instanceof HTMLElement) {
-          currentElementRef = new WeakRef(found);
-          rerenderLayer(found, e.altKey);
-        }
-      }
-    },
-    { capture: true }
-  );
-
-  let currentElementRef: null | WeakRef<HTMLElement> = null;
-
-  document.addEventListener("keydown", (e) => {
-    if (currentElementRef) {
-      const el = currentElementRef.deref();
-      if (el) {
-        rerenderLayer(el, e.altKey);
-      }
-    }
-  });
-
-  document.addEventListener("keyup", (e) => {
-    if (currentElementRef) {
-      const el = currentElementRef.deref();
-      if (el) {
-        rerenderLayer(el, e.altKey);
-      }
-    }
-  });
-
-  document.addEventListener("click", function (e) {
-    if (!e.altKey) {
-      return;
-    }
-    const target = e.target;
-    if (target && target instanceof HTMLElement) {
-      const found: HTMLElement | null = target.closest("[data-vispr-id]");
-      if (!found || !found.dataset || !found.dataset.visprId) {
-        return;
-      }
-      const [filePath, id] = found.dataset.visprId.split("::");
-      const data = dataByFilename[filePath];
-      console.log(data);
-      console.log();
-      const exp = data.expressions[Number(id)];
-      // window.location.href =
-      const link = buidLink(filePath, exp.loc);
-      console.log(link);
-      var win = window.open(link, "_blank");
-    }
-  });
+  document.addEventListener("scroll", scrollListener);
+  document.addEventListener("mouseover", mouseOverListener, { capture: true });
+  document.addEventListener("keydown", keyDownListener);
+  document.addEventListener("keyup", keyUpListener);
+  document.addEventListener("click", clickListener);
 
   // add layer to body
   const layer = document.createElement("div");
-  layer.setAttribute("id", "vispr-layer");
+  layer.setAttribute("id", "locatorjs-layer");
   // layer is full screen
   layer.style.position = "fixed";
   layer.style.top = "0";
@@ -175,5 +209,70 @@ if (typeof window !== "undefined") {
   layer.style.height = "100%";
   layer.style.zIndex = "9999";
   layer.style.pointerEvents = "none";
+
   document.body.appendChild(layer);
+
+  if (showOnboarding) {
+    // add popover to the layer
+    const modal = document.createElement("div");
+    modal.setAttribute("id", "locatorjs-onboarding");
+    modal.style.position = "absolute";
+    modal.style.top = "10px";
+    modal.style.left = "10px";
+    // modal.style.width = "400px";
+    modal.style.backgroundColor = "#fff";
+    modal.style.borderRadius = "8px";
+    modal.style.boxShadow = "0px 0px 10px rgba(0, 0, 0, 0.5)";
+    modal.style.pointerEvents = "auto";
+    modal.style.zIndex = "10000";
+    modal.style.padding = "12px 20px";
+
+    const modalHeader = document.createElement("div");
+    modalHeader.style.padding = "0px";
+    modalHeader.textContent = "Locator enabled";
+    modal.appendChild(modalHeader);
+
+    const modalBody = document.createElement("div");
+    modalBody.style.padding = "0px";
+    modalBody.textContent = "Disable/enable locator by alt-d";
+    modal.appendChild(modalBody);
+
+    const note = document.createElement("div");
+    note.style.padding = "0px";
+    note.textContent = "Hint: press alt to make whole component box clickable.";
+    modal.appendChild(note);
+
+    document.body.appendChild(modal);
+  }
+}
+
+function destroy() {
+  const el = document.getElementById("locatorjs-layer");
+  if (el) {
+    document.removeEventListener("scroll", scrollListener);
+    document.removeEventListener("mouseover", mouseOverListener, {
+      capture: true,
+    });
+    document.removeEventListener("keydown", keyDownListener);
+    document.removeEventListener("keyup", keyUpListener);
+    document.removeEventListener("click", clickListener);
+
+    el.remove();
+  }
+  const onboardingEl = document.getElementById("locatorjs-onboarding");
+  if (onboardingEl) {
+    onboardingEl.remove();
+  }
+  if (document.body.style.cursor === "pointer") {
+    document.body.style.cursor = "";
+  }
+}
+
+function getCookie(name: string) {
+  var match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  if (match) return match[2];
+}
+
+function setCookie(name: string, value: string) {
+  document.cookie = name + "=" + (value || "") + "; path=/";
 }

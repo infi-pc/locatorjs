@@ -1,5 +1,5 @@
 export default () => {
-  return <Aaaa data-vispr-id={"0"}></Aaaa>;
+  return <Aaaa data-locatorjs-id={"0"}></Aaaa>;
 };
 
 require("visprPlugin/src/runtime.js").register({

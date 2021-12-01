@@ -26,9 +26,9 @@ type FileStorage = {
   expressions: ExpressionInfo[];
 };
 
-const RUNTIME_PATH = "@vispr/dist/runtime";
+const RUNTIME_PATH = "@locatorjs/dist/runtime";
 
-export default function transformVisprComponents(babel: Babel): {
+export default function transformLocatorJsComponents(babel: Babel): {
   visitor: Visitor<PluginOptions>;
 } {
   const t = babel.types;
@@ -99,7 +99,7 @@ export default function transformVisprComponents(babel: Babel): {
             loc: path.node.loc,
           });
           const newAttr = t.jSXAttribute(
-            t.jSXIdentifier("data-vispr-id"),
+            t.jSXIdentifier("data-locatorjs-id"),
             t.jSXExpressionContainer(
               t.stringLiteral(fileStorage.filePath + "::" + String(id))
               // t.ObjectExpression([

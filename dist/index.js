@@ -1,8 +1,8 @@
 "use strict";
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
-var RUNTIME_PATH = "@vispr/dist/runtime";
-function transformVisprComponents(babel) {
+var RUNTIME_PATH = "@locatorjs/dist/runtime";
+function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;
     function addToStorage(expression) {
@@ -54,7 +54,7 @@ function transformVisprComponents(babel) {
                         name: path.node.openingElement.name.name,
                         loc: path.node.loc
                     });
-                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-vispr-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.filePath + "::" + String(id))
+                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.filePath + "::" + String(id))
                     // t.ObjectExpression([
                     // ])
                     ));
@@ -66,4 +66,4 @@ function transformVisprComponents(babel) {
         }
     };
 }
-exports["default"] = transformVisprComponents;
+exports["default"] = transformLocatorJsComponents;
