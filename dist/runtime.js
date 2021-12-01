@@ -6,6 +6,8 @@ var baseColor = "#e90139";
 var hoverColor = "#C70139";
 var PADDING = 6;
 var currentElementRef = null;
+var isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+var altTitle = isMac ? "Option" : "Alt";
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
     var locatorDisabledCookie = getCookie("LOCATOR_DISABLED");
@@ -158,6 +160,13 @@ function clickListener(e) {
         //   window.open(link, "_blank");
     }
 }
+function hideOnboardingHandler() {
+    var onboardingEl = document.getElementById("locatorjs-onboarding");
+    if (onboardingEl) {
+        onboardingEl.remove();
+    }
+    setCookie("LOCATOR_DISABLED", "false");
+}
 function init(showOnboarding) {
     if (document.getElementById("locatorjs-layer")) {
         // already initialized
@@ -166,7 +175,7 @@ function init(showOnboarding) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: " + baseColor + ";\n        }\n        #locatorjs-label:hover {\n            background-color: " + hoverColor + ";\n        }\n    ";
+    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: " + baseColor + ";\n        }\n        #locatorjs-label:hover {\n            background-color: " + hoverColor + ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n    ";
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -212,13 +221,22 @@ function init(showOnboarding) {
         modal.appendChild(modalHeader);
         var modalBody = document.createElement("div");
         modalBody.style.padding = "0px";
-        modalBody.textContent = "Disable/enable locator by alt-d";
+        modalBody.innerHTML = "Disable/enable locator by <b>" + altTitle + "-d</b>";
         modal.appendChild(modalBody);
         var note = document.createElement("div");
         note.style.padding = "0px";
         note.style.color = "#baa";
-        note.textContent = "Hint: press alt to make whole component box clickable.";
+        note.innerHTML = "Hint: press and hold <b>" + altTitle + "</b> to make whole component box clickable.";
         modal.appendChild(note);
+        var closeButton = document.createElement("div");
+        closeButton.id = "locatorjs-onboarding-close";
+        closeButton.style.position = "absolute";
+        closeButton.style.top = "10px";
+        closeButton.style.right = "10px";
+        closeButton.style.padding = "0px";
+        closeButton.innerHTML = "<svg style=\"width:24px;height:24px\" viewBox=\"0 0 24 24\"><path fill=\"currentColor\" d=\"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z\" /></svg>";
+        closeButton.addEventListener("click", hideOnboardingHandler);
+        modal.appendChild(closeButton);
         document.body.appendChild(modal);
     }
 }
