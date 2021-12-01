@@ -2,8 +2,8 @@ export default () => {
   return <Aaaa data-locatorjs-id={"0"}></Aaaa>;
 };
 
-require("visprPlugin/src/runtime.js").register({
-  path: "/Users/michaelmusil/www/templates/visprPlugin/tests/fixtures/basic/code.js",
+require("locatorjs/dist/runtime.js").register({
+  path: "/Users/michaelmusil/www/templates/locatorjs/tests/fixtures/basic/code.js",
   nextId: 1,
   expressions: [
     {

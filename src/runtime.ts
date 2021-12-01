@@ -2,6 +2,7 @@ const dataByFilename: { [filename: string]: any } = {};
 const baseColor = "#e90139";
 const hoverColor = "#C70139";
 const PADDING = 6;
+// @ts-ignore
 let currentElementRef: null | WeakRef<HTMLElement> = null;
 const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf('MAC')>=0;
 const altTitle = isMac ? "Option" : "Alt";
@@ -113,6 +114,7 @@ function mouseOverListener(e: MouseEvent) {
 
     const found = target.closest("[data-locatorjs-id]");
     if (found && found instanceof HTMLElement) {
+      // @ts-ignore
       currentElementRef = new WeakRef(found);
       rerenderLayer(found, e.altKey);
     }

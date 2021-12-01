@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
-var RUNTIME_PATH = "@locatorjs/dist/runtime";
+var RUNTIME_PATH = "locatorjs/dist/runtime";
 function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;
@@ -37,7 +37,7 @@ function transformLocatorJsComponents(babel) {
                         return;
                     }
                     var dataCode = JSON.stringify(fileStorage);
-                    var dataAst = parser_1.parseExpression(dataCode, {
+                    var dataAst = (0, parser_1.parseExpression)(dataCode, {
                         sourceType: "script"
                     });
                     path.node.body.push(t.expressionStatement(t.callExpression(t.memberExpression(t.callExpression(t.identifier("require"), [

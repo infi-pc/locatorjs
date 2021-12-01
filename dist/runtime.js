@@ -5,6 +5,7 @@ var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
 var PADDING = 6;
+// @ts-ignore
 var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 var altTitle = isMac ? "Option" : "Alt";
@@ -21,7 +22,7 @@ function register(input) {
 }
 exports.register = register;
 function buidLink(filePath, loc) {
-    return "vscode://file" + filePath + ":" + loc.start.line + ":" + (loc.start.column + 1);
+    return "vscode://file".concat(filePath, ":").concat(loc.start.line, ":").concat(loc.start.column + 1);
 }
 function rerenderLayer(found, isAltKey) {
     var el = document.getElementById("locatorjs-layer");
@@ -103,6 +104,7 @@ function mouseOverListener(e) {
         }
         var found = target.closest("[data-locatorjs-id]");
         if (found && found instanceof HTMLElement) {
+            // @ts-ignore
             currentElementRef = new WeakRef(found);
             rerenderLayer(found, e.altKey);
         }
@@ -175,7 +177,7 @@ function init(showOnboarding) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: " + baseColor + ";\n        }\n        #locatorjs-label:hover {\n            background-color: " + hoverColor + ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n    ";
+    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: ".concat(baseColor, ";\n        }\n        #locatorjs-label:hover {\n            background-color: ").concat(hoverColor, ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n    ");
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -221,12 +223,12 @@ function init(showOnboarding) {
         modal.appendChild(modalHeader);
         var modalBody = document.createElement("div");
         modalBody.style.padding = "0px";
-        modalBody.innerHTML = "Disable/enable locator by <b>" + altTitle + "-d</b>";
+        modalBody.innerHTML = "Disable/enable locator by <b>".concat(altTitle, "-d</b>");
         modal.appendChild(modalBody);
         var note = document.createElement("div");
         note.style.padding = "0px";
         note.style.color = "#baa";
-        note.innerHTML = "Hint: press and hold <b>" + altTitle + "</b> to make whole component box clickable.";
+        note.innerHTML = "Hint: press and hold <b>".concat(altTitle, "</b> to make whole component box clickable.");
         modal.appendChild(note);
         var closeButton = document.createElement("div");
         closeButton.id = "locatorjs-onboarding-close";
