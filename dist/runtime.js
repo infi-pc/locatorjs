@@ -165,6 +165,7 @@ function init(showOnboarding) {
     }
     // add style tag to head
     var style = document.createElement("style");
+    style.id = "locatorjs-style";
     style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: " + baseColor + ";\n        }\n        #locatorjs-label:hover {\n            background-color: " + hoverColor + ";\n        }\n    ";
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
@@ -189,18 +190,25 @@ function init(showOnboarding) {
         var modal = document.createElement("div");
         modal.setAttribute("id", "locatorjs-onboarding");
         modal.style.position = "absolute";
-        modal.style.top = "10px";
-        modal.style.left = "10px";
+        modal.style.top = "18px";
+        modal.style.left = "18px";
         // modal.style.width = "400px";
-        modal.style.backgroundColor = "#fff";
-        modal.style.borderRadius = "8px";
-        modal.style.boxShadow = "0px 0px 10px rgba(0, 0, 0, 0.5)";
+        modal.style.backgroundColor = "#333";
+        modal.style.borderRadius = "12px";
+        modal.style.fontSize = "14px";
+        // modal.style.boxShadow = `1px 1px 6px ${baseColor}`;
+        modal.style.border = "2px solid " + baseColor;
         modal.style.pointerEvents = "auto";
         modal.style.zIndex = "10000";
-        modal.style.padding = "12px 20px";
+        modal.style.padding = "16px 20px";
+        modal.style.color = "#fee";
+        modal.style.lineHeight = "1.3rem";
         var modalHeader = document.createElement("div");
         modalHeader.style.padding = "0px";
-        modalHeader.textContent = "Locator enabled";
+        modalHeader.style.fontWeight = "bold";
+        modalHeader.style.fontSize = "18px";
+        modalHeader.style.marginBottom = "6px";
+        modalHeader.textContent = "LocatorJS enabled";
         modal.appendChild(modalHeader);
         var modalBody = document.createElement("div");
         modalBody.style.padding = "0px";
@@ -208,6 +216,7 @@ function init(showOnboarding) {
         modal.appendChild(modalBody);
         var note = document.createElement("div");
         note.style.padding = "0px";
+        note.style.color = "#baa";
         note.textContent = "Hint: press alt to make whole component box clickable.";
         modal.appendChild(note);
         document.body.appendChild(modal);
@@ -228,6 +237,10 @@ function destroy() {
     var onboardingEl = document.getElementById("locatorjs-onboarding");
     if (onboardingEl) {
         onboardingEl.remove();
+    }
+    var styleEl = document.getElementById("locatorjs-style");
+    if (styleEl) {
+        styleEl.remove();
     }
     if (document.body.style.cursor === "pointer") {
         document.body.style.cursor = "";
