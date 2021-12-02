@@ -26,7 +26,7 @@ type FileStorage = {
   expressions: ExpressionInfo[];
 };
 
-const RUNTIME_PATH = "dev_locatorjs/dist/runtime";
+const RUNTIME_PATH = "locatorjs/dist/runtime";
 
 export default function transformLocatorJsComponents(babel: Babel): {
   visitor: Visitor<PluginOptions>;
