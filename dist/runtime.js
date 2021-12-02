@@ -86,16 +86,22 @@ function rerenderLayer(found, isAltKey) {
             if (isAltKey) {
                 rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
             }
+            var isReversed = bbox.y < 30;
             var topPart = document.createElement("div");
             topPart.style.position = "absolute";
             topPart.style.display = "flex";
             topPart.style.justifyContent = "center";
-            topPart.style.top = "-30px";
+            if (isReversed) {
+                topPart.style.bottom = "-26px";
+            }
+            else {
+                topPart.style.top = "-30px";
+            }
             topPart.style.left = "0px";
             topPart.style.width = "100%";
             rect.appendChild(topPart);
             var labelWrapper = document.createElement("div");
-            labelWrapper.style.padding = "2px 10px 10px 10px";
+            labelWrapper.style.padding = isReversed ? "10px 10px 2px 10px" : "2px 10px 10px 10px";
             // labelWrapper.style.backgroundColor = "#00ff00";
             labelWrapper.style.pointerEvents = "auto";
             labelWrapper.id = "locatorjs-label-wrapper";
