@@ -4,8 +4,13 @@ const hoverColor = "#C70139";
 const PADDING = 6;
 // @ts-ignore
 let currentElementRef: null | WeakRef<HTMLElement> = null;
-const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf('MAC')>=0;
+const isMac =
+  typeof navigator !== "undefined" &&
+  navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "Option" : "Alt";
+let linkTemplate =
+  getCookie("LOCATOR_CUSTOM_LINK") ||
+  "vscode://file${filePath}:${line}:${column}";
 
 if (typeof window !== "undefined") {
   document.addEventListener("keyup", globalKeyUpListener);
@@ -20,8 +25,20 @@ export function register(input: any) {
   dataByFilename[input.filePath] = input;
 }
 
+function evalTemplate(str: string, params: { [key: string]: string }) {
+  const names = Object.keys(params);
+  const vals = Object.values(params);
+  return new Function(...names, `return \`${str}\`;`)(...vals);
+}
+
 function buidLink(filePath: string, loc: any) {
-  return `vscode://file${filePath}:${loc.start.line}:${loc.start.column + 1}`;
+  // return `webstorm://open?file=${filePath}&line=${loc.start.line}&column=${loc.start.column}`;
+  const params = {
+    filePath,
+    line: loc.start.line,
+    column: loc.start.column + 1,
+  };
+  return evalTemplate(linkTemplate, params);
 }
 
 function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
@@ -159,6 +176,7 @@ function clickListener(e: MouseEvent) {
   }
   const target = e.target;
   if (target && target instanceof HTMLElement) {
+    console.log("TTT");
     const found: HTMLElement | null = target.closest("[data-locatorjs-id]");
     if (!found || !found.dataset || !found.dataset.locatorjsId) {
       return;
@@ -172,6 +190,8 @@ function clickListener(e: MouseEvent) {
     const link = buidLink(filePath, exp.loc);
     console.log(link);
     window.open(link);
+    e.preventDefault();
+    e.stopPropagation();
     //   window.open(link, "_blank");
   }
 }
@@ -208,6 +228,29 @@ function init(showOnboarding: boolean) {
         #locatorjs-onboarding-close:hover {
             color: #fee
         }
+        .locatorjs-options {
+          display: flex;
+          margin: 4px 0px;
+        } 
+        .locatorjs-option {
+          cursor: pointer;
+          padding: 4px 10px;
+          margin-right: 4px;
+          border: 1px solid #555;
+          border-radius: 6px;
+        }
+        .locatorjs-option:hover {
+          border: 1px solid #999;
+      }
+      .locatorjs-custom-template-input {
+        background-color: transparent;
+        border-radius: 6px;
+        margin: 4px 0px;
+        padding: 4px 10px;
+        border: 1px solid #555;
+        color: #fee;
+        width: 300px;
+      }
     `;
   document.head.appendChild(style);
 
@@ -255,20 +298,31 @@ function init(showOnboarding: boolean) {
     modalHeader.style.fontWeight = "bold";
     modalHeader.style.fontSize = "18px";
     modalHeader.style.marginBottom = "6px";
-    
+
     modalHeader.textContent = "LocatorJS enabled";
     modal.appendChild(modalHeader);
 
     const modalBody = document.createElement("div");
-    modalBody.style.padding = "0px";
     modalBody.innerHTML = `Disable/enable locator by <b>${altTitle}-d</b>`;
     modal.appendChild(modalBody);
 
     const note = document.createElement("div");
-    note.style.padding = "0px";
     note.style.color = "#baa";
     note.innerHTML = `Hint: press and hold <b>${altTitle}</b> to make whole component box clickable.`;
     modal.appendChild(note);
+
+    const selector = document.createElement("div");
+    // selector.style.padding = "0px";
+    // selector.style.color = "#baa";
+    selector.innerHTML = `
+    <div class="locatorjs-options">
+    <div class="locatorjs-option">VSCode</div>
+    <div class="locatorjs-option">Webstorm</div>
+    <div class="locatorjs-option">Other</div>
+    </div>
+    <input class="locatorjs-custom-template-input" type="text" value="${linkTemplate}" />
+    `;
+    modal.appendChild(selector);
 
     const closeButton = document.createElement("div");
     closeButton.id = "locatorjs-onboarding-close";
@@ -277,9 +331,8 @@ function init(showOnboarding: boolean) {
     closeButton.style.right = "10px";
     closeButton.style.padding = "0px";
     closeButton.innerHTML = `<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>`;
-    closeButton.addEventListener("click", hideOnboardingHandler)
+    closeButton.addEventListener("click", hideOnboardingHandler);
     modal.appendChild(closeButton);
-    
 
     document.body.appendChild(modal);
   }
@@ -312,6 +365,9 @@ function destroy() {
 }
 
 function getCookie(name: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
   var match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   if (match) return match[2];
 }

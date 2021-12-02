@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
-var RUNTIME_PATH = "locatorjs/dist/runtime";
+var RUNTIME_PATH = "dev_locatorjs/dist/runtime";
 function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;

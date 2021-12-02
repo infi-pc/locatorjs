@@ -1,6 +1,7 @@
 {
   "name": "locatorjs",
   "main": "dist/index.js",
+  "version": "0.0.1",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",

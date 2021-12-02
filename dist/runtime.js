@@ -1,4 +1,13 @@
 "use strict";
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 exports.__esModule = true;
 exports.register = void 0;
 var dataByFilename = {};
@@ -7,8 +16,11 @@ var hoverColor = "#C70139";
 var PADDING = 6;
 // @ts-ignore
 var currentElementRef = null;
-var isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+var isMac = typeof navigator !== "undefined" &&
+    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "Option" : "Alt";
+var linkTemplate = getCookie("LOCATOR_CUSTOM_LINK") ||
+    "vscode://file${filePath}:${line}:${column}";
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
     var locatorDisabledCookie = getCookie("LOCATOR_DISABLED");
@@ -21,8 +33,19 @@ function register(input) {
     dataByFilename[input.filePath] = input;
 }
 exports.register = register;
+function evalTemplate(str, params) {
+    var names = Object.keys(params);
+    var vals = Object.values(params);
+    return new (Function.bind.apply(Function, __spreadArray(__spreadArray([void 0], names, false), ["return `".concat(str, "`;")], false)))().apply(void 0, vals);
+}
 function buidLink(filePath, loc) {
-    return "vscode://file".concat(filePath, ":").concat(loc.start.line, ":").concat(loc.start.column + 1);
+    // return `webstorm://open?file=${filePath}&line=${loc.start.line}&column=${loc.start.column}`;
+    var params = {
+        filePath: filePath,
+        line: loc.start.line,
+        column: loc.start.column + 1
+    };
+    return evalTemplate(linkTemplate, params);
 }
 function rerenderLayer(found, isAltKey) {
     var el = document.getElementById("locatorjs-layer");
@@ -146,6 +169,7 @@ function clickListener(e) {
     }
     var target = e.target;
     if (target && target instanceof HTMLElement) {
+        console.log("TTT");
         var found = target.closest("[data-locatorjs-id]");
         if (!found || !found.dataset || !found.dataset.locatorjsId) {
             return;
@@ -159,6 +183,8 @@ function clickListener(e) {
         var link = buidLink(filePath, exp.loc);
         console.log(link);
         window.open(link);
+        e.preventDefault();
+        e.stopPropagation();
         //   window.open(link, "_blank");
     }
 }
@@ -177,7 +203,7 @@ function init(showOnboarding) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: ".concat(baseColor, ";\n        }\n        #locatorjs-label:hover {\n            background-color: ").concat(hoverColor, ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n    ");
+    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: ".concat(baseColor, ";\n        }\n        #locatorjs-label:hover {\n            background-color: ").concat(hoverColor, ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n        .locatorjs-options {\n          display: flex;\n          margin: 4px 0px;\n        } \n        .locatorjs-option {\n          cursor: pointer;\n          padding: 4px 10px;\n          margin-right: 4px;\n          border: 1px solid #555;\n          border-radius: 6px;\n        }\n        .locatorjs-option:hover {\n          border: 1px solid #999;\n      }\n      .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #fee;\n        width: 300px;\n      }\n    ");
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -222,14 +248,17 @@ function init(showOnboarding) {
         modalHeader.textContent = "LocatorJS enabled";
         modal.appendChild(modalHeader);
         var modalBody = document.createElement("div");
-        modalBody.style.padding = "0px";
         modalBody.innerHTML = "Disable/enable locator by <b>".concat(altTitle, "-d</b>");
         modal.appendChild(modalBody);
         var note = document.createElement("div");
-        note.style.padding = "0px";
         note.style.color = "#baa";
         note.innerHTML = "Hint: press and hold <b>".concat(altTitle, "</b> to make whole component box clickable.");
         modal.appendChild(note);
+        var selector = document.createElement("div");
+        // selector.style.padding = "0px";
+        // selector.style.color = "#baa";
+        selector.innerHTML = "\n    <div class=\"locatorjs-options\">\n    <div class=\"locatorjs-option\">VSCode</div>\n    <div class=\"locatorjs-option\">Webstorm</div>\n    <div class=\"locatorjs-option\">Other</div>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"".concat(linkTemplate, "\" />\n    ");
+        modal.appendChild(selector);
         var closeButton = document.createElement("div");
         closeButton.id = "locatorjs-onboarding-close";
         closeButton.style.position = "absolute";
@@ -267,6 +296,9 @@ function destroy() {
     }
 }
 function getCookie(name) {
+    if (typeof document === "undefined") {
+        return;
+    }
     var match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
     if (match)
         return match[2];
