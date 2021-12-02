@@ -52,28 +52,26 @@ export default function transformLocatorJsComponents(babel: Babel): {
             throw new Error("No file name");
           }
           if (state.filename.includes("node_modules")) {
-            fileStorage = null
+            fileStorage = null;
           } else {
             fileStorage = {
               filePath: state.filename,
               nextId: 0,
               expressions: [],
-            }
+            };
           }
         },
         exit(path, state) {
           if (!fileStorage) {
-            return
+            return;
           }
-          const dataCode = JSON.stringify(fileStorage)
+          const dataCode = JSON.stringify(fileStorage);
 
           const dataAst = parseExpression(dataCode, {
             sourceType: "script",
-          })
-          
+          });
 
           path.node.body.push(
-            
             t.expressionStatement(
               t.callExpression(
                 t.memberExpression(
@@ -82,8 +80,8 @@ export default function transformLocatorJsComponents(babel: Babel): {
                   ]),
                   t.identifier("register")
                 ),
-                [dataAst],
-              ),
+                [dataAst]
+              )
             )
           );
         },
@@ -91,11 +89,28 @@ export default function transformLocatorJsComponents(babel: Babel): {
 
       JSXElement(path) {
         if (!fileStorage) {
-          return
+          return;
         }
-        if (path.node.openingElement.name.type === "JSXIdentifier") {
+        function getName(
+          el:
+            | BabelTypes.JSXIdentifier
+            | BabelTypes.JSXMemberExpression
+            | BabelTypes.JSXNamespacedName
+        ): string {
+          if (el.type === "JSXIdentifier") {
+            return el.name;
+          } else if (el.type === "JSXMemberExpression") {
+            return getName(el.object) + "." + el.property.name;
+          } else if (el.type === "JSXNamespacedName") {
+            return el.namespace.name + "." + el.name.name;
+          }
+          return "";
+        }
+        let name = getName(path.node.openingElement.name);
+
+        if (name) {
           const id = addToStorage({
-            name: path.node.openingElement.name.name,
+            name: name,
             loc: path.node.loc,
           });
           const newAttr = t.jSXAttribute(

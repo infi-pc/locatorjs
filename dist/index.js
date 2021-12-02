@@ -49,9 +49,22 @@ function transformLocatorJsComponents(babel) {
                 if (!fileStorage) {
                     return;
                 }
-                if (path.node.openingElement.name.type === "JSXIdentifier") {
+                function getName(el) {
+                    if (el.type === "JSXIdentifier") {
+                        return el.name;
+                    }
+                    else if (el.type === "JSXMemberExpression") {
+                        return getName(el.object) + "." + el.property.name;
+                    }
+                    else if (el.type === "JSXNamespacedName") {
+                        return el.namespace.name + "." + el.name.name;
+                    }
+                    return "";
+                }
+                var name = getName(path.node.openingElement.name);
+                if (name) {
                     var id = addToStorage({
-                        name: path.node.openingElement.name.name,
+                        name: name,
                         loc: path.node.loc
                     });
                     var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.filePath + "::" + String(id))
