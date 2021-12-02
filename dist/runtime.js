@@ -19,8 +19,19 @@ var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "Option" : "Alt";
-var linkTemplate = getCookie("LOCATOR_CUSTOM_LINK") ||
-    "vscode://file${filePath}:${line}:${column}";
+var linkTemplates = {
+    vscode: "vscode://file${filePath}:${line}:${column}",
+    webstorm: "webstorm://open?file=${filePath}&line=${line}&column=${column}",
+    // sublime: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}",
+    atom: "atom://core/open/file?filename=${filePath}&line=${line}&column=${column}"
+};
+var linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
+var linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+function setTemplate(lOrTemplate) {
+    setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
+    linkTypeOrTemplate = lOrTemplate;
+    linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+}
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
     var locatorDisabledCookie = getCookie("LOCATOR_DISABLED");
@@ -39,7 +50,6 @@ function evalTemplate(str, params) {
     return new (Function.bind.apply(Function, __spreadArray(__spreadArray([void 0], names, false), ["return `".concat(str, "`;")], false)))().apply(void 0, vals);
 }
 function buidLink(filePath, loc) {
-    // return `webstorm://open?file=${filePath}&line=${loc.start.line}&column=${loc.start.column}`;
     var params = {
         filePath: filePath,
         line: loc.start.line,
@@ -203,7 +213,7 @@ function init(showOnboarding) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: ".concat(baseColor, ";\n        }\n        #locatorjs-label:hover {\n            background-color: ").concat(hoverColor, ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n        .locatorjs-options {\n          display: flex;\n          margin: 4px 0px;\n        } \n        .locatorjs-option {\n          cursor: pointer;\n          padding: 4px 10px;\n          margin-right: 4px;\n          border: 1px solid #555;\n          border-radius: 6px;\n        }\n        .locatorjs-option:hover {\n          border: 1px solid #999;\n      }\n      .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #fee;\n        width: 300px;\n      }\n    ");
+    style.innerHTML = "\n        #locatorjs-label {\n            cursor: pointer;\n            background-color: ".concat(baseColor, ";\n        }\n        #locatorjs-label:hover {\n            background-color: ").concat(hoverColor, ";\n        }\n        #locatorjs-onboarding-close {\n            cursor: pointer;\n            color: #baa;\n        }\n        #locatorjs-onboarding-close:hover {\n            color: #fee\n        }\n        .locatorjs-options {\n          display: flex;\n          margin: 4px 0px;\n        } \n        .locatorjs-option {\n          cursor: pointer;\n          padding: 4px 10px;\n          margin-right: 4px;\n          display: flex;\n          align-items: center;\n          gap: 6px;\n        }\n      .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #fee;\n        width: 400px;\n      }\n    ");
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -257,8 +267,30 @@ function init(showOnboarding) {
         var selector = document.createElement("div");
         // selector.style.padding = "0px";
         // selector.style.color = "#baa";
-        selector.innerHTML = "\n    <div class=\"locatorjs-options\">\n    <div class=\"locatorjs-option\">VSCode</div>\n    <div class=\"locatorjs-option\">Webstorm</div>\n    <div class=\"locatorjs-option\">Other</div>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"".concat(linkTemplate, "\" />\n    ");
+        selector.innerHTML = "\n    <div class=\"locatorjs-options\">\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"vscode\" /> VSCode</label>\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"webstorm\" /> Webstorm</label>\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"atom\" /> Atom</label>\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"".concat(linkTemplate, "\" />\n    ");
         modal.appendChild(selector);
+        var input_1 = modal.querySelector(".locatorjs-custom-template-input");
+        input_1.style.display = "none";
+        // locatorjs-options should be clickable
+        var options = modal.querySelectorAll(".locatorjs-option input");
+        options.forEach(function (option) {
+            if (linkTypeOrTemplate === option.value) {
+                option.checked = true;
+            }
+            option.addEventListener("change", function (e) {
+                if (e.target.checked) {
+                    if (e.target.value === "other") {
+                        input_1.style.display = "block";
+                        input_1.focus();
+                    }
+                    else {
+                        input_1.style.display = "none";
+                    }
+                    setTemplate(e.target.value === "other" ? input_1.value : e.target.value);
+                    input_1.value = linkTemplate;
+                }
+            });
+        });
         var closeButton = document.createElement("div");
         closeButton.id = "locatorjs-onboarding-close";
         closeButton.style.position = "absolute";

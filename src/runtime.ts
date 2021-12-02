@@ -8,9 +8,21 @@ const isMac =
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "Option" : "Alt";
-let linkTemplate =
-  getCookie("LOCATOR_CUSTOM_LINK") ||
-  "vscode://file${filePath}:${line}:${column}";
+const linkTemplates: { [k: string]: string } = {
+  vscode: "vscode://file${filePath}:${line}:${column}",
+  webstorm: "webstorm://open?file=${filePath}&line=${line}&column=${column}",
+  // sublime: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}",
+  atom: "atom://core/open/file?filename=${filePath}&line=${line}&column=${column}",
+};
+
+let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
+let linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+
+function setTemplate(lOrTemplate: string) {
+  setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
+  linkTypeOrTemplate = lOrTemplate;
+  linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+}
 
 if (typeof window !== "undefined") {
   document.addEventListener("keyup", globalKeyUpListener);
@@ -32,7 +44,6 @@ function evalTemplate(str: string, params: { [key: string]: string }) {
 }
 
 function buidLink(filePath: string, loc: any) {
-  // return `webstorm://open?file=${filePath}&line=${loc.start.line}&column=${loc.start.column}`;
   const params = {
     filePath,
     line: loc.start.line,
@@ -236,12 +247,10 @@ function init(showOnboarding: boolean) {
           cursor: pointer;
           padding: 4px 10px;
           margin-right: 4px;
-          border: 1px solid #555;
-          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
-        .locatorjs-option:hover {
-          border: 1px solid #999;
-      }
       .locatorjs-custom-template-input {
         background-color: transparent;
         border-radius: 6px;
@@ -249,7 +258,7 @@ function init(showOnboarding: boolean) {
         padding: 4px 10px;
         border: 1px solid #555;
         color: #fee;
-        width: 300px;
+        width: 400px;
       }
     `;
   document.head.appendChild(style);
@@ -316,13 +325,43 @@ function init(showOnboarding: boolean) {
     // selector.style.color = "#baa";
     selector.innerHTML = `
     <div class="locatorjs-options">
-    <div class="locatorjs-option">VSCode</div>
-    <div class="locatorjs-option">Webstorm</div>
-    <div class="locatorjs-option">Other</div>
+      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="vscode" /> VSCode</label>
+      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="webstorm" /> Webstorm</label>
+      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="atom" /> Atom</label>
+      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="other" /> Other</label>
     </div>
     <input class="locatorjs-custom-template-input" type="text" value="${linkTemplate}" />
     `;
     modal.appendChild(selector);
+
+    const input = modal.querySelector(
+      ".locatorjs-custom-template-input"
+    ) as HTMLInputElement;
+    input.style.display = "none";
+
+    // locatorjs-options should be clickable
+    const options = modal.querySelectorAll(
+      ".locatorjs-option input"
+    ) as NodeListOf<HTMLInputElement>;
+    options.forEach((option) => {
+      if (linkTypeOrTemplate === option.value) {
+        option.checked = true;
+      }
+      option.addEventListener("change", (e: any) => {
+        if (e.target.checked) {
+          if (e.target.value === "other") {
+            input.style.display = "block";
+            input.focus();
+          } else {
+            input.style.display = "none";
+          }
+          setTemplate(
+            e.target.value === "other" ? input.value : e.target.value
+          );
+          input.value = linkTemplate;
+        }
+      });
+    });
 
     const closeButton = document.createElement("div");
     closeButton.id = "locatorjs-onboarding-close";
