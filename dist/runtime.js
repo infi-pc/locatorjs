@@ -47,6 +47,7 @@ exports.register = register;
 function evalTemplate(str, params) {
     var names = Object.keys(params);
     var vals = Object.values(params);
+    // @ts-ignore
     return new (Function.bind.apply(Function, __spreadArray(__spreadArray([void 0], names, false), ["return `".concat(str, "`;")], false)))().apply(void 0, vals);
 }
 function buidLink(filePath, loc) {
