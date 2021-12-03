@@ -1,4 +1,4 @@
-![Intro](./docs/logo-noborders.png)
+![LocatorJS](./docs/logo-noborders.png)
 
 Find any component in code faster than ever.
 
@@ -7,13 +7,13 @@ A plugin for your React dev-stack that allows you to **click trough from your "l
 Works with Babel-based dev-stacks like 
 - NextJS 
 - Create React App (with Craco) 
-- and anything you can add Babel plugins
+- and anything you can add Babel plugins to
 
 Works with most popular IDEs 
 - VSCode 
 - Webstorm 
 - Atom
-- you can define custom link
+- you can define a custom link
 
 ![Intro](./docs/intro.gif)
 
