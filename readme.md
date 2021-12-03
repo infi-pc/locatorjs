@@ -25,7 +25,7 @@ First install it
 ```
 or
 ```sh
-    yarn install locatorjs
+    yarn locatorjs
 ```
 
 ## 2. Setup
