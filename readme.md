@@ -51,6 +51,19 @@ add `"locatorjs"` plugin to your plugins in `babel.config.js`.
   };
 ```
 
+### Create React App
+
+for proper customisation you need https://github.com/gsoft-inc/craco.
+Then add babel plugin in `craco.config.js`
+
+```javascript
+  module.exports = {
+    babel: {
+      plugins: ["locatorjs/dist"],
+    },
+  }
+```
+
 ## 3. Run 
  
 Run your development environment. 
