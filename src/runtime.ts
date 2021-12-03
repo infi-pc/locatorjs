@@ -317,19 +317,16 @@ function init(showOnboarding: boolean) {
     modalHeader.textContent = "LocatorJS enabled";
     modal.appendChild(modalHeader);
 
-    const modalBody = document.createElement("div");
-    modalBody.innerHTML = `Disable/enable locator by <b>${altTitle}-d</b>`;
-    modal.appendChild(modalBody);
-
-    const note = document.createElement("div");
-    note.style.color = "#baa";
-    note.innerHTML = `Hint: press and hold <b>${altTitle}</b> to make whole component box clickable.`;
-    modal.appendChild(note);
+    const controls = document.createElement("div");
+    controls.style.color = "#baa";
+    controls.innerHTML = `<div><b>${altTitle}+d:</b> enable/disable Locator<br /><b>Press and hold ${altTitle}:</b> make boxes clickable on full surface </div>`;
+    modal.appendChild(controls);
 
     const selector = document.createElement("div");
-    // selector.style.padding = "0px";
-    // selector.style.color = "#baa";
+    selector.style.marginTop = "10px";
+  
     selector.innerHTML = `
+    <b>Choose your editor: </b>
     <div class="locatorjs-options">
       <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="vscode" /> VSCode</label>
       <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="webstorm" /> Webstorm</label>
