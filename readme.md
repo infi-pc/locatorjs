@@ -6,7 +6,7 @@ A plugin for your React dev-stack that allows you to **click trough from your "l
 
 Works with Babel-based dev-stacks like 
 - NextJS 
-- Create React App (with Craco) 
+- Create React App
 - and anything you can add Babel plugins to
 
 Works with most popular IDEs 
@@ -59,7 +59,7 @@ Then add babel plugin in `craco.config.js`
 ```javascript
   module.exports = {
     babel: {
-      plugins: ["locatorjs/dist"],
+      plugins: process.env.NODE_ENV === "development" ? ["locatorjs/dist"] : [],
     },
   }
 ```
