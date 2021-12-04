@@ -74,7 +74,11 @@ Each developer can setup their own IDE.
 - **Option/Alt+d:** Enable/disable selection
 - **Press and hold Option/Alt**: Make boxes clickable on full surface (which can be more convinient than clicking on label)
 
-### Custom link template variables
+### Disable LocatorJS on a single machine
+if you need to disable LocatorJS on your machine, but don't want to change shared settings, add `LOCATORJS=disabled` to your cookies.
+
+### Custom link
+you can create custom links
 
 #### available variables
 - `filePath`: full path on your device

@@ -1,7 +1,10 @@
+type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
 const dataByFilename: { [filename: string]: any } = {};
 const baseColor = "#e90139";
 const hoverColor = "#C70139";
 const PADDING = 6;
+const fontFamily = "Helvetica, sans-serif, Arial";
+
 // @ts-ignore
 let currentElementRef: null | WeakRef<HTMLElement> = null;
 const isMac =
@@ -14,10 +17,15 @@ const linkTemplates: { [k: string]: string } = {
   // sublime: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}",
   atom: "atom://core/open/file?filename=${filePath}&line=${line}&column=${column}",
 };
-
+const repoLink = "https://github.com/infi-pc/locatorjs";
 let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
 let linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+let locatorJSMode = getCookie("LOCATORJS") as LocatorJSMode | undefined;
 
+function setMode(newMode: LocatorJSMode) {
+  setCookie("LOCATORJS", newMode);
+  locatorJSMode = newMode;
+}
 function setTemplate(lOrTemplate: string) {
   setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
   linkTypeOrTemplate = lOrTemplate;
@@ -26,10 +34,10 @@ function setTemplate(lOrTemplate: string) {
 
 if (typeof window !== "undefined") {
   document.addEventListener("keyup", globalKeyUpListener);
-  const locatorDisabledCookie = getCookie("LOCATOR_DISABLED");
-  let locatorDisabled = locatorDisabledCookie === "true";
+
+  let locatorDisabled = locatorJSMode === "disabled";
   if (!locatorDisabled) {
-    init(!locatorDisabledCookie);
+    init(locatorJSMode || "options");
   }
 }
 
@@ -54,10 +62,16 @@ function buidLink(filePath: string, loc: any) {
 }
 
 function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
+  
   const el = document.getElementById("locatorjs-layer");
   if (!el) {
     // in cases it's destroyed in the meantime
     return;
+  }
+  if (locatorJSMode ==="hidden" && !isAltKey) {
+    el.innerHTML = "";
+    document.body.style.cursor = "";
+    return
   }
 
   if (isAltKey) {
@@ -72,17 +86,20 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
     if (expData) {
       const bbox = found.getBoundingClientRect();
       const rect = document.createElement("div");
-      rect.style.position = "absolute";
-      rect.style.left = bbox.x - PADDING + "px";
-      rect.style.top = bbox.y - PADDING + "px";
-      rect.style.width = bbox.width + PADDING * 2 + "px";
-      rect.style.height = bbox.height + PADDING * 2 + "px";
-      rect.style.border = "2px solid " + baseColor;
-      rect.style.borderRadius = "8px";
+      css(rect, {
+        position: "absolute",
+        left: bbox.x - PADDING + "px",
+        top: bbox.y - PADDING + "px",
+        width: bbox.width + PADDING * 2 + "px",
+        height: bbox.height + PADDING * 2 + "px",
+        border: "2px solid " + baseColor,
+        borderRadius: "8px",
+      });
+
       if (isAltKey) {
         rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
       }
-      const isReversed = bbox.y < 30
+      const isReversed = bbox.y < 30;
       const topPart = document.createElement("div");
       topPart.style.position = "absolute";
       topPart.style.display = "flex";
@@ -92,13 +109,15 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       } else {
         topPart.style.top = "-30px";
       }
-     
+
       topPart.style.left = "0px";
       topPart.style.width = "100%";
       rect.appendChild(topPart);
 
       const labelWrapper = document.createElement("div");
-      labelWrapper.style.padding = isReversed ? "10px 10px 2px 10px" : "2px 10px 10px 10px";
+      labelWrapper.style.padding = isReversed
+        ? "10px 10px 2px 10px"
+        : "2px 10px 10px 10px";
       // labelWrapper.style.backgroundColor = "#00ff00";
       labelWrapper.style.pointerEvents = "auto";
       labelWrapper.id = "locatorjs-label-wrapper";
@@ -107,21 +126,22 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       const label = document.createElement("a");
       label.href = buidLink(filePath, expData.loc);
       // label.style.backgroundColor = "#ff0000";
-      label.style.color = "#fff";
-      label.style.fontSize = "12px";
-      label.style.fontWeight = "bold";
-      label.style.textAlign = "center";
-      label.style.padding = "2px 6px";
-      label.style.borderRadius = "4px";
-      label.style.fontFamily = "Helvetica, sans-serif, Arial";
+      css(label, {
+        color: "#fff",
+        fontSize: "12px",
+        fontWeight: "bold",
+        textAlign: "center",
+        padding: "2px 6px",
+        borderRadius: "4px",
+        fontFamily: fontFamily,
+      });
+
       label.innerText = expData.name;
       label.id = "locatorjs-label";
       labelWrapper.appendChild(label);
 
       el.innerHTML = "";
       el.appendChild(rect);
-
-      // document.body.childNodes = [rect]
     }
   }
 }
@@ -175,13 +195,14 @@ function keyUpListener(e: KeyboardEvent) {
 
 function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && e.altKey) {
-    const el = document.getElementById("locatorjs-layer");
-    if (el) {
+    if (locatorJSMode === "hidden") {
       destroy();
-      setCookie("LOCATOR_DISABLED", "true");
+      setMode("minimal");
+      init("minimal");
     } else {
-      init(false);
-      setCookie("LOCATOR_DISABLED", "false");
+      destroy();
+      setMode("hidden");
+      init("hidden");
     }
     return;
   }
@@ -193,35 +214,41 @@ function clickListener(e: MouseEvent) {
   }
   const target = e.target;
   if (target && target instanceof HTMLElement) {
-    console.log("TTT");
     const found: HTMLElement | null = target.closest("[data-locatorjs-id]");
     if (!found || !found.dataset || !found.dataset.locatorjsId) {
       return;
     }
     const [filePath, id] = found.dataset.locatorjsId.split("::");
     const data = dataByFilename[filePath];
-    console.log(data);
-    console.log();
     const exp = data.expressions[Number(id)];
-    // window.location.href =
     const link = buidLink(filePath, exp.loc);
-    console.log(link);
-    window.open(link);
     e.preventDefault();
     e.stopPropagation();
+    window.open(link);
     //   window.open(link, "_blank");
   }
 }
 
-function hideOnboardingHandler() {
-  const onboardingEl = document.getElementById("locatorjs-onboarding");
-  if (onboardingEl) {
-    onboardingEl.remove();
-  }
-  setCookie("LOCATOR_DISABLED", "false");
+function hideOptionsHandler() {
+  hideOptions();
+  setMode("minimal");
+  showMinimal();
 }
 
-function init(showOnboarding: boolean) {
+function showOptionsHandler() {
+  hideMinimal();
+  setMode("options");
+  showOptions();
+}
+
+function hideOptions() {
+  const optionsEl = document.getElementById("locatorjs-options");
+  if (optionsEl) {
+    optionsEl.remove();
+  }
+}
+
+function init(locatorJSMode: LocatorJSMode) {
   if (document.getElementById("locatorjs-layer")) {
     // already initialized
     return;
@@ -231,32 +258,32 @@ function init(showOnboarding: boolean) {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
   style.innerHTML = `
-        #locatorjs-label {
-            cursor: pointer;
-            background-color: ${baseColor};
-        }
-        #locatorjs-label:hover {
-            background-color: ${hoverColor};
-        }
-        #locatorjs-onboarding-close {
-            cursor: pointer;
-            color: #baa;
-        }
-        #locatorjs-onboarding-close:hover {
-            color: #fee
-        }
-        .locatorjs-options {
-          display: flex;
-          margin: 4px 0px;
-        } 
-        .locatorjs-option {
+      #locatorjs-label {
           cursor: pointer;
-          padding: 4px 10px;
-          margin-right: 4px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
+          background-color: ${baseColor};
+      }
+      #locatorjs-label:hover {
+          background-color: ${hoverColor};
+      }
+      #locatorjs-options-close {
+          cursor: pointer;
+          color: #baa;
+      }
+      #locatorjs-options-close:hover {
+          color: #fee
+      }
+      .locatorjs-options {
+        display: flex;
+        margin: 4px 0px;
+      } 
+      .locatorjs-option {
+        cursor: pointer;
+        padding: 4px 10px;
+        margin-right: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
       .locatorjs-custom-template-input {
         background-color: transparent;
         border-radius: 6px;
@@ -266,6 +293,12 @@ function init(showOnboarding: boolean) {
         color: #fee;
         width: 400px;
       }
+      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {
+        cursor: pointer;
+      }
+      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {
+        text-decoration: underline;
+      }
     `;
   document.head.appendChild(style);
 
@@ -273,59 +306,71 @@ function init(showOnboarding: boolean) {
   document.addEventListener("mouseover", mouseOverListener, { capture: true });
   document.addEventListener("keydown", keyDownListener);
   document.addEventListener("keyup", keyUpListener);
-  document.addEventListener("click", clickListener);
+  document.addEventListener("click", clickListener, { capture: true });
 
   // add layer to body
   const layer = document.createElement("div");
   layer.setAttribute("id", "locatorjs-layer");
   // layer is full screen
-  layer.style.position = "fixed";
-  layer.style.top = "0";
-  layer.style.left = "0";
-  layer.style.width = "100%";
-  layer.style.height = "100%";
-  layer.style.zIndex = "9999";
-  layer.style.pointerEvents = "none";
+  css(layer, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    zIndex: "9999",
+    pointerEvents: "none",
+  });
 
   document.body.appendChild(layer);
 
-  if (showOnboarding) {
-    // add popover to the layer
-    const modal = document.createElement("div");
-    modal.setAttribute("id", "locatorjs-onboarding");
-    modal.style.position = "absolute";
-    modal.style.top = "18px";
-    modal.style.left = "18px";
-    // modal.style.width = "400px";
-    modal.style.backgroundColor = "#333";
-    modal.style.borderRadius = "12px";
-    modal.style.fontSize = "14px";
-    // modal.style.boxShadow = `1px 1px 6px ${baseColor}`;
-    modal.style.border = "2px solid " + baseColor;
-    modal.style.pointerEvents = "auto";
-    modal.style.zIndex = "10000";
-    modal.style.padding = "16px 20px";
-    modal.style.color = "#fee";
-    modal.style.lineHeight = "1.3rem";
+  if (locatorJSMode === "minimal") {
+    showMinimal();
+  }
+  if (locatorJSMode === "options") {
+    showOptions();
+  }
+}
 
-    const modalHeader = document.createElement("div");
-    modalHeader.style.padding = "0px";
-    modalHeader.style.fontWeight = "bold";
-    modalHeader.style.fontSize = "18px";
-    modalHeader.style.marginBottom = "6px";
+function showOptions() {
+  const modal = document.createElement("div");
+  modal.setAttribute("id", "locatorjs-options");
+  css(modal, {
+    position: "fixed",
+    bottom: "18px",
+    left: "18px",
+    backgroundColor: "#333",
+    borderRadius: "12px",
+    fontSize: "14px",
+    border: "2px solid " + baseColor,
+    pointerEvents: "auto",
+    zIndex: "10000",
+    padding: "16px 20px",
+    color: "#fee",
+    lineHeight: "1.3rem",
+    fontFamily,
+  });
 
-    modalHeader.textContent = "LocatorJS enabled";
-    modal.appendChild(modalHeader);
+  const modalHeader = document.createElement("div");
+  css(modalHeader, {
+    padding: "0px",
+    fontWeight: "bold",
+    fontSize: "18px",
+    marginBottom: "6px",
+  });
 
-    const controls = document.createElement("div");
-    controls.style.color = "#baa";
-    controls.innerHTML = `<div><b>${altTitle}+d:</b> enable/disable Locator<br /><b>Press and hold ${altTitle}:</b> make boxes clickable on full surface </div>`;
-    modal.appendChild(controls);
+  modalHeader.innerHTML = `<a href="${repoLink}">LocatorJS enabled</a>`;
+  modal.appendChild(modalHeader);
 
-    const selector = document.createElement("div");
-    selector.style.marginTop = "10px";
-  
-    selector.innerHTML = `
+  const controls = document.createElement("div");
+  controls.style.color = "#baa";
+  controls.innerHTML = `<div><b>${altTitle}+d:</b> enable/disable Locator<br /><b>Press and hold ${altTitle}:</b> make boxes clickable on full surface </div>`;
+  modal.appendChild(controls);
+
+  const selector = document.createElement("div");
+  selector.style.marginTop = "10px";
+
+  selector.innerHTML = `
     <b>Choose your editor: </b>
     <div class="locatorjs-options">
       <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="vscode" /> VSCode</label>
@@ -335,49 +380,80 @@ function init(showOnboarding: boolean) {
     </div>
     <input class="locatorjs-custom-template-input" type="text" value="${linkTemplate}" />
     `;
-    modal.appendChild(selector);
+  modal.appendChild(selector);
 
-    const input = modal.querySelector(
-      ".locatorjs-custom-template-input"
-    ) as HTMLInputElement;
-    input.style.display = "none";
+  const input = modal.querySelector(
+    ".locatorjs-custom-template-input"
+  ) as HTMLInputElement;
+  input.style.display = "none";
 
-    // locatorjs-options should be clickable
-    const options = modal.querySelectorAll(
-      ".locatorjs-option input"
-    ) as NodeListOf<HTMLInputElement>;
-    options.forEach((option) => {
-      if (linkTypeOrTemplate === option.value) {
-        option.checked = true;
-      }
-      option.addEventListener("change", (e: any) => {
-        if (e.target.checked) {
-          if (e.target.value === "other") {
-            input.style.display = "block";
-            input.focus();
-          } else {
-            input.style.display = "none";
-          }
-          setTemplate(
-            e.target.value === "other" ? input.value : e.target.value
-          );
-          input.value = linkTemplate;
+  // locatorjs-options should be clickable
+  const options = modal.querySelectorAll(
+    ".locatorjs-option input"
+  ) as NodeListOf<HTMLInputElement>;
+  options.forEach((option) => {
+    if (linkTypeOrTemplate === option.value) {
+      option.checked = true;
+    }
+    option.addEventListener("change", (e: any) => {
+      if (e.target.checked) {
+        if (e.target.value === "other") {
+          input.style.display = "block";
+          input.focus();
+        } else {
+          input.style.display = "none";
         }
-      });
+        setTemplate(e.target.value === "other" ? input.value : e.target.value);
+        input.value = linkTemplate;
+      }
     });
+  });
 
-    const closeButton = document.createElement("div");
-    closeButton.id = "locatorjs-onboarding-close";
-    closeButton.style.position = "absolute";
-    closeButton.style.top = "10px";
-    closeButton.style.right = "10px";
-    closeButton.style.padding = "0px";
-    closeButton.innerHTML = `<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>`;
-    closeButton.addEventListener("click", hideOnboardingHandler);
-    modal.appendChild(closeButton);
+  const closeButton = document.createElement("div");
+  closeButton.id = "locatorjs-options-close";
+  css(closeButton, {
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    padding: "0px",
+  });
+  closeButton.innerHTML = `<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>`;
+  closeButton.addEventListener("click", hideOptionsHandler);
+  modal.appendChild(closeButton);
 
-    document.body.appendChild(modal);
-  }
+  document.body.appendChild(modal);
+}
+
+function showMinimal() {
+  const minimal = document.createElement("div");
+  minimal.setAttribute("id", "locatorjs-minimal");
+  css(minimal, {
+    position: "fixed",
+    bottom: "18px",
+    left: "18px",
+    backgroundColor: baseColor,
+    fontSize: "14px",
+    borderRadius: "4px",
+    padding: "2px 6px",
+    color: "white",
+    zIndex: "10000",
+    fontFamily,
+  });
+  minimal.innerHTML = `
+    <div><a href="${repoLink}">LocatorJS</a>: <a id="locatorjs-minimal-to-options">options</a> | <a id="locatorjs-minimal-to-hide">hide</a></div>
+    `;
+
+  const options = minimal.querySelector(
+    "#locatorjs-minimal-to-options"
+  ) as HTMLInputElement;
+  options.addEventListener("click", showOptionsHandler);
+
+  const hide = minimal.querySelector(
+    "#locatorjs-minimal-to-hide"
+  ) as HTMLInputElement;
+  hide.addEventListener("click", goToHiddenHandler);
+
+  document.body.appendChild(minimal);
 }
 
 function destroy() {
@@ -393,16 +469,21 @@ function destroy() {
 
     el.remove();
   }
-  const onboardingEl = document.getElementById("locatorjs-onboarding");
-  if (onboardingEl) {
-    onboardingEl.remove();
-  }
+  hideOptions();
   const styleEl = document.getElementById("locatorjs-style");
   if (styleEl) {
     styleEl.remove();
   }
+  hideMinimal();
   if (document.body.style.cursor === "pointer") {
     document.body.style.cursor = "";
+  }
+}
+
+function hideMinimal() {
+  const minimalEl = document.getElementById("locatorjs-minimal");
+  if (minimalEl) {
+    minimalEl.remove();
   }
 }
 
@@ -417,3 +498,17 @@ function getCookie(name: string) {
 function setCookie(name: string, value: string) {
   document.cookie = name + "=" + (value || "") + "; path=/";
 }
+
+function css(element: HTMLElement, styles: Partial<CSSStyleDeclaration>) {
+  for (const key of Object.keys(styles)) {
+    // @ts-ignore
+    element.style[key] = styles[key];
+  }
+}
+function goToHiddenHandler() {
+  setMode("hidden");
+  destroy()
+  init("hidden")
+  alert(`LocatorJS will be now hidden.\n\nPress and hold ${altTitle} so start selecting in hidden mode.\n${altTitle}+d: To show UI`)
+}
+
