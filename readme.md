@@ -70,6 +70,24 @@ Run your development environment.
 
 Each developer can setup their own IDE.
 
+## 4. Tell others in your team
+
+Because it will appear to everybody working on the project in development mode, don't forget to notify them so they are not confused with this new addition to their environment. 
+
+Feel free to use and modify this template.
+```
+👋 Hey team, I have added LocatorJS to our repo. It is a tool that helps you quickly find any component in our codebase just by clicking on the component.
+
+If it gets too annoying, click on "hide". You can then use it by holding option/alt.
+
+Let me know about any problems. 
+
+More info at https://github.com/infi-pc/locatorjs, you can give them a ⭐️ on GitHub if you like.
+```
+
+Each developer can setup their own IDE.
+
+## Using
 ### Controls
 - **Option/Alt+d:** Enable/disable selection
 - **Press and hold Option/Alt**: Make boxes clickable on full surface (which can be more convinient than clicking on label)
