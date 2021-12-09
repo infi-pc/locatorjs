@@ -7,6 +7,7 @@ A plugin for your React dev-stack that allows you to **click trough from your "l
 Works with Babel-based dev-stacks like 
 - NextJS 
 - Create React App
+- Ionic React
 - and anything you can add Babel plugins to
 
 Works with most popular IDEs 
@@ -53,7 +54,20 @@ add `"locatorjs"` plugin to your plugins in `babel.config.js`.
 
 ### Create React App
 
-for proper customisation you need https://github.com/gsoft-inc/craco.
+for proper customisation you need to install https://github.com/gsoft-inc/craco.
+Then add babel plugin in `craco.config.js`
+
+```javascript
+  module.exports = {
+    babel: {
+      plugins: process.env.NODE_ENV === "development" ? ["locatorjs/dist"] : [],
+    },
+  }
+```
+
+### Ionic React
+
+Ionic React is based on Create React App so for proper customisation you need to install https://github.com/gsoft-inc/craco.
 Then add babel plugin in `craco.config.js`
 
 ```javascript
