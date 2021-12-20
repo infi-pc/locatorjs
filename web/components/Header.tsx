@@ -1,6 +1,7 @@
 import Image from "next/image";
 import React from "react";
 import logo from "../public/logo-noborders3x.png";
+import GitHubButton from "react-next-github-btn";
 
 function Header() {
   return (
@@ -10,7 +11,12 @@ function Header() {
           href=""
           className="flex items-center mb-4 font-medium text-gray-900 title-font md:mb-0 dark:text-white"
         >
-          <Image src={logo} height={66} width={276} alt="LocatorJS logo"></Image>
+          <Image
+            src={logo}
+            height={50}
+            width={207}
+            alt="LocatorJS logo"
+          ></Image>
         </a>
         <nav className="flex flex-wrap items-center justify-center text-base md:ml-auto">
           <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
@@ -25,21 +31,17 @@ function Header() {
           <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             Fourth Link
           </a>
+          <div className="mt-1">
+            <GitHubButton
+              href="https://github.com/infi-pc/locatorjs"
+              data-icon="octicon-star"
+              data-size="large"
+              aria-label="Star infi-pc/locatorjs on GitHub"
+            >
+              Star
+            </GitHubButton>
+          </div>
         </nav>
-        <button className="inline-flex items-center px-3 py-1 mt-4 text-base bg-gray-100 border-0 rounded focus:outline-none hover:bg-gray-200 md:mt-0 dark:bg-gray-800 dark:hover:bg-gray-700">
-          Button
-          <svg
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            className="w-4 h-4 ml-1"
-            viewBox="0 0 24 24"
-          >
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </button>
       </div>
     </header>
   );
