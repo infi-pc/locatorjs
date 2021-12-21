@@ -1,5 +1,5 @@
 {
-  "name": "locatorjs",
+  "name": "@locator/runtime",
   "main": "dist/index.js",
   "version": "0.0.5",
   "scripts": {
@@ -8,16 +8,7 @@
     "watch": "tsc src/*.ts --watch --outDir dist",
     "ts": "tsc src/*.ts --outDir dist"
   },
-  "dependencies": {
-    "@babel/plugin-syntax-jsx": "^7.16.0",
-    "@babel/preset-env": "^7.16.4",
-    "@babel/preset-react": "^7.16.0",
-    "@babel/preset-typescript": "^7.16.0",
-    "@babel/traverse": "^7.16.3",
-    "@types/babel__traverse": "^7.14.2",
-    "babel-plugin-tester": "^10.1.0",
-    "jest": "^27.3.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^4.5.2"
   },
