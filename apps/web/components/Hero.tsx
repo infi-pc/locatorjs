@@ -7,7 +7,7 @@ function Hero() {
   return (
     <section className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 ">
       <div className="container flex flex-col items-center px-5 py-24 mx-auto md:flex-row relative">
-        <div className="absolute top-1/2 -right-0 md:w-8/12 md:-right-16 md:top-24 lg:-right-32 lg:top-10 xl:top-0 2xl:-top-10">
+        <div className="absolute top-1/2 -right-0 md:w-8/12 md:-right-16 md:top-24 lg:-right-32 lg:top-10 xl:top-0 2xl:-top-10 opacity-20">
           <Image src={background} />
         </div>
         <div className="flex flex-col items-center mb-16 text-center lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 md:items-start md:text-left md:mb-0 ">

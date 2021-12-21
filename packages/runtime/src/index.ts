@@ -134,9 +134,10 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
         padding: "2px 6px",
         borderRadius: "4px",
         fontFamily: fontFamily,
+        whiteSpace: "nowrap",
       });
 
-      label.innerText = expData.name;
+      label.innerText = (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") + expData.name;
       label.id = "locatorjs-label";
       labelWrapper.appendChild(label);
 

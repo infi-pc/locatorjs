@@ -1,10 +1,11 @@
 "use strict";
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
-var RUNTIME_PATH = "locatorjs/dist/runtime";
+var RUNTIME_PATH = "@locator/runtime";
 function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;
+    var wrappingComponent = null;
     function addToStorage(expression) {
         if (fileStorage) {
             var id = fileStorage.nextId;
@@ -45,6 +46,35 @@ function transformLocatorJsComponents(babel) {
                     ]), t.identifier("register")), [dataAst])));
                 }
             },
+            FunctionDeclaration: {
+                enter: function (path, state) {
+                    if (!fileStorage) {
+                        return;
+                    }
+                    if (!path || !path.node || !path.node.id || !path.node.loc) {
+                        return;
+                    }
+                    var name = path.node.id.name;
+                    console.log("ADD wrappingComponent", name);
+                    wrappingComponent = {
+                        name: name,
+                        locString: path.node.loc.start.line + ":" + path.node.loc.start.column
+                    };
+                },
+                exit: function (path, state) {
+                    if (!fileStorage) {
+                        return;
+                    }
+                    if (!path || !path.node || !path.node.id || !path.node.loc) {
+                        return;
+                    }
+                    var name = path.node.id.name;
+                    // Reset wrapping component
+                    if (wrappingComponent && wrappingComponent.name === name && wrappingComponent.locString === path.node.loc.start.line + ":" + path.node.loc.start.column) {
+                        wrappingComponent = null;
+                    }
+                }
+            },
             JSXElement: function (path) {
                 if (!fileStorage) {
                     return;
@@ -63,9 +93,11 @@ function transformLocatorJsComponents(babel) {
                 }
                 var name = getName(path.node.openingElement.name);
                 if (name) {
+                    console.log("SAVING:", (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null);
                     var id = addToStorage({
                         name: name,
-                        loc: path.node.loc
+                        loc: path.node.loc,
+                        wrappingComponent: (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null
                     });
                     var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.filePath + "::" + String(id))
                     // t.ObjectExpression([
