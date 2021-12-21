@@ -5,14 +5,14 @@ function Installation() {
     <section className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 mt-32">
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col w-full mb-20 text-center">
-          <h1 className="mb-4 text-2xl font-medium text-gray-900 sm:text-3xl title-font dark:text-white">
+          <h1 className="mb-4 text-2xl font-medium text-gray-900 sm:text-5xl title-font dark:text-white">
             Setup
           </h1>
           <p className="mx-auto text-base leading-relaxed lg:w-2/3">
             LocatorJS works with all frameworks based on JSX and using Babel.
           </p>
         </div>
-        <h2 className="mb-4 text-xl">ReactJS</h2>
+        <h2 className="mb-4 text-3xl">ReactJS</h2>
         <div className="flex flex-wrap -m-2">
           <div className="w-full p-2 lg:w-1/3 md:w-1/2">
             <div className="flex items-center h-full p-4 border border-gray-200 rounded-lg dark:border-gray-800">

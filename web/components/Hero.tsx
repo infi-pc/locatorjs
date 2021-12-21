@@ -1,6 +1,6 @@
 import Image from "next/image";
 import React from "react";
-import intro from "../../docs/intro.gif";
+import demo from "../public/demo2.gif";
 import background from "../public/bg.svg";
 
 function Hero() {
@@ -40,10 +40,10 @@ function Hero() {
             </div>
           </div>
         </div>
-        <div className="w-5/6  md:w-1/2">
+        <div className="flex z-10 object-cover object-center w-5/6  md:w-1/2 shadow-2xl rounded-lg overflow-hidden">
           <Image
-            className="object-cover object-center rounded"
-            src={intro}
+            className=""
+            src={demo}
           ></Image>
         </div>
       </div>
