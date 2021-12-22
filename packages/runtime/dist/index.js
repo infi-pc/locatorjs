@@ -21,10 +21,10 @@ var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "Option" : "Alt";
 var linkTemplates = {
-    vscode: "vscode://file${filePath}:${line}:${column}",
-    webstorm: "webstorm://open?file=${filePath}&line=${line}&column=${column}",
+    vscode: "vscode://file${projectPath}${filePath}:${line}:${column}",
+    webstorm: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
     // sublime: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}",
-    atom: "atom://core/open/file?filename=${filePath}&line=${line}&column=${column}"
+    atom: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}"
 };
 var repoLink = "https://github.com/infi-pc/locatorjs";
 var linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
@@ -47,7 +47,7 @@ if (typeof window !== "undefined") {
     }
 }
 function register(input) {
-    dataByFilename[input.filePath] = input;
+    dataByFilename[input.projectPath + input.filePath] = input;
 }
 exports.register = register;
 function evalTemplate(str, params) {
@@ -56,9 +56,10 @@ function evalTemplate(str, params) {
     // @ts-ignore
     return new (Function.bind.apply(Function, __spreadArray(__spreadArray([void 0], names, false), ["return `".concat(str, "`;")], false)))().apply(void 0, vals);
 }
-function buidLink(filePath, loc) {
+function buidLink(filePath, projectPath, loc) {
     var params = {
         filePath: filePath,
+        projectPath: projectPath,
         line: loc.start.line,
         column: loc.start.column + 1
     };
@@ -82,9 +83,9 @@ function rerenderLayer(found, isAltKey) {
         document.body.style.cursor = "";
     }
     if (found.dataset && found.dataset.locatorjsId) {
-        var _a = found.dataset.locatorjsId.split("::"), filePath = _a[0], id = _a[1];
-        var data = dataByFilename[filePath];
-        var expData = data.expressions[id];
+        var _a = found.dataset.locatorjsId.split("::"), fileFullPath = _a[0], id = _a[1];
+        var fileData = dataByFilename[fileFullPath];
+        var expData = fileData.expressions[id];
         if (expData) {
             var bbox = found.getBoundingClientRect();
             var rect = document.createElement("div");
@@ -123,7 +124,7 @@ function rerenderLayer(found, isAltKey) {
             labelWrapper.id = "locatorjs-label-wrapper";
             topPart.appendChild(labelWrapper);
             var label = document.createElement("a");
-            label.href = buidLink(filePath, expData.loc);
+            label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
             // label.style.backgroundColor = "#ff0000";
             css(label, {
                 color: "#fff",
@@ -209,9 +210,9 @@ function clickListener(e) {
             return;
         }
         var _a = found.dataset.locatorjsId.split("::"), filePath = _a[0], id = _a[1];
-        var data = dataByFilename[filePath];
-        var exp = data.expressions[Number(id)];
-        var link = buidLink(filePath, exp.loc);
+        var fileData = dataByFilename[filePath];
+        var expData = fileData.expressions[Number(id)];
+        var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
         e.preventDefault();
         e.stopPropagation();
         window.open(link);

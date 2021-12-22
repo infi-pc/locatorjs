@@ -27,7 +27,8 @@ function transformLocatorJsComponents(babel) {
                     }
                     else {
                         fileStorage = {
-                            filePath: state.filename,
+                            filePath: state.filename.replace(state.cwd, ""),
+                            projectPath: state.cwd,
                             nextId: 0,
                             expressions: []
                         };
@@ -99,7 +100,7 @@ function transformLocatorJsComponents(babel) {
                         loc: path.node.loc,
                         wrappingComponent: (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null
                     });
-                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.filePath + "::" + String(id))
+                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.projectPath + fileStorage.filePath + "::" + String(id))
                     // t.ObjectExpression([
                     // ])
                     ));

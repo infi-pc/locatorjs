@@ -23,6 +23,7 @@ type ExpressionInfo = {
 
 type FileStorage = {
   filePath: string;
+  projectPath: string;
   nextId: number;
   expressions: ExpressionInfo[];
 };
@@ -58,7 +59,8 @@ export default function transformLocatorJsComponents(babel: Babel): {
             fileStorage = null;
           } else {
             fileStorage = {
-              filePath: state.filename,
+              filePath: state.filename.replace(state.cwd, ""),
+              projectPath: state.cwd,
               nextId: 0,
               expressions: [],
             };
@@ -151,7 +153,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
           const newAttr = t.jSXAttribute(
             t.jSXIdentifier("data-locatorjs-id"),
             t.jSXExpressionContainer(
-              t.stringLiteral(fileStorage.filePath + "::" + String(id))
+              t.stringLiteral(fileStorage.projectPath + fileStorage.filePath + "::" + String(id))
               // t.ObjectExpression([
               // ])
             )
