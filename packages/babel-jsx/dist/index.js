@@ -56,7 +56,6 @@ function transformLocatorJsComponents(babel) {
                         return;
                     }
                     var name = path.node.id.name;
-                    console.log("ADD wrappingComponent", name);
                     wrappingComponent = {
                         name: name,
                         locString: path.node.loc.start.line + ":" + path.node.loc.start.column
@@ -94,7 +93,6 @@ function transformLocatorJsComponents(babel) {
                 }
                 var name = getName(path.node.openingElement.name);
                 if (name) {
-                    console.log("SAVING:", (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null);
                     var id = addToStorage({
                         name: name,
                         loc: path.node.loc,
@@ -106,8 +104,6 @@ function transformLocatorJsComponents(babel) {
                     ));
                     path.node.openingElement.attributes.push(newAttr);
                 }
-                // console.log(path.node)
-                // const ast = parse(`{ boo: "flop" }`);
             }
         }
     };

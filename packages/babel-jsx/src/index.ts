@@ -101,7 +101,6 @@ export default function transformLocatorJsComponents(babel: Babel): {
             return 
           }
           const name = path.node.id.name;
-          console.log("ADD wrappingComponent", name)
           wrappingComponent = {
             name,
             locString: path.node.loc.start.line + ":" + path.node.loc.start.column,
@@ -144,7 +143,6 @@ export default function transformLocatorJsComponents(babel: Babel): {
         let name = getName(path.node.openingElement.name);
 
         if (name) {
-          console.log("SAVING:", wrappingComponent?.name || null)
           const id = addToStorage({
             name: name,
             loc: path.node.loc,
@@ -160,9 +158,6 @@ export default function transformLocatorJsComponents(babel: Babel): {
           );
           path.node.openingElement.attributes.push(newAttr);
         }
-
-        // console.log(path.node)
-        // const ast = parse(`{ boo: "flop" }`);
       },
     },
   };
