@@ -1,7 +1,7 @@
 {
   "name": "@locator/babel-jsx",
   "main": "dist/index.js",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
@@ -28,5 +28,5 @@
     "url": "https://github.com/infi-pc/locatorjs"
   },
   "license": "MIT",
-  "gitHead": "3fdfe7c44468bebb5dd137cdd94d160c37ce6072"
+  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
 }
