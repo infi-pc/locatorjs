@@ -10,6 +10,7 @@
         "strict": true,
         "noUncheckedIndexedAccess": true,
         "strictNullChecks": true,
+        "noImplicitAny": true,
         "esModuleInterop": true
     }
 }

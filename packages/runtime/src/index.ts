@@ -27,19 +27,18 @@ let allTargets: Targets = {
     url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
     label: "WebStorm",
   },
-  // sublime: { url: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}", label: ""},
   atom: {
     url: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}",
     label: "Atom",
   },
-  // TODO nicer
-  // github: { url: "https://www.github.com/infi-pc/locatorjs/web${filePath}:${line}:${column}", label: ""},
 };
 
 const repoLink = "https://github.com/infi-pc/locatorjs";
 let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-let linkTemplate = allTargets[linkTypeOrTemplate]
-let linkTemplateUrl: string = linkTemplate ? linkTemplate.url : linkTypeOrTemplate;
+let linkTemplate = allTargets[linkTypeOrTemplate];
+let linkTemplateUrl: string = linkTemplate
+  ? linkTemplate.url
+  : linkTypeOrTemplate;
 let locatorJSMode = getCookie("LOCATORJS") as LocatorJSMode | undefined;
 let defaultMode: LocatorJSMode = "options";
 
@@ -51,7 +50,7 @@ function setMode(newMode: LocatorJSMode) {
 function setTemplate(lOrTemplate: string) {
   setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
   linkTypeOrTemplate = lOrTemplate;
-  const linkTemplate = allTargets[linkTypeOrTemplate]
+  const linkTemplate = allTargets[linkTypeOrTemplate];
   linkTemplateUrl = linkTemplate ? linkTemplate.url : linkTypeOrTemplate;
 }
 
@@ -69,17 +68,18 @@ if (typeof window !== "undefined") {
 
 export function setup(props: {
   defaultMode?: LocatorJSMode;
-  targets?: Targets;
+  targets?: { [k: string]: Target | string };
 }) {
   if (props.defaultMode) {
     defaultMode = props.defaultMode;
   }
-  // TODO better structure
   if (props.targets) {
-    allTargets = props.targets;
+    allTargets = Object.fromEntries(Object.entries(props.targets).map(([key, target]) =>
+      typeof target === "string"
+        ? [key, { url: target, label: key }]
+        : [key, target]
+    ));
   }
-  // TODO set
-  // linkTemplates
 }
 
 export function register(input: any) {
@@ -122,7 +122,7 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
   }
   if (found.dataset && found.dataset.locatorjsId) {
     const [fileFullPath, id] = parseDataId(found.dataset.locatorjsId);
-    
+
     const fileData = dataByFilename[fileFullPath];
     const expData = fileData.expressions[id];
     if (expData) {
@@ -200,7 +200,7 @@ function parseDataId(dataId: string): [fileFullPath: string, id: string] {
   if (!fileFullPath || !id) {
     throw new Error("locatorjsId is malformed");
   }
-  return [fileFullPath, id]
+  return [fileFullPath, id];
 }
 
 function scrollListener() {
