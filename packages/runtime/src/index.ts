@@ -39,12 +39,12 @@ let linkTemplate = allTargets[linkTypeOrTemplate];
 let linkTemplateUrl: string = linkTemplate
   ? linkTemplate.url
   : linkTypeOrTemplate;
-let locatorJSMode = getCookie("LOCATORJS") as LocatorJSMode | undefined;
+let modeInCookies = getCookie("LOCATORJS") as LocatorJSMode | undefined;
 let defaultMode: LocatorJSMode = "options";
 
 function setMode(newMode: LocatorJSMode) {
   setCookie("LOCATORJS", newMode);
-  locatorJSMode = newMode;
+  modeInCookies = newMode;
 }
 
 function setTemplate(lOrTemplate: string) {
@@ -57,12 +57,11 @@ function setTemplate(lOrTemplate: string) {
 if (typeof window !== "undefined") {
   document.addEventListener("keyup", globalKeyUpListener);
 
-  let locatorDisabled = locatorJSMode === "disabled";
+  let locatorDisabled = modeInCookies === "disabled";
   if (!locatorDisabled) {
-    window.setTimeout(() => {
-      // This should be done after all initial scripts are executed so setup had a chance to run
-      init(locatorJSMode || defaultMode);
-    }, 0);
+    window.addEventListener("load", function () {
+      init(modeInCookies || defaultMode);
+    });
   }
 }
 
@@ -74,11 +73,13 @@ export function setup(props: {
     defaultMode = props.defaultMode;
   }
   if (props.targets) {
-    allTargets = Object.fromEntries(Object.entries(props.targets).map(([key, target]) =>
-      typeof target === "string"
-        ? [key, { url: target, label: key }]
-        : [key, target]
-    ));
+    allTargets = Object.fromEntries(
+      Object.entries(props.targets).map(([key, target]) =>
+        typeof target === "string"
+          ? [key, { url: target, label: key }]
+          : [key, target]
+      )
+    );
   }
 }
 
@@ -109,7 +110,7 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
     // in cases it's destroyed in the meantime
     return;
   }
-  if (locatorJSMode === "hidden" && !isAltKey) {
+  if (modeInCookies === "hidden" && !isAltKey) {
     el.innerHTML = "";
     document.body.style.cursor = "";
     return;
@@ -252,7 +253,7 @@ function keyUpListener(e: KeyboardEvent) {
 
 function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && e.altKey) {
-    if (locatorJSMode === "hidden") {
+    if (modeInCookies === "hidden") {
       destroy();
       setMode("minimal");
       init("minimal");
@@ -433,7 +434,7 @@ function showOptions() {
     <div class="locatorjs-options">
       ${Object.entries(allTargets).map(([key, target]) => {
         return `<label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="${key}" /> ${target.label}</label>`;
-      })}
+      }).join("\n")}
       <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="other" /> Other</label>
     </div>
     <input class="locatorjs-custom-template-input" type="text" value="${linkTemplateUrl}" />

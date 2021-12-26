@@ -40,11 +40,11 @@ var linkTemplate = allTargets[linkTypeOrTemplate];
 var linkTemplateUrl = linkTemplate
     ? linkTemplate.url
     : linkTypeOrTemplate;
-var locatorJSMode = getCookie("LOCATORJS");
+var modeInCookies = getCookie("LOCATORJS");
 var defaultMode = "options";
 function setMode(newMode) {
     setCookie("LOCATORJS", newMode);
-    locatorJSMode = newMode;
+    modeInCookies = newMode;
 }
 function setTemplate(lOrTemplate) {
     setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
@@ -54,12 +54,11 @@ function setTemplate(lOrTemplate) {
 }
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
-    var locatorDisabled = locatorJSMode === "disabled";
+    var locatorDisabled = modeInCookies === "disabled";
     if (!locatorDisabled) {
-        window.setTimeout(function () {
-            // This should be done after all initial scripts are executed so setup had a chance to run
-            init(locatorJSMode || defaultMode);
-        }, 0);
+        window.addEventListener("load", function () {
+            init(modeInCookies || defaultMode);
+        });
     }
 }
 function setup(props) {
@@ -101,7 +100,7 @@ function rerenderLayer(found, isAltKey) {
         // in cases it's destroyed in the meantime
         return;
     }
-    if (locatorJSMode === "hidden" && !isAltKey) {
+    if (modeInCookies === "hidden" && !isAltKey) {
         el.innerHTML = "";
         document.body.style.cursor = "";
         return;
@@ -225,7 +224,7 @@ function keyUpListener(e) {
 }
 function globalKeyUpListener(e) {
     if (e.code === "KeyD" && e.altKey) {
-        if (locatorJSMode === "hidden") {
+        if (modeInCookies === "hidden") {
             destroy();
             setMode("minimal");
             init("minimal");
@@ -347,7 +346,7 @@ function showOptions() {
     selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-options\">\n      ".concat(Object.entries(allTargets).map(function (_a) {
         var key = _a[0], target = _a[1];
         return "<label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"".concat(key, "\" /> ").concat(target.label, "</label>");
-    }), "\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"").concat(linkTemplateUrl, "\" />\n    ");
+    }).join("\n"), "\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"").concat(linkTemplateUrl, "\" />\n    ");
     modal.appendChild(selector);
     var input = modal.querySelector(".locatorjs-custom-template-input");
     input.style.display = "none";
