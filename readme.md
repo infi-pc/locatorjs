@@ -119,3 +119,5 @@ you can create custom links
 
 ## Contributions
 Feel free to create issue or pull request. 
+
+[more info](./contributig.md)
