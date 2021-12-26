@@ -35,12 +35,18 @@ let allTargets: Targets = {
 
 const repoLink = "https://github.com/infi-pc/locatorjs";
 let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-let linkTemplate = allTargets[linkTypeOrTemplate];
-let linkTemplateUrl: string = linkTemplate
-  ? linkTemplate.url
-  : linkTypeOrTemplate;
+let linkTemplate = () => allTargets[linkTypeOrTemplate];
+let linkTemplateUrl = (): string => {
+  const l = linkTemplate();
+  return l ? l.url : linkTypeOrTemplate;
+};
+
 let modeInCookies = getCookie("LOCATORJS") as LocatorJSMode | undefined;
 let defaultMode: LocatorJSMode = "options";
+
+function getMode() {
+  return modeInCookies || defaultMode;
+}
 
 function setMode(newMode: LocatorJSMode) {
   setCookie("LOCATORJS", newMode);
@@ -50,17 +56,15 @@ function setMode(newMode: LocatorJSMode) {
 function setTemplate(lOrTemplate: string) {
   setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
   linkTypeOrTemplate = lOrTemplate;
-  const linkTemplate = allTargets[linkTypeOrTemplate];
-  linkTemplateUrl = linkTemplate ? linkTemplate.url : linkTypeOrTemplate;
 }
 
 if (typeof window !== "undefined") {
   document.addEventListener("keyup", globalKeyUpListener);
 
-  let locatorDisabled = modeInCookies === "disabled";
+  let locatorDisabled = getMode() === "disabled";
   if (!locatorDisabled) {
     window.addEventListener("load", function () {
-      init(modeInCookies || defaultMode);
+      init(getMode());
     });
   }
 }
@@ -80,6 +84,11 @@ export function setup(props: {
           : [key, target]
       )
     );
+    const firstKey = Object.keys(allTargets)[0]
+    if (!firstKey) {
+      throw new Error("no targets found");
+    }
+    linkTypeOrTemplate = firstKey
   }
 }
 
@@ -101,7 +110,7 @@ function buidLink(filePath: string, projectPath: string, loc: any) {
     line: loc.start.line,
     column: loc.start.column + 1,
   };
-  return evalTemplate(linkTemplateUrl, params);
+  return evalTemplate(linkTemplateUrl(), params);
 }
 
 function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
@@ -110,7 +119,7 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
     // in cases it's destroyed in the meantime
     return;
   }
-  if (modeInCookies === "hidden" && !isAltKey) {
+  if (getMode() === "hidden" && !isAltKey) {
     el.innerHTML = "";
     document.body.style.cursor = "";
     return;
@@ -253,7 +262,7 @@ function keyUpListener(e: KeyboardEvent) {
 
 function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && e.altKey) {
-    if (modeInCookies === "hidden") {
+    if (getMode() === "hidden") {
       destroy();
       setMode("minimal");
       init("minimal");
@@ -306,7 +315,7 @@ function hideOptions() {
   }
 }
 
-function init(locatorJSMode: LocatorJSMode) {
+function init(mode: LocatorJSMode) {
   if (document.getElementById("locatorjs-layer")) {
     // already initialized
     return;
@@ -382,10 +391,10 @@ function init(locatorJSMode: LocatorJSMode) {
 
   document.body.appendChild(layer);
 
-  if (locatorJSMode === "minimal") {
+  if (mode === "minimal") {
     showMinimal();
   }
-  if (locatorJSMode === "options") {
+  if (mode === "options") {
     showOptions();
   }
 }
@@ -432,12 +441,14 @@ function showOptions() {
   selector.innerHTML = `
     <b>Choose your editor: </b>
     <div class="locatorjs-options">
-      ${Object.entries(allTargets).map(([key, target]) => {
-        return `<label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="${key}" /> ${target.label}</label>`;
-      }).join("\n")}
+      ${Object.entries(allTargets)
+        .map(([key, target]) => {
+          return `<label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="${key}" /> ${target.label}</label>`;
+        })
+        .join("\n")}
       <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="other" /> Other</label>
     </div>
-    <input class="locatorjs-custom-template-input" type="text" value="${linkTemplateUrl}" />
+    <input class="locatorjs-custom-template-input" type="text" value="${linkTemplateUrl()}" />
     `;
   modal.appendChild(selector);
 
@@ -463,7 +474,7 @@ function showOptions() {
           input.style.display = "none";
         }
         setTemplate(e.target.value === "other" ? input.value : e.target.value);
-        input.value = linkTemplateUrl;
+        input.value = linkTemplateUrl();
       }
     });
   });

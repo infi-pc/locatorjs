@@ -36,12 +36,16 @@ var allTargets = {
 };
 var repoLink = "https://github.com/infi-pc/locatorjs";
 var linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-var linkTemplate = allTargets[linkTypeOrTemplate];
-var linkTemplateUrl = linkTemplate
-    ? linkTemplate.url
-    : linkTypeOrTemplate;
+var linkTemplate = function () { return allTargets[linkTypeOrTemplate]; };
+var linkTemplateUrl = function () {
+    var l = linkTemplate();
+    return l ? l.url : linkTypeOrTemplate;
+};
 var modeInCookies = getCookie("LOCATORJS");
 var defaultMode = "options";
+function getMode() {
+    return modeInCookies || defaultMode;
+}
 function setMode(newMode) {
     setCookie("LOCATORJS", newMode);
     modeInCookies = newMode;
@@ -49,15 +53,13 @@ function setMode(newMode) {
 function setTemplate(lOrTemplate) {
     setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
     linkTypeOrTemplate = lOrTemplate;
-    var linkTemplate = allTargets[linkTypeOrTemplate];
-    linkTemplateUrl = linkTemplate ? linkTemplate.url : linkTypeOrTemplate;
 }
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
-    var locatorDisabled = modeInCookies === "disabled";
+    var locatorDisabled = getMode() === "disabled";
     if (!locatorDisabled) {
         window.addEventListener("load", function () {
-            init(modeInCookies || defaultMode);
+            init(getMode());
         });
     }
 }
@@ -72,6 +74,11 @@ function setup(props) {
                 ? [key, { url: target, label: key }]
                 : [key, target];
         }));
+        var firstKey = Object.keys(allTargets)[0];
+        if (!firstKey) {
+            throw new Error("no targets found");
+        }
+        linkTypeOrTemplate = firstKey;
     }
 }
 exports.setup = setup;
@@ -92,7 +99,7 @@ function buidLink(filePath, projectPath, loc) {
         line: loc.start.line,
         column: loc.start.column + 1
     };
-    return evalTemplate(linkTemplateUrl, params);
+    return evalTemplate(linkTemplateUrl(), params);
 }
 function rerenderLayer(found, isAltKey) {
     var el = document.getElementById("locatorjs-layer");
@@ -100,7 +107,7 @@ function rerenderLayer(found, isAltKey) {
         // in cases it's destroyed in the meantime
         return;
     }
-    if (modeInCookies === "hidden" && !isAltKey) {
+    if (getMode() === "hidden" && !isAltKey) {
         el.innerHTML = "";
         document.body.style.cursor = "";
         return;
@@ -224,7 +231,7 @@ function keyUpListener(e) {
 }
 function globalKeyUpListener(e) {
     if (e.code === "KeyD" && e.altKey) {
-        if (modeInCookies === "hidden") {
+        if (getMode() === "hidden") {
             destroy();
             setMode("minimal");
             init("minimal");
@@ -273,7 +280,7 @@ function hideOptions() {
         optionsEl.remove();
     }
 }
-function init(locatorJSMode) {
+function init(mode) {
     if (document.getElementById("locatorjs-layer")) {
         // already initialized
         return;
@@ -302,10 +309,10 @@ function init(locatorJSMode) {
         pointerEvents: "none"
     });
     document.body.appendChild(layer);
-    if (locatorJSMode === "minimal") {
+    if (mode === "minimal") {
         showMinimal();
     }
-    if (locatorJSMode === "options") {
+    if (mode === "options") {
         showOptions();
     }
 }
@@ -343,10 +350,12 @@ function showOptions() {
     var selector = document.createElement("div");
     selector.style.marginTop = "10px";
     // TODO print targets from their definition object
-    selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-options\">\n      ".concat(Object.entries(allTargets).map(function (_a) {
+    selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-options\">\n      ".concat(Object.entries(allTargets)
+        .map(function (_a) {
         var key = _a[0], target = _a[1];
         return "<label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"".concat(key, "\" /> ").concat(target.label, "</label>");
-    }).join("\n"), "\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"").concat(linkTemplateUrl, "\" />\n    ");
+    })
+        .join("\n"), "\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"").concat(linkTemplateUrl(), "\" />\n    ");
     modal.appendChild(selector);
     var input = modal.querySelector(".locatorjs-custom-template-input");
     input.style.display = "none";
@@ -366,7 +375,7 @@ function showOptions() {
                     input.style.display = "none";
                 }
                 setTemplate(e.target.value === "other" ? input.value : e.target.value);
-                input.value = linkTemplateUrl;
+                input.value = linkTemplateUrl();
             }
         });
     });
