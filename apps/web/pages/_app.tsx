@@ -1,6 +1,8 @@
 import "../styles/globals.css";
 import { setup as setupLocator } from "@locator/runtime";
 
+console.log("process.env.NODE_ENV:", process.env.NODE_ENV)
+
 setupLocator(
   process.env.NODE_ENV === "production"
     ? {
