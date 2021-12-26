@@ -12,6 +12,7 @@ function Header() {
           className="flex items-center mb-4 font-medium text-gray-900 title-font md:mb-0 dark:text-white"
         >
           <Image
+            unoptimized={true}
             src={logo}
             height={50}
             width={207}

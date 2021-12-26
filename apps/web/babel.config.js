@@ -1,6 +1,6 @@
 module.exports = {
   presets: ["next/babel"],
   plugins: [
-    "locatorjs/dist"
+    "@locator/babel-jsx/dist"
   ]
 };

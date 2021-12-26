@@ -11,25 +11,47 @@ const isMac =
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "Option" : "Alt";
-const linkTemplates: { [k: string]: string } = {
-  vscode: "vscode://file${filePath}:${line}:${column}",
-  webstorm: "webstorm://open?file=${filePath}&line=${line}&column=${column}",
-  // sublime: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}",
-  atom: "atom://core/open/file?filename=${filePath}&line=${line}&column=${column}",
+type Target = {
+  url: string;
+  label: string;
 };
+
+type Targets = { [k: string]: Target };
+
+let allTargets: Targets = {
+  vscode: {
+    url: "vscode://file${projectPath}${filePath}:${line}:${column}",
+    label: "VSCode",
+  },
+  webstorm: {
+    url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
+    label: "WebStorm",
+  },
+  atom: {
+    url: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}",
+    label: "Atom",
+  },
+};
+
 const repoLink = "https://github.com/infi-pc/locatorjs";
 let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-let linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+let linkTemplate = allTargets[linkTypeOrTemplate];
+let linkTemplateUrl: string = linkTemplate
+  ? linkTemplate.url
+  : linkTypeOrTemplate;
 let locatorJSMode = getCookie("LOCATORJS") as LocatorJSMode | undefined;
+let defaultMode: LocatorJSMode = "options";
 
 function setMode(newMode: LocatorJSMode) {
   setCookie("LOCATORJS", newMode);
   locatorJSMode = newMode;
 }
+
 function setTemplate(lOrTemplate: string) {
   setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
   linkTypeOrTemplate = lOrTemplate;
-  linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+  const linkTemplate = allTargets[linkTypeOrTemplate];
+  linkTemplateUrl = linkTemplate ? linkTemplate.url : linkTypeOrTemplate;
 }
 
 if (typeof window !== "undefined") {
@@ -37,12 +59,31 @@ if (typeof window !== "undefined") {
 
   let locatorDisabled = locatorJSMode === "disabled";
   if (!locatorDisabled) {
-    init(locatorJSMode || "options");
+    window.setTimeout(() => {
+      // This should be done after all initial scripts are executed so setup had a chance to run
+      init(locatorJSMode || defaultMode);
+    }, 0);
+  }
+}
+
+export function setup(props: {
+  defaultMode?: LocatorJSMode;
+  targets?: { [k: string]: Target | string };
+}) {
+  if (props.defaultMode) {
+    defaultMode = props.defaultMode;
+  }
+  if (props.targets) {
+    allTargets = Object.fromEntries(Object.entries(props.targets).map(([key, target]) =>
+      typeof target === "string"
+        ? [key, { url: target, label: key }]
+        : [key, target]
+    ));
   }
 }
 
 export function register(input: any) {
-  dataByFilename[input.filePath] = input;
+  dataByFilename[input.projectPath + input.filePath] = input;
 }
 
 function evalTemplate(str: string, params: { [key: string]: string }) {
@@ -52,26 +93,26 @@ function evalTemplate(str: string, params: { [key: string]: string }) {
   return new Function(...names, `return \`${str}\`;`)(...vals);
 }
 
-function buidLink(filePath: string, loc: any) {
+function buidLink(filePath: string, projectPath: string, loc: any) {
   const params = {
     filePath,
+    projectPath,
     line: loc.start.line,
     column: loc.start.column + 1,
   };
-  return evalTemplate(linkTemplate, params);
+  return evalTemplate(linkTemplateUrl, params);
 }
 
 function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
-  
   const el = document.getElementById("locatorjs-layer");
   if (!el) {
     // in cases it's destroyed in the meantime
     return;
   }
-  if (locatorJSMode ==="hidden" && !isAltKey) {
+  if (locatorJSMode === "hidden" && !isAltKey) {
     el.innerHTML = "";
     document.body.style.cursor = "";
-    return
+    return;
   }
 
   if (isAltKey) {
@@ -80,9 +121,10 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
     document.body.style.cursor = "";
   }
   if (found.dataset && found.dataset.locatorjsId) {
-    const [filePath, id] = found.dataset.locatorjsId.split("::");
-    const data = dataByFilename[filePath];
-    const expData = data.expressions[id];
+    const [fileFullPath, id] = parseDataId(found.dataset.locatorjsId);
+
+    const fileData = dataByFilename[fileFullPath];
+    const expData = fileData.expressions[id];
     if (expData) {
       const bbox = found.getBoundingClientRect();
       const rect = document.createElement("div");
@@ -124,7 +166,11 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       topPart.appendChild(labelWrapper);
 
       const label = document.createElement("a");
-      label.href = buidLink(filePath, expData.loc);
+      label.href = buidLink(
+        fileData.filePath,
+        fileData.projectPath,
+        expData.loc
+      );
       // label.style.backgroundColor = "#ff0000";
       css(label, {
         color: "#fff",
@@ -134,9 +180,12 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
         padding: "2px 6px",
         borderRadius: "4px",
         fontFamily: fontFamily,
+        whiteSpace: "nowrap",
       });
 
-      label.innerText = expData.name;
+      label.innerText =
+        (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
+        expData.name;
       label.id = "locatorjs-label";
       labelWrapper.appendChild(label);
 
@@ -144,6 +193,14 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       el.appendChild(rect);
     }
   }
+}
+
+function parseDataId(dataId: string): [fileFullPath: string, id: string] {
+  const [fileFullPath, id] = dataId.split("::");
+  if (!fileFullPath || !id) {
+    throw new Error("locatorjsId is malformed");
+  }
+  return [fileFullPath, id];
 }
 
 function scrollListener() {
@@ -218,10 +275,10 @@ function clickListener(e: MouseEvent) {
     if (!found || !found.dataset || !found.dataset.locatorjsId) {
       return;
     }
-    const [filePath, id] = found.dataset.locatorjsId.split("::");
-    const data = dataByFilename[filePath];
-    const exp = data.expressions[Number(id)];
-    const link = buidLink(filePath, exp.loc);
+    const [filePath, id] = parseDataId(found.dataset.locatorjsId);
+    const fileData = dataByFilename[filePath];
+    const expData = fileData.expressions[Number(id)];
+    const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
     e.preventDefault();
     e.stopPropagation();
     window.open(link);
@@ -370,15 +427,16 @@ function showOptions() {
   const selector = document.createElement("div");
   selector.style.marginTop = "10px";
 
+  // TODO print targets from their definition object
   selector.innerHTML = `
     <b>Choose your editor: </b>
     <div class="locatorjs-options">
-      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="vscode" /> VSCode</label>
-      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="webstorm" /> Webstorm</label>
-      <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="atom" /> Atom</label>
+      ${Object.entries(allTargets).map(([key, target]) => {
+        return `<label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="${key}" /> ${target.label}</label>`;
+      })}
       <label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="other" /> Other</label>
     </div>
-    <input class="locatorjs-custom-template-input" type="text" value="${linkTemplate}" />
+    <input class="locatorjs-custom-template-input" type="text" value="${linkTemplateUrl}" />
     `;
   modal.appendChild(selector);
 
@@ -404,7 +462,7 @@ function showOptions() {
           input.style.display = "none";
         }
         setTemplate(e.target.value === "other" ? input.value : e.target.value);
-        input.value = linkTemplate;
+        input.value = linkTemplateUrl;
       }
     });
   });
@@ -507,8 +565,9 @@ function css(element: HTMLElement, styles: Partial<CSSStyleDeclaration>) {
 }
 function goToHiddenHandler() {
   setMode("hidden");
-  destroy()
-  init("hidden")
-  alert(`LocatorJS will be now hidden.\n\nPress and hold ${altTitle} so start selecting in hidden mode.\n${altTitle}+d: To show UI`)
+  destroy();
+  init("hidden");
+  alert(
+    `LocatorJS will be now hidden.\n\nPress and hold ${altTitle} so start selecting in hidden mode.\n${altTitle}+d: To show UI`
+  );
 }
-

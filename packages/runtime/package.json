@@ -1,0 +1,22 @@
+{
+  "name": "@locator/runtime",
+  "main": "dist/index.js",
+  "version": "0.0.5",
+  "scripts": {
+    "test": "jest tests/",
+    "test:update": "jest tests/ -u",
+    "dev": "tsc src/*.ts --watch --declaration --outDir dist",
+    "build": "tsc src/*.ts --declaration --outDir dist",
+    "ts": "tsc src/*.ts --noEmit --outDir dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^4.5.2"
+  },
+  "author": "Michael Musil",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/infi-pc/locatorjs"
+  },
+  "license": "MIT"
+}

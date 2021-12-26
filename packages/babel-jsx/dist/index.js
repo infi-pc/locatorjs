@@ -1,10 +1,11 @@
 "use strict";
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
-var RUNTIME_PATH = "locatorjs/dist/runtime";
+var RUNTIME_PATH = "@locator/runtime";
 function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;
+    var wrappingComponent = null;
     function addToStorage(expression) {
         if (fileStorage) {
             var id = fileStorage.nextId;
@@ -26,7 +27,8 @@ function transformLocatorJsComponents(babel) {
                     }
                     else {
                         fileStorage = {
-                            filePath: state.filename,
+                            filePath: state.filename.replace(state.cwd, ""),
+                            projectPath: state.cwd,
                             nextId: 0,
                             expressions: []
                         };
@@ -43,6 +45,34 @@ function transformLocatorJsComponents(babel) {
                     path.node.body.push(t.expressionStatement(t.callExpression(t.memberExpression(t.callExpression(t.identifier("require"), [
                         t.stringLiteral(RUNTIME_PATH),
                     ]), t.identifier("register")), [dataAst])));
+                }
+            },
+            FunctionDeclaration: {
+                enter: function (path, state) {
+                    if (!fileStorage) {
+                        return;
+                    }
+                    if (!path || !path.node || !path.node.id || !path.node.loc) {
+                        return;
+                    }
+                    var name = path.node.id.name;
+                    wrappingComponent = {
+                        name: name,
+                        locString: path.node.loc.start.line + ":" + path.node.loc.start.column
+                    };
+                },
+                exit: function (path, state) {
+                    if (!fileStorage) {
+                        return;
+                    }
+                    if (!path || !path.node || !path.node.id || !path.node.loc) {
+                        return;
+                    }
+                    var name = path.node.id.name;
+                    // Reset wrapping component
+                    if (wrappingComponent && wrappingComponent.name === name && wrappingComponent.locString === path.node.loc.start.line + ":" + path.node.loc.start.column) {
+                        wrappingComponent = null;
+                    }
                 }
             },
             JSXElement: function (path) {
@@ -65,16 +95,15 @@ function transformLocatorJsComponents(babel) {
                 if (name) {
                     var id = addToStorage({
                         name: name,
-                        loc: path.node.loc
+                        loc: path.node.loc,
+                        wrappingComponent: (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null
                     });
-                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.filePath + "::" + String(id))
+                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.projectPath + fileStorage.filePath + "::" + String(id))
                     // t.ObjectExpression([
                     // ])
                     ));
                     path.node.openingElement.attributes.push(newAttr);
                 }
-                // console.log(path.node)
-                // const ast = parse(`{ boo: "flop" }`);
             }
         }
     };

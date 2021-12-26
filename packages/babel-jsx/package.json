@@ -1,11 +1,12 @@
 {
-  "name": "locatorjs",
+  "name": "@locator/babel-jsx",
   "main": "dist/index.js",
   "version": "0.0.5",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
-    "watch": "tsc src/*.ts --watch --outDir dist",
+    "dev": "tsc src/*.ts --watch --outDir dist",
+    "build": "tsc src/*.ts --outDir dist",
     "ts": "tsc src/*.ts --outDir dist"
   },
   "dependencies": {

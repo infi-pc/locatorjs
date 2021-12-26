@@ -9,7 +9,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 exports.__esModule = true;
-exports.register = void 0;
+exports.register = exports.setup = void 0;
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -20,16 +20,28 @@ var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "Option" : "Alt";
-var linkTemplates = {
-    vscode: "vscode://file${filePath}:${line}:${column}",
-    webstorm: "webstorm://open?file=${filePath}&line=${line}&column=${column}",
-    // sublime: "sublimetext://open?url=file://${filePath}&line=${line}&column=${column}",
-    atom: "atom://core/open/file?filename=${filePath}&line=${line}&column=${column}"
+var allTargets = {
+    vscode: {
+        url: "vscode://file${projectPath}${filePath}:${line}:${column}",
+        label: "VSCode"
+    },
+    webstorm: {
+        url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
+        label: "WebStorm"
+    },
+    atom: {
+        url: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}",
+        label: "Atom"
+    }
 };
 var repoLink = "https://github.com/infi-pc/locatorjs";
 var linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-var linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+var linkTemplate = allTargets[linkTypeOrTemplate];
+var linkTemplateUrl = linkTemplate
+    ? linkTemplate.url
+    : linkTypeOrTemplate;
 var locatorJSMode = getCookie("LOCATORJS");
+var defaultMode = "options";
 function setMode(newMode) {
     setCookie("LOCATORJS", newMode);
     locatorJSMode = newMode;
@@ -37,17 +49,35 @@ function setMode(newMode) {
 function setTemplate(lOrTemplate) {
     setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
     linkTypeOrTemplate = lOrTemplate;
-    linkTemplate = linkTemplates[linkTypeOrTemplate] || linkTypeOrTemplate;
+    var linkTemplate = allTargets[linkTypeOrTemplate];
+    linkTemplateUrl = linkTemplate ? linkTemplate.url : linkTypeOrTemplate;
 }
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
     var locatorDisabled = locatorJSMode === "disabled";
     if (!locatorDisabled) {
-        init(locatorJSMode || "options");
+        window.setTimeout(function () {
+            // This should be done after all initial scripts are executed so setup had a chance to run
+            init(locatorJSMode || defaultMode);
+        }, 0);
     }
 }
+function setup(props) {
+    if (props.defaultMode) {
+        defaultMode = props.defaultMode;
+    }
+    if (props.targets) {
+        allTargets = Object.fromEntries(Object.entries(props.targets).map(function (_a) {
+            var key = _a[0], target = _a[1];
+            return typeof target === "string"
+                ? [key, { url: target, label: key }]
+                : [key, target];
+        }));
+    }
+}
+exports.setup = setup;
 function register(input) {
-    dataByFilename[input.filePath] = input;
+    dataByFilename[input.projectPath + input.filePath] = input;
 }
 exports.register = register;
 function evalTemplate(str, params) {
@@ -56,13 +86,14 @@ function evalTemplate(str, params) {
     // @ts-ignore
     return new (Function.bind.apply(Function, __spreadArray(__spreadArray([void 0], names, false), ["return `".concat(str, "`;")], false)))().apply(void 0, vals);
 }
-function buidLink(filePath, loc) {
+function buidLink(filePath, projectPath, loc) {
     var params = {
         filePath: filePath,
+        projectPath: projectPath,
         line: loc.start.line,
         column: loc.start.column + 1
     };
-    return evalTemplate(linkTemplate, params);
+    return evalTemplate(linkTemplateUrl, params);
 }
 function rerenderLayer(found, isAltKey) {
     var el = document.getElementById("locatorjs-layer");
@@ -82,9 +113,9 @@ function rerenderLayer(found, isAltKey) {
         document.body.style.cursor = "";
     }
     if (found.dataset && found.dataset.locatorjsId) {
-        var _a = found.dataset.locatorjsId.split("::"), filePath = _a[0], id = _a[1];
-        var data = dataByFilename[filePath];
-        var expData = data.expressions[id];
+        var _a = parseDataId(found.dataset.locatorjsId), fileFullPath = _a[0], id = _a[1];
+        var fileData = dataByFilename[fileFullPath];
+        var expData = fileData.expressions[id];
         if (expData) {
             var bbox = found.getBoundingClientRect();
             var rect = document.createElement("div");
@@ -123,7 +154,7 @@ function rerenderLayer(found, isAltKey) {
             labelWrapper.id = "locatorjs-label-wrapper";
             topPart.appendChild(labelWrapper);
             var label = document.createElement("a");
-            label.href = buidLink(filePath, expData.loc);
+            label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
             // label.style.backgroundColor = "#ff0000";
             css(label, {
                 color: "#fff",
@@ -132,15 +163,25 @@ function rerenderLayer(found, isAltKey) {
                 textAlign: "center",
                 padding: "2px 6px",
                 borderRadius: "4px",
-                fontFamily: fontFamily
+                fontFamily: fontFamily,
+                whiteSpace: "nowrap"
             });
-            label.innerText = expData.name;
+            label.innerText =
+                (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
+                    expData.name;
             label.id = "locatorjs-label";
             labelWrapper.appendChild(label);
             el.innerHTML = "";
             el.appendChild(rect);
         }
     }
+}
+function parseDataId(dataId) {
+    var _a = dataId.split("::"), fileFullPath = _a[0], id = _a[1];
+    if (!fileFullPath || !id) {
+        throw new Error("locatorjsId is malformed");
+    }
+    return [fileFullPath, id];
 }
 function scrollListener() {
     // hide layers when scrolling
@@ -207,10 +248,10 @@ function clickListener(e) {
         if (!found || !found.dataset || !found.dataset.locatorjsId) {
             return;
         }
-        var _a = found.dataset.locatorjsId.split("::"), filePath = _a[0], id = _a[1];
-        var data = dataByFilename[filePath];
-        var exp = data.expressions[Number(id)];
-        var link = buidLink(filePath, exp.loc);
+        var _a = parseDataId(found.dataset.locatorjsId), filePath = _a[0], id = _a[1];
+        var fileData = dataByFilename[filePath];
+        var expData = fileData.expressions[Number(id)];
+        var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
         e.preventDefault();
         e.stopPropagation();
         window.open(link);
@@ -302,7 +343,11 @@ function showOptions() {
     modal.appendChild(controls);
     var selector = document.createElement("div");
     selector.style.marginTop = "10px";
-    selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-options\">\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"vscode\" /> VSCode</label>\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"webstorm\" /> Webstorm</label>\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"atom\" /> Atom</label>\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"".concat(linkTemplate, "\" />\n    ");
+    // TODO print targets from their definition object
+    selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-options\">\n      ".concat(Object.entries(allTargets).map(function (_a) {
+        var key = _a[0], target = _a[1];
+        return "<label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"".concat(key, "\" /> ").concat(target.label, "</label>");
+    }), "\n      <label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"other\" /> Other</label>\n    </div>\n    <input class=\"locatorjs-custom-template-input\" type=\"text\" value=\"").concat(linkTemplateUrl, "\" />\n    ");
     modal.appendChild(selector);
     var input = modal.querySelector(".locatorjs-custom-template-input");
     input.style.display = "none";
@@ -322,7 +367,7 @@ function showOptions() {
                     input.style.display = "none";
                 }
                 setTemplate(e.target.value === "other" ? input.value : e.target.value);
-                input.value = linkTemplate;
+                input.value = linkTemplateUrl;
             }
         });
     });
