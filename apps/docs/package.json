@@ -1,7 +1,6 @@
 {
   "name": "@locator/docs",
   "version": "0.0.0",
-  "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",
