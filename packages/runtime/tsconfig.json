@@ -8,6 +8,8 @@
         "moduleResolution": "node",
         "forceConsistentCasingInFileNames": true,
         "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "strictNullChecks": true,
         "esModuleInterop": true
     }
 }
