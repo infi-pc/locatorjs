@@ -1,7 +1,7 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
@@ -17,5 +17,6 @@
     "type": "git",
     "url": "https://github.com/infi-pc/locatorjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "gitHead": "422ddf423403454c72d761ea38f4c80db7876391"
 }
