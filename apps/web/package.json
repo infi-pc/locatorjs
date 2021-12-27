@@ -7,7 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "locatorjs": "^0.0.5",
+    "@locator/runtime": "^0.0.10",
     "next": "^12.0.7",
     "next-transpile-modules": "^9.0.0",
     "react": "^17.0.2",
@@ -16,6 +16,7 @@
     "typescript": "^4.5.4"
   },
   "devDependencies": {
+    "@locator/babel-jsx": "^0.0.11",
     "@types/react": "^17.0.37",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.4",
