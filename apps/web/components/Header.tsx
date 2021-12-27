@@ -8,8 +8,8 @@ function Header() {
     <header className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
       <div className="container flex flex-col flex-wrap items-center p-5 mx-auto md:flex-row">
         <a
-          href=""
-          className="flex items-center mb-4 font-medium text-gray-900 title-font md:mb-0 dark:text-white"
+          href="/"
+          className="mb-4 md:mb-0"
         >
           <Image
             unoptimized={true}
@@ -20,7 +20,7 @@ function Header() {
           ></Image>
         </a>
         <nav className="flex flex-wrap items-center justify-center text-base md:ml-auto">
-          <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
+          {/* <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             First Link
           </a>
           <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
@@ -31,7 +31,7 @@ function Header() {
           </a>
           <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             Fourth Link
-          </a>
+          </a> */}
           <div className="mt-1">
             <GitHubButton
               href="https://github.com/infi-pc/locatorjs"

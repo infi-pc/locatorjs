@@ -10,7 +10,7 @@ let currentElementRef: null | WeakRef<HTMLElement> = null;
 const isMac =
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-const altTitle = isMac ? "Option" : "Alt";
+const altTitle = isMac ? "⌥ Option" : "Alt";
 type Target = {
   url: string;
   label: string;
@@ -431,7 +431,7 @@ function showOptions() {
 
   const controls = document.createElement("div");
   controls.style.color = "#baa";
-  controls.innerHTML = `<div><b>${altTitle}+d:</b> enable/disable Locator<br /><b>Press and hold ${altTitle}:</b> make boxes clickable on full surface </div>`;
+  controls.innerHTML = `<div><b>${altTitle} + d:</b> enable/disable Locator<br /><b>Press and hold ${altTitle}:</b> make boxes clickable on full surface </div>`;
   modal.appendChild(controls);
 
   const selector = document.createElement("div");

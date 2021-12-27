@@ -19,7 +19,7 @@ var fontFamily = "Helvetica, sans-serif, Arial";
 var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-var altTitle = isMac ? "Option" : "Alt";
+var altTitle = isMac ? "⌥ Option" : "Alt";
 var allTargets = {
     vscode: {
         url: "vscode://file${projectPath}${filePath}:${line}:${column}",
@@ -345,7 +345,7 @@ function showOptions() {
     modal.appendChild(modalHeader);
     var controls = document.createElement("div");
     controls.style.color = "#baa";
-    controls.innerHTML = "<div><b>".concat(altTitle, "+d:</b> enable/disable Locator<br /><b>Press and hold ").concat(altTitle, ":</b> make boxes clickable on full surface </div>");
+    controls.innerHTML = "<div><b>".concat(altTitle, " + d:</b> enable/disable Locator<br /><b>Press and hold ").concat(altTitle, ":</b> make boxes clickable on full surface </div>");
     modal.appendChild(controls);
     var selector = document.createElement("div");
     selector.style.marginTop = "10px";

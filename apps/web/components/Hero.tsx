@@ -3,6 +3,11 @@ import React from "react";
 import demo from "../public/demo2.gif";
 import background from "../public/bg.svg";
 
+const isMac =
+  typeof navigator !== "undefined" &&
+  navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+const altTitle = isMac ? "⌥ Option" : "Alt";
+
 function Hero() {
   return (
     <section className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 ">
@@ -23,14 +28,14 @@ function Hero() {
             <div>
               hold{" "}
               <span className="py-1 px-2 mx-1 border border-gray-300 rounded-md">
-                ⌥ option
+              {altTitle}
               </span>{" "}
               and click on component
             </div>
             <div>
               press{" "}
               <span className="py-1 px-2 mx-1 border border-gray-300 rounded-md">
-                ⌥ option
+              {altTitle}
               </span>{" "}
               +{" "}
               <span className="py-1 px-2 mx-1 border border-gray-300 rounded-md">
