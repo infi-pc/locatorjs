@@ -156,7 +156,12 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
       labelPart.style.position = "absolute";
       labelPart.style.display = "flex";
       labelPart.style.justifyContent = "center";
-      labelPart.style.bottom = "-28px";
+      if (isReversed) {
+        labelPart.style.bottom = "-28px";
+      } else {
+        labelPart.style.top = "-28px";
+      }
+
       labelPart.style.left = "0px";
       labelPart.style.width = "100%";
       // labelPart.style.backgroundColor = "#00ff00";
