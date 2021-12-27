@@ -1,7 +1,7 @@
 {
   "name": "@locator/babel-jsx",
   "main": "dist/index.js",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
@@ -15,7 +15,7 @@
     "@babel/preset-react": "^7.16.0",
     "@babel/preset-typescript": "^7.16.0",
     "@babel/traverse": "^7.16.3",
-    "@locator/runtime": "^0.0.12"
+    "@locator/runtime": "^0.0.13"
   },
   "devDependencies": {
     "@types/babel__traverse": "^7.14.2",
