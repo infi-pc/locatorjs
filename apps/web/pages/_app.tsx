@@ -30,6 +30,9 @@ function MyApp({ Component, pageProps }) {
         <title>LocatorJS - click on any component to go to code.</title>
         <meta name="description" content="A plugin for you dev stack that allows you to click trough from your app to it's code."></meta>
         <meta property="og:image" content="/preview.png"></meta>
+        <meta name="twitter:card" content="summary"></meta>
+        <meta name="twitter:site" content="@_michaelmusil"></meta>
+        <meta name="twitter:title" content="LocatorJS - click on any component to go to code."></meta>
         <meta name="twitter:image" content="/preview.png"></meta>
       </Head>
       <Component {...pageProps} />
