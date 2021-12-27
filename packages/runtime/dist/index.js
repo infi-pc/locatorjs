@@ -138,31 +138,35 @@ function rerenderLayer(found, isAltKey) {
                 rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
             }
             var isReversed = bbox.y < 30;
-            var topPart = document.createElement("div");
-            topPart.style.position = "absolute";
-            topPart.style.display = "flex";
-            topPart.style.justifyContent = "center";
+            var labelPart = document.createElement("div");
+            labelPart.style.position = "absolute";
+            labelPart.style.display = "flex";
+            labelPart.style.justifyContent = "center";
+            labelPart.style.bottom = "-28px";
+            labelPart.style.left = "0px";
+            labelPart.style.width = "100%";
+            // labelPart.style.backgroundColor = "#00ff00";
+            labelPart.style.pointerEvents = "auto";
             if (isReversed) {
-                topPart.style.bottom = "-26px";
+                labelPart.style.borderBottomLeftRadius = "100%";
+                labelPart.style.borderBottomRightRadius = "100%";
             }
             else {
-                topPart.style.top = "-30px";
+                labelPart.style.borderTopLeftRadius = "100%";
+                labelPart.style.borderTopRightRadius = "100%";
             }
-            topPart.style.left = "0px";
-            topPart.style.width = "100%";
-            rect.appendChild(topPart);
+            labelPart.id = "locatorjs-label-part";
+            rect.appendChild(labelPart);
             var labelWrapper = document.createElement("div");
             labelWrapper.style.padding = isReversed
                 ? "10px 10px 2px 10px"
                 : "2px 10px 10px 10px";
-            // labelWrapper.style.backgroundColor = "#00ff00";
-            labelWrapper.style.pointerEvents = "auto";
-            labelWrapper.id = "locatorjs-label-wrapper";
-            topPart.appendChild(labelWrapper);
+            // labelWrapper.id = "locatorjs-label-wrapper";
+            labelPart.appendChild(labelWrapper);
             var label = document.createElement("a");
             label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-            // label.style.backgroundColor = "#ff0000";
             css(label, {
+                display: "block",
                 color: "#fff",
                 fontSize: "12px",
                 fontWeight: "bold",
@@ -201,8 +205,7 @@ function scrollListener() {
 function mouseOverListener(e) {
     var target = e.target;
     if (target && target instanceof HTMLElement) {
-        if (target.id == "locatorjs-label" ||
-            target.id == "locatorjs-label-wrapper") {
+        if (target.id == "locatorjs-label" || target.id == "locatorjs-label-part") {
             return;
         }
         var found = target.closest("[data-locatorjs-id]");
