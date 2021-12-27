@@ -27,7 +27,10 @@ function MyApp({ Component, pageProps }) {
       <Head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <title>LocatorJS - click on any component to get to code.</title>
+        <title>LocatorJS - click on any component to go to code.</title>
+        <meta name="description" content="A plugin for you dev stack that allows you to click trough from your app to it's code."></meta>
+        <meta property="og:image" content="/preview.png"></meta>
+        <meta name="twitter:image" content="/preview.png"></meta>
       </Head>
       <Component {...pageProps} />
     </>
