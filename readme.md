@@ -22,11 +22,13 @@ Works with most popular IDEs
 
 First install it
 ```sh
-    npm install locatorjs
+    npm install @locator/runtime
+    npm install --save-dev @locator/babel-jsx
 ```
 or
 ```sh
-    yarn locatorjs
+    yarn add @locator/runtime
+    yarn add --dev @locator/babel-jsx
 ```
 
 ## 2. Setup
@@ -38,7 +40,7 @@ add file `babel.config.js` to the root of your project.
   module.exports = {
     presets: ["next/babel"],
     // enabled only on development
-    plugins: process.env.NODE_ENV === "development" ? ["locatorjs/dist"] : [],
+    plugins: process.env.NODE_ENV === "development" ? ["@locator/babel-jsx/dist"] : [],
   };
 ```
 
@@ -48,7 +50,7 @@ add `"locatorjs"` plugin to your plugins in `babel.config.js`.
 
 ```javascript
   module.exports = {
-    plugins: process.env.NODE_ENV === "development" ? ["locatorjs/dist"] : [],
+    plugins: process.env.NODE_ENV === "development" ? ["@locator/babel-jsx/dist"] : [],
   };
 ```
 
@@ -60,7 +62,7 @@ Then add babel plugin in `craco.config.js`
 ```javascript
   module.exports = {
     babel: {
-      plugins: process.env.NODE_ENV === "development" ? ["locatorjs/dist"] : [],
+      plugins: process.env.NODE_ENV === "development" ? ["@locator/babel-jsx/dist"] : [],
     },
   }
 ```
@@ -73,7 +75,7 @@ Then add babel plugin in `craco.config.js`
 ```javascript
   module.exports = {
     babel: {
-      plugins: process.env.NODE_ENV === "development" ? ["locatorjs/dist"] : [],
+      plugins: process.env.NODE_ENV === "development" ? ["@locator/babel-jsx/dist"] : [],
     },
   }
 ```
@@ -82,7 +84,7 @@ Then add babel plugin in `craco.config.js`
  
 Run your development environment. 
 
-Each developer can setup their own IDE.
+Each developer in your team can choose their own target Editor.
 
 ## 4. Tell others in your team
 
