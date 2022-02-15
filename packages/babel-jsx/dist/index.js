@@ -2,6 +2,12 @@
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
 var RUNTIME_PATH = "@locator/runtime";
+var disallowedNames = {
+    Fragment: true,
+    "React.Fragment": true,
+    Suspense: true,
+    "React.Suspense": true
+};
 function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;
@@ -70,7 +76,10 @@ function transformLocatorJsComponents(babel) {
                     }
                     var name = path.node.id.name;
                     // Reset wrapping component
-                    if (wrappingComponent && wrappingComponent.name === name && wrappingComponent.locString === path.node.loc.start.line + ":" + path.node.loc.start.column) {
+                    if (wrappingComponent &&
+                        wrappingComponent.name === name &&
+                        wrappingComponent.locString ===
+                            path.node.loc.start.line + ":" + path.node.loc.start.column) {
                         wrappingComponent = null;
                     }
                 }
@@ -92,13 +101,16 @@ function transformLocatorJsComponents(babel) {
                     return "";
                 }
                 var name = getName(path.node.openingElement.name);
-                if (name) {
+                if (name && !disallowedNames[name]) {
                     var id = addToStorage({
                         name: name,
                         loc: path.node.loc,
                         wrappingComponent: (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null
                     });
-                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.projectPath + fileStorage.filePath + "::" + String(id))
+                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.projectPath +
+                        fileStorage.filePath +
+                        "::" +
+                        String(id))
                     // t.ObjectExpression([
                     // ])
                     ));

@@ -18,6 +18,7 @@ require("locatorjs/dist/runtime.js").register({
           column: 24,
         },
       },
+      wrappingComponent: null,
     },
   ],
 });
