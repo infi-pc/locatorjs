@@ -1,13 +1,8 @@
 "use strict";
 exports.__esModule = true;
 var parser_1 = require("@babel/parser");
+var isDisallowedComponent_1 = require("./isDisallowedComponent");
 var RUNTIME_PATH = "@locator/runtime";
-var disallowedNames = {
-    Fragment: true,
-    "React.Fragment": true,
-    Suspense: true,
-    "React.Suspense": true
-};
 function transformLocatorJsComponents(babel) {
     var t = babel.types;
     var fileStorage = null;
@@ -101,7 +96,7 @@ function transformLocatorJsComponents(babel) {
                     return "";
                 }
                 var name = getName(path.node.openingElement.name);
-                if (name && !disallowedNames[name]) {
+                if (name && !(0, isDisallowedComponent_1.isDisallowedComponent)(name)) {
                     var id = addToStorage({
                         name: name,
                         loc: path.node.loc,

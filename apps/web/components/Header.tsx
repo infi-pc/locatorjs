@@ -1,5 +1,5 @@
 import Image from "next/image";
-import React, { Fragment } from "react";
+import React from "react";
 import logo from "../public/logo-noborders3x.png";
 import GitHubButton from "react-next-github-btn";
 
@@ -16,8 +16,6 @@ function Header() {
             alt="LocatorJS logo"
           ></Image>
         </a>
-        <React.Fragment>xxx</React.Fragment>
-        <Fragment>xxx</Fragment>
         <nav className="flex flex-wrap items-center justify-center text-base md:ml-auto">
           {/* <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             First Link
