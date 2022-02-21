@@ -204,6 +204,7 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
         borderRadius: "4px",
         fontFamily: fontFamily,
         whiteSpace: "nowrap",
+        textDecoration: "none",
       });
 
       label.innerText =
@@ -365,6 +366,14 @@ function init(mode: LocatorJSMode) {
       #locatorjs-options a:hover {
         color: ${linkColorHover};
         text-decoration: underline;
+      }
+      #locatorjs-minimal a {
+        color: #fff;
+        text-decoration: none;
+      }
+      #locatorjs-minimal a:hover {
+        color: #ccc;
+        text-decoration: none;
       }
       #locatorjs-options-close {
         cursor: pointer;
