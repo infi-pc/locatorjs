@@ -4,8 +4,8 @@ import logo from "../public/logo-noborders3x.png";
 
 function Footer() {
   return (
-    <footer className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
-      <div className="container flex flex-col items-center px-5 py-8 mx-auto sm:flex-row">
+    <footer className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 ">
+      <div className="container flex flex-col items-center px-5 py-8 mx-auto sm:flex-row rounded-t-3xl bg-slate-50">
         <a href="/" className="">
           <Image
             unoptimized={true}
@@ -39,7 +39,11 @@ function Footer() {
               <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
             </svg>
           </a> */}
-          <a href="https://twitter.com/_michaelmusil" title="twitter" className="ml-3 text-gray-500 dark:text-gray-400">
+          <a
+            href="https://twitter.com/_michaelmusil"
+            title="twitter"
+            className="ml-3 text-gray-500 dark:text-gray-400"
+          >
             <svg
               fill="currentColor"
               strokeLinecap="round"

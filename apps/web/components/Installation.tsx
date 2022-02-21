@@ -3,18 +3,18 @@ import React from "react";
 function Installation() {
   return (
     <section className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 mt-4">
-      <div className="container px-5 py-24 mx-auto">
-        <div className="flex flex-col w-full mb-20 text-center">
+      <div className="container px-5 py-24 mx-auto bg-slate-50 rounded-3xl">
+        <div className="flex flex-col w-full text-center">
           <h1 className="mb-4 text-2xl font-medium text-gray-900 sm:text-5xl title-font dark:text-white">
             Setup
           </h1>
           <p className="mx-auto text-base leading-relaxed lg:w-2/3">
             LocatorJS works with all frameworks based on JSX and using Babel.
           </p>
-          <div className="my-8">
+          <div className="mt-8">
             <a
               href="https://github.com/infi-pc/locatorjs#1-install"
-              className=" text-white bg-primary-500 border-0 py-2 px-6 focus:outline-none hover:bg-primary-600 rounded text-lg"
+              className=" text-white bg-primary-500 border-0 py-3 px-8 focus:outline-none hover:bg-primary-600 rounded text-lg"
             >
               Go to readme
             </a>
