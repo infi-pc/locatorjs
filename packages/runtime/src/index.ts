@@ -1,3 +1,13 @@
+/// <reference types="svelte" />
+
+import App from "./App.svelte";
+
+if (typeof document !== "undefined") {
+  const app = new App({
+    target: document.body,
+  });
+}
+
 type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
 const dataByFilename: { [filename: string]: any } = {};
 const baseColor = "#e90139";
