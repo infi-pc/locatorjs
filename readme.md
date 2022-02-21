@@ -76,6 +76,18 @@ module.exports = {
 };
 ```
 
+### Storybook
+
+add `.babelrc` to `.storybook` folder.
+
+```json
+{
+  "plugins": ["@locator/babel-jsx/dist"]
+}
+```
+
+Note that we don't add `process.env.NODE_ENV === "development"` to the `.babelrc` file, because we expect that we will want to have LocatorJS even in production.
+
 ### Ionic React
 
 Ionic React is based on Create React App so for proper customisation you need to install https://github.com/gsoft-inc/craco.
