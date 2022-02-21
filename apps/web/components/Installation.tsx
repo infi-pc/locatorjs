@@ -3,8 +3,8 @@ import React from "react";
 function Installation() {
   return (
     <section className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 mt-4">
-      <div className="container px-5 py-24 mx-auto bg-slate-50 rounded-3xl">
-        <div className="flex flex-col w-full text-center">
+      <div className="container px-4 mx-auto ">
+        <div className="flex flex-col w-full text-center py-24 bg-slate-50 rounded-3xl p-4">
           <h1 className="mb-4 text-2xl font-medium text-gray-900 sm:text-5xl title-font dark:text-white">
             Setup
           </h1>

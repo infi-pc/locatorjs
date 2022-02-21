@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import Installation from "../components/Installation";
+import Subscribe from "../components/Subscribe";
 
 export default function Home() {
   return (
@@ -11,6 +12,7 @@ export default function Home() {
       <Hero></Hero>
       <Installation></Installation>
       <Contribute></Contribute>
+      <Subscribe></Subscribe>
       <Footer></Footer>
     </>
   );
