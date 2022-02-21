@@ -2,6 +2,9 @@ type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
 const dataByFilename: { [filename: string]: any } = {};
 const baseColor = "#e90139";
 const hoverColor = "#C70139";
+const linkColor = "rgb(56 189 248)";
+const linkColorHover = "rgb(125 211 252)";
+
 const PADDING = 6;
 const fontFamily = "Helvetica, sans-serif, Arial";
 
@@ -303,11 +306,11 @@ function clickListener(e: MouseEvent) {
   }
 }
 
-function hideOptionsHandler() {
-  hideOptions();
-  setMode("minimal");
-  showMinimal();
-}
+// function hideOptionsHandler() {
+//   hideOptions();
+//   setMode("hidden");
+//   // showMinimal();
+// }
 
 function showOptionsHandler() {
   hideMinimal();
@@ -333,24 +336,48 @@ function init(mode: LocatorJSMode) {
   style.id = "locatorjs-style";
   style.innerHTML = `
       #locatorjs-label {
-          cursor: pointer;
-          background-color: ${baseColor};
+        cursor: pointer;
+        background-color: ${baseColor};
       }
       #locatorjs-label:hover {
-          background-color: ${hoverColor};
+        background-color: ${hoverColor};
+      }
+      #locatorjs-options {
+        max-width: 100vw;
+        position: fixed;
+        bottom: 18px;
+        left: 18px;
+        background-color: #333;
+        border-radius: 12px;
+        font-size: 14px;
+        pointer-events: auto;
+        z-index: 100000;
+        padding: 16px 20px;
+        color: #eee;
+        line-height: 1.3em;
+        font-family: ${fontFamily};
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+      #locatorjs-options a {
+        color: ${linkColor};
+        text-decoration: underline;
+      }
+      #locatorjs-options a:hover {
+        color: ${linkColorHover};
+        text-decoration: underline;
       }
       #locatorjs-options-close {
-          cursor: pointer;
-          color: #baa;
+        cursor: pointer;
+        color: #aaa;
       }
       #locatorjs-options-close:hover {
-          color: #fee
+          color: #eee
       }
-      .locatorjs-options {
+      #locatorjs-options .locatorjs-editors-options {
         display: flex;
         margin: 4px 0px;
       } 
-      .locatorjs-option {
+      #locatorjs-options .locatorjs-option {
         cursor: pointer;
         padding: 4px 10px;
         margin-right: 4px;
@@ -358,13 +385,13 @@ function init(mode: LocatorJSMode) {
         align-items: center;
         gap: 6px;
       }
-      .locatorjs-custom-template-input {
+      #locatorjs-options .locatorjs-custom-template-input {
         background-color: transparent;
         border-radius: 6px;
         margin: 4px 0px;
         padding: 4px 10px;
         border: 1px solid #555;
-        color: #fee;
+        color: #eee;
         width: 400px;
       }
       #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {
@@ -372,6 +399,23 @@ function init(mode: LocatorJSMode) {
       }
       #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {
         text-decoration: underline;
+      }
+      #locatorjs-options .locatorjs-key {
+        padding: 2px 4px;
+        border-radius: 4px;
+        border: 1px solid #555;
+        margin: 2px;
+      }
+      #locatorjs-options .locatorjs-line {
+        padding: 4px 0px;
+      }
+      @media (max-width: 600px) {
+        #locatorjs-options {
+          width: 100vw;
+          bottom: 0px;
+          left: 0px;
+          border-radius: 12px 12px 0px 0px;
+        }
       }
     `;
   document.head.appendChild(style);
@@ -409,21 +453,6 @@ function init(mode: LocatorJSMode) {
 function showOptions() {
   const modal = document.createElement("div");
   modal.setAttribute("id", "locatorjs-options");
-  css(modal, {
-    position: "fixed",
-    bottom: "18px",
-    left: "18px",
-    backgroundColor: "#333",
-    borderRadius: "12px",
-    fontSize: "14px",
-    border: "2px solid " + baseColor,
-    pointerEvents: "auto",
-    zIndex: "10000",
-    padding: "16px 20px",
-    color: "#fee",
-    lineHeight: "1.3rem",
-    fontFamily,
-  });
 
   const modalHeader = document.createElement("div");
   css(modalHeader, {
@@ -433,12 +462,19 @@ function showOptions() {
     marginBottom: "6px",
   });
 
-  modalHeader.innerHTML = `<a href="${repoLink}">LocatorJS enabled</a>`;
+  modalHeader.innerHTML = `LocatorJS enabled`;
   modal.appendChild(modalHeader);
 
   const controls = document.createElement("div");
-  controls.style.color = "#baa";
-  controls.innerHTML = `<div><b>${altTitle} + d:</b> enable/disable Locator<br /><b>Press and hold ${altTitle}:</b> make boxes clickable on full surface </div>`;
+  controls.style.color = "#aaa";
+  controls.innerHTML = `
+    <div>
+      <div class="locatorjs-line"><b>Press and hold <span class="locatorjs-key">${altTitle}</span>:</b> make boxes clickable on full surface</div>
+      <div class="locatorjs-line"><b><span class="locatorjs-key">${altTitle}</span> + <span class="locatorjs-key">D</span>:</b> hide/show LocatorJS panel</div>
+      <div class="locatorjs-line">
+        <a href="${repoLink}">more info</a>
+      </div>
+    </div>`;
   modal.appendChild(controls);
 
   const selector = document.createElement("div");
@@ -447,7 +483,7 @@ function showOptions() {
   // TODO print targets from their definition object
   selector.innerHTML = `
     <b>Choose your editor: </b>
-    <div class="locatorjs-options">
+    <div class="locatorjs-editors-options">
       ${Object.entries(allTargets)
         .map(([key, target]) => {
           return `<label class="locatorjs-option"><input type="radio" name="locatorjs-option" value="${key}" /> ${target.label}</label>`;
@@ -466,7 +502,7 @@ function showOptions() {
 
   // locatorjs-options should be clickable
   const options = modal.querySelectorAll(
-    ".locatorjs-option input"
+    ".locatorjs-editors-options input"
   ) as NodeListOf<HTMLInputElement>;
   options.forEach((option) => {
     if (linkTypeOrTemplate === option.value) {
@@ -495,7 +531,7 @@ function showOptions() {
     padding: "0px",
   });
   closeButton.innerHTML = `<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>`;
-  closeButton.addEventListener("click", hideOptionsHandler);
+  closeButton.addEventListener("click", goToHiddenHandler);
   modal.appendChild(closeButton);
 
   document.body.appendChild(modal);
@@ -508,7 +544,7 @@ function showMinimal() {
     position: "fixed",
     bottom: "18px",
     left: "18px",
-    backgroundColor: baseColor,
+    backgroundColor: "#333",
     fontSize: "14px",
     borderRadius: "4px",
     padding: "2px 6px",
@@ -587,6 +623,6 @@ function goToHiddenHandler() {
   destroy();
   init("hidden");
   alert(
-    `LocatorJS will be now hidden.\n\nPress and hold ${altTitle} so start selecting in hidden mode.\n${altTitle}+d: To show UI`
+    `LocatorJS will be now hidden.\n\nPress and hold ${altTitle} so start selecting in hidden mode.\n${altTitle}+D: To show UI`
   );
 }

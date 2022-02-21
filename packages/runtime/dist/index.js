@@ -13,6 +13,8 @@ exports.register = exports.setup = void 0;
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
+var linkColor = "rgb(56 189 248)";
+var linkColorHover = "rgb(125 211 252)";
 var PADDING = 6;
 var fontFamily = "Helvetica, sans-serif, Arial";
 // @ts-ignore
@@ -272,11 +274,11 @@ function clickListener(e) {
         //   window.open(link, "_blank");
     }
 }
-function hideOptionsHandler() {
-    hideOptions();
-    setMode("minimal");
-    showMinimal();
-}
+// function hideOptionsHandler() {
+//   hideOptions();
+//   setMode("hidden");
+//   // showMinimal();
+// }
 function showOptionsHandler() {
     hideMinimal();
     setMode("options");
@@ -296,7 +298,7 @@ function init(mode) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n      #locatorjs-label {\n          cursor: pointer;\n          background-color: ".concat(baseColor, ";\n      }\n      #locatorjs-label:hover {\n          background-color: ").concat(hoverColor, ";\n      }\n      #locatorjs-options-close {\n          cursor: pointer;\n          color: #baa;\n      }\n      #locatorjs-options-close:hover {\n          color: #fee\n      }\n      .locatorjs-options {\n        display: flex;\n        margin: 4px 0px;\n      } \n      .locatorjs-option {\n        cursor: pointer;\n        padding: 4px 10px;\n        margin-right: 4px;\n        display: flex;\n        align-items: center;\n        gap: 6px;\n      }\n      .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #fee;\n        width: 400px;\n      }\n      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {\n        cursor: pointer;\n      }\n      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {\n        text-decoration: underline;\n      }\n    ");
+    style.innerHTML = "\n      #locatorjs-label {\n        cursor: pointer;\n        background-color: ".concat(baseColor, ";\n      }\n      #locatorjs-label:hover {\n        background-color: ").concat(hoverColor, ";\n      }\n      #locatorjs-options {\n        max-width: 100vw;\n        position: fixed;\n        bottom: 18px;\n        left: 18px;\n        background-color: #333;\n        border-radius: 12px;\n        font-size: 14px;\n        pointer-events: auto;\n        z-index: 100000;\n        padding: 16px 20px;\n        color: #eee;\n        line-height: 1.3em;\n        font-family: ").concat(fontFamily, ";\n        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);\n      }\n      #locatorjs-options a {\n        color: ").concat(linkColor, ";\n        text-decoration: underline;\n      }\n      #locatorjs-options a:hover {\n        color: ").concat(linkColorHover, ";\n        text-decoration: underline;\n      }\n      #locatorjs-options-close {\n        cursor: pointer;\n        color: #aaa;\n      }\n      #locatorjs-options-close:hover {\n          color: #eee\n      }\n      #locatorjs-options .locatorjs-editors-options {\n        display: flex;\n        margin: 4px 0px;\n      } \n      #locatorjs-options .locatorjs-option {\n        cursor: pointer;\n        padding: 4px 10px;\n        margin-right: 4px;\n        display: flex;\n        align-items: center;\n        gap: 6px;\n      }\n      #locatorjs-options .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #eee;\n        width: 400px;\n      }\n      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {\n        cursor: pointer;\n      }\n      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {\n        text-decoration: underline;\n      }\n      #locatorjs-options .locatorjs-key {\n        padding: 2px 4px;\n        border-radius: 4px;\n        border: 1px solid #555;\n        margin: 2px;\n      }\n      #locatorjs-options .locatorjs-line {\n        padding: 4px 0px;\n      }\n      @media (max-width: 600px) {\n        #locatorjs-options {\n          width: 100vw;\n          bottom: 0px;\n          left: 0px;\n          border-radius: 12px 12px 0px 0px;\n        }\n      }\n    ");
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -327,21 +329,6 @@ function init(mode) {
 function showOptions() {
     var modal = document.createElement("div");
     modal.setAttribute("id", "locatorjs-options");
-    css(modal, {
-        position: "fixed",
-        bottom: "18px",
-        left: "18px",
-        backgroundColor: "#333",
-        borderRadius: "12px",
-        fontSize: "14px",
-        border: "2px solid " + baseColor,
-        pointerEvents: "auto",
-        zIndex: "10000",
-        padding: "16px 20px",
-        color: "#fee",
-        lineHeight: "1.3rem",
-        fontFamily: fontFamily
-    });
     var modalHeader = document.createElement("div");
     css(modalHeader, {
         padding: "0px",
@@ -349,16 +336,16 @@ function showOptions() {
         fontSize: "18px",
         marginBottom: "6px"
     });
-    modalHeader.innerHTML = "<a href=\"".concat(repoLink, "\">LocatorJS enabled</a>");
+    modalHeader.innerHTML = "LocatorJS enabled";
     modal.appendChild(modalHeader);
     var controls = document.createElement("div");
-    controls.style.color = "#baa";
-    controls.innerHTML = "<div><b>".concat(altTitle, " + d:</b> enable/disable Locator<br /><b>Press and hold ").concat(altTitle, ":</b> make boxes clickable on full surface </div>");
+    controls.style.color = "#aaa";
+    controls.innerHTML = "\n    <div>\n      <div class=\"locatorjs-line\"><b>Press and hold <span class=\"locatorjs-key\">".concat(altTitle, "</span>:</b> make boxes clickable on full surface</div>\n      <div class=\"locatorjs-line\"><b><span class=\"locatorjs-key\">").concat(altTitle, "</span> + <span class=\"locatorjs-key\">D</span>:</b> hide/show LocatorJS panel</div>\n      <div class=\"locatorjs-line\">\n        <a href=\"").concat(repoLink, "\">more info</a>\n      </div>\n    </div>");
     modal.appendChild(controls);
     var selector = document.createElement("div");
     selector.style.marginTop = "10px";
     // TODO print targets from their definition object
-    selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-options\">\n      ".concat(Object.entries(allTargets)
+    selector.innerHTML = "\n    <b>Choose your editor: </b>\n    <div class=\"locatorjs-editors-options\">\n      ".concat(Object.entries(allTargets)
         .map(function (_a) {
         var key = _a[0], target = _a[1];
         return "<label class=\"locatorjs-option\"><input type=\"radio\" name=\"locatorjs-option\" value=\"".concat(key, "\" /> ").concat(target.label, "</label>");
@@ -368,7 +355,7 @@ function showOptions() {
     var input = modal.querySelector(".locatorjs-custom-template-input");
     input.style.display = "none";
     // locatorjs-options should be clickable
-    var options = modal.querySelectorAll(".locatorjs-option input");
+    var options = modal.querySelectorAll(".locatorjs-editors-options input");
     options.forEach(function (option) {
         if (linkTypeOrTemplate === option.value) {
             option.checked = true;
@@ -396,7 +383,7 @@ function showOptions() {
         padding: "0px"
     });
     closeButton.innerHTML = "<svg style=\"width:24px;height:24px\" viewBox=\"0 0 24 24\"><path fill=\"currentColor\" d=\"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z\" /></svg>";
-    closeButton.addEventListener("click", hideOptionsHandler);
+    closeButton.addEventListener("click", goToHiddenHandler);
     modal.appendChild(closeButton);
     document.body.appendChild(modal);
 }
@@ -407,7 +394,7 @@ function showMinimal() {
         position: "fixed",
         bottom: "18px",
         left: "18px",
-        backgroundColor: baseColor,
+        backgroundColor: "#333",
         fontSize: "14px",
         borderRadius: "4px",
         padding: "2px 6px",
@@ -472,5 +459,5 @@ function goToHiddenHandler() {
     setMode("hidden");
     destroy();
     init("hidden");
-    alert("LocatorJS will be now hidden.\n\nPress and hold ".concat(altTitle, " so start selecting in hidden mode.\n").concat(altTitle, "+d: To show UI"));
+    alert("LocatorJS will be now hidden.\n\nPress and hold ".concat(altTitle, " so start selecting in hidden mode.\n").concat(altTitle, "+D: To show UI"));
 }
