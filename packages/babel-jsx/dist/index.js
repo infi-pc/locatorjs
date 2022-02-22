@@ -101,7 +101,6 @@ function transformLocatorJsComponents(babel) {
                                 name_1 = parent_1.id.name;
                             }
                         }
-                        console.log("styled", property.name);
                         var id = addToStorage({
                             type: "styledComponent",
                             name: name_1,

@@ -250,6 +250,14 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
           expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"
         }${expData.name ? `: ${expData.name}` : ""}`;
       }
+      label.onclick = (e) => {
+        const link = buidLink(
+          fileData.filePath,
+          fileData.projectPath,
+          expData.loc
+        );
+        window.open(link);
+      };
 
       labelWrapper.appendChild(label);
     });
@@ -280,7 +288,6 @@ function scrollListener() {
 function mouseOverListener(e: MouseEvent) {
   const target = e.target;
   if (target && target instanceof HTMLElement) {
-    console.log("TARGET: CLASS:", target.className, "ID:", target.id);
     if (
       target.className == "locatorjs-label" ||
       target.id == "locatorjs-labels-section"

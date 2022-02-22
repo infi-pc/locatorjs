@@ -157,7 +157,6 @@ export default function transformLocatorJsComponents(babel: Babel): {
                 name = parent.id.name;
               }
             }
-            console.log("styled", property.name);
 
             const id = addToStorage({
               type: "styledComponent",

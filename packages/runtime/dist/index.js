@@ -192,6 +192,10 @@ function rerenderLayer(found, isAltKey) {
             else {
                 label.innerText = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
             }
+            label.onclick = function (e) {
+                var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+                window.open(link);
+            };
             labelWrapper_1.appendChild(label);
         });
         el.innerHTML = "";
@@ -217,7 +221,6 @@ function scrollListener() {
 function mouseOverListener(e) {
     var target = e.target;
     if (target && target instanceof HTMLElement) {
-        console.log("TARGET: CLASS:", target.className, "ID:", target.id);
         if (target.className == "locatorjs-label" ||
             target.id == "locatorjs-labels-section") {
             return;
