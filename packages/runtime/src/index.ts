@@ -1,5 +1,38 @@
 type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
-const dataByFilename: { [filename: string]: any } = {};
+
+type SourceLocation = {
+  start: {
+    line: number;
+    column: number;
+  };
+  end: {
+    line: number;
+    column: number;
+  };
+};
+
+type ExpressionInfo =
+  | {
+      type: "jsx";
+      name: string;
+      wrappingComponent: string | null;
+      loc: SourceLocation | null;
+    }
+  | {
+      type: "styledComponent";
+      name: string | null;
+      loc: SourceLocation | null;
+      htmlTag: string | null;
+    };
+
+type FileStorage = {
+  filePath: string;
+  projectPath: string;
+  nextId: number;
+  expressions: ExpressionInfo[];
+};
+
+const dataByFilename: { [filename: string]: FileStorage } = {};
 const baseColor = "#e90139";
 const hoverColor = "#C70139";
 const linkColor = "rgb(56 189 248)";
@@ -133,89 +166,96 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
   } else {
     document.body.style.cursor = "";
   }
-  if (found.dataset && found.dataset.locatorjsId) {
-    const [fileFullPath, id] = parseDataId(found.dataset.locatorjsId);
+  if (
+    found.dataset &&
+    (found.dataset.locatorjsId || found.dataset.locatorjsStyled)
+  ) {
+    const labels = [
+      found.dataset.locatorjsId
+        ? getDataForDataId(found.dataset.locatorjsId)
+        : null,
+      found.dataset.locatorjsStyled
+        ? getDataForDataId(found.dataset.locatorjsStyled)
+        : null,
+    ].filter(nonNullable);
 
-    const fileData = dataByFilename[fileFullPath];
-    const expData = fileData.expressions[id];
-    if (expData) {
-      const bbox = found.getBoundingClientRect();
-      const rect = document.createElement("div");
-      css(rect, {
-        position: "absolute",
-        left: bbox.x - PADDING + "px",
-        top: bbox.y - PADDING + "px",
-        width: bbox.width + PADDING * 2 + "px",
-        height: bbox.height + PADDING * 2 + "px",
-        border: "2px solid " + baseColor,
-        borderRadius: "8px",
-      });
+    if (labels.length === 0) {
+      return;
+    }
 
-      if (isAltKey) {
-        rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
-      }
-      const isReversed = bbox.y < 30;
-      const labelPart = document.createElement("div");
-      labelPart.style.position = "absolute";
-      labelPart.style.display = "flex";
-      labelPart.style.justifyContent = "center";
-      if (isReversed) {
-        labelPart.style.bottom = "-28px";
-      } else {
-        labelPart.style.top = "-28px";
-      }
+    const bbox = found.getBoundingClientRect();
+    const rect = document.createElement("div");
+    css(rect, {
+      position: "absolute",
+      left: bbox.x - PADDING + "px",
+      top: bbox.y - PADDING + "px",
+      width: bbox.width + PADDING * 2 + "px",
+      height: bbox.height + PADDING * 2 + "px",
+      border: "2px solid " + baseColor,
+      borderRadius: "8px",
+    });
 
-      labelPart.style.left = "0px";
-      labelPart.style.width = "100%";
-      // labelPart.style.backgroundColor = "#00ff00";
-      labelPart.style.pointerEvents = "auto";
-      if (isReversed) {
-        labelPart.style.borderBottomLeftRadius = "100%";
-        labelPart.style.borderBottomRightRadius = "100%";
-      } else {
-        labelPart.style.borderTopLeftRadius = "100%";
-        labelPart.style.borderTopRightRadius = "100%";
-      }
+    if (isAltKey) {
+      rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
+    }
+    const isReversed = bbox.y < 30;
+    const labelsSection = document.createElement("div");
+    labelsSection.id = "locatorjs-labels-section";
+    labelsSection.style.position = "absolute";
+    labelsSection.style.display = "flex";
+    labelsSection.style.justifyContent = "center";
+    if (isReversed) {
+      labelsSection.style.bottom = "-28px";
+    } else {
+      labelsSection.style.top = "-28px";
+    }
 
-      labelPart.id = "locatorjs-label-part";
-      rect.appendChild(labelPart);
+    labelsSection.style.left = "0px";
+    labelsSection.style.width = "100%";
+    // Uncomment when need to debug
+    // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
+    labelsSection.style.pointerEvents = "auto";
+    if (isReversed) {
+      labelsSection.style.borderBottomLeftRadius = "100%";
+      labelsSection.style.borderBottomRightRadius = "100%";
+    } else {
+      labelsSection.style.borderTopLeftRadius = "100%";
+      labelsSection.style.borderTopRightRadius = "100%";
+    }
 
-      const labelWrapper = document.createElement("div");
-      labelWrapper.style.padding = isReversed
-        ? "10px 10px 2px 10px"
-        : "2px 10px 10px 10px";
+    rect.appendChild(labelsSection);
 
-      // labelWrapper.id = "locatorjs-label-wrapper";
-      labelPart.appendChild(labelWrapper);
+    const labelWrapper = document.createElement("div");
+    labelWrapper.id = "locatorjs-labels-wrapper";
+    labelWrapper.style.padding = isReversed
+      ? "10px 10px 2px 10px"
+      : "2px 10px 10px 10px";
 
+    labelsSection.appendChild(labelWrapper);
+
+    labels.forEach(({ fileData, expData }) => {
       const label = document.createElement("a");
+      label.className = "locatorjs-label";
       label.href = buidLink(
         fileData.filePath,
         fileData.projectPath,
         expData.loc
       );
-      css(label, {
-        display: "block",
-        color: "#fff",
-        fontSize: "12px",
-        fontWeight: "bold",
-        textAlign: "center",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        fontFamily: fontFamily,
-        whiteSpace: "nowrap",
-        textDecoration: "none",
-      });
+      if (expData.type === "jsx") {
+        label.innerText =
+          (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
+          expData.name;
+      } else {
+        label.innerText = `${
+          expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"
+        }${expData.name ? `: ${expData.name}` : ""}`;
+      }
 
-      label.innerText =
-        (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
-        expData.name;
-      label.id = "locatorjs-label";
       labelWrapper.appendChild(label);
+    });
 
-      el.innerHTML = "";
-      el.appendChild(rect);
-    }
+    el.innerHTML = "";
+    el.appendChild(rect);
   }
 }
 
@@ -240,7 +280,11 @@ function scrollListener() {
 function mouseOverListener(e: MouseEvent) {
   const target = e.target;
   if (target && target instanceof HTMLElement) {
-    if (target.id == "locatorjs-label" || target.id == "locatorjs-label-part") {
+    console.log("TARGET: CLASS:", target.className, "ID:", target.id);
+    if (
+      target.className == "locatorjs-label" ||
+      target.id == "locatorjs-labels-section"
+    ) {
       return;
     }
 
@@ -298,7 +342,13 @@ function clickListener(e: MouseEvent) {
     }
     const [filePath, id] = parseDataId(found.dataset.locatorjsId);
     const fileData = dataByFilename[filePath];
+    if (!fileData) {
+      return;
+    }
     const expData = fileData.expressions[Number(id)];
+    if (!expData) {
+      return;
+    }
     const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
     e.preventDefault();
     e.stopPropagation();
@@ -336,12 +386,32 @@ function init(mode: LocatorJSMode) {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
   style.innerHTML = `
-      #locatorjs-label {
+      #locatorjs-layer * {
+        box-sizing: border-box;
+      }
+      .locatorjs-label {
         cursor: pointer;
         background-color: ${baseColor};
+        display: block;
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: ${fontFamily};
+        white-space: nowrap;
+        text-decoration: none !important;
+        line-height: 18px;
       }
-      #locatorjs-label:hover {
+      .locatorjs-label:hover {
         background-color: ${hoverColor};
+      }
+      #locatorjs-labels-section {
+      }
+      #locatorjs-labels-wrapper {
+        display: flex;
+        gap: 8px;
       }
       #locatorjs-options {
         max-width: 100vw;
@@ -634,4 +704,23 @@ function goToHiddenHandler() {
   alert(
     `LocatorJS will be now hidden.\n\nPress and hold ${altTitle} so start selecting in hidden mode.\n${altTitle}+D: To show UI`
   );
+}
+
+function getDataForDataId(dataId: string) {
+  const [fileFullPath, id] = parseDataId(dataId);
+
+  const fileData = dataByFilename[fileFullPath];
+  if (!fileData) {
+    return;
+  }
+  const expData = fileData.expressions[Number(id)];
+  if (!expData) {
+    return;
+  }
+
+  return { fileData, expData };
+}
+
+export default function nonNullable<T>(value: T): value is NonNullable<T> {
+  return value !== null && value !== undefined;
 }

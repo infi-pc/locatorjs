@@ -120,78 +120,82 @@ function rerenderLayer(found, isAltKey) {
     else {
         document.body.style.cursor = "";
     }
-    if (found.dataset && found.dataset.locatorjsId) {
-        var _a = parseDataId(found.dataset.locatorjsId), fileFullPath = _a[0], id = _a[1];
-        var fileData = dataByFilename[fileFullPath];
-        var expData = fileData.expressions[id];
-        if (expData) {
-            var bbox = found.getBoundingClientRect();
-            var rect = document.createElement("div");
-            css(rect, {
-                position: "absolute",
-                left: bbox.x - PADDING + "px",
-                top: bbox.y - PADDING + "px",
-                width: bbox.width + PADDING * 2 + "px",
-                height: bbox.height + PADDING * 2 + "px",
-                border: "2px solid " + baseColor,
-                borderRadius: "8px"
-            });
-            if (isAltKey) {
-                rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
-            }
-            var isReversed = bbox.y < 30;
-            var labelPart = document.createElement("div");
-            labelPart.style.position = "absolute";
-            labelPart.style.display = "flex";
-            labelPart.style.justifyContent = "center";
-            if (isReversed) {
-                labelPart.style.bottom = "-28px";
-            }
-            else {
-                labelPart.style.top = "-28px";
-            }
-            labelPart.style.left = "0px";
-            labelPart.style.width = "100%";
-            // labelPart.style.backgroundColor = "#00ff00";
-            labelPart.style.pointerEvents = "auto";
-            if (isReversed) {
-                labelPart.style.borderBottomLeftRadius = "100%";
-                labelPart.style.borderBottomRightRadius = "100%";
-            }
-            else {
-                labelPart.style.borderTopLeftRadius = "100%";
-                labelPart.style.borderTopRightRadius = "100%";
-            }
-            labelPart.id = "locatorjs-label-part";
-            rect.appendChild(labelPart);
-            var labelWrapper = document.createElement("div");
-            labelWrapper.style.padding = isReversed
-                ? "10px 10px 2px 10px"
-                : "2px 10px 10px 10px";
-            // labelWrapper.id = "locatorjs-label-wrapper";
-            labelPart.appendChild(labelWrapper);
-            var label = document.createElement("a");
-            label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-            css(label, {
-                display: "block",
-                color: "#fff",
-                fontSize: "12px",
-                fontWeight: "bold",
-                textAlign: "center",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                fontFamily: fontFamily,
-                whiteSpace: "nowrap",
-                textDecoration: "none"
-            });
-            label.innerText =
-                (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
-                    expData.name;
-            label.id = "locatorjs-label";
-            labelWrapper.appendChild(label);
-            el.innerHTML = "";
-            el.appendChild(rect);
+    if (found.dataset &&
+        (found.dataset.locatorjsId || found.dataset.locatorjsStyled)) {
+        var labels = [
+            found.dataset.locatorjsId
+                ? getDataForDataId(found.dataset.locatorjsId)
+                : null,
+            found.dataset.locatorjsStyled
+                ? getDataForDataId(found.dataset.locatorjsStyled)
+                : null,
+        ].filter(nonNullable);
+        if (labels.length === 0) {
+            return;
         }
+        var bbox = found.getBoundingClientRect();
+        var rect = document.createElement("div");
+        css(rect, {
+            position: "absolute",
+            left: bbox.x - PADDING + "px",
+            top: bbox.y - PADDING + "px",
+            width: bbox.width + PADDING * 2 + "px",
+            height: bbox.height + PADDING * 2 + "px",
+            border: "2px solid " + baseColor,
+            borderRadius: "8px"
+        });
+        if (isAltKey) {
+            rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
+        }
+        var isReversed = bbox.y < 30;
+        var labelsSection = document.createElement("div");
+        labelsSection.id = "locatorjs-labels-section";
+        labelsSection.style.position = "absolute";
+        labelsSection.style.display = "flex";
+        labelsSection.style.justifyContent = "center";
+        if (isReversed) {
+            labelsSection.style.bottom = "-28px";
+        }
+        else {
+            labelsSection.style.top = "-28px";
+        }
+        labelsSection.style.left = "0px";
+        labelsSection.style.width = "100%";
+        // Uncomment when need to debug
+        // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
+        labelsSection.style.pointerEvents = "auto";
+        if (isReversed) {
+            labelsSection.style.borderBottomLeftRadius = "100%";
+            labelsSection.style.borderBottomRightRadius = "100%";
+        }
+        else {
+            labelsSection.style.borderTopLeftRadius = "100%";
+            labelsSection.style.borderTopRightRadius = "100%";
+        }
+        rect.appendChild(labelsSection);
+        var labelWrapper_1 = document.createElement("div");
+        labelWrapper_1.id = "locatorjs-labels-wrapper";
+        labelWrapper_1.style.padding = isReversed
+            ? "10px 10px 2px 10px"
+            : "2px 10px 10px 10px";
+        labelsSection.appendChild(labelWrapper_1);
+        labels.forEach(function (_a) {
+            var fileData = _a.fileData, expData = _a.expData;
+            var label = document.createElement("a");
+            label.className = "locatorjs-label";
+            label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+            if (expData.type === "jsx") {
+                label.innerText =
+                    (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
+                        expData.name;
+            }
+            else {
+                label.innerText = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
+            }
+            labelWrapper_1.appendChild(label);
+        });
+        el.innerHTML = "";
+        el.appendChild(rect);
     }
 }
 function parseDataId(dataId) {
@@ -213,7 +217,9 @@ function scrollListener() {
 function mouseOverListener(e) {
     var target = e.target;
     if (target && target instanceof HTMLElement) {
-        if (target.id == "locatorjs-label" || target.id == "locatorjs-label-part") {
+        console.log("TARGET: CLASS:", target.className, "ID:", target.id);
+        if (target.className == "locatorjs-label" ||
+            target.id == "locatorjs-labels-section") {
             return;
         }
         var found = target.closest("[data-locatorjs-id]");
@@ -267,7 +273,13 @@ function clickListener(e) {
         }
         var _a = parseDataId(found.dataset.locatorjsId), filePath = _a[0], id = _a[1];
         var fileData = dataByFilename[filePath];
+        if (!fileData) {
+            return;
+        }
         var expData = fileData.expressions[Number(id)];
+        if (!expData) {
+            return;
+        }
         var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
         e.preventDefault();
         e.stopPropagation();
@@ -299,7 +311,7 @@ function init(mode) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n      #locatorjs-label {\n        cursor: pointer;\n        background-color: ".concat(baseColor, ";\n      }\n      #locatorjs-label:hover {\n        background-color: ").concat(hoverColor, ";\n      }\n      #locatorjs-options {\n        max-width: 100vw;\n        position: fixed;\n        bottom: 18px;\n        left: 18px;\n        background-color: #333;\n        border-radius: 12px;\n        font-size: 14px;\n        pointer-events: auto;\n        z-index: 100000;\n        padding: 16px 20px;\n        color: #eee;\n        line-height: 1.3em;\n        font-family: ").concat(fontFamily, ";\n        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);\n      }\n      #locatorjs-options a {\n        color: ").concat(linkColor, ";\n        text-decoration: underline;\n      }\n      #locatorjs-options a:hover {\n        color: ").concat(linkColorHover, ";\n        text-decoration: underline;\n      }\n      #locatorjs-minimal a {\n        color: #fff;\n        text-decoration: none;\n      }\n      #locatorjs-minimal a:hover {\n        color: #ccc;\n        text-decoration: none;\n      }\n      #locatorjs-options-close {\n        cursor: pointer;\n        color: #aaa;\n      }\n      #locatorjs-options-close:hover {\n          color: #eee\n      }\n      #locatorjs-options .locatorjs-editors-options {\n        display: flex;\n        margin: 4px 0px;\n      } \n      #locatorjs-options .locatorjs-option {\n        cursor: pointer;\n        padding: 4px 10px;\n        margin-right: 4px;\n        display: flex;\n        align-items: center;\n        gap: 6px;\n      }\n      #locatorjs-options .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #eee;\n        width: 400px;\n      }\n      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {\n        cursor: pointer;\n      }\n      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {\n        text-decoration: underline;\n      }\n      #locatorjs-options .locatorjs-key {\n        padding: 2px 4px;\n        border-radius: 4px;\n        border: 1px solid #555;\n        margin: 2px;\n      }\n      #locatorjs-options .locatorjs-line {\n        padding: 4px 0px;\n      }\n      @media (max-width: 600px) {\n        #locatorjs-options {\n          width: 100vw;\n          bottom: 0px;\n          left: 0px;\n          border-radius: 12px 12px 0px 0px;\n        }\n      }\n    ");
+    style.innerHTML = "\n      #locatorjs-layer * {\n        box-sizing: border-box;\n      }\n      .locatorjs-label {\n        cursor: pointer;\n        background-color: ".concat(baseColor, ";\n        display: block;\n        color: #fff;\n        font-size: 12px;\n        font-weight: bold;\n        text-align: center;\n        padding: 2px 6px;\n        border-radius: 4px;\n        font-family: ").concat(fontFamily, ";\n        white-space: nowrap;\n        text-decoration: none !important;\n        line-height: 18px;\n      }\n      .locatorjs-label:hover {\n        background-color: ").concat(hoverColor, ";\n      }\n      #locatorjs-labels-section {\n      }\n      #locatorjs-labels-wrapper {\n        display: flex;\n        gap: 8px;\n      }\n      #locatorjs-options {\n        max-width: 100vw;\n        position: fixed;\n        bottom: 18px;\n        left: 18px;\n        background-color: #333;\n        border-radius: 12px;\n        font-size: 14px;\n        pointer-events: auto;\n        z-index: 100000;\n        padding: 16px 20px;\n        color: #eee;\n        line-height: 1.3em;\n        font-family: ").concat(fontFamily, ";\n        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);\n      }\n      #locatorjs-options a {\n        color: ").concat(linkColor, ";\n        text-decoration: underline;\n      }\n      #locatorjs-options a:hover {\n        color: ").concat(linkColorHover, ";\n        text-decoration: underline;\n      }\n      #locatorjs-minimal a {\n        color: #fff;\n        text-decoration: none;\n      }\n      #locatorjs-minimal a:hover {\n        color: #ccc;\n        text-decoration: none;\n      }\n      #locatorjs-options-close {\n        cursor: pointer;\n        color: #aaa;\n      }\n      #locatorjs-options-close:hover {\n          color: #eee\n      }\n      #locatorjs-options .locatorjs-editors-options {\n        display: flex;\n        margin: 4px 0px;\n      } \n      #locatorjs-options .locatorjs-option {\n        cursor: pointer;\n        padding: 4px 10px;\n        margin-right: 4px;\n        display: flex;\n        align-items: center;\n        gap: 6px;\n      }\n      #locatorjs-options .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #eee;\n        width: 400px;\n      }\n      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {\n        cursor: pointer;\n      }\n      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {\n        text-decoration: underline;\n      }\n      #locatorjs-options .locatorjs-key {\n        padding: 2px 4px;\n        border-radius: 4px;\n        border: 1px solid #555;\n        margin: 2px;\n      }\n      #locatorjs-options .locatorjs-line {\n        padding: 4px 0px;\n      }\n      @media (max-width: 600px) {\n        #locatorjs-options {\n          width: 100vw;\n          bottom: 0px;\n          left: 0px;\n          border-radius: 12px 12px 0px 0px;\n        }\n      }\n    ");
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -462,3 +474,19 @@ function goToHiddenHandler() {
     init("hidden");
     alert("LocatorJS will be now hidden.\n\nPress and hold ".concat(altTitle, " so start selecting in hidden mode.\n").concat(altTitle, "+D: To show UI"));
 }
+function getDataForDataId(dataId) {
+    var _a = parseDataId(dataId), fileFullPath = _a[0], id = _a[1];
+    var fileData = dataByFilename[fileFullPath];
+    if (!fileData) {
+        return;
+    }
+    var expData = fileData.expressions[Number(id)];
+    if (!expData) {
+        return;
+    }
+    return { fileData: fileData, expData: expData };
+}
+function nonNullable(value) {
+    return value !== null && value !== undefined;
+}
+exports["default"] = nonNullable;
