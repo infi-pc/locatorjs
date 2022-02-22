@@ -20,22 +20,22 @@ function Hero() {
             Find any component in code
           </h1>
           <p className="leading-relaxed">
-            A plugin for you dev stack that allows you to click trough from your
-            app to it's code.
+            A plugin for React dev stacks that allows you to click through from
+            your app to its code.
           </p>
           <div className="text-xl font-bold mt-4">Try it here and now:</div>
           <div className="flex justify-center flex-col gap-3 mt-4 font-bold">
             <div>
               hold{" "}
               <span className="py-1 px-2 mx-1 border border-gray-300 rounded-md">
-              {altTitle}
+                {altTitle}
               </span>{" "}
               and click on component
             </div>
             <div>
               press{" "}
               <span className="py-1 px-2 mx-1 border border-gray-300 rounded-md">
-              {altTitle}
+                {altTitle}
               </span>{" "}
               +{" "}
               <span className="py-1 px-2 mx-1 border border-gray-300 rounded-md">
@@ -46,10 +46,7 @@ function Hero() {
           </div>
         </div>
         <div className="flex z-10 object-cover object-center w-5/6  md:w-1/2 shadow-2xl rounded-lg overflow-hidden">
-          <Image
-            className=""
-            src={demo}
-          ></Image>
+          <Image className="" src={demo}></Image>
         </div>
       </div>
     </section>
