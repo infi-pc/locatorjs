@@ -413,6 +413,8 @@ function init(mode: LocatorJSMode) {
       }
       .locatorjs-label:hover {
         background-color: ${hoverColor};
+        color: #fff;
+        text-decoration: none;
       }
       #locatorjs-labels-section {
       }
