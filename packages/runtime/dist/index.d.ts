@@ -10,4 +10,5 @@ export declare function setup(props: {
     };
 }): void;
 export declare function register(input: any): void;
+export default function nonNullable<T>(value: T): value is NonNullable<T>;
 export {};

@@ -14,6 +14,9 @@ function transformLocatorJsComponents(babel) {
             fileStorage.nextId++;
             return id;
         }
+        else {
+            throw new Error("No fileStorage");
+        }
     }
     return {
         visitor: {
@@ -48,6 +51,7 @@ function transformLocatorJsComponents(babel) {
                     ]), t.identifier("register")), [dataAst])));
                 }
             },
+            // TODO add also for arrow function
             FunctionDeclaration: {
                 enter: function (path, state) {
                     if (!fileStorage) {
@@ -79,6 +83,38 @@ function transformLocatorJsComponents(babel) {
                     }
                 }
             },
+            TaggedTemplateExpression: function (path) {
+                if (!fileStorage) {
+                    return;
+                }
+                var tag = path.node.tag;
+                if (tag.type === "MemberExpression") {
+                    var property = tag.property;
+                    var object = tag.object;
+                    if (object.type === "Identifier" &&
+                        object.name === "styled" &&
+                        property.type === "Identifier") {
+                        var name_1 = null;
+                        var parent_1 = path.parent;
+                        if (parent_1.type === "VariableDeclarator") {
+                            if (parent_1.id.type === "Identifier") {
+                                name_1 = parent_1.id.name;
+                            }
+                        }
+                        var id = addToStorage({
+                            type: "styledComponent",
+                            name: name_1,
+                            loc: path.node.loc,
+                            htmlTag: property.name || null
+                        });
+                        path.node.tag = t.callExpression(t.memberExpression(tag, t.identifier("attrs")), [
+                            t.arrowFunctionExpression([], t.objectExpression([
+                                t.objectProperty(t.stringLiteral("data-locatorjs-styled"), t.stringLiteral(createDataId(fileStorage, id))),
+                            ])),
+                        ]);
+                    }
+                }
+            },
             JSXElement: function (path) {
                 if (!fileStorage) {
                     return;
@@ -98,14 +134,14 @@ function transformLocatorJsComponents(babel) {
                 var name = getName(path.node.openingElement.name);
                 if (name && !(0, isDisallowedComponent_1.isDisallowedComponent)(name)) {
                     var id = addToStorage({
+                        type: "jsx",
                         name: name,
                         loc: path.node.loc,
                         wrappingComponent: (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null
                     });
-                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(fileStorage.projectPath +
-                        fileStorage.filePath +
-                        "::" +
-                        String(id))
+                    var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(
+                    // this is stored by projectPath+filePath because that's the only unique identifier
+                    createDataId(fileStorage, id))
                     // t.ObjectExpression([
                     // ])
                     ));
@@ -116,3 +152,6 @@ function transformLocatorJsComponents(babel) {
     };
 }
 exports["default"] = transformLocatorJsComponents;
+function createDataId(fileStorage, id) {
+    return fileStorage.projectPath + fileStorage.filePath + "::" + String(id);
+}
