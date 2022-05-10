@@ -18,6 +18,7 @@
     {
       "resources": [
         "client.bundle.js",
+        "hook.bundle.js",
         "content.styles.css",
         "icon-128.png",
         "icon-34.png"
