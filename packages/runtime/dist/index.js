@@ -21,8 +21,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
-var dist_1 = require("@locator/shared/dist");
-var allTargets = __assign({}, dist_1.allTargets);
+console.log("RUNTIME HERE");
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -188,15 +187,23 @@ function rerenderLayer(found, isAltKey) {
         : "2px 10px 10px 10px";
     labelsSection.appendChild(labelWrapper);
     labels.forEach(function (_a) {
-        var link = _a.link, label = _a.label;
-        var labelEl = document.createElement("a");
-        labelEl.className = "locatorjs-label";
-        labelEl.href = link;
-        labelEl.innerText = label;
-        labelEl.onclick = function (e) {
+        var fileData = _a.fileData, expData = _a.expData;
+        var label = document.createElement("a");
+        label.className = "locatorjs-label";
+        label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+        if (expData.type === "jsx") {
+            label.innerText =
+                (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
+                    expData.name;
+        }
+        else {
+            label.innerText = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
+        }
+        label.onclick = function (e) {
+            var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
             window.open(link);
         };
-        labelWrapper.appendChild(labelEl);
+        labelWrapper.appendChild(label);
     });
     el.innerHTML = "";
     el.appendChild(rect);
@@ -215,80 +222,40 @@ function getLabels(found) {
         ].filter(nonNullable);
     }
     if (labels.length === 0) {
-        var fiber = findFiberByHtmlElement(found, false);
+        var fiber = findFiberByHtmlElement(found, true);
+        console.log("FIBER: ", fiber);
         if (fiber) {
-            var allPotentialFibers = getAllParentsWithTheSameBoundingBox(fiber);
-            // This handles a common case when the component root is basically the comopnent itself, so I want to go to usage of the component
-            if (fiber["return"] && fiber["return"] === fiber._debugOwner) {
-                allPotentialFibers.push(fiber["return"]);
-            }
-            allPotentialFibers.forEach(function (fiber) {
-                var fiberWithSource = findDebugSource(fiber);
-                if (fiberWithSource) {
-                    var label = getFiberLabel(fiberWithSource.fiber, fiberWithSource.source);
-                    labels.push(label);
-                }
-            });
-        }
-    }
-    return deduplicateLabels(labels);
-}
-function deduplicateLabels(labels) {
-    var labelsIds = {};
-    return labels
-        .map(function (label) {
-        var id = JSON.stringify(label);
-        if (labelsIds[id]) {
-            return null;
-        }
-        labelsIds[id] = true;
-        return label;
-    })
-        .filter(nonNullable);
-}
-function getAllParentsWithTheSameBoundingBox(fiber) {
-    var parents = [fiber];
-    if (fiber.stateNode === null) {
-        return parents;
-    }
-    var currentFiber = fiber;
-    while (currentFiber["return"]) {
-        currentFiber = currentFiber["return"];
-        if (currentFiber.stateNode &&
-            currentFiber.stateNode.getBoundingClientRect) {
-            var bbox = currentFiber.stateNode.getBoundingClientRect();
-            if (bbox.x === fiber.stateNode.getBoundingClientRect().x &&
-                bbox.y === fiber.stateNode.getBoundingClientRect().y &&
-                bbox.width === fiber.stateNode.getBoundingClientRect().width &&
-                bbox.height === fiber.stateNode.getBoundingClientRect().height) {
-                parents.push(currentFiber);
-            }
-            else {
-                break;
+            var source = findDebugSource(fiber);
+            console.log("SOURCE: ", source);
+            // printReturnTree(fiber);
+            // printDebugOwnerTree(fiber);
+            if (source) {
+                var _a = findNames(fiber), name_1 = _a.name, wrappingComponent = _a.wrappingComponent;
+                labels.push({
+                    fileData: {
+                        filePath: source.fileName,
+                        projectPath: ""
+                    },
+                    expData: {
+                        type: "jsx",
+                        name: name_1,
+                        wrappingComponent: wrappingComponent,
+                        loc: {
+                            start: {
+                                column: source.columnNumber || 0,
+                                line: source.lineNumber || 0
+                            },
+                            end: {
+                                column: source.columnNumber || 0,
+                                line: source.lineNumber || 0
+                            }
+                        }
+                    }
+                });
             }
         }
     }
-    return parents;
-}
-function getFiberLabel(fiber, source) {
-    var _a = findNames(fiber), name = _a.name, wrappingComponent = _a.wrappingComponent;
-    var link = source
-        ? buidLink(source.fileName, "", {
-            start: {
-                column: source.columnNumber || 0,
-                line: source.lineNumber || 0
-            },
-            end: {
-                column: source.columnNumber || 0,
-                line: source.lineNumber || 0
-            }
-        })
-        : null;
-    var label = {
-        label: (wrappingComponent ? "".concat(wrappingComponent, ": ") : "") + name,
-        link: link
-    };
-    return label;
+    return labels;
 }
 function parseDataId(dataId) {
     var _a = dataId.split("::"), fileFullPath = _a[0], id = _a[1];
@@ -368,9 +335,10 @@ function clickListener(e) {
         var labels = getLabels(target);
         var firstLabel = labels[0];
         if (firstLabel) {
+            var link = buidLink(firstLabel.fileData.filePath, firstLabel.fileData.projectPath, firstLabel.expData.loc);
             e.preventDefault();
             e.stopPropagation();
-            window.open(firstLabel.link);
+            window.open(link);
         }
     }
 }
@@ -608,13 +576,6 @@ function getDataForDataId(dataId) {
     if (!expData) {
         return null;
     }
-    var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-    var label;
-    if (expData.type === "jsx") {
-        label =
-            (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
-                expData.name;
-    }
     else {
         label = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
     }
@@ -625,18 +586,18 @@ function nonNullable(value) {
 }
 exports["default"] = nonNullable;
 function findFiberByHtmlElement(target, shouldHaveDebugSource) {
-    var _a, _b;
+    var _a;
     var renderers = (_a = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _a === void 0 ? void 0 : _a.renderers;
-    // console.log("RENDERERS: ", renderers);
+    console.log("RENDERERS: ", renderers);
     var renderersValues = renderers === null || renderers === void 0 ? void 0 : renderers.values();
     if (renderersValues) {
-        for (var _i = 0, _c = Array.from(renderersValues); _i < _c.length; _i++) {
-            var renderer = _c[_i];
+        for (var _i = 0, _b = Array.from(renderersValues); _i < _b.length; _i++) {
+            var renderer = _b[_i];
             if (renderer.findFiberByHostInstance) {
                 var found = renderer.findFiberByHostInstance(target);
                 if (found) {
                     if (shouldHaveDebugSource) {
-                        return ((_b = findDebugSource(found)) === null || _b === void 0 ? void 0 : _b.fiber) || null;
+                        return findOneWithDebugSource(found);
                     }
                     else {
                         return found;
@@ -647,11 +608,21 @@ function findFiberByHtmlElement(target, shouldHaveDebugSource) {
     }
     return null;
 }
+function findOneWithDebugSource(fiber) {
+    var current = fiber;
+    while (current) {
+        if (current._debugSource) {
+            return current;
+        }
+        current = current._debugOwner || null;
+    }
+    return null;
+}
 function findDebugSource(fiber) {
     var current = fiber;
     while (current) {
         if (current._debugSource) {
-            return { fiber: current, source: current._debugSource };
+            return current._debugSource;
         }
         current = current._debugOwner || null;
     }
@@ -660,7 +631,7 @@ function findDebugSource(fiber) {
 function searchDevtoolsRenderersForClosestTarget(target) {
     var closest = target;
     while (closest) {
-        if (findFiberByHtmlElement(closest, false)) {
+        if (findFiberByHtmlElement(closest, true)) {
             return closest;
         }
         closest = closest.parentElement;
@@ -710,7 +681,7 @@ function getUsableName(fiber) {
         return fiber.elementType;
     }
     if (!fiber.elementType) {
-        return "Anonymous";
+        return "Unknown";
     }
     if (fiber.elementType.name) {
         return fiber.elementType.name;
@@ -726,7 +697,7 @@ function getUsableName(fiber) {
     if ((_c = (_b = fiber.elementType._payload) === null || _b === void 0 ? void 0 : _b._result) === null || _c === void 0 ? void 0 : _c.name) {
         return fiber.elementType._payload._result.name;
     }
-    return "Anonymous";
+    return "Unknown";
 }
 function detectMissingRenderers() {
     var _a, _b;

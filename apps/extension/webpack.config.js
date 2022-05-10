@@ -47,10 +47,11 @@ const options = {
     contentScript: path.join(__dirname, 'src', 'pages', 'Content', 'index.js'),
     devtools: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.js'),
     panel: path.join(__dirname, 'src', 'pages', 'Panel', 'index.jsx'),
-    client: path.join(__dirname, 'src', 'pages', 'Client', 'index.ts'),
+    client: path.join(__dirname, 'src', 'pages', 'ClientUI', 'index.ts'),
+    hook: path.join(__dirname, 'src', 'pages', 'Hook', 'index.ts'),
   },
   chromeExtensionBoilerplate: {
-    notHotReload: ['contentScript', 'client', 'devtools'],
+    notHotReload: ['contentScript', 'client', 'hook', 'devtools'],
   },
   output: {
     path: path.resolve(__dirname, 'build'),

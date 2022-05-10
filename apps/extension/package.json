@@ -8,10 +8,8 @@
     "url": "https://github.com/infi-pc/locatorjs-extension.git"
   },
   "scripts": {
-    "dev": "run-p start dev:client",
     "build": "node utils/build.js",
-    "start": "node utils/webserver.js",
-    "dev:client": "webpack --watch --config ./client.webpack.config.js",
+    "dev": "node utils/webserver.js",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {
@@ -29,7 +27,6 @@
     "babel-eslint": "^10.1.0",
     "babel-loader": "^8.2.2",
     "babel-preset-solid": "^1.3.2",
-    "copy-and-watch": "^0.1.6",
     "copy-webpack-plugin": "^7.0.0",
     "css-loader": "^6.5.0",
     "eslint": "^7.32.0",
