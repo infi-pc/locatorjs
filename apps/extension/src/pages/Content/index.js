@@ -1,0 +1,29 @@
+// const code = require('!raw-loader!./generated/client.bundle.js');
+
+function injectScript() {
+  const script = document.createElement('script');
+  // script.textContent = code.default;
+  script.src = 'chrome-extension://' + chrome.runtime.id + '/client.bundle.js';
+
+  // This script runs before the <head> element is created,
+  // so we add the script to <html> instead.
+  if (document.documentElement) {
+    document.documentElement.appendChild(script);
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
+  }
+}
+
+// Inject a __REACT_DEVTOOLS_GLOBAL_HOOK__ global for React to interact with.
+// Only do this for HTML documents though, to avoid e.g. breaking syntax highlighting for XML docs.
+// We need to inject this code because content scripts (ie injectGlobalHook.js) don't have access
+// to the webpage's window, so in order to access front end settings
+// and communicate with React, we must inject this code into the webpage
+switch (document.contentType) {
+  case 'text/html':
+  case 'application/xhtml+xml': {
+    injectScript();
+    break;
+  }
+}

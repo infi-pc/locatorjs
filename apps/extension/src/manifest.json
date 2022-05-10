@@ -5,8 +5,7 @@
     "128": "icon-128.png"
   },
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon-34.png"
+    "default_title": "Click to run LocatorJS on this page"
   },
   "content_scripts": [
     {
@@ -15,12 +14,10 @@
       "run_at": "document_start"
     }
   ],
-  "permissions": ["storage"],
   "web_accessible_resources": [
     {
       "resources": [
         "client.bundle.js",
-        "hook.bundle.js",
         "content.styles.css",
         "icon-128.png",
         "icon-34.png"
