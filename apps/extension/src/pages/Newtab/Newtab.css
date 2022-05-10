@@ -1,17 +1,10 @@
 .App {
-  position: absolute;
-  top: 0px;
-  bottom: 0px;
-  left: 0px;
-  right: 0px;
   text-align: center;
-  height: 100%;
-  padding: 10px;
-  background-color: #282c34;
 }
 
 .App-header {
-  height: 100%;
+  background-color: #282c34;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
