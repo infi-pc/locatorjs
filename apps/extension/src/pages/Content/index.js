@@ -3,7 +3,10 @@
 function injectScript() {
   const script = document.createElement('script');
   // script.textContent = code.default;
-  script.src = 'chrome-extension://' + chrome.runtime.id + '/client.bundle.js';
+  script.src = 'chrome-extension://' + chrome.runtime.id + '/hook.bundle.js';
+
+  document.documentElement.dataset.locatorClientUrl =
+    'chrome-extension://' + chrome.runtime.id + '/client.bundle.js';
 
   // This script runs before the <head> element is created,
   // so we add the script to <html> instead.
@@ -11,6 +14,7 @@ function injectScript() {
     document.documentElement.appendChild(script);
     if (script.parentNode) {
       script.parentNode.removeChild(script);
+      // delete document.documentElement.dataset.locatorClientUrl;
     }
   }
 }

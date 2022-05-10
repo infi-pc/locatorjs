@@ -1,4 +1,18 @@
-type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
+import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types";
+
+console.log("RUNTIME HERE");
+declare global {
+  interface Window {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
+  }
+}
+
+type LocatorJSMode =
+  | "disabled"
+  | "hidden"
+  | "minimal"
+  | "options"
+  | "no-renderer";
 
 type SourceLocation = {
   start: {
@@ -80,8 +94,12 @@ let linkTemplateUrl = (): string => {
 let modeInCookies = getCookie("LOCATORJS") as LocatorJSMode | undefined;
 let defaultMode: LocatorJSMode = "options";
 
-function getMode() {
-  return modeInCookies || defaultMode;
+function getMode(): LocatorJSMode {
+  const proposedMode = modeInCookies || defaultMode;
+  if (proposedMode !== "hidden" && detectMissingRenderers()) {
+    return "no-renderer";
+  }
+  return proposedMode;
 }
 
 function setMode(newMode: LocatorJSMode) {
@@ -99,9 +117,17 @@ if (typeof window !== "undefined") {
 
   let locatorDisabled = getMode() === "disabled";
   if (!locatorDisabled) {
-    window.addEventListener("load", function () {
+    onDocumentLoad(function () {
       init(getMode());
     });
+  }
+}
+
+function onDocumentLoad(callback: () => void) {
+  if (document.readyState === "complete") {
+    callback();
+  } else {
+    window.addEventListener("load", callback);
   }
 }
 
@@ -166,11 +192,99 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
   } else {
     document.body.style.cursor = "";
   }
+
+  let labels: LabelData[] = getLabels(found);
+
+  if (labels.length === 0) {
+    return;
+  }
+
+  const bbox = found.getBoundingClientRect();
+  const rect = document.createElement("div");
+  css(rect, {
+    position: "absolute",
+    left: bbox.x - PADDING + "px",
+    top: bbox.y - PADDING + "px",
+    width: bbox.width + PADDING * 2 + "px",
+    height: bbox.height + PADDING * 2 + "px",
+    border: "2px solid " + baseColor,
+    borderRadius: "8px",
+  });
+
+  if (isAltKey) {
+    rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
+  }
+  const isReversed = bbox.y < 30;
+  const labelsSection = document.createElement("div");
+  labelsSection.id = "locatorjs-labels-section";
+  labelsSection.style.position = "absolute";
+  labelsSection.style.display = "flex";
+  labelsSection.style.justifyContent = "center";
+  if (isReversed) {
+    labelsSection.style.bottom = "-28px";
+  } else {
+    labelsSection.style.top = "-28px";
+  }
+
+  labelsSection.style.left = "0px";
+  labelsSection.style.width = "100%";
+  // Uncomment when need to debug
+  // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
+  labelsSection.style.pointerEvents = "auto";
+  if (isReversed) {
+    labelsSection.style.borderBottomLeftRadius = "100%";
+    labelsSection.style.borderBottomRightRadius = "100%";
+  } else {
+    labelsSection.style.borderTopLeftRadius = "100%";
+    labelsSection.style.borderTopRightRadius = "100%";
+  }
+
+  rect.appendChild(labelsSection);
+
+  const labelWrapper = document.createElement("div");
+  labelWrapper.id = "locatorjs-labels-wrapper";
+  labelWrapper.style.padding = isReversed
+    ? "10px 10px 2px 10px"
+    : "2px 10px 10px 10px";
+
+  labelsSection.appendChild(labelWrapper);
+
+  labels.forEach(({ fileData, expData }) => {
+    const label = document.createElement("a");
+    label.className = "locatorjs-label";
+    label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+    if (expData.type === "jsx") {
+      label.innerText =
+        (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
+        expData.name;
+    } else {
+      label.innerText = `${
+        expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"
+      }${expData.name ? `: ${expData.name}` : ""}`;
+    }
+    label.onclick = (e) => {
+      const link = buidLink(
+        fileData.filePath,
+        fileData.projectPath,
+        expData.loc
+      );
+      window.open(link);
+    };
+
+    labelWrapper.appendChild(label);
+  });
+
+  el.innerHTML = "";
+  el.appendChild(rect);
+}
+
+function getLabels(found: HTMLElement) {
+  let labels: LabelData[] = [];
   if (
     found.dataset &&
     (found.dataset.locatorjsId || found.dataset.locatorjsStyled)
   ) {
-    const labels = [
+    labels = [
       found.dataset.locatorjsId
         ? getDataForDataId(found.dataset.locatorjsId)
         : null,
@@ -178,93 +292,44 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
         ? getDataForDataId(found.dataset.locatorjsStyled)
         : null,
     ].filter(nonNullable);
-
-    if (labels.length === 0) {
-      return;
-    }
-
-    const bbox = found.getBoundingClientRect();
-    const rect = document.createElement("div");
-    css(rect, {
-      position: "absolute",
-      left: bbox.x - PADDING + "px",
-      top: bbox.y - PADDING + "px",
-      width: bbox.width + PADDING * 2 + "px",
-      height: bbox.height + PADDING * 2 + "px",
-      border: "2px solid " + baseColor,
-      borderRadius: "8px",
-    });
-
-    if (isAltKey) {
-      rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
-    }
-    const isReversed = bbox.y < 30;
-    const labelsSection = document.createElement("div");
-    labelsSection.id = "locatorjs-labels-section";
-    labelsSection.style.position = "absolute";
-    labelsSection.style.display = "flex";
-    labelsSection.style.justifyContent = "center";
-    if (isReversed) {
-      labelsSection.style.bottom = "-28px";
-    } else {
-      labelsSection.style.top = "-28px";
-    }
-
-    labelsSection.style.left = "0px";
-    labelsSection.style.width = "100%";
-    // Uncomment when need to debug
-    // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
-    labelsSection.style.pointerEvents = "auto";
-    if (isReversed) {
-      labelsSection.style.borderBottomLeftRadius = "100%";
-      labelsSection.style.borderBottomRightRadius = "100%";
-    } else {
-      labelsSection.style.borderTopLeftRadius = "100%";
-      labelsSection.style.borderTopRightRadius = "100%";
-    }
-
-    rect.appendChild(labelsSection);
-
-    const labelWrapper = document.createElement("div");
-    labelWrapper.id = "locatorjs-labels-wrapper";
-    labelWrapper.style.padding = isReversed
-      ? "10px 10px 2px 10px"
-      : "2px 10px 10px 10px";
-
-    labelsSection.appendChild(labelWrapper);
-
-    labels.forEach(({ fileData, expData }) => {
-      const label = document.createElement("a");
-      label.className = "locatorjs-label";
-      label.href = buidLink(
-        fileData.filePath,
-        fileData.projectPath,
-        expData.loc
-      );
-      if (expData.type === "jsx") {
-        label.innerText =
-          (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
-          expData.name;
-      } else {
-        label.innerText = `${
-          expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"
-        }${expData.name ? `: ${expData.name}` : ""}`;
-      }
-      label.onclick = (e) => {
-        const link = buidLink(
-          fileData.filePath,
-          fileData.projectPath,
-          expData.loc
-        );
-        window.open(link);
-      };
-
-      labelWrapper.appendChild(label);
-    });
-
-    el.innerHTML = "";
-    el.appendChild(rect);
   }
+
+  if (labels.length === 0) {
+    const fiber = findFiberByHtmlElement(found, true);
+    console.log("FIBER: ", fiber);
+    if (fiber) {
+      const source = findDebugSource(fiber);
+      console.log("SOURCE: ", source);
+      // printReturnTree(fiber);
+      // printDebugOwnerTree(fiber);
+
+      if (source) {
+        const { name, wrappingComponent } = findNames(fiber);
+        labels.push({
+          fileData: {
+            filePath: source.fileName,
+            projectPath: "",
+          },
+          expData: {
+            type: "jsx",
+            name,
+            wrappingComponent,
+            loc: {
+              start: {
+                column: source.columnNumber || 0,
+                line: source.lineNumber || 0,
+              },
+              end: {
+                column: source.columnNumber || 0,
+                line: source.lineNumber || 0,
+              },
+            },
+          },
+        });
+      }
+    }
+  }
+  return labels;
 }
 
 function parseDataId(dataId: string): [fileFullPath: string, id: string] {
@@ -295,7 +360,9 @@ function mouseOverListener(e: MouseEvent) {
       return;
     }
 
-    const found = target.closest("[data-locatorjs-id]");
+    const found =
+      target.closest("[data-locatorjs-id]") ||
+      searchDevtoolsRenderersForClosestTarget(target);
     if (found && found instanceof HTMLElement) {
       // @ts-ignore
       currentElementRef = new WeakRef(found);
@@ -343,24 +410,18 @@ function clickListener(e: MouseEvent) {
   }
   const target = e.target;
   if (target && target instanceof HTMLElement) {
-    const found: HTMLElement | null = target.closest("[data-locatorjs-id]");
-    if (!found || !found.dataset || !found.dataset.locatorjsId) {
-      return;
+    const labels = getLabels(target);
+    const firstLabel = labels[0];
+    if (firstLabel) {
+      const link = buidLink(
+        firstLabel.fileData.filePath,
+        firstLabel.fileData.projectPath,
+        firstLabel.expData.loc
+      );
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(link);
     }
-    const [filePath, id] = parseDataId(found.dataset.locatorjsId);
-    const fileData = dataByFilename[filePath];
-    if (!fileData) {
-      return;
-    }
-    const expData = fileData.expressions[Number(id)];
-    if (!expData) {
-      return;
-    }
-    const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(link);
-    //   window.open(link, "_blank");
   }
 }
 
@@ -505,6 +566,10 @@ function init(mode: LocatorJSMode) {
           border-radius: 12px 12px 0px 0px;
         }
       }
+      #locatorjs-missing-renderer a {
+        color: #fff;
+        text-decoration: underline;
+      }
     `;
   document.head.appendChild(style);
 
@@ -530,6 +595,9 @@ function init(mode: LocatorJSMode) {
 
   document.body.appendChild(layer);
 
+  if (mode === "no-renderer") {
+    showMissingRenderer();
+  }
   if (mode === "minimal") {
     showMinimal();
   }
@@ -657,6 +725,33 @@ function showMinimal() {
   document.body.appendChild(minimal);
 }
 
+function showMissingRenderer() {
+  const el = document.createElement("div");
+  el.setAttribute("id", "locatorjs-missing-renderer");
+  css(el, {
+    position: "fixed",
+    bottom: "18px",
+    left: "18px",
+    backgroundColor: baseColor,
+    fontSize: "16px",
+    borderRadius: "4px",
+    padding: "6px 12px",
+    color: "white",
+    zIndex: "10000",
+    fontFamily,
+  });
+  el.innerHTML = `
+    <div><a href="${repoLink}">LocatorJS</a> has not found any React project in development mode. <a id="locatorjs-missing-rendered-to-hide">hide</a></div>
+    `;
+
+  const hide = el.querySelector(
+    "#locatorjs-missing-rendered-to-hide"
+  ) as HTMLInputElement;
+  hide.addEventListener("click", hideAlertHandler);
+
+  document.body.appendChild(el);
+}
+
 function destroy() {
   const el = document.getElementById("locatorjs-layer");
   if (el) {
@@ -676,6 +771,7 @@ function destroy() {
     styleEl.remove();
   }
   hideMinimal();
+  hideMissingRenderer();
   if (document.body.style.cursor === "pointer") {
     document.body.style.cursor = "";
   }
@@ -683,6 +779,13 @@ function destroy() {
 
 function hideMinimal() {
   const minimalEl = document.getElementById("locatorjs-minimal");
+  if (minimalEl) {
+    minimalEl.remove();
+  }
+}
+
+function hideMissingRenderer() {
+  const minimalEl = document.getElementById("locatorjs-missing-renderer");
   if (minimalEl) {
     minimalEl.remove();
   }
@@ -715,16 +818,30 @@ function goToHiddenHandler() {
   );
 }
 
-function getDataForDataId(dataId: string) {
+function hideAlertHandler() {
+  setMode("hidden");
+  destroy();
+  init("hidden");
+}
+
+type LabelData = {
+  fileData: {
+    filePath: string;
+    projectPath: string;
+  };
+  expData: ExpressionInfo;
+};
+
+function getDataForDataId(dataId: string): LabelData | null {
   const [fileFullPath, id] = parseDataId(dataId);
 
   const fileData = dataByFilename[fileFullPath];
   if (!fileData) {
-    return;
+    return null;
   }
   const expData = fileData.expressions[Number(id)];
   if (!expData) {
-    return;
+    return null;
   }
 
   return { fileData, expData };
@@ -732,4 +849,139 @@ function getDataForDataId(dataId: string) {
 
 export default function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
+}
+
+function findFiberByHtmlElement(
+  target: HTMLElement,
+  shouldHaveDebugSource: boolean
+): Fiber | null {
+  const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
+  console.log("RENDERERS: ", renderers);
+
+  const renderersValues = renderers?.values();
+  if (renderersValues) {
+    for (const renderer of Array.from(renderersValues) as Renderer[]) {
+      if (renderer.findFiberByHostInstance) {
+        const found = renderer.findFiberByHostInstance(target as any);
+        if (found) {
+          if (shouldHaveDebugSource) {
+            return findOneWithDebugSource(found);
+          } else {
+            return found;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function findOneWithDebugSource(fiber: Fiber): Fiber | null {
+  let current: Fiber | null = fiber;
+  while (current) {
+    if (current._debugSource) {
+      return current;
+    }
+    current = current._debugOwner || null;
+  }
+
+  return null;
+}
+
+function findDebugSource(fiber: Fiber): Source | null {
+  let current: Fiber | null = fiber;
+  while (current) {
+    if (current._debugSource) {
+      return current._debugSource;
+    }
+    current = current._debugOwner || null;
+  }
+
+  return null;
+}
+
+function searchDevtoolsRenderersForClosestTarget(
+  target: HTMLElement
+): HTMLElement | null {
+  let closest: HTMLElement | null = target;
+  while (closest) {
+    if (findFiberByHtmlElement(closest, true)) {
+      return closest;
+    }
+    closest = closest.parentElement;
+  }
+
+  return null;
+}
+
+function findNames(fiber: Fiber): { name: string; wrappingComponent: string } {
+  // if (fiber._debugOwner?.elementType?.styledComponentId) {
+  //   // This is special case for styled-components, we need to show one level up
+  //   return {
+  //     name: getUsableName(fiber._debugOwner),
+  //     wrappingComponent: getUsableName(fiber._debugOwner?._debugOwner),
+  //   };
+  // } else {
+  return {
+    name: getUsableName(fiber),
+    wrappingComponent: getUsableName(fiber._debugOwner),
+  };
+  // }
+}
+
+// function printDebugOwnerTree(fiber: Fiber): string | null {
+//   let current: Fiber | null = fiber || null;
+//   let results = [];
+//   while (current) {
+//     results.push(getUsableName(current));
+//     current = current._debugOwner || null;
+//   }
+
+//   console.log('DEBUG OWNER: ', results);
+//   return null;
+// }
+
+// function printReturnTree(fiber: Fiber): string | null {
+//   let current: Fiber | null = fiber || null;
+//   let results = [];
+//   while (current) {
+//     results.push(getUsableName(current));
+//     current = current.return || null;
+//   }
+
+//   console.log('RETURN: ', results);
+//   return null;
+// }
+
+function getUsableName(fiber: Fiber | null | undefined) {
+  if (!fiber) {
+    return "Not found";
+  }
+
+  if (typeof fiber.elementType === "string") {
+    return fiber.elementType;
+  }
+  if (!fiber.elementType) {
+    return "Unknown";
+  }
+
+  if (fiber.elementType.name) {
+    return fiber.elementType.name;
+  }
+  // Not sure about this
+  if (fiber.elementType.displayName) {
+    return fiber.elementType.displayName;
+  }
+  // Used in rect.memo
+  if (fiber.elementType.type?.name) {
+    return fiber.elementType.type.name;
+  }
+  if (fiber.elementType._payload?._result?.name) {
+    return fiber.elementType._payload._result.name;
+  }
+
+  return "Unknown";
+}
+function detectMissingRenderers(): boolean {
+  return window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers?.size === 0;
 }

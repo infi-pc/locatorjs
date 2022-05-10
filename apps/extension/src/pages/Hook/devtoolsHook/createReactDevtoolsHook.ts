@@ -1,4 +1,4 @@
-import { Fiber, FiberRoot, ReactInternals } from '../types';
+import { Fiber, FiberRoot, ReactInternals } from '@locator/types';
 import { isValidRenderer } from './isValidRenderer';
 
 export const MARKER = Symbol();

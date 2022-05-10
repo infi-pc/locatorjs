@@ -10,6 +10,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
+console.log("RUNTIME HERE");
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -46,7 +47,11 @@ var linkTemplateUrl = function () {
 var modeInCookies = getCookie("LOCATORJS");
 var defaultMode = "options";
 function getMode() {
-    return modeInCookies || defaultMode;
+    var proposedMode = modeInCookies || defaultMode;
+    if (proposedMode !== "hidden" && detectMissingRenderers()) {
+        return "no-renderer";
+    }
+    return proposedMode;
 }
 function setMode(newMode) {
     setCookie("LOCATORJS", newMode);
@@ -60,9 +65,17 @@ if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
     var locatorDisabled = getMode() === "disabled";
     if (!locatorDisabled) {
-        window.addEventListener("load", function () {
+        onDocumentLoad(function () {
             init(getMode());
         });
+    }
+}
+function onDocumentLoad(callback) {
+    if (document.readyState === "complete") {
+        callback();
+    }
+    else {
+        window.addEventListener("load", callback);
     }
 }
 function setup(props) {
@@ -120,9 +133,83 @@ function rerenderLayer(found, isAltKey) {
     else {
         document.body.style.cursor = "";
     }
+    var labels = getLabels(found);
+    if (labels.length === 0) {
+        return;
+    }
+    var bbox = found.getBoundingClientRect();
+    var rect = document.createElement("div");
+    css(rect, {
+        position: "absolute",
+        left: bbox.x - PADDING + "px",
+        top: bbox.y - PADDING + "px",
+        width: bbox.width + PADDING * 2 + "px",
+        height: bbox.height + PADDING * 2 + "px",
+        border: "2px solid " + baseColor,
+        borderRadius: "8px"
+    });
+    if (isAltKey) {
+        rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
+    }
+    var isReversed = bbox.y < 30;
+    var labelsSection = document.createElement("div");
+    labelsSection.id = "locatorjs-labels-section";
+    labelsSection.style.position = "absolute";
+    labelsSection.style.display = "flex";
+    labelsSection.style.justifyContent = "center";
+    if (isReversed) {
+        labelsSection.style.bottom = "-28px";
+    }
+    else {
+        labelsSection.style.top = "-28px";
+    }
+    labelsSection.style.left = "0px";
+    labelsSection.style.width = "100%";
+    // Uncomment when need to debug
+    // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
+    labelsSection.style.pointerEvents = "auto";
+    if (isReversed) {
+        labelsSection.style.borderBottomLeftRadius = "100%";
+        labelsSection.style.borderBottomRightRadius = "100%";
+    }
+    else {
+        labelsSection.style.borderTopLeftRadius = "100%";
+        labelsSection.style.borderTopRightRadius = "100%";
+    }
+    rect.appendChild(labelsSection);
+    var labelWrapper = document.createElement("div");
+    labelWrapper.id = "locatorjs-labels-wrapper";
+    labelWrapper.style.padding = isReversed
+        ? "10px 10px 2px 10px"
+        : "2px 10px 10px 10px";
+    labelsSection.appendChild(labelWrapper);
+    labels.forEach(function (_a) {
+        var fileData = _a.fileData, expData = _a.expData;
+        var label = document.createElement("a");
+        label.className = "locatorjs-label";
+        label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+        if (expData.type === "jsx") {
+            label.innerText =
+                (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
+                    expData.name;
+        }
+        else {
+            label.innerText = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
+        }
+        label.onclick = function (e) {
+            var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+            window.open(link);
+        };
+        labelWrapper.appendChild(label);
+    });
+    el.innerHTML = "";
+    el.appendChild(rect);
+}
+function getLabels(found) {
+    var labels = [];
     if (found.dataset &&
         (found.dataset.locatorjsId || found.dataset.locatorjsStyled)) {
-        var labels = [
+        labels = [
             found.dataset.locatorjsId
                 ? getDataForDataId(found.dataset.locatorjsId)
                 : null,
@@ -130,77 +217,42 @@ function rerenderLayer(found, isAltKey) {
                 ? getDataForDataId(found.dataset.locatorjsStyled)
                 : null,
         ].filter(nonNullable);
-        if (labels.length === 0) {
-            return;
-        }
-        var bbox = found.getBoundingClientRect();
-        var rect = document.createElement("div");
-        css(rect, {
-            position: "absolute",
-            left: bbox.x - PADDING + "px",
-            top: bbox.y - PADDING + "px",
-            width: bbox.width + PADDING * 2 + "px",
-            height: bbox.height + PADDING * 2 + "px",
-            border: "2px solid " + baseColor,
-            borderRadius: "8px"
-        });
-        if (isAltKey) {
-            rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
-        }
-        var isReversed = bbox.y < 30;
-        var labelsSection = document.createElement("div");
-        labelsSection.id = "locatorjs-labels-section";
-        labelsSection.style.position = "absolute";
-        labelsSection.style.display = "flex";
-        labelsSection.style.justifyContent = "center";
-        if (isReversed) {
-            labelsSection.style.bottom = "-28px";
-        }
-        else {
-            labelsSection.style.top = "-28px";
-        }
-        labelsSection.style.left = "0px";
-        labelsSection.style.width = "100%";
-        // Uncomment when need to debug
-        // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
-        labelsSection.style.pointerEvents = "auto";
-        if (isReversed) {
-            labelsSection.style.borderBottomLeftRadius = "100%";
-            labelsSection.style.borderBottomRightRadius = "100%";
-        }
-        else {
-            labelsSection.style.borderTopLeftRadius = "100%";
-            labelsSection.style.borderTopRightRadius = "100%";
-        }
-        rect.appendChild(labelsSection);
-        var labelWrapper_1 = document.createElement("div");
-        labelWrapper_1.id = "locatorjs-labels-wrapper";
-        labelWrapper_1.style.padding = isReversed
-            ? "10px 10px 2px 10px"
-            : "2px 10px 10px 10px";
-        labelsSection.appendChild(labelWrapper_1);
-        labels.forEach(function (_a) {
-            var fileData = _a.fileData, expData = _a.expData;
-            var label = document.createElement("a");
-            label.className = "locatorjs-label";
-            label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-            if (expData.type === "jsx") {
-                label.innerText =
-                    (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
-                        expData.name;
-            }
-            else {
-                label.innerText = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
-            }
-            label.onclick = function (e) {
-                var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-                window.open(link);
-            };
-            labelWrapper_1.appendChild(label);
-        });
-        el.innerHTML = "";
-        el.appendChild(rect);
     }
+    if (labels.length === 0) {
+        var fiber = findFiberByHtmlElement(found, true);
+        console.log("FIBER: ", fiber);
+        if (fiber) {
+            var source = findDebugSource(fiber);
+            console.log("SOURCE: ", source);
+            // printReturnTree(fiber);
+            // printDebugOwnerTree(fiber);
+            if (source) {
+                var _a = findNames(fiber), name_1 = _a.name, wrappingComponent = _a.wrappingComponent;
+                labels.push({
+                    fileData: {
+                        filePath: source.fileName,
+                        projectPath: ""
+                    },
+                    expData: {
+                        type: "jsx",
+                        name: name_1,
+                        wrappingComponent: wrappingComponent,
+                        loc: {
+                            start: {
+                                column: source.columnNumber || 0,
+                                line: source.lineNumber || 0
+                            },
+                            end: {
+                                column: source.columnNumber || 0,
+                                line: source.lineNumber || 0
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    }
+    return labels;
 }
 function parseDataId(dataId) {
     var _a = dataId.split("::"), fileFullPath = _a[0], id = _a[1];
@@ -225,7 +277,8 @@ function mouseOverListener(e) {
             target.id == "locatorjs-labels-section") {
             return;
         }
-        var found = target.closest("[data-locatorjs-id]");
+        var found = target.closest("[data-locatorjs-id]") ||
+            searchDevtoolsRenderersForClosestTarget(target);
         if (found && found instanceof HTMLElement) {
             // @ts-ignore
             currentElementRef = new WeakRef(found);
@@ -270,24 +323,14 @@ function clickListener(e) {
     }
     var target = e.target;
     if (target && target instanceof HTMLElement) {
-        var found = target.closest("[data-locatorjs-id]");
-        if (!found || !found.dataset || !found.dataset.locatorjsId) {
-            return;
+        var labels = getLabels(target);
+        var firstLabel = labels[0];
+        if (firstLabel) {
+            var link = buidLink(firstLabel.fileData.filePath, firstLabel.fileData.projectPath, firstLabel.expData.loc);
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(link);
         }
-        var _a = parseDataId(found.dataset.locatorjsId), filePath = _a[0], id = _a[1];
-        var fileData = dataByFilename[filePath];
-        if (!fileData) {
-            return;
-        }
-        var expData = fileData.expressions[Number(id)];
-        if (!expData) {
-            return;
-        }
-        var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-        e.preventDefault();
-        e.stopPropagation();
-        window.open(link);
-        //   window.open(link, "_blank");
     }
 }
 // function hideOptionsHandler() {
@@ -314,7 +357,7 @@ function init(mode) {
     // add style tag to head
     var style = document.createElement("style");
     style.id = "locatorjs-style";
-    style.innerHTML = "\n      #locatorjs-layer * {\n        box-sizing: border-box;\n      }\n      .locatorjs-label {\n        cursor: pointer;\n        background-color: ".concat(baseColor, ";\n        display: block;\n        color: #fff;\n        font-size: 12px;\n        font-weight: bold;\n        text-align: center;\n        padding: 2px 6px;\n        border-radius: 4px;\n        font-family: ").concat(fontFamily, ";\n        white-space: nowrap;\n        text-decoration: none !important;\n        line-height: 18px;\n      }\n      .locatorjs-label:hover {\n        background-color: ").concat(hoverColor, ";\n        color: #fff;\n        text-decoration: none;\n      }\n      #locatorjs-labels-section {\n      }\n      #locatorjs-labels-wrapper {\n        display: flex;\n        gap: 8px;\n      }\n      #locatorjs-options {\n        max-width: 100vw;\n        position: fixed;\n        bottom: 18px;\n        left: 18px;\n        background-color: #333;\n        border-radius: 12px;\n        font-size: 14px;\n        pointer-events: auto;\n        z-index: 100000;\n        padding: 16px 20px;\n        color: #eee;\n        line-height: 1.3em;\n        font-family: ").concat(fontFamily, ";\n        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);\n      }\n      #locatorjs-options a {\n        color: ").concat(linkColor, ";\n        text-decoration: underline;\n      }\n      #locatorjs-options a:hover {\n        color: ").concat(linkColorHover, ";\n        text-decoration: underline;\n      }\n      #locatorjs-minimal a {\n        color: #fff;\n        text-decoration: none;\n      }\n      #locatorjs-minimal a:hover {\n        color: #ccc;\n        text-decoration: none;\n      }\n      #locatorjs-options-close {\n        cursor: pointer;\n        color: #aaa;\n      }\n      #locatorjs-options-close:hover {\n          color: #eee\n      }\n      #locatorjs-options .locatorjs-editors-options {\n        display: flex;\n        margin: 4px 0px;\n      } \n      #locatorjs-options .locatorjs-option {\n        cursor: pointer;\n        padding: 4px 10px;\n        margin-right: 4px;\n        display: flex;\n        align-items: center;\n        gap: 6px;\n      }\n      #locatorjs-options .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #eee;\n        width: 400px;\n      }\n      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {\n        cursor: pointer;\n      }\n      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {\n        text-decoration: underline;\n      }\n      #locatorjs-options .locatorjs-key {\n        padding: 2px 4px;\n        border-radius: 4px;\n        border: 1px solid #555;\n        margin: 2px;\n      }\n      #locatorjs-options .locatorjs-line {\n        padding: 4px 0px;\n      }\n      @media (max-width: 600px) {\n        #locatorjs-options {\n          width: 100vw;\n          bottom: 0px;\n          left: 0px;\n          border-radius: 12px 12px 0px 0px;\n        }\n      }\n    ");
+    style.innerHTML = "\n      #locatorjs-layer * {\n        box-sizing: border-box;\n      }\n      .locatorjs-label {\n        cursor: pointer;\n        background-color: ".concat(baseColor, ";\n        display: block;\n        color: #fff;\n        font-size: 12px;\n        font-weight: bold;\n        text-align: center;\n        padding: 2px 6px;\n        border-radius: 4px;\n        font-family: ").concat(fontFamily, ";\n        white-space: nowrap;\n        text-decoration: none !important;\n        line-height: 18px;\n      }\n      .locatorjs-label:hover {\n        background-color: ").concat(hoverColor, ";\n        color: #fff;\n        text-decoration: none;\n      }\n      #locatorjs-labels-section {\n      }\n      #locatorjs-labels-wrapper {\n        display: flex;\n        gap: 8px;\n      }\n      #locatorjs-options {\n        max-width: 100vw;\n        position: fixed;\n        bottom: 18px;\n        left: 18px;\n        background-color: #333;\n        border-radius: 12px;\n        font-size: 14px;\n        pointer-events: auto;\n        z-index: 100000;\n        padding: 16px 20px;\n        color: #eee;\n        line-height: 1.3em;\n        font-family: ").concat(fontFamily, ";\n        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);\n      }\n      #locatorjs-options a {\n        color: ").concat(linkColor, ";\n        text-decoration: underline;\n      }\n      #locatorjs-options a:hover {\n        color: ").concat(linkColorHover, ";\n        text-decoration: underline;\n      }\n      #locatorjs-minimal a {\n        color: #fff;\n        text-decoration: none;\n      }\n      #locatorjs-minimal a:hover {\n        color: #ccc;\n        text-decoration: none;\n      }\n      #locatorjs-options-close {\n        cursor: pointer;\n        color: #aaa;\n      }\n      #locatorjs-options-close:hover {\n          color: #eee\n      }\n      #locatorjs-options .locatorjs-editors-options {\n        display: flex;\n        margin: 4px 0px;\n      } \n      #locatorjs-options .locatorjs-option {\n        cursor: pointer;\n        padding: 4px 10px;\n        margin-right: 4px;\n        display: flex;\n        align-items: center;\n        gap: 6px;\n      }\n      #locatorjs-options .locatorjs-custom-template-input {\n        background-color: transparent;\n        border-radius: 6px;\n        margin: 4px 0px;\n        padding: 4px 10px;\n        border: 1px solid #555;\n        color: #eee;\n        width: 400px;\n      }\n      #locatorjs-minimal-to-hide, #locatorjs-minimal-to-options {\n        cursor: pointer;\n      }\n      #locatorjs-minimal-to-hide:hover, #locatorjs-minimal-to-options:hover {\n        text-decoration: underline;\n      }\n      #locatorjs-options .locatorjs-key {\n        padding: 2px 4px;\n        border-radius: 4px;\n        border: 1px solid #555;\n        margin: 2px;\n      }\n      #locatorjs-options .locatorjs-line {\n        padding: 4px 0px;\n      }\n      @media (max-width: 600px) {\n        #locatorjs-options {\n          width: 100vw;\n          bottom: 0px;\n          left: 0px;\n          border-radius: 12px 12px 0px 0px;\n        }\n      }\n      #locatorjs-missing-renderer a {\n        color: #fff;\n        text-decoration: underline;\n      }\n    ");
     document.head.appendChild(style);
     document.addEventListener("scroll", scrollListener);
     document.addEventListener("mouseover", mouseOverListener, { capture: true });
@@ -335,6 +378,9 @@ function init(mode) {
         pointerEvents: "none"
     });
     document.body.appendChild(layer);
+    if (mode === "no-renderer") {
+        showMissingRenderer();
+    }
     if (mode === "minimal") {
         showMinimal();
     }
@@ -425,6 +471,26 @@ function showMinimal() {
     hide.addEventListener("click", goToHiddenHandler);
     document.body.appendChild(minimal);
 }
+function showMissingRenderer() {
+    var el = document.createElement("div");
+    el.setAttribute("id", "locatorjs-missing-renderer");
+    css(el, {
+        position: "fixed",
+        bottom: "18px",
+        left: "18px",
+        backgroundColor: baseColor,
+        fontSize: "16px",
+        borderRadius: "4px",
+        padding: "6px 12px",
+        color: "white",
+        zIndex: "10000",
+        fontFamily: fontFamily
+    });
+    el.innerHTML = "\n    <div><a href=\"".concat(repoLink, "\">LocatorJS</a> has not found any React project in development mode. <a id=\"locatorjs-missing-rendered-to-hide\">hide</a></div>\n    ");
+    var hide = el.querySelector("#locatorjs-missing-rendered-to-hide");
+    hide.addEventListener("click", hideAlertHandler);
+    document.body.appendChild(el);
+}
 function destroy() {
     var el = document.getElementById("locatorjs-layer");
     if (el) {
@@ -443,12 +509,19 @@ function destroy() {
         styleEl.remove();
     }
     hideMinimal();
+    hideMissingRenderer();
     if (document.body.style.cursor === "pointer") {
         document.body.style.cursor = "";
     }
 }
 function hideMinimal() {
     var minimalEl = document.getElementById("locatorjs-minimal");
+    if (minimalEl) {
+        minimalEl.remove();
+    }
+}
+function hideMissingRenderer() {
+    var minimalEl = document.getElementById("locatorjs-missing-renderer");
     if (minimalEl) {
         minimalEl.remove();
     }
@@ -477,15 +550,20 @@ function goToHiddenHandler() {
     init("hidden");
     alert("LocatorJS will be now hidden.\n\nPress and hold ".concat(altTitle, " so start selecting in hidden mode.\n").concat(altTitle, "+D: To show UI"));
 }
+function hideAlertHandler() {
+    setMode("hidden");
+    destroy();
+    init("hidden");
+}
 function getDataForDataId(dataId) {
     var _a = parseDataId(dataId), fileFullPath = _a[0], id = _a[1];
     var fileData = dataByFilename[fileFullPath];
     if (!fileData) {
-        return;
+        return null;
     }
     var expData = fileData.expressions[Number(id)];
     if (!expData) {
-        return;
+        return null;
     }
     return { fileData: fileData, expData: expData };
 }
@@ -493,3 +571,121 @@ function nonNullable(value) {
     return value !== null && value !== undefined;
 }
 exports["default"] = nonNullable;
+function findFiberByHtmlElement(target, shouldHaveDebugSource) {
+    var _a;
+    var renderers = (_a = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _a === void 0 ? void 0 : _a.renderers;
+    console.log("RENDERERS: ", renderers);
+    var renderersValues = renderers === null || renderers === void 0 ? void 0 : renderers.values();
+    if (renderersValues) {
+        for (var _i = 0, _b = Array.from(renderersValues); _i < _b.length; _i++) {
+            var renderer = _b[_i];
+            if (renderer.findFiberByHostInstance) {
+                var found = renderer.findFiberByHostInstance(target);
+                if (found) {
+                    if (shouldHaveDebugSource) {
+                        return findOneWithDebugSource(found);
+                    }
+                    else {
+                        return found;
+                    }
+                }
+            }
+        }
+    }
+    return null;
+}
+function findOneWithDebugSource(fiber) {
+    var current = fiber;
+    while (current) {
+        if (current._debugSource) {
+            return current;
+        }
+        current = current._debugOwner || null;
+    }
+    return null;
+}
+function findDebugSource(fiber) {
+    var current = fiber;
+    while (current) {
+        if (current._debugSource) {
+            return current._debugSource;
+        }
+        current = current._debugOwner || null;
+    }
+    return null;
+}
+function searchDevtoolsRenderersForClosestTarget(target) {
+    var closest = target;
+    while (closest) {
+        if (findFiberByHtmlElement(closest, true)) {
+            return closest;
+        }
+        closest = closest.parentElement;
+    }
+    return null;
+}
+function findNames(fiber) {
+    // if (fiber._debugOwner?.elementType?.styledComponentId) {
+    //   // This is special case for styled-components, we need to show one level up
+    //   return {
+    //     name: getUsableName(fiber._debugOwner),
+    //     wrappingComponent: getUsableName(fiber._debugOwner?._debugOwner),
+    //   };
+    // } else {
+    return {
+        name: getUsableName(fiber),
+        wrappingComponent: getUsableName(fiber._debugOwner)
+    };
+    // }
+}
+// function printDebugOwnerTree(fiber: Fiber): string | null {
+//   let current: Fiber | null = fiber || null;
+//   let results = [];
+//   while (current) {
+//     results.push(getUsableName(current));
+//     current = current._debugOwner || null;
+//   }
+//   console.log('DEBUG OWNER: ', results);
+//   return null;
+// }
+// function printReturnTree(fiber: Fiber): string | null {
+//   let current: Fiber | null = fiber || null;
+//   let results = [];
+//   while (current) {
+//     results.push(getUsableName(current));
+//     current = current.return || null;
+//   }
+//   console.log('RETURN: ', results);
+//   return null;
+// }
+function getUsableName(fiber) {
+    var _a, _b, _c;
+    if (!fiber) {
+        return "Not found";
+    }
+    if (typeof fiber.elementType === "string") {
+        return fiber.elementType;
+    }
+    if (!fiber.elementType) {
+        return "Unknown";
+    }
+    if (fiber.elementType.name) {
+        return fiber.elementType.name;
+    }
+    // Not sure about this
+    if (fiber.elementType.displayName) {
+        return fiber.elementType.displayName;
+    }
+    // Used in rect.memo
+    if ((_a = fiber.elementType.type) === null || _a === void 0 ? void 0 : _a.name) {
+        return fiber.elementType.type.name;
+    }
+    if ((_c = (_b = fiber.elementType._payload) === null || _b === void 0 ? void 0 : _b._result) === null || _c === void 0 ? void 0 : _c.name) {
+        return fiber.elementType._payload._result.name;
+    }
+    return "Unknown";
+}
+function detectMissingRenderers() {
+    var _a, _b;
+    return ((_b = (_a = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _a === void 0 ? void 0 : _a.renderers) === null || _b === void 0 ? void 0 : _b.size) === 0;
+}

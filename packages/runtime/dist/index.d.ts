@@ -1,4 +1,10 @@
-declare type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
+import { ReactDevtoolsHook } from "@locator/types";
+declare global {
+    interface Window {
+        __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
+    }
+}
+declare type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options" | "no-renderer";
 declare type Target = {
     url: string;
     label: string;
