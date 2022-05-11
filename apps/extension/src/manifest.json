@@ -5,7 +5,8 @@
     "128": "icon-128.png"
   },
   "action": {
-    "default_title": "Click to run LocatorJS on this page"
+    "default_popup": "popup.html",
+    "default_icon": "icon-34.png"
   },
   "content_scripts": [
     {
