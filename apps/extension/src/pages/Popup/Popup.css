@@ -1,22 +1,30 @@
+
+.locatorjs-key {
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  margin: 2px;
+}
+.locatorjs-line {
+  padding: 4px 0px;
+  font-size: 14px;
+}
+
 .App {
-  position: absolute;
-  top: 0px;
-  bottom: 0px;
-  left: 0px;
-  right: 0px;
-  text-align: center;
-  height: 100%;
-  padding: 10px;
+  box-sizing: border-box;
+  font-size: 16px;
+  height: 300px;
+  width: 450px;
+  padding: 20px;
   background-color: #282c34;
+  display: flex;
 }
 
 .App-header {
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
   color: white;
 }
 
