@@ -12,7 +12,7 @@ window.setTimeout(() => {
   if (renderers.length) {
     insertScript(locatorClientUrl);
   } else {
-    console.log('[locatorjs]: No renderers found');
+    // console.log('[locatorjs]: No renderers found');
   }
 }, 1000);
 
