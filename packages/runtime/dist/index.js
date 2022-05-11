@@ -10,7 +10,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
-console.log("RUNTIME HERE");
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -45,7 +44,7 @@ var linkTemplateUrl = function () {
     return l ? l.url : linkTypeOrTemplate;
 };
 var modeInCookies = getCookie("LOCATORJS");
-var defaultMode = "options";
+var defaultMode = "hidden";
 function getMode() {
     var proposedMode = modeInCookies || defaultMode;
     if (proposedMode !== "hidden" && detectMissingRenderers()) {
@@ -220,10 +219,10 @@ function getLabels(found) {
     }
     if (labels.length === 0) {
         var fiber = findFiberByHtmlElement(found, true);
-        console.log("FIBER: ", fiber);
+        // console.log("FIBER: ", fiber);
         if (fiber) {
             var source = findDebugSource(fiber);
-            console.log("SOURCE: ", source);
+            // console.log("SOURCE: ", source);
             // printReturnTree(fiber);
             // printDebugOwnerTree(fiber);
             if (source) {
@@ -306,8 +305,8 @@ function globalKeyUpListener(e) {
     if (e.code === "KeyD" && e.altKey) {
         if (getMode() === "hidden") {
             destroy();
-            setMode("minimal");
-            init("minimal");
+            setMode("options");
+            init("options");
         }
         else {
             destroy();
@@ -574,7 +573,7 @@ exports["default"] = nonNullable;
 function findFiberByHtmlElement(target, shouldHaveDebugSource) {
     var _a;
     var renderers = (_a = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _a === void 0 ? void 0 : _a.renderers;
-    console.log("RENDERERS: ", renderers);
+    // console.log("RENDERERS: ", renderers);
     var renderersValues = renderers === null || renderers === void 0 ? void 0 : renderers.values();
     if (renderersValues) {
         for (var _i = 0, _b = Array.from(renderersValues); _i < _b.length; _i++) {

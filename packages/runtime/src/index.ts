@@ -1,6 +1,6 @@
 import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types";
 
-console.log("RUNTIME HERE");
+// console.log("RUNTIME HERE");
 declare global {
   interface Window {
     __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
@@ -92,7 +92,7 @@ let linkTemplateUrl = (): string => {
 };
 
 let modeInCookies = getCookie("LOCATORJS") as LocatorJSMode | undefined;
-let defaultMode: LocatorJSMode = "options";
+let defaultMode: LocatorJSMode = "hidden";
 
 function getMode(): LocatorJSMode {
   const proposedMode = modeInCookies || defaultMode;
@@ -296,10 +296,10 @@ function getLabels(found: HTMLElement) {
 
   if (labels.length === 0) {
     const fiber = findFiberByHtmlElement(found, true);
-    console.log("FIBER: ", fiber);
+    // console.log("FIBER: ", fiber);
     if (fiber) {
       const source = findDebugSource(fiber);
-      console.log("SOURCE: ", source);
+      // console.log("SOURCE: ", source);
       // printReturnTree(fiber);
       // printDebugOwnerTree(fiber);
 
@@ -393,8 +393,8 @@ function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && e.altKey) {
     if (getMode() === "hidden") {
       destroy();
-      setMode("minimal");
-      init("minimal");
+      setMode("options");
+      init("options");
     } else {
       destroy();
       setMode("hidden");
@@ -856,7 +856,7 @@ function findFiberByHtmlElement(
   shouldHaveDebugSource: boolean
 ): Fiber | null {
   const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
-  console.log("RENDERERS: ", renderers);
+  // console.log("RENDERERS: ", renderers);
 
   const renderersValues = renderers?.values();
   if (renderersValues) {
