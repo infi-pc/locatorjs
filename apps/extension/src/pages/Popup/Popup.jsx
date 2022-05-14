@@ -15,8 +15,8 @@ const Popup = () => {
         <b>Focus your app</b> (click on any surface) and do one of followings: 
         <br />
         <br />
-        <div class="locatorjs-line"><b>Press and hold <span class="locatorjs-key">${altTitle}</span>:</b> make boxes clickable on full surface</div>
-        <div class="locatorjs-line"><b><span class="locatorjs-key">${altTitle}</span> + <span class="locatorjs-key">D</span>:</b> hide/show LocatorJS panel</div>
+        <div class="locatorjs-line"><b>Press and hold <span class="locatorjs-key">{altTitle}</span>:</b> make boxes clickable on full surface</div>
+        <div class="locatorjs-line"><b><span class="locatorjs-key">{altTitle}</span> + <span class="locatorjs-key">D</span>:</b> hide/show LocatorJS panel</div>
       </div>
         {/* <p>
           Edit <code>src/pages/Popup/Popup.jsx</code> and save cool reload.
