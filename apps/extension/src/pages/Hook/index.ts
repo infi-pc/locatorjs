@@ -1,5 +1,6 @@
 import { installReactDevtoolsHook } from './devtoolsHook/installReactDevtoolsHook';
 import { Renderer } from '@locator/types';
+import { isValidRenderer } from './devtoolsHook/isValidRenderer';
 
 installReactDevtoolsHook();
 
@@ -8,7 +9,7 @@ window.setTimeout(() => {
   if (!locatorClientUrl) {
     throw new Error('Locator client url not found');
   }
-  const renderers = getRenderers();
+  const renderers = getValidRenderers();
   if (renderers.length) {
     insertScript(locatorClientUrl);
   } else {
@@ -29,10 +30,12 @@ function insertScript(locatorClientUrl: string) {
   }
 }
 
-function getRenderers(): Renderer[] {
+function getValidRenderers(): Renderer[] {
   const renderersMap = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
   if (renderersMap) {
-    return Array.from(renderersMap.values());
+    return Array.from(renderersMap.values()).filter((renderer: Renderer) => {
+      return isValidRenderer(renderer);
+    });
   }
   return [];
 }
