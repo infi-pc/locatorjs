@@ -186,23 +186,15 @@ function rerenderLayer(found, isAltKey) {
         : "2px 10px 10px 10px";
     labelsSection.appendChild(labelWrapper);
     labels.forEach(function (_a) {
-        var fileData = _a.fileData, expData = _a.expData;
-        var label = document.createElement("a");
-        label.className = "locatorjs-label";
-        label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-        if (expData.type === "jsx") {
-            label.innerText =
-                (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
-                    expData.name;
-        }
-        else {
-            label.innerText = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
-        }
-        label.onclick = function (e) {
-            var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+        var link = _a.link, label = _a.label;
+        var labelEl = document.createElement("a");
+        labelEl.className = "locatorjs-label";
+        labelEl.href = link;
+        labelEl.innerText = label;
+        labelEl.onclick = function (e) {
             window.open(link);
         };
-        labelWrapper.appendChild(label);
+        labelWrapper.appendChild(labelEl);
     });
     el.innerHTML = "";
     el.appendChild(rect);
@@ -224,32 +216,26 @@ function getLabels(found) {
         var fiber = findFiberByHtmlElement(found, false);
         // console.log("FIBER: ", fiber);
         if (fiber) {
-            var source = findDebugSource(fiber);
+            var fiberWithSource = findDebugSource(fiber);
             // console.log("SOURCE: ", source);
             // printReturnTree(fiber);
             // printDebugOwnerTree(fiber);
-            if (source) {
+            if (fiberWithSource) {
+                var source = fiberWithSource.source;
                 var _a = findNames(fiber), name_1 = _a.name, wrappingComponent = _a.wrappingComponent;
-                labels.push({
-                    fileData: {
-                        filePath: source.fileName,
-                        projectPath: ""
+                var link = buidLink(source.fileName, "", {
+                    start: {
+                        column: source.columnNumber || 0,
+                        line: source.lineNumber || 0
                     },
-                    expData: {
-                        type: "jsx",
-                        name: name_1,
-                        wrappingComponent: wrappingComponent,
-                        loc: {
-                            start: {
-                                column: source.columnNumber || 0,
-                                line: source.lineNumber || 0
-                            },
-                            end: {
-                                column: source.columnNumber || 0,
-                                line: source.lineNumber || 0
-                            }
-                        }
+                    end: {
+                        column: source.columnNumber || 0,
+                        line: source.lineNumber || 0
                     }
+                });
+                labels.push({
+                    label: (wrappingComponent ? "".concat(wrappingComponent, ": ") : "") + name_1,
+                    link: link
                 });
             }
         }
@@ -328,10 +314,9 @@ function clickListener(e) {
         var labels = getLabels(target);
         var firstLabel = labels[0];
         if (firstLabel) {
-            var link = buidLink(firstLabel.fileData.filePath, firstLabel.fileData.projectPath, firstLabel.expData.loc);
             e.preventDefault();
             e.stopPropagation();
-            window.open(link);
+            window.open(firstLabel.link);
         }
     }
 }
@@ -569,6 +554,13 @@ function getDataForDataId(dataId) {
     if (!expData) {
         return null;
     }
+    var link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+    var label;
+    if (expData.type === "jsx") {
+        label =
+            (expData.wrappingComponent ? "".concat(expData.wrappingComponent, ": ") : "") +
+                expData.name;
+    }
     else {
         label = "".concat(expData.htmlTag ? "styled.".concat(expData.htmlTag) : "styled").concat(expData.name ? ": ".concat(expData.name) : "");
     }
@@ -579,18 +571,18 @@ function nonNullable(value) {
 }
 exports["default"] = nonNullable;
 function findFiberByHtmlElement(target, shouldHaveDebugSource) {
-    var _a;
+    var _a, _b;
     var renderers = (_a = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _a === void 0 ? void 0 : _a.renderers;
     // console.log("RENDERERS: ", renderers);
     var renderersValues = renderers === null || renderers === void 0 ? void 0 : renderers.values();
     if (renderersValues) {
-        for (var _i = 0, _b = Array.from(renderersValues); _i < _b.length; _i++) {
-            var renderer = _b[_i];
+        for (var _i = 0, _c = Array.from(renderersValues); _i < _c.length; _i++) {
+            var renderer = _c[_i];
             if (renderer.findFiberByHostInstance) {
                 var found = renderer.findFiberByHostInstance(target);
                 if (found) {
                     if (shouldHaveDebugSource) {
-                        return findOneWithDebugSource(found);
+                        return ((_b = findDebugSource(found)) === null || _b === void 0 ? void 0 : _b.fiber) || null;
                     }
                     else {
                         return found;
@@ -601,21 +593,11 @@ function findFiberByHtmlElement(target, shouldHaveDebugSource) {
     }
     return null;
 }
-function findOneWithDebugSource(fiber) {
-    var current = fiber;
-    while (current) {
-        if (current._debugSource) {
-            return current;
-        }
-        current = current._debugOwner || null;
-    }
-    return null;
-}
 function findDebugSource(fiber) {
     var current = fiber;
     while (current) {
         if (current._debugSource) {
-            return current._debugSource;
+            return { fiber: current, source: current._debugSource };
         }
         current = current._debugOwner || null;
     }
