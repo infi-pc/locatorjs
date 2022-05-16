@@ -249,29 +249,16 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
 
   labelsSection.appendChild(labelWrapper);
 
-  labels.forEach(({ fileData, expData }) => {
-    const label = document.createElement("a");
-    label.className = "locatorjs-label";
-    label.href = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-    if (expData.type === "jsx") {
-      label.innerText =
-        (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
-        expData.name;
-    } else {
-      label.innerText = `${
-        expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"
-      }${expData.name ? `: ${expData.name}` : ""}`;
-    }
-    label.onclick = (e) => {
-      const link = buidLink(
-        fileData.filePath,
-        fileData.projectPath,
-        expData.loc
-      );
+  labels.forEach(({ link, label }) => {
+    const labelEl = document.createElement("a");
+    labelEl.className = "locatorjs-label";
+    labelEl.href = link;
+    labelEl.innerText = label;
+    labelEl.onclick = (e) => {
       window.open(link);
     };
 
-    labelWrapper.appendChild(label);
+    labelWrapper.appendChild(labelEl);
   });
 
   el.innerHTML = "";
@@ -298,33 +285,27 @@ function getLabels(found: HTMLElement) {
     const fiber = findFiberByHtmlElement(found, false);
     // console.log("FIBER: ", fiber);
     if (fiber) {
-      const source = findDebugSource(fiber);
+      const fiberWithSource = findDebugSource(fiber);
       // console.log("SOURCE: ", source);
       // printReturnTree(fiber);
       // printDebugOwnerTree(fiber);
 
-      if (source) {
+      if (fiberWithSource) {
+        const { source } = fiberWithSource;
         const { name, wrappingComponent } = findNames(fiber);
+        const link = buidLink(source.fileName, "", {
+          start: {
+            column: source.columnNumber || 0,
+            line: source.lineNumber || 0,
+          },
+          end: {
+            column: source.columnNumber || 0,
+            line: source.lineNumber || 0,
+          },
+        });
         labels.push({
-          fileData: {
-            filePath: source.fileName,
-            projectPath: "",
-          },
-          expData: {
-            type: "jsx",
-            name,
-            wrappingComponent,
-            loc: {
-              start: {
-                column: source.columnNumber || 0,
-                line: source.lineNumber || 0,
-              },
-              end: {
-                column: source.columnNumber || 0,
-                line: source.lineNumber || 0,
-              },
-            },
-          },
+          label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
+          link,
         });
       }
     }
@@ -413,14 +394,9 @@ function clickListener(e: MouseEvent) {
     const labels = getLabels(target);
     const firstLabel = labels[0];
     if (firstLabel) {
-      const link = buidLink(
-        firstLabel.fileData.filePath,
-        firstLabel.fileData.projectPath,
-        firstLabel.expData.loc
-      );
       e.preventDefault();
       e.stopPropagation();
-      window.open(link);
+      window.open(firstLabel.link);
     }
   }
 }
@@ -825,11 +801,13 @@ function hideAlertHandler() {
 }
 
 type LabelData = {
-  fileData: {
-    filePath: string;
-    projectPath: string;
-  };
-  expData: ExpressionInfo;
+  // fileData: {
+  //   filePath: string;
+  //   projectPath: string;
+  // };
+  // expData: ExpressionInfo;
+  link: string;
+  label: string;
 };
 
 function getDataForDataId(dataId: string): LabelData | null {
@@ -844,7 +822,20 @@ function getDataForDataId(dataId: string): LabelData | null {
     return null;
   }
 
-  return { fileData, expData };
+  const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+
+  let label;
+  if (expData.type === "jsx") {
+    label =
+      (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
+      expData.name;
+  } else {
+    label = `${expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"}${
+      expData.name ? `: ${expData.name}` : ""
+    }`;
+  }
+
+  return { link, label };
 }
 
 export default function nonNullable<T>(value: T): value is NonNullable<T> {
@@ -865,7 +856,7 @@ function findFiberByHtmlElement(
         const found = renderer.findFiberByHostInstance(target as any);
         if (found) {
           if (shouldHaveDebugSource) {
-            return findOneWithDebugSource(found);
+            return findDebugSource(found)?.fiber || null;
           } else {
             return found;
           }
@@ -876,23 +867,13 @@ function findFiberByHtmlElement(
   return null;
 }
 
-function findOneWithDebugSource(fiber: Fiber): Fiber | null {
+function findDebugSource(
+  fiber: Fiber
+): { fiber: Fiber; source: Source } | null {
   let current: Fiber | null = fiber;
   while (current) {
     if (current._debugSource) {
-      return current;
-    }
-    current = current._debugOwner || null;
-  }
-
-  return null;
-}
-
-function findDebugSource(fiber: Fiber): Source | null {
-  let current: Fiber | null = fiber;
-  while (current) {
-    if (current._debugSource) {
-      return current._debugSource;
+      return { fiber: current, source: current._debugSource };
     }
     current = current._debugOwner || null;
   }
