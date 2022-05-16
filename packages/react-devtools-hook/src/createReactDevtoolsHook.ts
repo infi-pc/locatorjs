@@ -3,7 +3,7 @@ import {
   FiberRoot,
   ReactInternals,
   ReactDevtoolsHook,
-} from "../../shared/src/types";
+} from "@locator/types/src";
 import { isValidRenderer } from "./isValidRenderer";
 
 declare global {
@@ -35,13 +35,7 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
       let id = ++rendererSeedId;
 
       if (typeof existing.inject === "function") {
-        const prevSize = existing.renderers?.size;
         id = existing.inject(renderer);
-
-        // Vite plugin from some reason doesn't set the Map with renderers, so we do it manually
-        if (existing.renderers?.size === prevSize) {
-          renderers.set(id, renderer);
-        }
       } else {
         // Follow React Devtools hook's behaviour in order for other tools
         // like react-render to work

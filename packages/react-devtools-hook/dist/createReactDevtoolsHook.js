@@ -18,15 +18,9 @@ function createReactDevtoolsHook(existing) {
         // see https://github.com/facebook/react/blob/4ff5f5719b348d9d8db14aaa49a48532defb4ab7/packages/react-refresh/src/ReactFreshRuntime.js#L509
         renderers: renderers,
         inject: function (renderer) {
-            var _a, _b;
             var id = ++rendererSeedId;
             if (typeof existing.inject === "function") {
-                var prevSize = (_a = existing.renderers) === null || _a === void 0 ? void 0 : _a.size;
                 id = existing.inject(renderer);
-                // Vite plugin from some reason doesn't set the Map with renderers, so we do it manually
-                if (((_b = existing.renderers) === null || _b === void 0 ? void 0 : _b.size) === prevSize) {
-                    renderers.set(id, renderer);
-                }
             }
             else {
                 // Follow React Devtools hook's behaviour in order for other tools

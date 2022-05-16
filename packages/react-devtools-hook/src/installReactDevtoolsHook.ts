@@ -1,4 +1,4 @@
-import { ReactDevtoolsHook } from "../../shared/src/types";
+import { ReactDevtoolsHook } from "@locator/types/src";
 import { createReactDevtoolsHook } from "./createReactDevtoolsHook";
 
 export const MARKER = Symbol();
@@ -10,6 +10,7 @@ type ReactDevtoolsHookWithMarker = ReactDevtoolsHook & {
 export function installReactDevtoolsHook() {
   const existingHook: ReactDevtoolsHookWithMarker =
     window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+  console.log("install hook, existing:", existingHook);
 
   if (window.hasOwnProperty("__REACT_DEVTOOLS_GLOBAL_HOOK__")) {
     if (existingHook[MARKER] === MARKER) {
@@ -21,6 +22,7 @@ export function installReactDevtoolsHook() {
   const hook = createReactDevtoolsHook({ ...existingHook });
 
   if (existingHook) {
+    console.log("Magic here!!!!!");
     existingHook[MARKER] = MARKER;
 
     for (const [key, value] of Object.entries(hook)) {
