@@ -1,6 +1,6 @@
 import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types/src";
 
-console.log("RUNTIME HERE");
+// console.log("RUNTIME HERE");
 declare global {
   interface Window {
     __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;

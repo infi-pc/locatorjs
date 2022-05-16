@@ -10,7 +10,6 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
-console.log("RUNTIME HERE");
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
