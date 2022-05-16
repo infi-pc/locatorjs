@@ -16,7 +16,6 @@ var createReactDevtoolsHook_1 = require("./createReactDevtoolsHook");
 exports.MARKER = Symbol();
 function installReactDevtoolsHook() {
     var existingHook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-    console.log("install hook, existing:", existingHook);
     if (window.hasOwnProperty("__REACT_DEVTOOLS_GLOBAL_HOOK__")) {
         if (existingHook[exports.MARKER] === exports.MARKER) {
             console.log("already installed!!!!!");
@@ -25,7 +24,6 @@ function installReactDevtoolsHook() {
     }
     var hook = (0, createReactDevtoolsHook_1.createReactDevtoolsHook)(__assign({}, existingHook));
     if (existingHook) {
-        console.log("Magic here!!!!!");
         existingHook[exports.MARKER] = exports.MARKER;
         for (var _i = 0, _a = Object.entries(hook); _i < _a.length; _i++) {
             var _b = _a[_i], key = _b[0], value = _b[1];
