@@ -16,6 +16,6 @@
     "jsx": "preserve",
     "jsxImportSource": "solid-js"
   },
-  "include": ["src"],
+  "include": ["src", "../../packages/devtoolsHook"],
   "exclude": ["build", "node_modules"]
 }

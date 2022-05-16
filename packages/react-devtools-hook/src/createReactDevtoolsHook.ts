@@ -1,25 +1,10 @@
-import { Fiber, FiberRoot, ReactInternals } from '@locator/types';
-import { isValidRenderer } from './isValidRenderer';
-
-export const MARKER = Symbol();
-
-export type ReactDevtoolsHook = {
-  supportsFiber: boolean;
-  inject: (renderer: ReactInternals) => number;
-  // onScheduleRoot(rendererId: number, root: FiberRoot, children: any[]) {},
-  onCommitFiberUnmount: (rendererId: number, fiber: Fiber) => void;
-  onCommitFiberRoot: (
-    rendererId: number,
-    root: FiberRoot,
-    priorityLevel: any
-  ) => void;
-  onPostCommitFiberRoot: (rendererId: number, root: FiberRoot) => void;
-
-  // Not used. It is declared to follow React Devtools hook's behaviour
-  // in order for other tools like react-render to work
-  renderers?: Map<number, ReactInternals>;
-  [MARKER]?: typeof MARKER;
-};
+import {
+  Fiber,
+  FiberRoot,
+  ReactInternals,
+  ReactDevtoolsHook,
+} from "@locator/types/src";
+import { isValidRenderer } from "./isValidRenderer";
 
 declare global {
   interface Window {
@@ -49,7 +34,7 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
     inject(renderer) {
       let id = ++rendererSeedId;
 
-      if (typeof existing.inject === 'function') {
+      if (typeof existing.inject === "function") {
         id = existing.inject(renderer);
       } else {
         // Follow React Devtools hook's behaviour in order for other tools
@@ -77,7 +62,7 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
 
     // onScheduleRoot(rendererId, root, children) {},
     onCommitFiberUnmount(rendererId, fiber) {
-      if (typeof existing.onCommitFiberUnmount === 'function') {
+      if (typeof existing.onCommitFiberUnmount === "function") {
         existing.onCommitFiberUnmount(rendererId, fiber);
       }
 
@@ -94,7 +79,7 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
     },
 
     onCommitFiberRoot(rendererId, root, priorityLevel) {
-      if (typeof existing.onCommitFiberRoot === 'function') {
+      if (typeof existing.onCommitFiberRoot === "function") {
         existing.onCommitFiberRoot(rendererId, root, priorityLevel);
       }
 
@@ -126,7 +111,7 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
      * React calls this method
      */
     onPostCommitFiberRoot(rendererId, root) {
-      if (typeof existing.onPostCommitFiberRoot === 'function') {
+      if (typeof existing.onPostCommitFiberRoot === "function") {
         existing.onPostCommitFiberRoot(rendererId, root);
       }
 

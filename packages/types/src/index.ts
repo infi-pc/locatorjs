@@ -1,6 +1,28 @@
 export type FiberType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 export type FiberRootMode = 0 | 1 | 2;
 
+export type ReactDevtoolsHook = {
+  supportsFiber: boolean;
+  inject: (renderer: ReactInternals) => number;
+  // onScheduleRoot(rendererId: number, root: FiberRoot, children: any[]) {},
+  onCommitFiberUnmount: (rendererId: number, fiber: Fiber) => void;
+  onCommitFiberRoot: (
+    rendererId: number,
+    root: FiberRoot,
+    priorityLevel: any
+  ) => void;
+  onPostCommitFiberRoot: (rendererId: number, root: FiberRoot) => void;
+
+  // Not used. It is declared to follow React Devtools hook's behaviour
+  // in order for other tools like react-render to work
+  renderers?: Map<number, ReactInternals>;
+
+  // Marker is here but we can ignore it
+  // [MARKER]?: typeof MARKER;
+};
+
+export type Renderer = ReactInternals;
+
 export type TransferFiber = {
   id: number;
   type: FiberType;

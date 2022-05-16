@@ -1,6 +1,6 @@
-import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types";
+import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types/src";
 
-// console.log("RUNTIME HERE");
+console.log("RUNTIME HERE");
 declare global {
   interface Window {
     __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
@@ -295,7 +295,7 @@ function getLabels(found: HTMLElement) {
   }
 
   if (labels.length === 0) {
-    const fiber = findFiberByHtmlElement(found, true);
+    const fiber = findFiberByHtmlElement(found, false);
     // console.log("FIBER: ", fiber);
     if (fiber) {
       const source = findDebugSource(fiber);
@@ -905,7 +905,7 @@ function searchDevtoolsRenderersForClosestTarget(
 ): HTMLElement | null {
   let closest: HTMLElement | null = target;
   while (closest) {
-    if (findFiberByHtmlElement(closest, true)) {
+    if (findFiberByHtmlElement(closest, false)) {
       return closest;
     }
     closest = closest.parentElement;

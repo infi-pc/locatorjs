@@ -10,6 +10,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
+console.log("RUNTIME HERE");
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -218,7 +219,7 @@ function getLabels(found) {
         ].filter(nonNullable);
     }
     if (labels.length === 0) {
-        var fiber = findFiberByHtmlElement(found, true);
+        var fiber = findFiberByHtmlElement(found, false);
         // console.log("FIBER: ", fiber);
         if (fiber) {
             var source = findDebugSource(fiber);
@@ -616,7 +617,7 @@ function findDebugSource(fiber) {
 function searchDevtoolsRenderersForClosestTarget(target) {
     var closest = target;
     while (closest) {
-        if (findFiberByHtmlElement(closest, true)) {
+        if (findFiberByHtmlElement(closest, false)) {
             return closest;
         }
         closest = closest.parentElement;
