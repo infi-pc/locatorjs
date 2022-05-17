@@ -13,6 +13,7 @@
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {
+    "@tailwindcss/forms": "^0.5.1",
     "@types/semver": "^7.3.9",
     "postcss": "^8.4.13",
     "postcss-loader": "^6.2.1",

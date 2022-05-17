@@ -1,4 +1,13 @@
-import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types/src";
+import type {
+  Fiber,
+  Source,
+  ReactDevtoolsHook,
+  Renderer,
+  Target,
+} from "@locator/shared/dist";
+import { allTargets as allTargetsOriginal } from "@locator/shared/dist";
+
+let allTargets = { ...allTargetsOriginal };
 
 // console.log("RUNTIME HERE");
 declare global {
@@ -61,27 +70,6 @@ const isMac =
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "⌥ Option" : "Alt";
-type Target = {
-  url: string;
-  label: string;
-};
-
-type Targets = { [k: string]: Target };
-
-let allTargets: Targets = {
-  vscode: {
-    url: "vscode://file${projectPath}${filePath}:${line}:${column}",
-    label: "VSCode",
-  },
-  webstorm: {
-    url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
-    label: "WebStorm",
-  },
-  atom: {
-    url: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}",
-    label: "Atom",
-  },
-};
 
 const repoLink = "https://github.com/infi-pc/locatorjs";
 let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";

@@ -3,7 +3,7 @@ import {
   FiberRoot,
   ReactInternals,
   ReactDevtoolsHook,
-} from "@locator/types/src";
+} from "../../shared/src/types";
 import { isValidRenderer } from "./isValidRenderer";
 
 declare global {

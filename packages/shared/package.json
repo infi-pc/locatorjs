@@ -1,5 +1,5 @@
 {
-  "name": "@locator/types",
+  "name": "@locator/shared",
   "version": "0.0.7",
   "main": "./dist/index.js",
   "license": "MIT",
