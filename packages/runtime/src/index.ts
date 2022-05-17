@@ -271,34 +271,68 @@ function getLabels(found: HTMLElement) {
 
   if (labels.length === 0) {
     const fiber = findFiberByHtmlElement(found, false);
-    // console.log("FIBER: ", fiber);
     if (fiber) {
-      const fiberWithSource = findDebugSource(fiber);
-      // console.log("SOURCE: ", source);
-      // printReturnTree(fiber);
-      // printDebugOwnerTree(fiber);
-
-      if (fiberWithSource) {
-        const { source } = fiberWithSource;
-        const { name, wrappingComponent } = findNames(fiber);
-        const link = buidLink(source.fileName, "", {
-          start: {
-            column: source.columnNumber || 0,
-            line: source.lineNumber || 0,
-          },
-          end: {
-            column: source.columnNumber || 0,
-            line: source.lineNumber || 0,
-          },
-        });
-        labels.push({
-          label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
-          link,
-        });
-      }
+      // TODO get all fibers that has the same bounding box (traverse by "return")
+      getAllParentsWithTheSameBoundingBox(fiber).forEach((fiber) => {
+        const fiberWithSource = findDebugSource(fiber);
+        if (fiberWithSource) {
+          const label = getFiberLabel(
+            fiberWithSource.fiber,
+            fiberWithSource.source
+          );
+          labels.push(label);
+        }
+      });
     }
   }
   return labels;
+}
+
+function getAllParentsWithTheSameBoundingBox(fiber: Fiber): Fiber[] {
+  const parents: Fiber[] = [fiber];
+  let currentFiber = fiber;
+  while (currentFiber.return) {
+    currentFiber = currentFiber.return;
+    if (
+      currentFiber.stateNode &&
+      currentFiber.stateNode.getBoundingClientRect
+    ) {
+      const bbox = currentFiber.stateNode.getBoundingClientRect();
+      if (
+        bbox.x === fiber.stateNode.getBoundingClientRect().x &&
+        bbox.y === fiber.stateNode.getBoundingClientRect().y &&
+        bbox.width === fiber.stateNode.getBoundingClientRect().width &&
+        bbox.height === fiber.stateNode.getBoundingClientRect().height
+      ) {
+        parents.push(currentFiber);
+      } else {
+        break;
+      }
+    }
+  }
+  return parents;
+}
+
+function getFiberLabel(fiber: Fiber, source?: Source) {
+  const { name, wrappingComponent } = findNames(fiber);
+
+  const link = source
+    ? buidLink(source.fileName, "", {
+        start: {
+          column: source.columnNumber || 0,
+          line: source.lineNumber || 0,
+        },
+        end: {
+          column: source.columnNumber || 0,
+          line: source.lineNumber || 0,
+        },
+      })
+    : null;
+  const label = {
+    label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
+    link,
+  };
+  return label;
 }
 
 function parseDataId(dataId: string): [fileFullPath: string, id: string] {
