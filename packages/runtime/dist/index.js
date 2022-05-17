@@ -211,33 +211,59 @@ function getLabels(found) {
     }
     if (labels.length === 0) {
         var fiber = findFiberByHtmlElement(found, false);
-        // console.log("FIBER: ", fiber);
         if (fiber) {
-            var fiberWithSource = findDebugSource(fiber);
-            // console.log("SOURCE: ", source);
-            // printReturnTree(fiber);
-            // printDebugOwnerTree(fiber);
-            if (fiberWithSource) {
-                var source = fiberWithSource.source;
-                var _a = findNames(fiber), name_1 = _a.name, wrappingComponent = _a.wrappingComponent;
-                var link = buidLink(source.fileName, "", {
-                    start: {
-                        column: source.columnNumber || 0,
-                        line: source.lineNumber || 0
-                    },
-                    end: {
-                        column: source.columnNumber || 0,
-                        line: source.lineNumber || 0
-                    }
-                });
-                labels.push({
-                    label: (wrappingComponent ? "".concat(wrappingComponent, ": ") : "") + name_1,
-                    link: link
-                });
-            }
+            // TODO get all fibers that has the same bounding box (traverse by "return")
+            getAllParentsWithTheSameBoundingBox(fiber).forEach(function (fiber) {
+                var fiberWithSource = findDebugSource(fiber);
+                if (fiberWithSource) {
+                    var label = getFiberLabel(fiberWithSource.fiber, fiberWithSource.source);
+                    labels.push(label);
+                }
+            });
         }
     }
     return labels;
+}
+function getAllParentsWithTheSameBoundingBox(fiber) {
+    var parents = [fiber];
+    var currentFiber = fiber;
+    while (currentFiber["return"]) {
+        currentFiber = currentFiber["return"];
+        if (currentFiber.stateNode &&
+            currentFiber.stateNode.getBoundingClientRect) {
+            var bbox = currentFiber.stateNode.getBoundingClientRect();
+            if (bbox.x === fiber.stateNode.getBoundingClientRect().x &&
+                bbox.y === fiber.stateNode.getBoundingClientRect().y &&
+                bbox.width === fiber.stateNode.getBoundingClientRect().width &&
+                bbox.height === fiber.stateNode.getBoundingClientRect().height) {
+                parents.push(currentFiber);
+            }
+            else {
+                break;
+            }
+        }
+    }
+    return parents;
+}
+function getFiberLabel(fiber, source) {
+    var _a = findNames(fiber), name = _a.name, wrappingComponent = _a.wrappingComponent;
+    var link = source
+        ? buidLink(source.fileName, "", {
+            start: {
+                column: source.columnNumber || 0,
+                line: source.lineNumber || 0
+            },
+            end: {
+                column: source.columnNumber || 0,
+                line: source.lineNumber || 0
+            }
+        })
+        : null;
+    var label = {
+        label: (wrappingComponent ? "".concat(wrappingComponent, ": ") : "") + name,
+        link: link
+    };
+    return label;
 }
 function parseDataId(dataId) {
     var _a = dataId.split("::"), fileFullPath = _a[0], id = _a[1];
