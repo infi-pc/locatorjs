@@ -31,3 +31,13 @@ switch (document.contentType) {
     break;
   }
 }
+
+console.log('Content script loaded, adding listener');
+chrome.runtime.onMessage.addListener((msg, sender, response) => {
+  // First, validate the message's structure.
+  console.log('receiving request');
+  if (msg.from === 'popup' && msg.subject === 'statusMessage') {
+    console.log('sending status');
+    response(document.head.dataset.locatorMessage);
+  }
+});

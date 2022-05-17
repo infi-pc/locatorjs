@@ -1,4 +1,5 @@
 import './Popup.css';
+import { onCleanup, createSignal } from "solid-js";
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -6,11 +7,29 @@ const isMac =
 const altTitle = isMac ? "⌥ Option" : "Alt";
 
 const Popup = () => {
+  const [message, setMessage] = createSignal("");
+
+  chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  }, tabs => {
+    // ...and send a request for the DOM info...
+    chrome.tabs.sendMessage(
+        tabs[0].id,
+        {from: 'popup', subject: 'statusMessage'},
+        // ...also specifying a callback to be called 
+        //    from the receiving end (content script).
+        function onStatusMessage(status) {
+          console.log('statusMessage', status);
+          setMessage(status);
+        });
+  });
+
   return (
     <div class="App">
       <header class="App-header">
       <div>
-        This is pre-release version of the LocatorJS extension.
+        {message}
         <br />
         <b>Focus your app</b> (click on any surface) and do one of followings: 
         <br />
