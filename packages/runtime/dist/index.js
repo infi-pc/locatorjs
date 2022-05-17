@@ -689,7 +689,7 @@ function getUsableName(fiber) {
         return fiber.elementType;
     }
     if (!fiber.elementType) {
-        return "Unknown";
+        return "Anonymous";
     }
     if (fiber.elementType.name) {
         return fiber.elementType.name;
@@ -705,7 +705,7 @@ function getUsableName(fiber) {
     if ((_c = (_b = fiber.elementType._payload) === null || _b === void 0 ? void 0 : _b._result) === null || _c === void 0 ? void 0 : _c.name) {
         return fiber.elementType._payload._result.name;
     }
-    return "Unknown";
+    return "Anonymous";
 }
 function detectMissingRenderers() {
     var _a, _b;
