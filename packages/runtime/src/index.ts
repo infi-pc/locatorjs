@@ -981,7 +981,7 @@ function getUsableName(fiber: Fiber | null | undefined) {
     return fiber.elementType;
   }
   if (!fiber.elementType) {
-    return "Unknown";
+    return "Anonymous";
   }
 
   if (fiber.elementType.name) {
@@ -999,7 +999,7 @@ function getUsableName(fiber: Fiber | null | undefined) {
     return fiber.elementType._payload._result.name;
   }
 
-  return "Unknown";
+  return "Anonymous";
 }
 function detectMissingRenderers(): boolean {
   return window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers?.size === 0;
