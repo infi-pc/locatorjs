@@ -212,7 +212,6 @@ function getLabels(found) {
     if (labels.length === 0) {
         var fiber = findFiberByHtmlElement(found, false);
         if (fiber) {
-            // TODO get all fibers that has the same bounding box (traverse by "return")
             getAllParentsWithTheSameBoundingBox(fiber).forEach(function (fiber) {
                 var fiberWithSource = findDebugSource(fiber);
                 if (fiberWithSource) {
@@ -222,7 +221,20 @@ function getLabels(found) {
             });
         }
     }
-    return labels;
+    return deduplicateLabels(labels);
+}
+function deduplicateLabels(labels) {
+    var labelsIds = {};
+    return labels
+        .map(function (label) {
+        var id = JSON.stringify(label);
+        if (labelsIds[id]) {
+            return null;
+        }
+        labelsIds[id] = true;
+        return label;
+    })
+        .filter(nonNullable);
 }
 function getAllParentsWithTheSameBoundingBox(fiber) {
     var parents = [fiber];
