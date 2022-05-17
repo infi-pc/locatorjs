@@ -5,4 +5,4 @@ export declare function isValidRenderer({ rendererPackageName, version, bundleTy
     rendererPackageName?: string;
     version?: string;
     bundleType?: number;
-}): boolean;
+}, reportError?: (message: string) => void): boolean;
