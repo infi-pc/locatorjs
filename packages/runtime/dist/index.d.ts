@@ -1,14 +1,10 @@
-import { ReactDevtoolsHook } from "@locator/types/src";
+import type { ReactDevtoolsHook, Target } from "@locator/shared/dist";
 declare global {
     interface Window {
         __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
     }
 }
 declare type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options" | "no-renderer";
-declare type Target = {
-    url: string;
-    label: string;
-};
 export declare function setup(props: {
     defaultMode?: LocatorJSMode;
     targets?: {

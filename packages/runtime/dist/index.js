@@ -21,6 +21,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
+var dist_1 = require("@locator/shared/dist");
+var allTargets = __assign({}, dist_1.allTargets);
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -33,9 +35,6 @@ var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "⌥ Option" : "Alt";
-var isExtension = typeof document !== "undefined"
-    ? !!document.documentElement.dataset.locatorClientUrl
-    : false;
 var repoLink = "https://github.com/infi-pc/locatorjs";
 var localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
 var getLinkTypeOrTemplate = function () {

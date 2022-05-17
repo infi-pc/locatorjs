@@ -1,5 +1,0 @@
-{
-  "extends": "@locator/dev-config/tsconfig.react-library.json",
-  "include": ["."],
-  "exclude": ["dist", "build", "node_modules"]
-}
