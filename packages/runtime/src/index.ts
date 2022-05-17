@@ -1,4 +1,13 @@
-import { Fiber, Source, ReactDevtoolsHook, Renderer } from "@locator/types/src";
+import type {
+  Fiber,
+  Source,
+  ReactDevtoolsHook,
+  Renderer,
+  Target,
+} from "@locator/shared/dist";
+import { allTargets as allTargetsOriginal } from "@locator/shared/dist";
+
+let allTargets = { ...allTargetsOriginal };
 
 // console.log("RUNTIME HERE");
 declare global {
@@ -61,11 +70,6 @@ const isMac =
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "⌥ Option" : "Alt";
-
-const isExtension =
-  typeof document !== "undefined"
-    ? !!document.documentElement.dataset.locatorClientUrl
-    : false;
 
 const repoLink = "https://github.com/infi-pc/locatorjs";
 let localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";

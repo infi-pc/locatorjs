@@ -1,7 +1,9 @@
-import { ReactDevtoolsHook } from "@locator/types/src";
+import { ReactDevtoolsHook } from "@locator/shared/src";
 declare global {
-    interface Window {
-        __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
-    }
+  interface Window {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
+  }
 }
-export declare function createReactDevtoolsHook(existing: ReactDevtoolsHook): ReactDevtoolsHook;
+export declare function createReactDevtoolsHook(
+  existing: ReactDevtoolsHook
+): ReactDevtoolsHook;
