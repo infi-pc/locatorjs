@@ -10,24 +10,3 @@
   font-size: 14px;
 }
 
-.App {
-  box-sizing: border-box;
-  font-size: 16px;
-  height: 300px;
-  width: 450px;
-  padding: 20px;
-  background-color: #282c34;
-  display: flex;
-}
-
-.App-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
