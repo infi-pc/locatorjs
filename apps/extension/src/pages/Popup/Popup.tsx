@@ -16,17 +16,19 @@ const Popup = () => {
       currentWindow: true,
     },
     (tabs) => {
-      // ...and send a request for the DOM info...
-      chrome.tabs.sendMessage(
-        tabs[0].id,
-        { from: 'popup', subject: 'statusMessage' },
-        // ...also specifying a callback to be called
-        //    from the receiving end (content script).
-        function onStatusMessage(status) {
-          console.log('statusMessage', status);
-          setMessage(status);
-        }
-      );
+      const currentTab = tabs[0];
+      if (currentTab.id) {
+        chrome.tabs.sendMessage(
+          currentTab.id,
+          { from: 'popup', subject: 'statusMessage' },
+          // ...also specifying a callback to be called
+          //    from the receiving end (content script).
+          function onStatusMessage(status) {
+            console.log('statusMessage', status);
+            setMessage(status);
+          }
+        );
+      }
     }
   );
 
@@ -101,7 +103,7 @@ const Popup = () => {
           </div>
         )}
 
-        {Editor()}
+        <Editor />
       </div>
       {/* <p>
           Edit <code>src/pages/Popup/Popup.jsx</code> and save cool reload.

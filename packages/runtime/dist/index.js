@@ -35,12 +35,16 @@ var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "⌥ Option" : "Alt";
+var isExtension = !!document.documentElement.dataset.locatorClientUrl;
 var repoLink = "https://github.com/infi-pc/locatorjs";
-var linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-var linkTemplate = function () { return allTargets[linkTypeOrTemplate]; };
+var localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
+var getLinkTypeOrTemplate = function () {
+    return document.documentElement.dataset.locatorTarget || localLinkOrTemplate;
+};
+var linkTemplate = function () { return allTargets[getLinkTypeOrTemplate()]; };
 var linkTemplateUrl = function () {
     var l = linkTemplate();
-    return l ? l.url : linkTypeOrTemplate;
+    return l ? l.url : getLinkTypeOrTemplate();
 };
 var modeInCookies = getCookie("LOCATORJS");
 var defaultMode = "hidden";
@@ -57,7 +61,7 @@ function setMode(newMode) {
 }
 function setTemplate(lOrTemplate) {
     setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
-    linkTypeOrTemplate = lOrTemplate;
+    localLinkOrTemplate = lOrTemplate;
 }
 if (typeof window !== "undefined") {
     document.addEventListener("keyup", globalKeyUpListener);
@@ -91,7 +95,7 @@ function setup(props) {
         if (!firstKey) {
             throw new Error("no targets found");
         }
-        linkTypeOrTemplate = firstKey;
+        localLinkOrTemplate = firstKey;
     }
 }
 exports.setup = setup;
@@ -328,8 +332,14 @@ function globalKeyUpListener(e) {
     if (e.code === "KeyD" && e.altKey) {
         if (getMode() === "hidden") {
             destroy();
-            setMode("options");
-            init("options");
+            if (isExtension) {
+                setMode("minimal");
+                init("minimal");
+            }
+            else {
+                setMode("options");
+                init("options");
+            }
         }
         else {
             destroy();
@@ -440,7 +450,7 @@ function showOptions() {
     // locatorjs-options should be clickable
     var options = modal.querySelectorAll(".locatorjs-editors-options input");
     options.forEach(function (option) {
-        if (linkTypeOrTemplate === option.value) {
+        if (localLinkOrTemplate === option.value) {
             option.checked = true;
         }
         option.addEventListener("change", function (e) {
@@ -485,9 +495,11 @@ function showMinimal() {
         zIndex: "10000",
         fontFamily: fontFamily
     });
-    minimal.innerHTML = "\n    <div><a href=\"".concat(repoLink, "\">LocatorJS</a>: <a id=\"locatorjs-minimal-to-options\">options</a> | <a id=\"locatorjs-minimal-to-hide\">hide</a></div>\n    ");
-    var options = minimal.querySelector("#locatorjs-minimal-to-options");
-    options.addEventListener("click", showOptionsHandler);
+    minimal.innerHTML = "\n    <div><a href=\"".concat(repoLink, "\">LocatorJS</a>: ").concat(isExtension ? "" : "<a id=\"locatorjs-minimal-to-options\">options</a> |", " <a id=\"locatorjs-minimal-to-hide\">hide</a></div>\n    ");
+    if (!isExtension) {
+        var options = minimal.querySelector("#locatorjs-minimal-to-options");
+        options.addEventListener("click", showOptionsHandler);
+    }
     var hide = minimal.querySelector("#locatorjs-minimal-to-hide");
     hide.addEventListener("click", goToHiddenHandler);
     document.body.appendChild(minimal);

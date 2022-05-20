@@ -15,6 +15,7 @@
       "run_at": "document_start"
     }
   ],
+  "permissions": ["storage"],
   "web_accessible_resources": [
     {
       "resources": [

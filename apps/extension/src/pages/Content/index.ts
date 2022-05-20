@@ -1,5 +1,27 @@
 // const code = require('!raw-loader!./generated/client.bundle.js');
 
+console.log('Content script loaded');
+
+const target = localStorage.getItem('target');
+console.log('target', target);
+
+chrome.storage.sync.get(['target'], function (result) {
+  if (typeof result?.target === 'string') {
+    document.documentElement.dataset.locatorTarget = result.target;
+  }
+});
+
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+    console.log('updated storage', key, { oldValue, newValue });
+    if (key === 'target') {
+      document.documentElement.dataset.locatorTarget = newValue;
+    }
+  }
+});
+
+// TODO get data from
+
 function injectScript() {
   const script = document.createElement('script');
   // script.textContent = code.default;

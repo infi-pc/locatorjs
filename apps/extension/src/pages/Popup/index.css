@@ -11,4 +11,5 @@ body {
     sans-serif;
 
   position: relative;
+  overflow-y: auto;
 }
