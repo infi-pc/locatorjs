@@ -35,6 +35,7 @@ var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "⌥ Option" : "Alt";
+var isExtension = !!document.documentElement.dataset.locatorClientUrl;
 var repoLink = "https://github.com/infi-pc/locatorjs";
 var localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
 var getLinkTypeOrTemplate = function () {
@@ -331,8 +332,14 @@ function globalKeyUpListener(e) {
     if (e.code === "KeyD" && e.altKey) {
         if (getMode() === "hidden") {
             destroy();
-            setMode("options");
-            init("options");
+            if (isExtension) {
+                setMode("minimal");
+                init("minimal");
+            }
+            else {
+                setMode("options");
+                init("options");
+            }
         }
         else {
             destroy();

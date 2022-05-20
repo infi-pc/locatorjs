@@ -24,6 +24,7 @@ const Popup = () => {
           // ...also specifying a callback to be called
           //    from the receiving end (content script).
           function onStatusMessage(status) {
+            console.log('statusMessage', status);
             setMessage(status);
           }
         );
