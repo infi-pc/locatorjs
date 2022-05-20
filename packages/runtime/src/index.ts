@@ -71,6 +71,8 @@ const isMac =
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "⌥ Option" : "Alt";
 
+const isExtension = !!document.documentElement.dataset.locatorClientUrl;
+
 const repoLink = "https://github.com/infi-pc/locatorjs";
 let localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
 
@@ -412,8 +414,13 @@ function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && e.altKey) {
     if (getMode() === "hidden") {
       destroy();
-      setMode("options");
-      init("options");
+      if (isExtension) {
+        setMode("minimal");
+        init("minimal");
+      } else {
+        setMode("options");
+        init("options");
+      }
     } else {
       destroy();
       setMode("hidden");

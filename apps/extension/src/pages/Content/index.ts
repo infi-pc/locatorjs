@@ -1,6 +1,9 @@
 // const code = require('!raw-loader!./generated/client.bundle.js');
 
+console.log('Content script loaded');
+
 const target = localStorage.getItem('target');
+console.log('target', target);
 
 chrome.storage.sync.get(['target'], function (result) {
   if (typeof result?.target === 'string') {
@@ -10,6 +13,7 @@ chrome.storage.sync.get(['target'], function (result) {
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+    console.log('updated storage', key, { oldValue, newValue });
     if (key === 'target') {
       document.documentElement.dataset.locatorTarget = newValue;
     }
@@ -50,10 +54,12 @@ switch (document.contentType) {
   }
 }
 
+console.log('Content script loaded, adding listener');
 chrome.runtime.onMessage.addListener((msg, sender, response) => {
+  // First, validate the message's structure.
+  console.log('receiving request');
   if (msg.from === 'popup' && msg.subject === 'statusMessage') {
-    response(
-      document.head.dataset.locatorMessage || 'Could not load Hook script.'
-    );
+    console.log('sending status');
+    response(document.head.dataset.locatorMessage);
   }
 });

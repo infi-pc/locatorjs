@@ -1,5 +1,5 @@
 import './Popup.css';
-import { createSignal } from 'solid-js';
+import { onCleanup, createSignal } from 'solid-js';
 import { Editor } from './Editor';
 
 const isMac =
@@ -24,9 +24,8 @@ const Popup = () => {
           // ...also specifying a callback to be called
           //    from the receiving end (content script).
           function onStatusMessage(status) {
-            if (status != 'ok') {
-              setMessage(status);
-            }
+            console.log('statusMessage', status);
+            setMessage(status);
           }
         );
       }
@@ -60,14 +59,6 @@ const Popup = () => {
                       ))}
                   </ul>
                 </div>
-                <p class="mt-2 text-red-800 underline">
-                  <a
-                    target="_blank"
-                    href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
-                  >
-                    How to solve it?
-                  </a>
-                </p>
               </div>
             </div>
           </div>
