@@ -28,9 +28,7 @@ export function Editor() {
 
   return (
     <div class="mt-2">
-      <label class="text-lg font-medium text-gray-900 mb-3">
-        Editor links:
-      </label>
+      <label class="text-lg font-medium text-gray-900 mb-3">Editor link:</label>
       <p class="text-sm leading-5 text-gray-500"></p>
       <fieldset class="mt-2">
         <legend class="sr-only">Notification method</legend>
