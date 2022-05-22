@@ -1,6 +1,6 @@
 import Image from "next/image";
 import React from "react";
-import demo from "../public/demo2.gif";
+import demo from "../public/demo3.gif";
 import background from "../public/bg.svg";
 
 const isMac =
@@ -45,7 +45,7 @@ function Hero() {
           </div>
         </div>
         <div className="z-10 flex object-cover object-center w-5/6 overflow-hidden rounded-lg shadow-2xl md:w-1/2">
-          <Image className="" src={demo}></Image>
+          <Image className="w-full" src={demo}></Image>
         </div>
       </div>
     </section>
