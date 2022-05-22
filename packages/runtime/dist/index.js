@@ -35,7 +35,9 @@ var currentElementRef = null;
 var isMac = typeof navigator !== "undefined" &&
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 var altTitle = isMac ? "⌥ Option" : "Alt";
-var isExtension = !!document.documentElement.dataset.locatorClientUrl;
+var isExtension = typeof document !== "undefined"
+    ? !!document.documentElement.dataset.locatorClientUrl
+    : false;
 var repoLink = "https://github.com/infi-pc/locatorjs";
 var localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
 var getLinkTypeOrTemplate = function () {

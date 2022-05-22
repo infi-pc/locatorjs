@@ -1,5 +1,6 @@
 import Contribute from "../components/Contribute";
 import Footer from "../components/Footer";
+import GetExtension from "../components/GetExtension";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import Installation from "../components/Installation";
@@ -10,6 +11,7 @@ export default function Home() {
     <>
       <Header></Header>
       <Hero></Hero>
+      <GetExtension></GetExtension>
       <Installation></Installation>
       <Contribute></Contribute>
       <Subscribe></Subscribe>
