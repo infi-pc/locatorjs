@@ -1,0 +1,13 @@
+
+.locatorjs-key {
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid rgb(199, 199, 199);
+  margin: 2px;
+  color: #444;
+}
+.locatorjs-line {
+  padding: 4px 0px;
+  font-size: 14px;
+}
+

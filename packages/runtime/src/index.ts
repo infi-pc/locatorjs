@@ -1,4 +1,27 @@
-type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options";
+import type {
+  Fiber,
+  Source,
+  ReactDevtoolsHook,
+  Renderer,
+  Target,
+} from "@locator/shared/dist";
+import { allTargets as allTargetsOriginal } from "@locator/shared/dist";
+
+let allTargets = { ...allTargetsOriginal };
+
+// console.log("RUNTIME HERE");
+declare global {
+  interface Window {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
+  }
+}
+
+type LocatorJSMode =
+  | "disabled"
+  | "hidden"
+  | "minimal"
+  | "options"
+  | "no-renderer";
 
 type SourceLocation = {
   start: {
@@ -47,41 +70,33 @@ const isMac =
   typeof navigator !== "undefined" &&
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 const altTitle = isMac ? "⌥ Option" : "Alt";
-type Target = {
-  url: string;
-  label: string;
-};
 
-type Targets = { [k: string]: Target };
-
-let allTargets: Targets = {
-  vscode: {
-    url: "vscode://file${projectPath}${filePath}:${line}:${column}",
-    label: "VSCode",
-  },
-  webstorm: {
-    url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
-    label: "WebStorm",
-  },
-  atom: {
-    url: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}",
-    label: "Atom",
-  },
-};
+const isExtension =
+  typeof document !== "undefined"
+    ? !!document.documentElement.dataset.locatorClientUrl
+    : false;
 
 const repoLink = "https://github.com/infi-pc/locatorjs";
-let linkTypeOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
-let linkTemplate = () => allTargets[linkTypeOrTemplate];
+let localLinkOrTemplate = getCookie("LOCATOR_CUSTOM_LINK") || "vscode";
+
+let getLinkTypeOrTemplate = () =>
+  document.documentElement.dataset.locatorTarget || localLinkOrTemplate;
+
+let linkTemplate = () => allTargets[getLinkTypeOrTemplate()];
 let linkTemplateUrl = (): string => {
   const l = linkTemplate();
-  return l ? l.url : linkTypeOrTemplate;
+  return l ? l.url : getLinkTypeOrTemplate();
 };
 
 let modeInCookies = getCookie("LOCATORJS") as LocatorJSMode | undefined;
-let defaultMode: LocatorJSMode = "options";
+let defaultMode: LocatorJSMode = "hidden";
 
-function getMode() {
-  return modeInCookies || defaultMode;
+function getMode(): LocatorJSMode {
+  const proposedMode = modeInCookies || defaultMode;
+  if (proposedMode !== "hidden" && detectMissingRenderers()) {
+    return "no-renderer";
+  }
+  return proposedMode;
 }
 
 function setMode(newMode: LocatorJSMode) {
@@ -91,7 +106,7 @@ function setMode(newMode: LocatorJSMode) {
 
 function setTemplate(lOrTemplate: string) {
   setCookie("LOCATOR_CUSTOM_LINK", lOrTemplate);
-  linkTypeOrTemplate = lOrTemplate;
+  localLinkOrTemplate = lOrTemplate;
 }
 
 if (typeof window !== "undefined") {
@@ -99,9 +114,17 @@ if (typeof window !== "undefined") {
 
   let locatorDisabled = getMode() === "disabled";
   if (!locatorDisabled) {
-    window.addEventListener("load", function () {
+    onDocumentLoad(function () {
       init(getMode());
     });
+  }
+}
+
+function onDocumentLoad(callback: () => void) {
+  if (document.readyState === "complete") {
+    callback();
+  } else {
+    window.addEventListener("load", callback);
   }
 }
 
@@ -124,7 +147,7 @@ export function setup(props: {
     if (!firstKey) {
       throw new Error("no targets found");
     }
-    linkTypeOrTemplate = firstKey;
+    localLinkOrTemplate = firstKey;
   }
 }
 
@@ -166,11 +189,86 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
   } else {
     document.body.style.cursor = "";
   }
+
+  let labels: LabelData[] = getLabels(found);
+
+  if (labels.length === 0) {
+    return;
+  }
+
+  const bbox = found.getBoundingClientRect();
+  const rect = document.createElement("div");
+  css(rect, {
+    position: "absolute",
+    left: bbox.x - PADDING + "px",
+    top: bbox.y - PADDING + "px",
+    width: bbox.width + PADDING * 2 + "px",
+    height: bbox.height + PADDING * 2 + "px",
+    border: "2px solid " + baseColor,
+    borderRadius: "8px",
+  });
+
+  if (isAltKey) {
+    rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
+  }
+  const isReversed = bbox.y < 30;
+  const labelsSection = document.createElement("div");
+  labelsSection.id = "locatorjs-labels-section";
+  labelsSection.style.position = "absolute";
+  labelsSection.style.display = "flex";
+  labelsSection.style.justifyContent = "center";
+  if (isReversed) {
+    labelsSection.style.bottom = "-28px";
+  } else {
+    labelsSection.style.top = "-28px";
+  }
+
+  labelsSection.style.left = "0px";
+  labelsSection.style.width = "100%";
+  // Uncomment when need to debug
+  // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
+  labelsSection.style.pointerEvents = "auto";
+  if (isReversed) {
+    labelsSection.style.borderBottomLeftRadius = "100%";
+    labelsSection.style.borderBottomRightRadius = "100%";
+  } else {
+    labelsSection.style.borderTopLeftRadius = "100%";
+    labelsSection.style.borderTopRightRadius = "100%";
+  }
+
+  rect.appendChild(labelsSection);
+
+  const labelWrapper = document.createElement("div");
+  labelWrapper.id = "locatorjs-labels-wrapper";
+  labelWrapper.style.padding = isReversed
+    ? "10px 10px 2px 10px"
+    : "2px 10px 10px 10px";
+
+  labelsSection.appendChild(labelWrapper);
+
+  labels.forEach(({ link, label }) => {
+    const labelEl = document.createElement("a");
+    labelEl.className = "locatorjs-label";
+    labelEl.href = link;
+    labelEl.innerText = label;
+    labelEl.onclick = (e) => {
+      window.open(link);
+    };
+
+    labelWrapper.appendChild(labelEl);
+  });
+
+  el.innerHTML = "";
+  el.appendChild(rect);
+}
+
+function getLabels(found: HTMLElement) {
+  let labels: LabelData[] = [];
   if (
     found.dataset &&
     (found.dataset.locatorjsId || found.dataset.locatorjsStyled)
   ) {
-    const labels = [
+    labels = [
       found.dataset.locatorjsId
         ? getDataForDataId(found.dataset.locatorjsId)
         : null,
@@ -178,93 +276,84 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
         ? getDataForDataId(found.dataset.locatorjsStyled)
         : null,
     ].filter(nonNullable);
-
-    if (labels.length === 0) {
-      return;
-    }
-
-    const bbox = found.getBoundingClientRect();
-    const rect = document.createElement("div");
-    css(rect, {
-      position: "absolute",
-      left: bbox.x - PADDING + "px",
-      top: bbox.y - PADDING + "px",
-      width: bbox.width + PADDING * 2 + "px",
-      height: bbox.height + PADDING * 2 + "px",
-      border: "2px solid " + baseColor,
-      borderRadius: "8px",
-    });
-
-    if (isAltKey) {
-      rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
-    }
-    const isReversed = bbox.y < 30;
-    const labelsSection = document.createElement("div");
-    labelsSection.id = "locatorjs-labels-section";
-    labelsSection.style.position = "absolute";
-    labelsSection.style.display = "flex";
-    labelsSection.style.justifyContent = "center";
-    if (isReversed) {
-      labelsSection.style.bottom = "-28px";
-    } else {
-      labelsSection.style.top = "-28px";
-    }
-
-    labelsSection.style.left = "0px";
-    labelsSection.style.width = "100%";
-    // Uncomment when need to debug
-    // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
-    labelsSection.style.pointerEvents = "auto";
-    if (isReversed) {
-      labelsSection.style.borderBottomLeftRadius = "100%";
-      labelsSection.style.borderBottomRightRadius = "100%";
-    } else {
-      labelsSection.style.borderTopLeftRadius = "100%";
-      labelsSection.style.borderTopRightRadius = "100%";
-    }
-
-    rect.appendChild(labelsSection);
-
-    const labelWrapper = document.createElement("div");
-    labelWrapper.id = "locatorjs-labels-wrapper";
-    labelWrapper.style.padding = isReversed
-      ? "10px 10px 2px 10px"
-      : "2px 10px 10px 10px";
-
-    labelsSection.appendChild(labelWrapper);
-
-    labels.forEach(({ fileData, expData }) => {
-      const label = document.createElement("a");
-      label.className = "locatorjs-label";
-      label.href = buidLink(
-        fileData.filePath,
-        fileData.projectPath,
-        expData.loc
-      );
-      if (expData.type === "jsx") {
-        label.innerText =
-          (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
-          expData.name;
-      } else {
-        label.innerText = `${
-          expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"
-        }${expData.name ? `: ${expData.name}` : ""}`;
-      }
-      label.onclick = (e) => {
-        const link = buidLink(
-          fileData.filePath,
-          fileData.projectPath,
-          expData.loc
-        );
-        window.open(link);
-      };
-
-      labelWrapper.appendChild(label);
-    });
-
-    el.innerHTML = "";
-    el.appendChild(rect);
   }
+
+  if (labels.length === 0) {
+    const fiber = findFiberByHtmlElement(found, false);
+    if (fiber) {
+      getAllParentsWithTheSameBoundingBox(fiber).forEach((fiber) => {
+        const fiberWithSource = findDebugSource(fiber);
+        if (fiberWithSource) {
+          const label = getFiberLabel(
+            fiberWithSource.fiber,
+            fiberWithSource.source
+          );
+          labels.push(label);
+        }
+      });
+    }
+  }
+  return deduplicateLabels(labels);
+}
+
+function deduplicateLabels(labels: LabelData[]): LabelData[] {
+  const labelsIds: { [key: string]: true } = {};
+  return labels
+    .map((label) => {
+      const id = JSON.stringify(label);
+      if (labelsIds[id]) {
+        return null;
+      }
+      labelsIds[id] = true;
+      return label;
+    })
+    .filter(nonNullable);
+}
+function getAllParentsWithTheSameBoundingBox(fiber: Fiber): Fiber[] {
+  const parents: Fiber[] = [fiber];
+  let currentFiber = fiber;
+  while (currentFiber.return) {
+    currentFiber = currentFiber.return;
+    if (
+      currentFiber.stateNode &&
+      currentFiber.stateNode.getBoundingClientRect
+    ) {
+      const bbox = currentFiber.stateNode.getBoundingClientRect();
+      if (
+        bbox.x === fiber.stateNode.getBoundingClientRect().x &&
+        bbox.y === fiber.stateNode.getBoundingClientRect().y &&
+        bbox.width === fiber.stateNode.getBoundingClientRect().width &&
+        bbox.height === fiber.stateNode.getBoundingClientRect().height
+      ) {
+        parents.push(currentFiber);
+      } else {
+        break;
+      }
+    }
+  }
+  return parents;
+}
+
+function getFiberLabel(fiber: Fiber, source?: Source) {
+  const { name, wrappingComponent } = findNames(fiber);
+
+  const link = source
+    ? buidLink(source.fileName, "", {
+        start: {
+          column: source.columnNumber || 0,
+          line: source.lineNumber || 0,
+        },
+        end: {
+          column: source.columnNumber || 0,
+          line: source.lineNumber || 0,
+        },
+      })
+    : null;
+  const label = {
+    label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
+    link,
+  };
+  return label;
 }
 
 function parseDataId(dataId: string): [fileFullPath: string, id: string] {
@@ -295,7 +384,9 @@ function mouseOverListener(e: MouseEvent) {
       return;
     }
 
-    const found = target.closest("[data-locatorjs-id]");
+    const found =
+      target.closest("[data-locatorjs-id]") ||
+      searchDevtoolsRenderersForClosestTarget(target);
     if (found && found instanceof HTMLElement) {
       // @ts-ignore
       currentElementRef = new WeakRef(found);
@@ -326,8 +417,13 @@ function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && e.altKey) {
     if (getMode() === "hidden") {
       destroy();
-      setMode("minimal");
-      init("minimal");
+      if (isExtension) {
+        setMode("minimal");
+        init("minimal");
+      } else {
+        setMode("options");
+        init("options");
+      }
     } else {
       destroy();
       setMode("hidden");
@@ -343,24 +439,13 @@ function clickListener(e: MouseEvent) {
   }
   const target = e.target;
   if (target && target instanceof HTMLElement) {
-    const found: HTMLElement | null = target.closest("[data-locatorjs-id]");
-    if (!found || !found.dataset || !found.dataset.locatorjsId) {
-      return;
+    const labels = getLabels(target);
+    const firstLabel = labels[0];
+    if (firstLabel) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(firstLabel.link);
     }
-    const [filePath, id] = parseDataId(found.dataset.locatorjsId);
-    const fileData = dataByFilename[filePath];
-    if (!fileData) {
-      return;
-    }
-    const expData = fileData.expressions[Number(id)];
-    if (!expData) {
-      return;
-    }
-    const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(link);
-    //   window.open(link, "_blank");
   }
 }
 
@@ -505,6 +590,10 @@ function init(mode: LocatorJSMode) {
           border-radius: 12px 12px 0px 0px;
         }
       }
+      #locatorjs-missing-renderer a {
+        color: #fff;
+        text-decoration: underline;
+      }
     `;
   document.head.appendChild(style);
 
@@ -530,6 +619,9 @@ function init(mode: LocatorJSMode) {
 
   document.body.appendChild(layer);
 
+  if (mode === "no-renderer") {
+    showMissingRenderer();
+  }
   if (mode === "minimal") {
     showMinimal();
   }
@@ -593,7 +685,7 @@ function showOptions() {
     ".locatorjs-editors-options input"
   ) as NodeListOf<HTMLInputElement>;
   options.forEach((option) => {
-    if (linkTypeOrTemplate === option.value) {
+    if (localLinkOrTemplate === option.value) {
       option.checked = true;
     }
     option.addEventListener("change", (e: any) => {
@@ -641,13 +733,17 @@ function showMinimal() {
     fontFamily,
   });
   minimal.innerHTML = `
-    <div><a href="${repoLink}">LocatorJS</a>: <a id="locatorjs-minimal-to-options">options</a> | <a id="locatorjs-minimal-to-hide">hide</a></div>
+    <div><a href="${repoLink}">LocatorJS</a>: ${
+    isExtension ? `` : `<a id="locatorjs-minimal-to-options">options</a> |`
+  } <a id="locatorjs-minimal-to-hide">hide</a></div>
     `;
 
-  const options = minimal.querySelector(
-    "#locatorjs-minimal-to-options"
-  ) as HTMLInputElement;
-  options.addEventListener("click", showOptionsHandler);
+  if (!isExtension) {
+    const options = minimal.querySelector(
+      "#locatorjs-minimal-to-options"
+    ) as HTMLInputElement;
+    options.addEventListener("click", showOptionsHandler);
+  }
 
   const hide = minimal.querySelector(
     "#locatorjs-minimal-to-hide"
@@ -655,6 +751,33 @@ function showMinimal() {
   hide.addEventListener("click", goToHiddenHandler);
 
   document.body.appendChild(minimal);
+}
+
+function showMissingRenderer() {
+  const el = document.createElement("div");
+  el.setAttribute("id", "locatorjs-missing-renderer");
+  css(el, {
+    position: "fixed",
+    bottom: "18px",
+    left: "18px",
+    backgroundColor: baseColor,
+    fontSize: "16px",
+    borderRadius: "4px",
+    padding: "6px 12px",
+    color: "white",
+    zIndex: "10000",
+    fontFamily,
+  });
+  el.innerHTML = `
+    <div><a href="${repoLink}">LocatorJS</a> has not found any React project in development mode. <a id="locatorjs-missing-rendered-to-hide">hide</a></div>
+    `;
+
+  const hide = el.querySelector(
+    "#locatorjs-missing-rendered-to-hide"
+  ) as HTMLInputElement;
+  hide.addEventListener("click", hideAlertHandler);
+
+  document.body.appendChild(el);
 }
 
 function destroy() {
@@ -676,6 +799,7 @@ function destroy() {
     styleEl.remove();
   }
   hideMinimal();
+  hideMissingRenderer();
   if (document.body.style.cursor === "pointer") {
     document.body.style.cursor = "";
   }
@@ -683,6 +807,13 @@ function destroy() {
 
 function hideMinimal() {
   const minimalEl = document.getElementById("locatorjs-minimal");
+  if (minimalEl) {
+    minimalEl.remove();
+  }
+}
+
+function hideMissingRenderer() {
+  const minimalEl = document.getElementById("locatorjs-missing-renderer");
   if (minimalEl) {
     minimalEl.remove();
   }
@@ -715,21 +846,175 @@ function goToHiddenHandler() {
   );
 }
 
-function getDataForDataId(dataId: string) {
+function hideAlertHandler() {
+  setMode("hidden");
+  destroy();
+  init("hidden");
+}
+
+type LabelData = {
+  // fileData: {
+  //   filePath: string;
+  //   projectPath: string;
+  // };
+  // expData: ExpressionInfo;
+  link: string;
+  label: string;
+};
+
+function getDataForDataId(dataId: string): LabelData | null {
   const [fileFullPath, id] = parseDataId(dataId);
 
   const fileData = dataByFilename[fileFullPath];
   if (!fileData) {
-    return;
+    return null;
   }
   const expData = fileData.expressions[Number(id)];
   if (!expData) {
-    return;
+    return null;
   }
 
-  return { fileData, expData };
+  const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+
+  let label;
+  if (expData.type === "jsx") {
+    label =
+      (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
+      expData.name;
+  } else {
+    label = `${expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"}${
+      expData.name ? `: ${expData.name}` : ""
+    }`;
+  }
+
+  return { link, label };
 }
 
 export default function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
+}
+
+function findFiberByHtmlElement(
+  target: HTMLElement,
+  shouldHaveDebugSource: boolean
+): Fiber | null {
+  const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
+  // console.log("RENDERERS: ", renderers);
+
+  const renderersValues = renderers?.values();
+  if (renderersValues) {
+    for (const renderer of Array.from(renderersValues) as Renderer[]) {
+      if (renderer.findFiberByHostInstance) {
+        const found = renderer.findFiberByHostInstance(target as any);
+        if (found) {
+          if (shouldHaveDebugSource) {
+            return findDebugSource(found)?.fiber || null;
+          } else {
+            return found;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function findDebugSource(
+  fiber: Fiber
+): { fiber: Fiber; source: Source } | null {
+  let current: Fiber | null = fiber;
+  while (current) {
+    if (current._debugSource) {
+      return { fiber: current, source: current._debugSource };
+    }
+    current = current._debugOwner || null;
+  }
+
+  return null;
+}
+
+function searchDevtoolsRenderersForClosestTarget(
+  target: HTMLElement
+): HTMLElement | null {
+  let closest: HTMLElement | null = target;
+  while (closest) {
+    if (findFiberByHtmlElement(closest, false)) {
+      return closest;
+    }
+    closest = closest.parentElement;
+  }
+
+  return null;
+}
+
+function findNames(fiber: Fiber): { name: string; wrappingComponent: string } {
+  // if (fiber._debugOwner?.elementType?.styledComponentId) {
+  //   // This is special case for styled-components, we need to show one level up
+  //   return {
+  //     name: getUsableName(fiber._debugOwner),
+  //     wrappingComponent: getUsableName(fiber._debugOwner?._debugOwner),
+  //   };
+  // } else {
+  return {
+    name: getUsableName(fiber),
+    wrappingComponent: getUsableName(fiber._debugOwner),
+  };
+  // }
+}
+
+// function printDebugOwnerTree(fiber: Fiber): string | null {
+//   let current: Fiber | null = fiber || null;
+//   let results = [];
+//   while (current) {
+//     results.push(getUsableName(current));
+//     current = current._debugOwner || null;
+//   }
+
+//   console.log('DEBUG OWNER: ', results);
+//   return null;
+// }
+
+// function printReturnTree(fiber: Fiber): string | null {
+//   let current: Fiber | null = fiber || null;
+//   let results = [];
+//   while (current) {
+//     results.push(getUsableName(current));
+//     current = current.return || null;
+//   }
+
+//   console.log('RETURN: ', results);
+//   return null;
+// }
+
+function getUsableName(fiber: Fiber | null | undefined) {
+  if (!fiber) {
+    return "Not found";
+  }
+
+  if (typeof fiber.elementType === "string") {
+    return fiber.elementType;
+  }
+  if (!fiber.elementType) {
+    return "Anonymous";
+  }
+
+  if (fiber.elementType.name) {
+    return fiber.elementType.name;
+  }
+  // Not sure about this
+  if (fiber.elementType.displayName) {
+    return fiber.elementType.displayName;
+  }
+  // Used in rect.memo
+  if (fiber.elementType.type?.name) {
+    return fiber.elementType.type.name;
+  }
+  if (fiber.elementType._payload?._result?.name) {
+    return fiber.elementType._payload._result.name;
+  }
+
+  return "Anonymous";
+}
+function detectMissingRenderers(): boolean {
+  return window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers?.size === 0;
 }

@@ -16,20 +16,28 @@ function Header() {
             alt="LocatorJS logo"
           ></Image>
         </a>
-        <nav className="flex flex-wrap items-center justify-center text-base md:ml-auto">
+        <nav className="flex flex-wrap items-center justify-center gap-1 text-base md:ml-auto">
           {/* <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             First Link
           </a>
           <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             Second Link
+          </a>*/}
+          <a
+            href="https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi"
+            className="mr-5 hover:text-gray-900 dark:hover:text-white"
+          >
+            Get Chrome Extension
           </a>
-          <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
-            Third Link
-          </a>
-          <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
-            Fourth Link
+
+          {/* <a
+            href="https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi"
+            className="flex px-3 py-1 text-base text-white border-0 rounded bg-primary-500 focus:outline-none hover:bg-primary-600"
+          >
+            Get Chrome Extension
           </a> */}
-          <div className="mt-1">
+
+          <div className="mt-2">
             <GitHubButton
               href="https://github.com/infi-pc/locatorjs"
               data-icon="octicon-star"

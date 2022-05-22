@@ -1,0 +1,18 @@
+{
+  "name": "@locator/shared",
+  "version": "0.0.7",
+  "main": "./dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "tsc src/*.ts --watch --declaration --outDir dist",
+    "build": "tsc src/*.ts --declaration --outDir dist",
+    "ts": "tsc src/*.ts --noEmit --outDir dist"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.37",
+    "@types/react-dom": "^17.0.11",
+    "tsconfig": "^0.0.1",
+    "typescript": "^4.5.3"
+  },
+  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
+}
