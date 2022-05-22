@@ -45,7 +45,7 @@ function Hero() {
           </div>
         </div>
         <div className="z-10 flex object-cover object-center w-5/6 overflow-hidden rounded-lg shadow-2xl md:w-1/2">
-          <Image className="w-full" src={demo}></Image>
+          <Image className="" src={demo}></Image>
         </div>
       </div>
     </section>
