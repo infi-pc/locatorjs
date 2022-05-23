@@ -52,6 +52,8 @@ switch (document.contentType) {
 
 chrome.runtime.onMessage.addListener((msg, sender, response) => {
   if (msg.from === 'popup' && msg.subject === 'statusMessage') {
-    response(document.head.dataset.locatorMessage);
+    response(
+      document.head.dataset.locatorMessage || 'Could not load Hook script.'
+    );
   }
 });
