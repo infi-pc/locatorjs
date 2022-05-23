@@ -217,7 +217,12 @@ function getLabels(found) {
     if (labels.length === 0) {
         var fiber = findFiberByHtmlElement(found, false);
         if (fiber) {
-            getAllParentsWithTheSameBoundingBox(fiber).forEach(function (fiber) {
+            var allPotentialFibers = getAllParentsWithTheSameBoundingBox(fiber);
+            // This handles a common case when the component root is basically the comopnent itself, so I want to go to usage of the component
+            if (fiber["return"] && fiber["return"] === fiber._debugOwner) {
+                allPotentialFibers.push(fiber["return"]);
+            }
+            allPotentialFibers.forEach(function (fiber) {
                 var fiberWithSource = findDebugSource(fiber);
                 if (fiberWithSource) {
                     var label = getFiberLabel(fiberWithSource.fiber, fiberWithSource.source);
@@ -243,6 +248,9 @@ function deduplicateLabels(labels) {
 }
 function getAllParentsWithTheSameBoundingBox(fiber) {
     var parents = [fiber];
+    if (fiber.stateNode === null) {
+        return parents;
+    }
     var currentFiber = fiber;
     while (currentFiber["return"]) {
         currentFiber = currentFiber["return"];
