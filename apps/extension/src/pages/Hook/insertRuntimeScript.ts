@@ -26,6 +26,7 @@ export function insertRuntimeScript() {
       );
       if (renderers.length) {
         insertScript(locatorClientUrl);
+        sendMessage('ok');
       } else {
         if (problematicRenderers.length) {
           sendMessage(problematicRenderers.join('\n'));
