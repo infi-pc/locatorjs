@@ -1,8 +1,8 @@
 import { render } from 'solid-js/web';
 
-import Popup from './Popup';
+import App from './App';
 import './index.css';
 
-render(Popup, document.getElementById('app-container'));
+render(App, document.getElementById('app-container'));
 
 if (module.hot) module.hot.accept();

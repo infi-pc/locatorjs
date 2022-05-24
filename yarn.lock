@@ -2593,6 +2593,18 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
+"@floating-ui/core@^0.6.1":
+  version "0.6.2"
+  resolved "https://registry.yarnpkg.com/@floating-ui/core/-/core-0.6.2.tgz#f2813f0e5f3d5ed7af5029e1a082203dadf02b7d"
+  integrity sha512-jktYRmZwmau63adUG3GKOAVCofBXkk55S/zQ94XOorAHhwqFIOFAy1rSp2N0Wp6/tGbe9V3u/ExlGZypyY17rg==
+
+"@floating-ui/dom@0.4.4":
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/@floating-ui/dom/-/dom-0.4.4.tgz#e0919d23e40bcc84ce2ebe1b9701b211f2d84b3c"
+  integrity sha512-0Ulu3B/dqQplUUSqnTx0foSrlYuMN+GTtlJWvNJwt6Fr7/PqmlR/Y08o6/+bxDWr6p3roBJRaQ51MDZsNmEhhw==
+  dependencies:
+    "@floating-ui/core" "^0.6.1"
+
 "@gar/promisify@^1.0.1":
   version "1.1.2"
   resolved "https://registry.npmjs.org/@gar/promisify/-/promisify-1.1.2.tgz"
@@ -2617,6 +2629,17 @@
   version "9.2.1"
   resolved "https://registry.npmjs.org/@hapi/hoek/-/hoek-9.2.1.tgz"
   integrity sha512-gfta+H8aziZsm8pZa0vj04KO6biEiisppNgA1kbJvFrrWu9Vm7eaUEy76DIxsuTaWvti5fkJVhllWc6ZTE+Mdw==
+
+"@hope-ui/solid@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@hope-ui/solid/-/solid-0.6.1.tgz#71dee9bf8ba503469f4f33115aef02d14d8f5b77"
+  integrity sha512-SslmDBBNmBFGgrTDjLfuP5VvStgS4T3//+LGFgSofKMDpkS9oePorC8k170fSyvlCJY2PR3IbSag57/fhCiVZg==
+  dependencies:
+    "@floating-ui/dom" "0.4.4"
+    csstype "3.0.11"
+    focus-trap "6.7.3"
+    lodash.merge "4.6.2"
+    scroll-lock "2.1.5"
 
 "@humanwhocodes/config-array@^0.5.0":
   version "0.5.0"
@@ -4001,6 +4024,11 @@
   integrity sha512-OAPJUAtgeINhh/TAlUID4QTs53Njm7xzddaVlEs/SXwgtiD1tW22zAB/W1wdqfrpmikgaWQ9Fw6Ws+hsiRm5Vg==
   dependencies:
     "@sinonjs/commons" "^1.7.0"
+
+"@stitches/core@^1.2.8":
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/@stitches/core/-/core-1.2.8.tgz#dce3b8fdc764fbc6dbea30c83b73bfb52cf96173"
+  integrity sha512-Gfkvwk9o9kE9r9XNBmJRfV8zONvXThnm1tcuojL04Uy5uRyqg93DC83lDebl0rocZCfKSjUv+fWYtMQmEDJldg==
 
 "@storybook/addon-actions@6.4.19", "@storybook/addon-actions@^6.4.19":
   version "6.4.19"
@@ -8831,6 +8859,11 @@ cssstyle@^2.3.0:
   dependencies:
     cssom "~0.3.6"
 
+csstype@3.0.11:
+  version "3.0.11"
+  resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.0.11.tgz#d66700c5eacfac1940deb4e3ee5642792d85cd33"
+  integrity sha512-sa6P2wJ+CAbgyy4KFssIb/JNMLxFvKF1pCYCSXS8ZMuqZnMsrxqI2E5sPyoTpxoPU/gVZMzr2zjOfg8GIZOMsw==
+
 csstype@^2.5.7:
   version "2.6.19"
   resolved "https://registry.npmjs.org/csstype/-/csstype-2.6.19.tgz"
@@ -10699,6 +10732,13 @@ flush-write-stream@^1.0.0:
   dependencies:
     inherits "^2.0.3"
     readable-stream "^2.3.6"
+
+focus-trap@6.7.3:
+  version "6.7.3"
+  resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-6.7.3.tgz#b5dc195b49c90001f08a63134471d1e6dd381ddd"
+  integrity sha512-8xCEKndV4KrseGhFKKKmczVA14yx1/hnmFICPOjcFjToxCJYj/NHH43tPc3YE/PLnLRNZoFug0EcWkGQde/miQ==
+  dependencies:
+    tabbable "^5.2.1"
 
 follow-redirects@^1.0.0:
   version "1.14.9"
@@ -13505,7 +13545,7 @@ lodash.memoize@^4.1.2:
   resolved "https://registry.npmjs.org/lodash.memoize/-/lodash.memoize-4.1.2.tgz"
   integrity sha1-vMbEmkKihA7Zl/Mj6tpezRguC/4=
 
-lodash.merge@^4.6.2:
+lodash.merge@4.6.2, lodash.merge@^4.6.2:
   version "4.6.2"
   resolved "https://registry.npmjs.org/lodash.merge/-/lodash.merge-4.6.2.tgz"
   integrity sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==
@@ -17624,6 +17664,11 @@ schema-utils@^4.0.0:
     ajv-formats "^2.1.1"
     ajv-keywords "^5.0.0"
 
+scroll-lock@2.1.5:
+  version "2.1.5"
+  resolved "https://registry.yarnpkg.com/scroll-lock/-/scroll-lock-2.1.5.tgz#18bb7697f02176cbfd093726c3c972b7cbc9975f"
+  integrity sha512-GN8Lp0AzXbkrPFUUNkMUruiiv019UvarNKE/SnXi+AxZRjMnDc2R22VB9RcUtL4P/uub04cKibmpHKIKTyWwYQ==
+
 scss-tokenizer@^0.2.3:
   version "0.2.3"
   resolved "https://registry.npmjs.org/scss-tokenizer/-/scss-tokenizer-0.2.3.tgz"
@@ -17994,6 +18039,11 @@ solid-js@^1.3.2:
   version "1.3.17"
   resolved "https://registry.npmjs.org/solid-js/-/solid-js-1.3.17.tgz"
   integrity sha512-BFCosxa4hRm+LF7S+kBL5bNr4RtuZif6AaR5FdQkBpV1E6QNLAOFm4HWgEN8vL2aCWEKl384cT8Etw8ziW8aag==
+
+solid-transition-group@^0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/solid-transition-group/-/solid-transition-group-0.0.10.tgz#774110616ac06c1054b7fd6e3c1bf1cf3e584558"
+  integrity sha512-b3O9z6BUP60CG1WnTdqFuvHms0reDNYwQF+eAEEaSaoDEmiOu9+Lu7zQgWGySJjaAdSAClhmFCmx/eAjQgfIoA==
 
 sort-keys@^2.0.0:
   version "2.0.0"
@@ -18708,6 +18758,11 @@ synchronous-promise@^2.0.15:
   version "2.0.15"
   resolved "https://registry.npmjs.org/synchronous-promise/-/synchronous-promise-2.0.15.tgz"
   integrity sha512-k8uzYIkIVwmT+TcglpdN50pS2y1BDcUnBPK9iJeGu0Pl1lOI8pD6wtzgw91Pjpe+RxtTncw32tLxs/R0yNL2Mg==
+
+tabbable@^5.2.1:
+  version "5.3.2"
+  resolved "https://registry.yarnpkg.com/tabbable/-/tabbable-5.3.2.tgz#66d6119ee8a533634c3f17deb0caa1c379e36ac7"
+  integrity sha512-6G/8EWRFx8CiSe2++/xHhXkmCRq2rHtDtZbQFHx34cvDfZzIBfvwG9zGUNTWMXWLCYvDj3aQqOzdl3oCxKuBkQ==
 
 table@^6.0.9:
   version "6.7.5"
