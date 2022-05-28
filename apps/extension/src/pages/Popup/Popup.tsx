@@ -10,7 +10,7 @@ const altTitle = isMac ? '⌥ Option' : 'Alt';
 const Popup = () => {
   const [message, setMessage] = createSignal('');
 
-  chrome.tabs.query(
+  browser.tabs.query(
     {
       active: true,
       currentWindow: true,
@@ -18,7 +18,7 @@ const Popup = () => {
     (tabs) => {
       const currentTab = tabs[0];
       if (currentTab.id) {
-        chrome.tabs.sendMessage(
+        browser.tabs.sendMessage(
           currentTab.id,
           { from: 'popup', subject: 'statusMessage' },
           // ...also specifying a callback to be called

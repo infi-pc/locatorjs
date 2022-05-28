@@ -7,12 +7,12 @@ export function Editor() {
   function changeTarget(newTarget: string) {
     setTarget(newTarget);
     // localStorage.setItem('target', newTarget);
-    chrome.storage.sync.set({ target: newTarget }, function () {
+    browser.storage.sync.set({ target: newTarget }, function () {
       console.log('Value is set to ' + newTarget);
     });
   }
 
-  chrome.storage.sync.get(['target'], function (result) {
+  browser.storage.sync.get(['target'], function (result) {
     if (typeof result?.target === 'string') {
       setTarget(result.target);
     }

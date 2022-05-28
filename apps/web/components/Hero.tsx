@@ -30,7 +30,7 @@ function Hero() {
               <span className="px-2 py-1 mx-1 border border-gray-300 rounded-md">
                 {altTitle}
               </span>{" "}
-              and click on component
+              and move with cursor around this page.
             </div>
           </div>
           <div className="mt-2">

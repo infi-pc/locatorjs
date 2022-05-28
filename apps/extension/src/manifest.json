@@ -1,12 +1,16 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "LocatorJS",
+  "description": "LocatorJS",
   "icons": {
     "128": "icon-128.png"
   },
-  "action": {
+  "homepage_url": "https://www.locatorjs.com",
+  "browser_action": {
+    "browser_style": true,
     "default_popup": "popup.html",
-    "default_icon": "icon-34.png"
+    "default_icon": "icon-32.png",
+    "default_title": "LocatorJS"
   },
   "content_scripts": [
     {
@@ -17,15 +21,12 @@
   ],
   "permissions": ["storage"],
   "web_accessible_resources": [
-    {
-      "resources": [
-        "client.bundle.js",
-        "hook.bundle.js",
-        "content.styles.css",
-        "icon-128.png",
-        "icon-34.png"
-      ],
-      "matches": ["<all_urls>"]
-    }
+    "client.bundle.js",
+    "hook.bundle.js",
+    "content.styles.css",
+    "icon-32.png",
+    "icon-34.png",
+    "icon-48.png",
+    "icon-128.png"
   ]
 }
