@@ -1,8 +1,6 @@
 // const code = require('!raw-loader!./generated/client.bundle.js');
 
-const target = localStorage.getItem('target');
-
-browser.storage.sync.get(['target'], function (result) {
+browser.storage.local.get(['target'], function (result) {
   if (typeof result?.target === 'string') {
     document.documentElement.dataset.locatorTarget = result.target;
   }

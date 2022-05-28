@@ -7,16 +7,23 @@ export function Editor() {
   function changeTarget(newTarget: string) {
     setTarget(newTarget);
     // localStorage.setItem('target', newTarget);
-    browser.storage.sync.set({ target: newTarget }, function () {
+
+    browser.storage.local.set({ target: newTarget }, function () {
       console.log('Value is set to ' + newTarget);
     });
   }
 
-  browser.storage.sync.get(['target'], function (result) {
-    if (typeof result?.target === 'string') {
-      setTarget(result.target);
-    }
-  });
+  // TODO make it sync, as soon as we get a firefox id
+  browser.storage.local
+    .get(['target'])
+    .then((result) => {
+      if (typeof result?.target === 'string') {
+        setTarget(result.target);
+      }
+    })
+    .catch((e) => {
+      console.error(e);
+    });
 
   // console.log(allTargets[target()] ? allTargets[target()].url : target());
 
