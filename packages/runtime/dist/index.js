@@ -22,7 +22,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
 var shared_1 = require("@locator/shared");
-var allTargets = __assign({}, shared_1.allTargets);
+var shared_2 = require("@locator/shared");
+var allTargets = __assign({}, shared_2.allTargets);
 var HREF_TARGET = "_self";
 var dataByFilename = {};
 var baseColor = "#e90139";
@@ -33,9 +34,6 @@ var PADDING = 6;
 var fontFamily = "Helvetica, sans-serif, Arial";
 // @ts-ignore
 var currentElementRef = null;
-var isMac = typeof navigator !== "undefined" &&
-    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-var altTitle = isMac ? "⌥ Option" : "Alt";
 var isExtension = typeof document !== "undefined"
     ? !!document.documentElement.dataset.locatorClientUrl
     : false;
@@ -57,6 +55,15 @@ function getMode() {
         return "no-renderer";
     }
     return proposedMode;
+}
+function getMouseModifiers() {
+    var mouseModifiers = document.documentElement.dataset.locatorMouseModifiers || "alt";
+    var mouseModifiersArray = mouseModifiers.split("+");
+    var modifiers = {};
+    mouseModifiersArray.forEach(function (modifier) {
+        modifiers[modifier] = true;
+    }, {});
+    return modifiers;
 }
 function setMode(newMode) {
     setCookie("LOCATORJS", newMode);
@@ -121,18 +128,18 @@ function buidLink(filePath, projectPath, loc) {
     };
     return evalTemplate(linkTemplateUrl(), params);
 }
-function rerenderLayer(found, isAltKey) {
+function rerenderLayer(found, isModifierPressed) {
     var el = document.getElementById("locatorjs-layer");
     if (!el) {
         // in cases it's destroyed in the meantime
         return;
     }
-    if (getMode() === "hidden" && !isAltKey) {
+    if (getMode() === "hidden" && !isModifierPressed) {
         el.innerHTML = "";
         document.body.style.cursor = "";
         return;
     }
-    if (isAltKey) {
+    if (isModifierPressed) {
         document.body.style.cursor = "pointer";
     }
     else {
@@ -153,7 +160,7 @@ function rerenderLayer(found, isAltKey) {
         border: "2px solid " + baseColor,
         borderRadius: "8px"
     });
-    if (isAltKey) {
+    if (isModifierPressed) {
         rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
     }
     var isReversed = bbox.y < 30;
@@ -320,7 +327,7 @@ function mouseOverListener(e) {
         if (found && found instanceof HTMLElement) {
             // @ts-ignore
             currentElementRef = new WeakRef(found);
-            rerenderLayer(found, e.altKey);
+            rerenderLayer(found, isCombinationModifiersPressed(e));
         }
     }
 }
@@ -328,7 +335,7 @@ function keyDownListener(e) {
     if (currentElementRef) {
         var el = currentElementRef.deref();
         if (el) {
-            rerenderLayer(el, e.altKey);
+            rerenderLayer(el, isCombinationModifiersPressed(e));
         }
     }
 }
@@ -336,12 +343,12 @@ function keyUpListener(e) {
     if (currentElementRef) {
         var el = currentElementRef.deref();
         if (el) {
-            rerenderLayer(el, e.altKey);
+            rerenderLayer(el, isCombinationModifiersPressed(e));
         }
     }
 }
 function globalKeyUpListener(e) {
-    if (e.code === "KeyD" && e.altKey) {
+    if (e.code === "KeyD" && isCombinationModifiersPressed(e)) {
         if (getMode() === "hidden") {
             destroy();
             if (isExtension) {
@@ -361,8 +368,15 @@ function globalKeyUpListener(e) {
         return;
     }
 }
+function isCombinationModifiersPressed(e) {
+    var modifiers = getMouseModifiers();
+    return (e.altKey == !!modifiers.alt &&
+        e.ctrlKey == !!modifiers.ctrl &&
+        e.metaKey == !!modifiers.meta &&
+        e.shiftKey == !!modifiers.shift);
+}
 function clickListener(e) {
-    if (!e.altKey) {
+    if (!isCombinationModifiersPressed(e)) {
         return;
     }
     var target = e.target;
@@ -445,7 +459,7 @@ function showOptions() {
     modal.appendChild(modalHeader);
     var controls = document.createElement("div");
     controls.style.color = "#aaa";
-    controls.innerHTML = "\n    <div>\n      <div class=\"locatorjs-line\"><b>Press and hold <span class=\"locatorjs-key\">".concat(altTitle, "</span>:</b> make boxes clickable on full surface</div>\n      <div class=\"locatorjs-line\"><b><span class=\"locatorjs-key\">").concat(altTitle, "</span> + <span class=\"locatorjs-key\">D</span>:</b> hide/show LocatorJS panel</div>\n      <div class=\"locatorjs-line\">\n        <a href=\"").concat(repoLink, "\">more info</a>\n      </div>\n    </div>");
+    controls.innerHTML = "\n    <div>\n      <div class=\"locatorjs-line\"><b>Press and hold <span class=\"locatorjs-key\">".concat(shared_1.altTitle, "</span>:</b> make boxes clickable on full surface</div>\n      <div class=\"locatorjs-line\"><b><span class=\"locatorjs-key\">").concat(shared_1.altTitle, "</span> + <span class=\"locatorjs-key\">D</span>:</b> hide/show LocatorJS panel</div>\n      <div class=\"locatorjs-line\">\n        <a href=\"").concat(repoLink, "\">more info</a>\n      </div>\n    </div>");
     modal.appendChild(controls);
     var selector = document.createElement("div");
     selector.style.marginTop = "10px";
@@ -593,7 +607,7 @@ function goToHiddenHandler() {
     setMode("hidden");
     destroy();
     init("hidden");
-    alert("LocatorJS will be now hidden.\n\nPress and hold ".concat(altTitle, " so start selecting in hidden mode.\n").concat(altTitle, "+D: To show UI"));
+    alert("LocatorJS will be now hidden.\n\nPress and hold ".concat(shared_1.altTitle, " so start selecting in hidden mode.\n").concat(shared_1.altTitle, "+D: To show UI"));
 }
 function hideAlertHandler() {
     setMode("hidden");

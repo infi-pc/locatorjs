@@ -11,11 +11,9 @@ const ASSET_PATH = process.env.ASSET_PATH || '/';
 const alias = {};
 
 const BUILD_FOLDER =
-  process.env.NODE_ENV === 'development'
-    ? 'build'
-    : process.env.TARGET_BROWSER === 'firefox'
-    ? 'build_firefox'
-    : 'build_chrome';
+  'build/' +
+  process.env.NODE_ENV +
+  (process.env.TARGET_BROWSER === 'firefox' ? `_firefox` : `_chrome`);
 
 // Load the common secrets
 const baseSecretsPath = path.join(__dirname, 'secrets.js');
