@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "node utils/build.js",
+    "build:firefox": "TARGET_BROWSER=firefox node utils/build.js",
     "dev": "node utils/webserver.js",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
