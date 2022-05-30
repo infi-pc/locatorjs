@@ -10,6 +10,13 @@ const ASSET_PATH = process.env.ASSET_PATH || '/';
 
 const alias = {};
 
+const BUILD_FOLDER =
+  process.env.NODE_ENV === 'development'
+    ? 'build'
+    : process.env.TARGET_BROWSER === 'firefox'
+    ? 'build_firefox'
+    : 'build_chrome';
+
 // Load the common secrets
 const baseSecretsPath = path.join(__dirname, 'secrets.js');
 let secrets = {};
@@ -54,7 +61,7 @@ const options = {
     notHotReload: ['contentScript', 'client', 'hook'],
   },
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, BUILD_FOLDER),
     filename: '[name].bundle.js',
     clean: true,
     publicPath: ASSET_PATH,
@@ -118,8 +125,11 @@ const options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'src/manifest.json',
-          to: path.join(__dirname, 'build'),
+          from:
+            process.env.TARGET_BROWSER === 'firefox'
+              ? 'src/manifest.v2.json'
+              : 'src/manifest.v3.json',
+          to: path.join(__dirname, BUILD_FOLDER, 'manifest.json'),
           force: true,
           transform: function (content, path) {
             // generates the manifest file using the package.json informations
@@ -138,29 +148,25 @@ const options = {
       patterns: [
         {
           from: 'src/pages/Content/content.styles.css',
-          to: path.join(__dirname, 'build'),
+          to: path.join(__dirname, BUILD_FOLDER),
           force: true,
         },
       ],
     }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: 'src/assets/img/icon-128.png',
-          to: path.join(__dirname, 'build'),
-          force: true,
-        },
-      ],
-    }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: 'src/assets/img/icon-34.png',
-          to: path.join(__dirname, 'build'),
-          force: true,
-        },
-      ],
-    }),
+    ...['icon-32.png', 'icon-34.png', 'icon-48.png', 'icon-128.png'].map(
+      (icon) => {
+        return new CopyWebpackPlugin({
+          patterns: [
+            {
+              from: 'src/assets/img/' + icon,
+              to: path.join(__dirname, BUILD_FOLDER),
+              force: true,
+            },
+          ],
+        });
+      }
+    ),
+
     // new HtmlWebpackPlugin({
     //   template: path.join(__dirname, 'src', 'pages', 'Newtab', 'index.html'),
     //   filename: 'newtab.html',

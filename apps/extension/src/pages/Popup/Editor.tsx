@@ -1,5 +1,6 @@
 import { allTargets } from '@locator/shared';
 import { createEffect, createSignal } from 'solid-js';
+import browser from '../../browser';
 
 export function Editor() {
   const [target, setTarget] = createSignal<string>('vscode');
@@ -7,16 +8,23 @@ export function Editor() {
   function changeTarget(newTarget: string) {
     setTarget(newTarget);
     // localStorage.setItem('target', newTarget);
-    chrome.storage.sync.set({ target: newTarget }, function () {
+
+    browser.storage.local.set({ target: newTarget }, function () {
       console.log('Value is set to ' + newTarget);
     });
   }
 
-  chrome.storage.sync.get(['target'], function (result) {
-    if (typeof result?.target === 'string') {
-      setTarget(result.target);
-    }
-  });
+  // TODO make it sync, as soon as we get a firefox id
+  browser.storage.local
+    .get(['target'])
+    .then((result) => {
+      if (typeof result?.target === 'string') {
+        setTarget(result.target);
+      }
+    })
+    .catch((e) => {
+      console.error(e);
+    });
 
   // console.log(allTargets[target()] ? allTargets[target()].url : target());
 

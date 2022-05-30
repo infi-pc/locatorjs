@@ -1,16 +1,17 @@
 {
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
-        "noEmit": true,
-        "jsx": "react",
-        "lib": ["ESNext", "dom"],
-        "moduleResolution": "node",
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "noUncheckedIndexedAccess": true,
-        "strictNullChecks": true,
-        "noImplicitAny": true,
-        "esModuleInterop": true
-    }
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "noEmit": true,
+    "jsx": "react",
+    "lib": ["ESNext", "dom"],
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
 }

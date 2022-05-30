@@ -1,14 +1,12 @@
-// const code = require('!raw-loader!./generated/client.bundle.js');
+import browser from '../../browser';
 
-const target = localStorage.getItem('target');
-
-chrome.storage.sync.get(['target'], function (result) {
+browser.storage.local.get(['target'], function (result) {
   if (typeof result?.target === 'string') {
     document.documentElement.dataset.locatorTarget = result.target;
   }
 });
 
-chrome.storage.onChanged.addListener(function (changes, namespace) {
+browser.storage.onChanged.addListener(function (changes, namespace) {
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
     if (key === 'target') {
       document.documentElement.dataset.locatorTarget = newValue;
@@ -16,15 +14,13 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
   }
 });
 
-// TODO get data from
-
 function injectScript() {
   const script = document.createElement('script');
   // script.textContent = code.default;
-  script.src = 'chrome-extension://' + chrome.runtime.id + '/hook.bundle.js';
+  script.src = browser.runtime.getURL('/hook.bundle.js');
 
   document.documentElement.dataset.locatorClientUrl =
-    'chrome-extension://' + chrome.runtime.id + '/client.bundle.js';
+    browser.runtime.getURL('/client.bundle.js');
 
   // This script runs before the <head> element is created,
   // so we add the script to <html> instead.
@@ -50,7 +46,7 @@ switch (document.contentType) {
   }
 }
 
-chrome.runtime.onMessage.addListener((msg, sender, response) => {
+browser.runtime.onMessage.addListener((msg, sender, response) => {
   if (msg.from === 'popup' && msg.subject === 'statusMessage') {
     response(
       document.head.dataset.locatorMessage || 'Could not load Hook script.'

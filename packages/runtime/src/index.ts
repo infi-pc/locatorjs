@@ -4,10 +4,12 @@ import type {
   ReactDevtoolsHook,
   Renderer,
   Target,
-} from "@locator/shared/dist";
-import { allTargets as allTargetsOriginal } from "@locator/shared/dist";
+} from "@locator/shared";
+import { allTargets as allTargetsOriginal } from "@locator/shared";
 
 let allTargets = { ...allTargetsOriginal };
+
+const HREF_TARGET = "_self";
 
 // console.log("RUNTIME HERE");
 declare global {
@@ -251,8 +253,9 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
     labelEl.className = "locatorjs-label";
     labelEl.href = link;
     labelEl.innerText = label;
+    labelEl.target = HREF_TARGET;
     labelEl.onclick = (e) => {
-      window.open(link);
+      window.open(link, HREF_TARGET);
     };
 
     labelWrapper.appendChild(labelEl);
@@ -457,7 +460,7 @@ function clickListener(e: MouseEvent) {
     if (firstLabel) {
       e.preventDefault();
       e.stopPropagation();
-      window.open(firstLabel.link);
+      window.open(firstLabel.link, HREF_TARGET);
     }
   }
 }

@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite --port=3343",
-    "build": "tsc && vite build",
+    "//": "build is not needed now, just development:",
+    "// build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
