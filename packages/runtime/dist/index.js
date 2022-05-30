@@ -23,6 +23,7 @@ exports.__esModule = true;
 exports.register = exports.setup = void 0;
 var dist_1 = require("@locator/shared/dist");
 var allTargets = __assign({}, dist_1.allTargets);
+var HREF_TARGET = "_self";
 var dataByFilename = {};
 var baseColor = "#e90139";
 var hoverColor = "#C70139";
@@ -193,8 +194,9 @@ function rerenderLayer(found, isAltKey) {
         labelEl.className = "locatorjs-label";
         labelEl.href = link;
         labelEl.innerText = label;
+        labelEl.target = HREF_TARGET;
         labelEl.onclick = function (e) {
-            window.open(link);
+            window.open(link, HREF_TARGET);
         };
         labelWrapper.appendChild(labelEl);
     });
@@ -370,7 +372,7 @@ function clickListener(e) {
         if (firstLabel) {
             e.preventDefault();
             e.stopPropagation();
-            window.open(firstLabel.link);
+            window.open(firstLabel.link, HREF_TARGET);
         }
     }
 }
