@@ -11,7 +11,7 @@ export function Editor() {
     // localStorage.setItem('target', newTarget);
 
     browser.storage.local.set({ target: newTarget }, function () {
-      console.log('Value is set to ' + newTarget);
+      // console.log('Value is set to ' + newTarget);
     });
   }
 

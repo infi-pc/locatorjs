@@ -14,6 +14,20 @@ browser.storage.onChanged.addListener(function (changes, namespace) {
   }
 });
 
+browser.storage.local.get(['controls'], function (result) {
+  if (typeof result?.controls === 'string') {
+    document.documentElement.dataset.locatorMouseModifiers = result.controls;
+  }
+});
+
+browser.storage.onChanged.addListener(function (changes, namespace) {
+  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+    if (key === 'controls') {
+      document.documentElement.dataset.locatorMouseModifiers = newValue;
+    }
+  }
+});
+
 function injectScript() {
   const script = document.createElement('script');
   // script.textContent = code.default;

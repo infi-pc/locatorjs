@@ -1,9 +1,10 @@
-import type {
+import {
   Fiber,
   Source,
   ReactDevtoolsHook,
   Renderer,
   Target,
+  altTitle,
 } from "@locator/shared";
 import { allTargets as allTargetsOriginal } from "@locator/shared";
 
@@ -68,10 +69,6 @@ const fontFamily = "Helvetica, sans-serif, Arial";
 
 // @ts-ignore
 let currentElementRef: null | WeakRef<HTMLElement> = null;
-const isMac =
-  typeof navigator !== "undefined" &&
-  navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-const altTitle = isMac ? "⌥ Option" : "Alt";
 
 const isExtension =
   typeof document !== "undefined"
@@ -99,6 +96,18 @@ function getMode(): LocatorJSMode {
     return "no-renderer";
   }
   return proposedMode;
+}
+
+function getMouseModifiers() {
+  const mouseModifiers =
+    document.documentElement.dataset.locatorMouseModifiers || "alt";
+  const mouseModifiersArray = mouseModifiers.split("+");
+  const modifiers: { [key: string]: true } = {};
+  mouseModifiersArray.forEach((modifier) => {
+    modifiers[modifier] = true;
+  }, {});
+
+  return modifiers;
 }
 
 function setMode(newMode: LocatorJSMode) {
@@ -174,19 +183,19 @@ function buidLink(filePath: string, projectPath: string, loc: any) {
   return evalTemplate(linkTemplateUrl(), params);
 }
 
-function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
+function rerenderLayer(found: HTMLElement, isModifierPressed: boolean) {
   const el = document.getElementById("locatorjs-layer");
   if (!el) {
     // in cases it's destroyed in the meantime
     return;
   }
-  if (getMode() === "hidden" && !isAltKey) {
+  if (getMode() === "hidden" && !isModifierPressed) {
     el.innerHTML = "";
     document.body.style.cursor = "";
     return;
   }
 
-  if (isAltKey) {
+  if (isModifierPressed) {
     document.body.style.cursor = "pointer";
   } else {
     document.body.style.cursor = "";
@@ -210,7 +219,7 @@ function rerenderLayer(found: HTMLElement, isAltKey: boolean) {
     borderRadius: "8px",
   });
 
-  if (isAltKey) {
+  if (isModifierPressed) {
     rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
   }
   const isReversed = bbox.y < 30;
@@ -406,7 +415,8 @@ function mouseOverListener(e: MouseEvent) {
     if (found && found instanceof HTMLElement) {
       // @ts-ignore
       currentElementRef = new WeakRef(found);
-      rerenderLayer(found, e.altKey);
+
+      rerenderLayer(found, isCombinationModifiersPressed(e));
     }
   }
 }
@@ -415,7 +425,7 @@ function keyDownListener(e: KeyboardEvent) {
   if (currentElementRef) {
     const el = currentElementRef.deref();
     if (el) {
-      rerenderLayer(el, e.altKey);
+      rerenderLayer(el, isCombinationModifiersPressed(e));
     }
   }
 }
@@ -424,13 +434,13 @@ function keyUpListener(e: KeyboardEvent) {
   if (currentElementRef) {
     const el = currentElementRef.deref();
     if (el) {
-      rerenderLayer(el, e.altKey);
+      rerenderLayer(el, isCombinationModifiersPressed(e));
     }
   }
 }
 
 function globalKeyUpListener(e: KeyboardEvent) {
-  if (e.code === "KeyD" && e.altKey) {
+  if (e.code === "KeyD" && isCombinationModifiersPressed(e)) {
     if (getMode() === "hidden") {
       destroy();
       if (isExtension) {
@@ -449,10 +459,21 @@ function globalKeyUpListener(e: KeyboardEvent) {
   }
 }
 
+function isCombinationModifiersPressed(e: MouseEvent | KeyboardEvent) {
+  const modifiers = getMouseModifiers();
+  return (
+    e.altKey == !!modifiers.alt &&
+    e.ctrlKey == !!modifiers.ctrl &&
+    e.metaKey == !!modifiers.meta &&
+    e.shiftKey == !!modifiers.shift
+  );
+}
+
 function clickListener(e: MouseEvent) {
-  if (!e.altKey) {
+  if (!isCombinationModifiersPressed(e)) {
     return;
   }
+
   const target = e.target;
   if (target && target instanceof HTMLElement) {
     const labels = getLabels(target);

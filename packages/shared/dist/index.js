@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 exports.__esModule = true;
-exports.allTargets = void 0;
+exports.getModifiersString = exports.getModifiersMap = exports.modifiersTitles = exports.metaTitle = exports.ctrlTitle = exports.shiftTitle = exports.altTitle = exports.isMac = exports.allTargets = void 0;
 __exportStar(require("./types"), exports);
 exports.allTargets = {
     vscode: {
@@ -30,3 +30,32 @@ exports.allTargets = {
         label: "Atom"
     }
 };
+exports.isMac = 
+// @ts-ignore
+typeof navigator !== "undefined" &&
+    // @ts-ignore
+    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+exports.altTitle = exports.isMac ? "⌥ Option" : "Alt";
+exports.shiftTitle = exports.isMac ? "⇧ Shift" : "Shift";
+exports.ctrlTitle = exports.isMac ? "⌃ Ctrl" : "Ctrl";
+exports.metaTitle = exports.isMac ? "⌘ Command" : "Windows";
+exports.modifiersTitles = {
+    alt: exports.altTitle,
+    ctrl: exports.ctrlTitle,
+    meta: exports.metaTitle,
+    shift: exports.shiftTitle
+};
+function getModifiersMap(modifiersString) {
+    var mouseModifiersArray = modifiersString.split("+").filter(Boolean);
+    var modifiersMap = {};
+    mouseModifiersArray.forEach(function (modifier) {
+        modifiersMap[modifier] = true;
+    }, {});
+    return modifiersMap;
+}
+exports.getModifiersMap = getModifiersMap;
+function getModifiersString(modifiersMap) {
+    var modifiersArray = Object.keys(modifiersMap);
+    return modifiersArray.join("+");
+}
+exports.getModifiersString = getModifiersString;

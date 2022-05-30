@@ -2,6 +2,8 @@ import { Editor } from './Editor';
 import { Button } from '@hope-ui/solid';
 import { HiSolidCog } from 'solid-icons/hi';
 import { altTitle } from './Popup';
+import { controlsMap } from './controls';
+import { modifiersTitles } from '@locator/shared';
 
 type Props = {
   setPage: (page: 'home' | 'edit-controls') => void;
@@ -18,7 +20,7 @@ export function Home({ setPage }: Props) {
 
           <div class="locatorjs-line">
             <b>
-              <span class="locatorjs-key">{altTitle}</span> +{' '}
+              <Modifiers /> +{' '}
               <span class="locatorjs-key">
                 <svg
                   viewBox="0 0 24 24"
@@ -40,8 +42,7 @@ export function Home({ setPage }: Props) {
           </div>
           <div class="locatorjs-line">
             <b>
-              <span class="locatorjs-key">{altTitle}</span> +{' '}
-              <span class="locatorjs-key">D</span>
+              <Modifiers /> + <span class="locatorjs-key">D</span>
             </b>{' '}
             toggle select mode
           </div>
@@ -49,7 +50,7 @@ export function Home({ setPage }: Props) {
             remember to <b>focus your app</b> (click on any surface)
           </p>
         </div>
-        <div class="mt-1">
+        <div class="absolute right-4">
           <Button
             colorScheme="neutral"
             variant="subtle"
@@ -64,6 +65,23 @@ export function Home({ setPage }: Props) {
         </div>
       </div>
       <Editor />
+    </>
+  );
+}
+
+function Modifiers() {
+  return (
+    <>
+      {Object.keys(controlsMap()).map((key, i) => {
+        return (
+          <>
+            {i === 0 ? '' : ' + '}
+            <span class="locatorjs-key">
+              {modifiersTitles[key as keyof typeof modifiersTitles]}
+            </span>
+          </>
+        );
+      })}
     </>
   );
 }
