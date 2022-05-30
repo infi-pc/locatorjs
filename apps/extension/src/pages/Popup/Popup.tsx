@@ -1,6 +1,5 @@
 import './Popup.css';
 import { createSignal } from 'solid-js';
-import { Editor } from './Editor';
 import browser from '../../browser';
 import {
   Alert,
@@ -8,19 +7,20 @@ import {
   AlertIcon,
   AlertTitle,
   Box,
-  Button,
 } from '@hope-ui/solid';
 import { css } from '@hope-ui/solid';
 import { hope } from '@hope-ui/solid';
-import { HiSolidCog } from 'solid-icons/hi';
+import { Home } from './Home';
+import { EditControls } from './EditControls';
 
 const isMac =
   typeof navigator !== 'undefined' &&
   navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-const altTitle = isMac ? '⌥ Option' : 'Alt';
+export const altTitle = isMac ? '⌥ Option' : 'Alt';
 
 const Popup = () => {
   const [message, setMessage] = createSignal('');
+  const [page, setPage] = createSignal<'home' | 'edit-controls'>('home');
 
   browser.tabs.query(
     {
@@ -74,55 +74,13 @@ const Popup = () => {
               </hope.a>
             </Box>
           </Alert>
+        ) : page() === 'home' ? (
+          <Home setPage={setPage} />
+        ) : page() === 'edit-controls' ? (
+          <EditControls setPage={setPage} />
         ) : (
-          <div class="flex justify-between">
-            <div>
-              <label class="text-lg font-medium text-gray-900 mb-4">
-                Controls:{' '}
-              </label>
-
-              <div class="locatorjs-line">
-                <b>
-                  <span class="locatorjs-key">{altTitle}</span> +{' '}
-                  <span class="locatorjs-key">
-                    <svg
-                      viewBox="0 0 24 24"
-                      style={{
-                        width: '14px',
-                        height: '14px',
-                        display: 'inline-block',
-                      }}
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M11,1.07C7.05,1.56 4,4.92 4,9H11M4,15A8,8 0 0,0 12,23A8,8 0 0,0 20,15V11H4M13,1.07V9H20C20,4.92 16.94,1.56 13,1.07Z"
-                      />
-                    </svg>{' '}
-                    click
-                  </span>
-                </b>{' '}
-                go to editor
-              </div>
-              <div class="locatorjs-line">
-                <b>
-                  <span class="locatorjs-key">{altTitle}</span> +{' '}
-                  <span class="locatorjs-key">D</span>
-                </b>{' '}
-                toggle select mode
-              </div>
-              <p class="text-xs leading-5 text-gray-800">
-                remember to <b>focus your app</b> (click on any surface)
-              </p>
-            </div>
-            <div class="mt-1">
-              <Button color="neutral" variant="subtle" size="xs" class="gap-1">
-                <HiSolidCog /> edit controls
-              </Button>
-            </div>
-          </div>
+          <></>
         )}
-
-        <Editor />
       </div>
       {/* <p>
           Edit <code>src/pages/Popup/Popup.jsx</code> and save cool reload.
