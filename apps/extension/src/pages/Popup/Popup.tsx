@@ -1,6 +1,7 @@
 import './Popup.css';
 import { createSignal } from 'solid-js';
 import { Editor } from './Editor';
+import browser from '../../browser';
 
 const isMac =
   typeof navigator !== 'undefined' &&

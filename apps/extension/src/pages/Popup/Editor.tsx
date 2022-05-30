@@ -1,5 +1,6 @@
 import { allTargets } from '@locator/shared';
 import { createEffect, createSignal } from 'solid-js';
+import browser from '../../browser';
 
 export function Editor() {
   const [target, setTarget] = createSignal<string>('vscode');

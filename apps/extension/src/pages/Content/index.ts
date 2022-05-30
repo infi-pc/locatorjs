@@ -1,4 +1,4 @@
-// const code = require('!raw-loader!./generated/client.bundle.js');
+import browser from '../../browser';
 
 browser.storage.local.get(['target'], function (result) {
   if (typeof result?.target === 'string') {
@@ -14,15 +14,13 @@ browser.storage.onChanged.addListener(function (changes, namespace) {
   }
 });
 
-// TODO get data from
-
 function injectScript() {
   const script = document.createElement('script');
   // script.textContent = code.default;
-  script.src = browser.extension.getURL('/hook.bundle.js');
+  script.src = browser.runtime.getURL('/hook.bundle.js');
 
   document.documentElement.dataset.locatorClientUrl =
-    browser.extension.getURL('/client.bundle.js');
+    browser.runtime.getURL('/client.bundle.js');
 
   // This script runs before the <head> element is created,
   // so we add the script to <html> instead.
