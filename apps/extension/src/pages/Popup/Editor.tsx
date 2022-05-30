@@ -1,14 +1,14 @@
-import { Input, Radio } from '@hope-ui/solid';
+import { Button, Input, Radio } from '@hope-ui/solid';
 import { allTargets } from '@locator/shared';
-import { createEffect, createSignal } from 'solid-js';
+import { createSignal } from 'solid-js';
 import browser from '../../browser';
+import { Anchor } from '@hope-ui/solid';
 
 export function Editor() {
-  const [target, setTarget] = createSignal<string>('vscode');
+  const [target, setTargetState] = createSignal<string>('vscode');
 
   function changeTarget(newTarget: string) {
-    setTarget(newTarget);
-    // localStorage.setItem('target', newTarget);
+    setTargetState(newTarget);
 
     browser.storage.local.set({ target: newTarget }, function () {
       // console.log('Value is set to ' + newTarget);
@@ -20,18 +20,12 @@ export function Editor() {
     .get(['target'])
     .then((result) => {
       if (typeof result?.target === 'string') {
-        setTarget(result.target);
+        setTargetState(result.target);
       }
     })
     .catch((e) => {
       console.error(e);
     });
-
-  // console.log(allTargets[target()] ? allTargets[target()].url : target());
-
-  // createEffect(() => {
-  //   console.log(allTargets[target()] ? allTargets[target()].url : target());
-  // });
 
   let input: HTMLInputElement | undefined;
 
@@ -43,14 +37,32 @@ export function Editor() {
         <legend class="sr-only">Notification method</legend>
         <div class="flex flex-col">
           {Object.entries(allTargets).map(([key, { label, url }]) => (
-            <Radio
-              checked={key === target()}
-              onChange={() => {
-                changeTarget(key);
-              }}
-            >
-              {label}
-            </Radio>
+            <div class="flex justify-between">
+              <Radio
+                checked={key === target()}
+                onChange={() => {
+                  changeTarget(key);
+                }}
+              >
+                {label}
+              </Radio>
+              {key === 'vscode' && target() === 'vscode' && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    changeTarget(
+                      allTargets['vscode'].url.replace(
+                        'vscode://',
+                        'vscode-insiders://'
+                      )
+                    );
+                  }}
+                >
+                  (switch to VSCode insiders)
+                </Button>
+              )}
+            </div>
           ))}
           <Radio
             checked={allTargets[target()] === undefined}

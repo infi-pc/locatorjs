@@ -1,5 +1,5 @@
 import { Editor } from './Editor';
-import { Button } from '@hope-ui/solid';
+import { Button, Kbd } from '@hope-ui/solid';
 import { HiSolidCog } from 'solid-icons/hi';
 import { altTitle } from './Popup';
 import { controlsMap } from './controls';
@@ -21,12 +21,12 @@ export function Home({ setPage }: Props) {
           <div class="locatorjs-line">
             <b>
               <Modifiers /> +{' '}
-              <span class="locatorjs-key">
+              <Kbd>
                 <svg
                   viewBox="0 0 24 24"
                   style={{
-                    width: '14px',
-                    height: '14px',
+                    width: '10px',
+                    height: '10px',
                     display: 'inline-block',
                   }}
                 >
@@ -36,13 +36,13 @@ export function Home({ setPage }: Props) {
                   />
                 </svg>{' '}
                 click
-              </span>
+              </Kbd>
             </b>{' '}
             go to editor
           </div>
           <div class="locatorjs-line">
             <b>
-              <Modifiers /> + <span class="locatorjs-key">D</span>
+              <Modifiers /> + <Kbd>D</Kbd>
             </b>{' '}
             toggle select mode
           </div>
@@ -76,9 +76,7 @@ function Modifiers() {
         return (
           <>
             {i === 0 ? '' : ' + '}
-            <span class="locatorjs-key">
-              {modifiersTitles[key as keyof typeof modifiersTitles]}
-            </span>
+            <Kbd>{modifiersTitles[key as keyof typeof modifiersTitles]}</Kbd>
           </>
         );
       })}

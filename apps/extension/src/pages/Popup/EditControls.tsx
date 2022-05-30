@@ -1,16 +1,6 @@
-import { IconButton, Switch } from '@hope-ui/solid';
-import {
-  altTitle,
-  ctrlTitle,
-  getModifiersMap,
-  getModifiersString,
-  metaTitle,
-  modifiersTitles,
-  shiftTitle,
-} from '@locator/shared';
+import { CloseButton, IconButton, Switch } from '@hope-ui/solid';
+import { modifiersTitles } from '@locator/shared';
 import { HiSolidX } from 'solid-icons/hi';
-import { createSignal, JSXElement } from 'solid-js';
-import browser from '../../browser';
 import { changeControls, controlsMap } from './controls';
 
 type Props = {
@@ -41,10 +31,7 @@ export function EditControls({ setPage }: Props) {
           })}
         </div>
       </div>
-      <IconButton
-        variant="ghost"
-        aria-label="close"
-        icon={<HiSolidX />}
+      <CloseButton
         onClick={() => {
           setPage('home');
         }}
