@@ -21,8 +21,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 exports.__esModule = true;
 exports.register = exports.setup = void 0;
-var dist_1 = require("@locator/shared/dist");
-var allTargets = __assign({}, dist_1.allTargets);
+var shared_1 = require("@locator/shared");
+var allTargets = __assign({}, shared_1.allTargets);
 var HREF_TARGET = "_self";
 var dataByFilename = {};
 var baseColor = "#e90139";

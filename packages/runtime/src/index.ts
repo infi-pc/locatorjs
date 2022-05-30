@@ -4,8 +4,8 @@ import type {
   ReactDevtoolsHook,
   Renderer,
   Target,
-} from "@locator/shared/dist";
-import { allTargets as allTargetsOriginal } from "@locator/shared/dist";
+} from "@locator/shared";
+import { allTargets as allTargetsOriginal } from "@locator/shared";
 
 let allTargets = { ...allTargetsOriginal };
 
