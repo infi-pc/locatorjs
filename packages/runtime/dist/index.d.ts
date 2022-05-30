@@ -1,4 +1,4 @@
-import type { ReactDevtoolsHook, Target } from "@locator/shared";
+import type { ReactDevtoolsHook, Target } from "@locator/shared/dist";
 declare global {
     interface Window {
         __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
