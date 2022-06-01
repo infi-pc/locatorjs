@@ -2,7 +2,7 @@ import { getModifiersMap, getModifiersString } from '@locator/shared';
 import { createSignal } from 'solid-js';
 import browser from '../../browser';
 
-const [controls, setControls] = createSignal('');
+const [controls, setControls] = createSignal('alt');
 
 export const controlsMap = () => getModifiersMap(controls());
 
