@@ -14,11 +14,19 @@ If you don't have [babel-plugin-transform-react-jsx-source](https://babeljs.io/d
 
 # Troubleshooting
 
-If LocatorJS is not working, please check the following:
+## Broken source info
+
+It doesn't show any "bouding boxes" when holding alt/option and moving mouse on the page. (plus you might see error in extension's Popup)
 
 - **Make sure you are running your project in development mode.**
 - If you have **custom webpack config or anything using Babel** make sure you have [babel-preset-react](https://babeljs.io/docs/en/babel-preset-react) preset or [babel-plugin-transform-react-jsx-source](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source) plugin.
 - You may check `process.env.NODE_ENV` if it is `development`
+
+## Broken links
+
+When I click on a component's bounding box, it doesn't go to editor
+
+- It is possible that your editor doesn't have registered URL handler. Check browser console for errors. If you get something like `Failed to launch 'vscode://...24:11' because the scheme does not have a registered handler.`, try reinstalling your editor.
 
 # Run extension locally
 
