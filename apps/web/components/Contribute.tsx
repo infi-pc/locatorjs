@@ -14,14 +14,14 @@ export default function Contribute() {
           </p>
           <div className="flex items-center justify-center gap-4 my-8">
             <a
-              href="https://github.com/infi-pc/locatorjs/blob/master/contributig.md"
-              className="px-6 py-2 text-lg border rounded  text-primary-500 border-primary-500 focus:outline-none hover:text-primary-400"
+              href="https://github.com/infi-pc/locatorjs"
+              className="px-6 py-2 text-lg border rounded text-primary-500 border-primary-500 focus:outline-none hover:text-primary-400"
             >
-              Contribution readme
+              GitHub repo
             </a>
             <a
               href="https://github.com/infi-pc/locatorjs/issues"
-              className="px-6 py-2 text-lg border rounded  text-primary-500 border-primary-500 focus:outline-none hover:text-primary-400"
+              className="px-6 py-2 text-lg border rounded text-primary-500 border-primary-500 focus:outline-none hover:text-primary-400"
             >
               GitHub Issues
             </a>
