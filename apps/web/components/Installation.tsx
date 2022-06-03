@@ -23,7 +23,7 @@ function Installation() {
                 Good for devs
               </h2>
               <h1 className="flex items-center pb-4 mb-4 text-2xl leading-none text-gray-900 border-b border-gray-200 dark:text-white dark:border-gray-800">
-                Chrome Extension
+                Browser Extension
               </h1>
               <p className="flex items-center mb-2 text-gray-600 dark:text-gray-400">
                 <span className="mr-2 text-gray-400 dark:text-gray-800">

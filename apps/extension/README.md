@@ -3,14 +3,21 @@
 # Install
 
 [Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi)
+[Install extension from Firefox Add-ons](https://addons.mozilla.org/cs/firefox/addon/locatorjs/)
+
+# Requirements
+
+**Extension should work automatically dev mode in all modern stacks** (NextJS, Create React App, Vite, etc).
+They automatically include [babel-preset-react](https://babeljs.io/docs/en/babel-preset-react) which includes [babel-plugin-transform-react-jsx-source](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source). Non-babel stacks use similar alternatives.
+If you don't have [babel-plugin-transform-react-jsx-source](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source), you should set it up manually.
 
 # Troubleshooting
 
 If LocatorJS is not working, please check the following:
 
-- If you are using **framework/boilerplate like Next.js, Vite or Create React App**, make sure you are running it in development mode. (like `npm run dev`)
+- **Make sure you are running your project in development mode.**
 - If you have **custom webpack config or anything using Babel** make sure you have [babel-preset-react](https://babeljs.io/docs/en/babel-preset-react) preset or [babel-plugin-transform-react-jsx-source](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source) plugin.
-- If you are using **SWC** make sure you are running it in development mode.
+- You may check `process.env.NODE_ENV` if it is `development`
 
 # Run extension locally
 

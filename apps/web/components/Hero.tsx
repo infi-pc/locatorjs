@@ -2,6 +2,7 @@ import Image from "next/image";
 import React from "react";
 import demo from "../public/demo3.gif";
 import background from "../public/bg.svg";
+import { extensionLink, useBrowser } from "./shared";
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -9,6 +10,7 @@ const isMac =
 const altTitle = isMac ? "⌥ Option" : "Alt";
 
 function Hero() {
+  const browser = useBrowser();
   return (
     <section className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 ">
       <div className="container relative flex flex-col items-center px-5 py-24 mx-auto md:flex-row">
@@ -20,8 +22,8 @@ function Hero() {
             Find any component in code
           </h1>
           <p className="leading-relaxed">
-            A plugin for React dev stacks that allows you to click through from
-            your app to its code.
+            A dev tool that lets you click on UI Component in the browser to
+            open its code in your IDE.
           </p>
           <div className="mt-4 text-xl font-bold">Try it here and now:</div>
           <div className="flex flex-col justify-center gap-3 mt-4 font-bold">
@@ -33,16 +35,34 @@ function Hero() {
               and move with cursor around this page.
             </div>
           </div>
-          <div className="mt-2">
-            or get{" "}
-            <a
-              className="underline text-sky-500"
-              href="https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi"
-            >
-              Chrome Extension
-            </a>{" "}
-            right away.
-          </div>
+          {browser && (
+            <div className="mt-2">
+              or get{" "}
+              {browser === "firefox" ? (
+                <a
+                  className="underline text-sky-500"
+                  href={extensionLink.firefox}
+                >
+                  Firefox Extension
+                </a>
+              ) : browser === "chrome" ? (
+                <a
+                  className="underline text-sky-500"
+                  href={extensionLink.chrome}
+                >
+                  Chrome Extension
+                </a>
+              ) : (
+                <a
+                  className="underline text-sky-500"
+                  href={extensionLink.chrome}
+                >
+                  Extension (via Chrome Web Store)
+                </a>
+              )}{" "}
+              right away.
+            </div>
+          )}
         </div>
         <div className="z-10 flex object-cover object-center w-5/6 overflow-hidden rounded-lg shadow-2xl md:w-1/2">
           <Image className="w-full" src={demo}></Image>

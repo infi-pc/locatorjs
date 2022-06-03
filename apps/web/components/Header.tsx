@@ -23,12 +23,12 @@ function Header() {
           <a href="" className="mr-5 hover:text-gray-900 dark:hover:text-white">
             Second Link
           </a>*/}
-          <a
+          {/* <a
             href="https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi"
             className="mr-5 hover:text-gray-900 dark:hover:text-white"
           >
             Get Chrome Extension
-          </a>
+          </a> */}
 
           {/* <a
             href="https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi"

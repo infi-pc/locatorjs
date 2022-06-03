@@ -1,8 +1,8 @@
 ![LocatorJS](./docs/logo-noborders.png)
 
-Find any component in code faster than ever.
-
 A plugin for your React dev-stack that allows you to **click trough from your "localhost" to your IDE**.
+
+> 💡 You don’t need this if you are using Chrome/Firefox extension and your project has all [standard requirements](./apps/extension/README.md#requirements)
 
 Works with Babel-based dev-stacks like
 
