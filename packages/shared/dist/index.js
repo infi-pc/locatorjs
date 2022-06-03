@@ -18,7 +18,7 @@ exports.getModifiersString = exports.getModifiersMap = exports.modifiersTitles =
 __exportStar(require("./types"), exports);
 exports.allTargets = {
     vscode: {
-        url: "vscode://file${projectPath}${filePath}:${line}:${column}",
+        url: "vscode://file/${projectPath}${filePath}:${line}:${column}",
         label: "VSCode"
     },
     webstorm: {
