@@ -87,7 +87,9 @@ export function Editor() {
           type="text"
           name="link"
           id="link"
-          disabled={!!allTargets[target()]}
+          class={
+            allTargets[target()] ? 'text-gray-400 focus:text-gray-800' : ''
+          }
         />
 
         {!allTargets[target()] ? (
