@@ -2,11 +2,7 @@
 
 # LocatorJS
 
-Dev tool that lets you to click on UI Component in browser to open its code in your IDE
-
-## Click on React component to get to code
-
-This repo contains both [Browser Extension](./apps/extension/README.md) and [Dev stack plugin (library)](./readme-library.md). They share the same code, but serve different purposes. You don't need to use them together.
+A Dev tool that lets you click on UI Component in the browser to open its code in your IDE.
 
 ![Intro](./docs/intro.gif)
 
@@ -16,11 +12,15 @@ This repo contains both [Browser Extension](./apps/extension/README.md) and [Dev
 
 [Install extension from Firefox Add-ons](https://addons.mozilla.org/cs/firefox/addon/locatorjs/)
 
-[README](./apps/extension/README.md)
+[Extension README](./apps/extension/README.md)
 
 ## Babel plugin
 
-[README](./readme-library.md)
+[Devstack plugin / library README](./readme-library.md)
+
+## Note
+
+This repo contains both [Browser Extension](./apps/extension/README.md) and [Dev stack plugin (library)](./readme-library.md). They share the same code, but serve different purposes. You don't need to use them together.
 
 ## Contributing
 

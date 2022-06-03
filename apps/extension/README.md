@@ -2,7 +2,8 @@
 
 # Install
 
-[Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi)
+[Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi) (works for Chrome, Brave, Opera and Edge)
+
 [Install extension from Firefox Add-ons](https://addons.mozilla.org/cs/firefox/addon/locatorjs/)
 
 # Requirements
