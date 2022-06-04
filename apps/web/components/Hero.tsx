@@ -18,12 +18,12 @@ function Hero() {
           <Image src={background} />
         </div>
         <div className="flex flex-col items-center mb-16 text-center lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 md:items-start md:text-left md:mb-0 ">
-          <h1 className="mb-4 text-3xl font-bold text-gray-900 title-font sm:text-5xl lg:text-7xl dark:text-white">
-            Find any component in code
+          <h1 className="mb-4 text-2xl font-bold text-gray-900 title-font sm:text-5xl lg:text-7xl dark:text-white">
+            Click on a component to go to code.
           </h1>
-          <p className="leading-relaxed">
-            A dev tool that lets you click on UI Component in the browser to
-            open its code in your IDE.
+          <p className="text-lg leading-relaxed">
+            A React dev tool that lets you click on UI Component in the browser
+            to open its code in your IDE.
           </p>
           <div className="mt-4 text-xl font-bold">Try it here and now:</div>
           <div className="flex flex-col justify-center gap-3 mt-4 font-bold">
@@ -64,7 +64,7 @@ function Hero() {
             </div>
           )}
         </div>
-        <div className="z-10 flex object-cover object-center w-5/6 overflow-hidden rounded-lg shadow-2xl md:w-1/2">
+        <div className="z-10 flex object-cover object-center w-full overflow-hidden rounded-lg shadow-2xl md:w-1/2 bg-slate-100">
           <Image className="w-full" src={demo}></Image>
         </div>
       </div>
