@@ -11,7 +11,7 @@ function Installation() {
           <Headline size="3xl" className="mb-2 sm:text-4xl">
             Two projects, one core.
           </Headline>
-          <p>LocatorJS comes in two variants. So what variant to choose?</p>
+          <p>LocatorJS comes in two variants. So which variant to choose?</p>
         </div>
         <div className="flex flex-wrap justify-center -m-4">
           <div className="w-full p-4 xl:w-1/4 md:w-1/2">
@@ -20,7 +20,7 @@ function Installation() {
                 Good to start with
               </span>
               <h2 className="mb-1 text-sm font-medium tracking-widest title-font dark:text-gray-400">
-                Good for devs
+                Good for individuals
               </h2>
               <h1 className="flex items-center pb-4 mb-4 text-2xl leading-none text-gray-900 border-b border-gray-200 dark:text-white dark:border-gray-800">
                 Browser Extension
