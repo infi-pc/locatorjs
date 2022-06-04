@@ -1,6 +1,6 @@
 {
   "name": "locatorjs-extension",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "LocatorJS Chrome Extension - option-click to code (ReactJS)",
   "license": "MIT",
   "repository": {
