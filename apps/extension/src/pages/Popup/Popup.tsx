@@ -8,7 +8,6 @@ import {
   AlertTitle,
   Box,
 } from '@hope-ui/solid';
-import { css } from '@hope-ui/solid';
 import { hope } from '@hope-ui/solid';
 import { Home } from './Home';
 import { EditControls } from './EditControls';

@@ -1,6 +1,9 @@
 // @ts-ignore
+let browserObj: typeof chrome = browser;
+
+// @ts-ignore
 if (typeof browser === 'undefined') {
-  var browser = chrome;
+  browserObj = chrome;
 }
 
-export default browser;
+export default browserObj;
