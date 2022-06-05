@@ -5,7 +5,7 @@ import logo from "../public/logo-noborders3x.png";
 function Footer() {
   return (
     <footer className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 ">
-      <div className="container flex flex-col items-center px-5 py-8 mx-auto sm:flex-row rounded-t-3xl bg-slate-50">
+      <div className="container flex flex-col items-center px-5 py-8 mx-auto sm:flex-row rounded-t-3xl bg-slate-100">
         <a href="/" className="">
           <Image
             unoptimized={true}

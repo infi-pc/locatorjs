@@ -41,21 +41,21 @@ function Hero() {
                 or get{" "}
                 {browser === "firefox" ? (
                   <a
-                    className="underline text-sky-500"
+                    className="text-indigo-500 underline"
                     href={extensionLink.firefox}
                   >
                     Firefox Extension
                   </a>
                 ) : browser === "chrome" ? (
                   <a
-                    className="underline text-sky-500"
+                    className="text-indigo-500 underline"
                     href={extensionLink.chrome}
                   >
                     Chrome Extension
                   </a>
                 ) : (
                   <a
-                    className="underline text-sky-500"
+                    className="text-indigo-500 underline"
                     href={extensionLink.chrome}
                   >
                     Extension (via Chrome Web Store)

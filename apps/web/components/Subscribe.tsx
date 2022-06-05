@@ -14,7 +14,7 @@ export default function Subscribe() {
           <div className="flex items-center justify-center gap-4 my-8">
             <a
               href="https://twitter.com/locatorjs"
-              className="flex bg-[#1d9bf0] border-0 text-white py-3 px-8 focus:outline-none hover:bg-[#128de0] rounded-full text-lg items-center gap-2"
+              className="flex bg-[#1d9bf0] border-0 text-white py-3 px-8 focus:outline-none hover:bg-[#128de0] rounded-full text-lg items-center gap-2  shadow-xl"
             >
               <svg
                 style={{

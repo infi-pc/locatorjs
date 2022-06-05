@@ -60,31 +60,31 @@ function GetExtension() {
             <div className="flex justify-center gap-2">
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg border-0 rounded text-sky-500 focus:outline-none hover:bg-gray-100"
+                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
               >
                 Chrome
               </a>
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg border-0 rounded text-sky-500 focus:outline-none hover:bg-gray-100"
+                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
               >
                 Edge
               </a>
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg border-0 rounded text-sky-500 focus:outline-none hover:bg-gray-100"
+                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
               >
                 Brave
               </a>
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg border-0 rounded text-sky-500 focus:outline-none hover:bg-gray-100"
+                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
               >
                 Opera
               </a>
               <a
                 href={extensionLink.firefox}
-                className="px-2 py-1 text-lg border-0 rounded text-sky-500 focus:outline-none hover:bg-gray-100"
+                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
               >
                 Firefox
               </a>
