@@ -8,7 +8,7 @@ function Installation() {
     <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col w-full mb-20 text-center">
-          <Headline size="3xl" className="mb-2 sm:text-4xl">
+          <Headline size="3xl" as="h2" className="mb-2 sm:text-4xl">
             Two projects, one core.
           </Headline>
           <p>LocatorJS comes in two variants. So which variant to choose?</p>
