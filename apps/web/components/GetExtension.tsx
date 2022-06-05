@@ -8,9 +8,15 @@ function GetExtension() {
   return (
     <section className="mt-4 text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
       <div className="container px-4 mx-auto ">
-        <div className="flex flex-col w-full p-4 py-24 text-center bg-slate-50 rounded-3xl">
-          <h3 className="mb-4 text-2xl font-medium text-gray-900 sm:text-5xl title-font dark:text-white">
-            Get Browser extension
+        <div
+          className="flex flex-col w-full p-4 py-24 text-center bg-slate-50 rounded-3xl"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(206,72,56,0.15) 0%, rgba(242,193,71,0.15) 100%);",
+          }}
+        >
+          <h3 className="mb-4 text-2xl font-medium text-gray-900 font-display sm:text-5xl title-font dark:text-white">
+            Get browser extension
           </h3>
           <p className="mx-auto text-base leading-relaxed lg:w-2/3"></p>
           {browser && (
@@ -35,14 +41,14 @@ function GetExtension() {
               ) : browser === "firefox" ? (
                 <a
                   href={extensionLink.firefox}
-                  className="px-8 py-3 text-lg text-white border-0 rounded bg-primary-500 focus:outline-none hover:bg-primary-600"
+                  className="px-8 py-3 text-lg transition-shadow bg-white border-0 shadow-lg bg-white-500 focus:outline-none hover:bg-white-600 rounded-xl hover:shadow-xl"
                 >
                   Get Firefox Extension
                 </a>
               ) : (
                 <a
                   href={extensionLink.chrome}
-                  className="px-8 py-3 text-lg text-white border-0 rounded bg-primary-500 focus:outline-none hover:bg-primary-600"
+                  className="px-8 py-3 text-lg transition-shadow bg-white border-0 shadow-lg bg-white-500 focus:outline-none hover:bg-white-600 rounded-xl hover:shadow-xl"
                 >
                   Get Extension on Chrome Web Store
                 </a>

@@ -18,7 +18,7 @@ function Hero() {
           <Image src={background} />
         </div>
         <div className="flex flex-col items-center mb-16 text-center lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 md:items-start md:text-left md:mb-0 ">
-          <h1 className="mb-4 text-4xl font-bold text-gray-900 title-font sm:text-5xl lg:text-7xl dark:text-white">
+          <h1 className="mb-4 text-4xl font-semibold text-gray-900 font-display title-font sm:text-5xl lg:text-7xl dark:text-white ">
             Click on a component to go to its code
           </h1>
           <p className="text-lg leading-relaxed">

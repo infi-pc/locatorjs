@@ -5,7 +5,7 @@ type Props = {
 } & React.HTMLAttributes<HTMLSpanElement>;
 
 export default function Headline(props: Props) {
-  const className = `font-medium text-gray-900 title-font dark:text-white text-${
+  const className = `font-medium font-display text-gray-900 title-font dark:text-white text-${
     props.size || "2xl"
   } ${props.className}`;
 

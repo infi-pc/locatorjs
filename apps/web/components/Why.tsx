@@ -6,7 +6,7 @@ export default function Why() {
     <section className="mt-4 text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col w-full text-center">
-          <h2 className="mb-4 text-2xl font-medium text-gray-900 sm:text-5xl title-font dark:text-white">
+          <h2 className="mb-4 text-2xl font-medium text-gray-900 font-display sm:text-5xl title-font dark:text-white">
             Speed up your development
           </h2>
 

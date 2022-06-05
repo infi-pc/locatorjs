@@ -6,6 +6,9 @@ module.exports = {
   darkMode: "class", // or 'media' or 'class'
   theme: {
     extend: {
+      fontFamily: {
+        display: ["'Cabin'", "sans-serif"],
+      },
       colors: {
         primary: {
           DEFAULT: "#6F0C7D",
