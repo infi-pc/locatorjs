@@ -18,6 +18,19 @@ function GetExtension() {
           <h3 className="mb-4 text-2xl font-medium text-gray-900 font-display sm:text-5xl title-font dark:text-white">
             Get browser extension
           </h3>
+          <div>
+            Works <b>out of the box</b> with most React dev stacks like Vite,
+            Next.js, or Create React App.
+            <br />
+            For custom config, get{" "}
+            <a
+              className="text-indigo-500 hover:underline hover:text-indigo-700"
+              href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#requirements"
+            >
+              more info here
+            </a>
+            .
+          </div>
           <p className="mx-auto text-base leading-relaxed lg:w-2/3"></p>
           {browser && (
             <div className="flex justify-center mt-8">
@@ -55,36 +68,37 @@ function GetExtension() {
               )}
             </div>
           )}
+
           <div className="relative mt-8">
             All supported browsers:
             <div className="block max-w-full text-lg text-center text-indigo-500">
               <a
                 href={extensionLink.chrome}
-                className="inline-block px-2 hover:text-indigo-600"
+                className="inline-block px-2 hover:underline hover:text-indigo-700"
               >
                 Chrome
               </a>
               <a
                 href={extensionLink.chrome}
-                className="inline-block px-2 hover:text-indigo-600"
+                className="inline-block px-2 hover:underline hover:text-indigo-700"
               >
                 Edge
               </a>
               <a
                 href={extensionLink.chrome}
-                className="inline-block px-2 hover:text-indigo-600"
+                className="inline-block px-2 hover:underline hover:text-indigo-700"
               >
                 Brave
               </a>
               <a
                 href={extensionLink.chrome}
-                className="inline-block px-2 hover:text-indigo-600"
+                className="inline-block px-2 hover:underline hover:text-indigo-700"
               >
                 Opera
               </a>
               <a
                 href={extensionLink.firefox}
-                className="inline-block px-2 hover:text-indigo-600"
+                className="inline-block px-2 hover:underline hover:text-indigo-700"
               >
                 Firefox
               </a>

@@ -4,6 +4,7 @@ import GetExtension from "../components/GetExtension";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import Installation from "../components/Installation";
+import ReadMore from "../components/ReadMore";
 import Subscribe from "../components/Subscribe";
 import Why from "../components/Why";
 
@@ -17,6 +18,7 @@ export default function Home() {
       <Installation></Installation>
       <Contribute></Contribute>
       <Subscribe></Subscribe>
+      <ReadMore></ReadMore>
       <Footer></Footer>
     </>
   );
