@@ -9,7 +9,7 @@ function GetExtension() {
     <section className="mt-4 text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
       <div className="container px-4 mx-auto ">
         <div
-          className="flex flex-col w-full p-4 py-24 text-center bg-slate-50 rounded-3xl"
+          className="flex flex-col w-full p-8 py-24 text-center bg-slate-50 rounded-3xl"
           style={{
             background:
               "linear-gradient(90deg, rgba(206,72,56,0.15) 0%, rgba(242,193,71,0.15) 100%);",
@@ -55,36 +55,36 @@ function GetExtension() {
               )}
             </div>
           )}
-          <div className="mt-8">
+          <div className="relative mt-8">
             All supported browsers:
-            <div className="flex justify-center gap-2">
+            <div className="block max-w-full text-lg text-center text-indigo-500">
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
+                className="inline-block px-2 hover:text-indigo-600"
               >
                 Chrome
               </a>
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
+                className="inline-block px-2 hover:text-indigo-600"
               >
                 Edge
               </a>
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
+                className="inline-block px-2 hover:text-indigo-600"
               >
                 Brave
               </a>
               <a
                 href={extensionLink.chrome}
-                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
+                className="inline-block px-2 hover:text-indigo-600"
               >
                 Opera
               </a>
               <a
                 href={extensionLink.firefox}
-                className="px-2 py-1 text-lg text-indigo-500 border-0 rounded focus:outline-none hover:text-indigo-600"
+                className="inline-block px-2 hover:text-indigo-600"
               >
                 Firefox
               </a>

@@ -12,7 +12,7 @@ export default function Contribute() {
             LocatorJS is Open source (MIT license). You can help by making a
             pull request by creating an issue or just by spreading the word.
           </p>
-          <div className="flex items-center justify-center gap-4 mt-8">
+          <div className="flex flex-col items-center justify-center gap-4 mt-8 sm:flex-row">
             <a
               href="https://github.com/infi-pc/locatorjs"
               className="px-6 py-2 text-lg text-indigo-700 bg-indigo-100 rounded-lg shadow-xl focus:outline-none hover:bg-indigo-200"

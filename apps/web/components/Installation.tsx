@@ -8,14 +8,14 @@ function Installation() {
     <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col w-full mb-20 text-center">
-          <Headline size="3xl" as="h2" className="mb-2 sm:text-5xl">
+          <Headline size="3xl" as="h2" className="mb-2 text-2xl sm:text-5xl">
             Two projects, one core.
           </Headline>
           <p>LocatorJS comes in two variants. So which variant to choose?</p>
         </div>
         <div className="flex flex-wrap justify-center -m-4">
-          <div className="w-full p-4 xl:w-1/3 md:w-1/2">
-            <div className="relative flex flex-col h-full p-8 overflow-hidden rounded-2xl bg-indigo-50">
+          <div className="w-full max-w-md p-4 xl:w-1/3 md:w-1/2">
+            <div className="relative flex flex-col h-full p-8 overflow-hidden rounded-2xl bg-indigo-50 ">
               <span className="absolute top-0 right-0 px-3 py-1 text-xs tracking-widest text-white bg-indigo-500 rounded-bl">
                 Good to start with
               </span>
@@ -47,7 +47,7 @@ function Installation() {
               </a>
             </div>
           </div>
-          <div className="w-full p-4 xl:w-1/3 md:w-1/2">
+          <div className="w-full max-w-md p-4 xl:w-1/3 md:w-1/2">
             <div className="relative flex flex-col h-full p-8 overflow-hidden rounded-2xl bg-slate-50">
               <h2 className="mb-1 text-sm font-medium tracking-widest title-font dark:text-gray-400">
                 Good for teams
