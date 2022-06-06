@@ -5634,11 +5634,6 @@ gitconfiglocal@^1.0.0:
   dependencies:
     ini "^1.3.2"
 
-github-buttons@^2.8.0:
-  version "2.21.1"
-  resolved "https://registry.yarnpkg.com/github-buttons/-/github-buttons-2.21.1.tgz#9e55eb83b70c9149a21c235db2e971c53d4d98a2"
-  integrity sha512-n9bCQ8sj+5oX1YH5NeyWGbAclRDtHEhMBzqw2ctsWpdEHOwVgfruRu0VIVy01Ah10dd/iFajMHYU71L7IBWBOw==
-
 glob-expand@0.0.2:
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/glob-expand/-/glob-expand-0.0.2.tgz#00b11cb522f808c4d0364a5617e1b9f80488e5e8"
@@ -8946,13 +8941,6 @@ react-is@^17.0.1:
   version "17.0.2"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-17.0.2.tgz#e691d4a8e9c789365655539ab372762b0efb54f0"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
-
-react-next-github-btn@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/react-next-github-btn/-/react-next-github-btn-1.2.1.tgz#5e75b344bc7dccaaffa8deab98fa9d5924256998"
-  integrity sha512-H3re/H0XKTTf/pmPmUtGtyBclkvvP7+8rs9nEPeo410ZgXePrJiOs7966tqffYsZw46u6Yim6oj/259BymNrEQ==
-  dependencies:
-    github-buttons "^2.8.0"
 
 react-refresh@^0.13.0:
   version "0.13.0"
