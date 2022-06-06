@@ -13,7 +13,7 @@ function ReadMore() {
           Read more
         </h3>
         <p className="text-center">Get more info on other sites.</p>
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center p-4 mt-4">
           <a
             href="https://dev.to/michael_vp/introducing-locatorjs-click-on-react-component-to-get-to-its-code-2oj0"
             className="transition-shadow bg-gray-100 shadow-xl xl:w-1/4 md:w-1/2 rounded-xl hover:shadow-2xl"
@@ -24,12 +24,12 @@ function ReadMore() {
               alt="content"
             />
             <div className="p-6 ">
-              <h2 className="text-lg font-medium text-gray-900 title-font">
+              <h2 className="text-lg font-medium text-gray-900 underline title-font">
                 Introducing LocatorJS: Click on React Component to get to its
                 code.
               </h2>
-              <h3 className="mb-4 text-xs font-medium text-indigo-500">
-                by Michael Musil
+              <h3 className="mb-4 text-xs font-medium text-gray-500">
+                by Michael Musil on Dev.to
               </h3>
               <p className="text-base leading-relaxed">
                 LocatorJS is a Chrome Extension that lets me click on a
