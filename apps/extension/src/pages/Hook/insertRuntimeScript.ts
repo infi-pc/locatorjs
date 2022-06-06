@@ -10,7 +10,7 @@ export function insertRuntimeScript() {
     console.warn(`[locatorjs]: ${message}`);
   }
 
-  window.setTimeout(() => {
+  document.addEventListener('DOMContentLoaded', () => {
     if (!locatorClientUrl) {
       throw new Error('Locator client url not found');
     }
@@ -39,7 +39,7 @@ export function insertRuntimeScript() {
         'React devtools hook was not found. It can be caused by collision with other extension using devtools hook.'
       );
     }
-  }, 1000);
+  });
 
   function insertScript(locatorClientUrl: string) {
     const script = document.createElement('script');
