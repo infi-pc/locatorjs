@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 export const extensionLink = {
   chrome:
     "https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi",
-  firefox: "https://addons.mozilla.org/cs/firefox/addon/locatorjs/",
+  firefox: "https://addons.mozilla.org/en/firefox/addon/locatorjs/",
 };
 
 export const useBrowser = function () {
