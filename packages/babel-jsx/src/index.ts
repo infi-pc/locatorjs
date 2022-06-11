@@ -57,6 +57,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
     }
   }
 
+  const modules: "commonjs" | "es6" = "commonjs";
   return {
     visitor: {
       Program: {
@@ -86,19 +87,28 @@ export default function transformLocatorJsComponents(babel: Babel): {
             sourceType: "script",
           });
 
-          path.node.body.push(
-            t.expressionStatement(
-              t.callExpression(
-                t.memberExpression(
-                  t.callExpression(t.identifier("require"), [
-                    t.stringLiteral(RUNTIME_PATH),
-                  ]),
-                  t.identifier("register")
-                ),
-                [dataAst]
+          if (modules === "commonjs") {
+            path.node.body.push(
+              t.expressionStatement(
+                t.callExpression(
+                  t.memberExpression(
+                    t.callExpression(t.identifier("require"), [
+                      t.stringLiteral(RUNTIME_PATH),
+                    ]),
+                    t.identifier("register")
+                  ),
+                  [dataAst]
+                )
               )
-            )
-          );
+            );
+          } else if (modules === "es6") {
+            path.node.body.push(
+              t.importDeclaration(
+                [t.importDefaultSpecifier(t.identifier("register"))],
+                t.stringLiteral(RUNTIME_PATH)
+              )
+            );
+          }
         },
       },
       // TODO add also for arrow function
