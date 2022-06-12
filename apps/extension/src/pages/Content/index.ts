@@ -60,10 +60,12 @@ switch (document.contentType) {
   }
 }
 
+function getHookStatusMessage() {
+  return document.head.dataset.locatorHookStatusMessage || 'loading';
+}
+
 browser.runtime.onMessage.addListener((msg, sender, response) => {
-  if (msg.from === 'popup' && msg.subject === 'statusMessage') {
-    response(
-      document.head.dataset.locatorMessage || 'Could not load Hook script.'
-    );
+  if (msg.from === 'popup' && msg.subject === 'requestStatusMessage') {
+    response(getHookStatusMessage());
   }
 });

@@ -13,7 +13,7 @@ export function installReactDevtoolsHook() {
 
   if (window.hasOwnProperty("__REACT_DEVTOOLS_GLOBAL_HOOK__")) {
     if (existingHook[MARKER] === MARKER) {
-      console.log("already installed!!!!!");
+      // console.log("already installed!!!!!");
       return existingHook;
     }
   }

@@ -7,10 +7,12 @@ import {
   AlertIcon,
   AlertTitle,
   Box,
+  Spinner,
 } from '@hope-ui/solid';
 import { hope } from '@hope-ui/solid';
 import { Home } from './Home';
 import { EditControls } from './EditControls';
+import { requestStatusMessage } from './requestStatusMessage';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -18,36 +20,54 @@ const isMac =
 export const altTitle = isMac ? '⌥ Option' : 'Alt';
 
 const Popup = () => {
-  const [message, setMessage] = createSignal('');
+  const [message, setMessage] = createSignal<'loading' | 'ok' | string>(
+    'loading'
+  );
   const [page, setPage] = createSignal<'home' | 'edit-controls'>('home');
 
-  browser.tabs.query(
-    {
-      active: true,
-      currentWindow: true,
-    },
-    (tabs) => {
-      const currentTab = tabs[0];
-      if (currentTab.id) {
-        browser.tabs.sendMessage(
-          currentTab.id,
-          { from: 'popup', subject: 'statusMessage' },
-          // ...also specifying a callback to be called
-          //    from the receiving end (content script).
-          function onStatusMessage(status) {
-            if (status != 'ok') {
-              setMessage(status);
-            }
-          }
-        );
+  function requestStatus() {
+    browser.tabs.query(
+      {
+        active: true,
+        currentWindow: true,
+      },
+      (tabs) => {
+        const currentTab = tabs[0];
+        if (currentTab.id) {
+          requestStatusMessage(currentTab.id, setMessage);
+        }
       }
-    }
-  );
+    );
+  }
+
+  requestStatus();
+
+  setInterval(() => {
+    // Need to get the status periodically, needed when pages are loading slow + status can change after refresh.
+    // I didn't find a reliable way to notify Popup from content without trowing an error.
+    requestStatus();
+  }, 1000);
 
   return (
     <div class="App">
       <div>
-        {message() ? (
+        {message() === 'ok' ? (
+          page() === 'home' ? (
+            <Home setPage={setPage} />
+          ) : page() === 'edit-controls' ? (
+            <EditControls setPage={setPage} />
+          ) : (
+            <>No page</>
+          )
+        ) : message() === 'loading' ? (
+          <div class="flex flex-col h-80 justify-center items-center gap-2">
+            <Spinner></Spinner>
+            <div class="text-lg">Loading...</div>
+            <div>
+              This may take couple of seconds, depending how large is your page.
+            </div>
+          </div>
+        ) : (
           <Alert status="danger" alignItems="flex-start">
             <AlertIcon mr="$2_5" mt="$2" />
 
@@ -73,12 +93,6 @@ const Popup = () => {
               </hope.a>
             </Box>
           </Alert>
-        ) : page() === 'home' ? (
-          <Home setPage={setPage} />
-        ) : page() === 'edit-controls' ? (
-          <EditControls setPage={setPage} />
-        ) : (
-          <></>
         )}
       </div>
       {/* <p>

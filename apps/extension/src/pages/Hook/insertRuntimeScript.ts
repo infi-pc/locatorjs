@@ -5,8 +5,8 @@ type Renderer = any;
 export function insertRuntimeScript() {
   const locatorClientUrl = document.documentElement.dataset.locatorClientUrl;
 
-  function sendMessage(message: string) {
-    document.head.dataset.locatorMessage = message;
+  function sendStatusMessage(message: string) {
+    document.head.dataset.locatorHookStatusMessage = message;
     console.warn(`[locatorjs]: ${message}`);
   }
 
@@ -26,16 +26,16 @@ export function insertRuntimeScript() {
       );
       if (renderers.length) {
         insertScript(locatorClientUrl);
-        sendMessage('ok');
+        sendStatusMessage('ok');
       } else {
         if (problematicRenderers.length) {
-          sendMessage(problematicRenderers.join('\n'));
+          sendStatusMessage(problematicRenderers.join('\n'));
         } else {
-          sendMessage('No valid renderers found.');
+          sendStatusMessage('No valid renderers found.');
         }
       }
     } else {
-      sendMessage(
+      sendStatusMessage(
         'React devtools hook was not found. It can be caused by collision with other extension using devtools hook.'
       );
     }

@@ -17,7 +17,6 @@ export const useBrowser = function () {
         ? Bowser.parse(window.navigator.userAgent).browser.name
         : null;
 
-    console.log("name", name);
     if (name === "Chrome") {
       setBrowser("chrome");
     }
