@@ -19,7 +19,7 @@ export function Home({ setPage }: Props) {
             Controls:{' '}
           </label>
 
-          <div class="locatorjs-line">
+          <div class="py-1 text-sm">
             <b>
               <Modifiers /> +{' '}
               <Kbd>
@@ -41,7 +41,7 @@ export function Home({ setPage }: Props) {
             </b>{' '}
             go to editor
           </div>
-          <div class="locatorjs-line">
+          <div class="py-1 text-sm">
             <b>
               <Modifiers /> + <Kbd>D</Kbd>
             </b>{' '}
@@ -61,7 +61,7 @@ export function Home({ setPage }: Props) {
               setPage('edit-controls');
             }}
           >
-            <HiSolidCog /> edit controls
+            <HiSolidCog /> settings
           </Button>
         </div>
       </div>

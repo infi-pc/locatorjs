@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function EditControls({ setPage }: Props) {
-  const { clicks, controls } = useSyncedState();
+  const { clicks, controls, allowTracking } = useSyncedState();
   return (
     <div class="flex justify-between">
       <div>
@@ -36,7 +36,7 @@ export function EditControls({ setPage }: Props) {
         <label class="text-lg font-medium text-gray-900 mb-4">
           Total clicks:{' '}
         </label>
-        <p>
+        <p class=" mb-4">
           {clicks() ? (
             <>
               You have already used Locator <b>{clicks()}</b> times.
@@ -45,6 +45,20 @@ export function EditControls({ setPage }: Props) {
             'No clicks yet.'
           )}
         </p>
+
+        <label class="text-lg font-medium text-gray-900 mb-4">Tracking: </label>
+        <div class=" mb-4">
+          <Switch
+            size={'sm'}
+            labelPlacement="end"
+            onChange={(e: any) => {
+              allowTracking.set(e.currentTarget.checked);
+            }}
+            checked={!!allowTracking.get()}
+          >
+            Allow anonymous tracking
+          </Switch>
+        </div>
       </div>
       <CloseButton
         onClick={() => {

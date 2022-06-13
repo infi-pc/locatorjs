@@ -75,12 +75,11 @@ setInterval(() => {
   const newClicks = Number(document.head.dataset.locatorClickCount) || 0;
   if (newClicks) {
     browser.storage.local.get(['clickCount'], function (res) {
-      if (typeof res.clickCount === 'number') {
-        browser.storage.local.set({
-          clickCount: res.clickCount + newClicks,
-        });
-        delete document.head.dataset.locatorClickCount;
-      }
+      const oldClicks = typeof res.clickCount === 'number' ? res.clickCount : 0;
+      browser.storage.local.set({
+        clickCount: oldClicks + newClicks,
+      });
+      delete document.head.dataset.locatorClickCount;
     });
   }
 }, 1000);
