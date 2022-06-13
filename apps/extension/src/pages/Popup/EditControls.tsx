@@ -1,6 +1,7 @@
 import { CloseButton, IconButton, Switch } from '@hope-ui/solid';
 import { modifiersTitles } from '@locator/shared';
 import { HiSolidX } from 'solid-icons/hi';
+import clickCount from './clickCount';
 import { changeControls, controlsMap } from './controls';
 
 type Props = {
@@ -30,6 +31,15 @@ export function EditControls({ setPage }: Props) {
             );
           })}
         </div>
+
+        <label class="text-lg font-medium text-gray-900 mb-4">
+          Total clicks:{' '}
+        </label>
+        <p>
+          {clickCount()
+            ? `You have already used Locator ${clickCount()} times.`
+            : 'No clicks yet.'}
+        </p>
       </div>
       <CloseButton
         onClick={() => {

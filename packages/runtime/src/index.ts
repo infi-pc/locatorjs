@@ -110,6 +110,11 @@ function getMouseModifiers() {
   return modifiers;
 }
 
+function trackClickStats() {
+  const current = Number(document.head.dataset.locatorClickCount) || 0;
+  document.head.dataset.locatorClickCount = String(current + 1);
+}
+
 function setMode(newMode: LocatorJSMode) {
   setCookie("LOCATORJS", newMode);
   modeInCookies = newMode;
@@ -264,6 +269,7 @@ function rerenderLayer(found: HTMLElement, isModifierPressed: boolean) {
     labelEl.innerText = label;
     labelEl.target = HREF_TARGET;
     labelEl.onclick = (e) => {
+      trackClickStats();
       window.open(link, HREF_TARGET);
     };
 
@@ -481,6 +487,7 @@ function clickListener(e: MouseEvent) {
     if (firstLabel) {
       e.preventDefault();
       e.stopPropagation();
+      trackClickStats();
       window.open(firstLabel.link, HREF_TARGET);
     }
   }

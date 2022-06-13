@@ -69,3 +69,18 @@ browser.runtime.onMessage.addListener((msg, sender, response) => {
     response(getHookStatusMessage());
   }
 });
+
+// Collect click counts and remove them from the DOM.
+setInterval(() => {
+  const newClicks = Number(document.head.dataset.locatorClickCount) || 0;
+  if (newClicks) {
+    browser.storage.local.get(['clickCount'], function (res) {
+      if (typeof res.clickCount === 'number') {
+        browser.storage.local.set({
+          clickCount: res.clickCount + newClicks,
+        });
+        delete document.head.dataset.locatorClickCount;
+      }
+    });
+  }
+}, 1000);
