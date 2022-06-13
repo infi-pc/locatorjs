@@ -1,5 +1,6 @@
 import { HopeProvider, HopeThemeConfig } from '@hope-ui/solid';
 import Popup from './Popup';
+import { SyncedStateProvider } from './syncedState';
 
 const config: HopeThemeConfig = {
   initialColorMode: 'system',
@@ -24,7 +25,9 @@ const config: HopeThemeConfig = {
 const App = () => {
   return (
     <HopeProvider config={config}>
-      <Popup />
+      <SyncedStateProvider>
+        <Popup />
+      </SyncedStateProvider>
     </HopeProvider>
   );
 };

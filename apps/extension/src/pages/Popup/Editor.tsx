@@ -1,33 +1,10 @@
 import { Button, Input, Radio } from '@hope-ui/solid';
 import { allTargets } from '@locator/shared';
-import { createSignal } from 'solid-js';
-import browser from '../../browser';
-import { Anchor } from '@hope-ui/solid';
+import { useSyncedState } from './syncedState';
 
 export function Editor() {
-  const [target, setTargetState] = createSignal<string>('vscode');
-
-  function changeTarget(newTarget: string) {
-    setTargetState(newTarget);
-
-    browser.storage.local.set({ target: newTarget }, function () {
-      // console.log('Value is set to ' + newTarget);
-    });
-  }
-
-  // TODO make it sync, as soon as we get a firefox id
-  browser.storage.local
-    .get(['target'])
-    .then((result) => {
-      if (typeof result?.target === 'string') {
-        setTargetState(result.target);
-      }
-    })
-    .catch((e) => {
-      console.error(e);
-    });
-
   let input: HTMLInputElement | undefined;
+  const { target } = useSyncedState();
 
   return (
     <div class="mt-2">
@@ -39,19 +16,19 @@ export function Editor() {
           {Object.entries(allTargets).map(([key, { label, url }]) => (
             <div class="flex justify-between">
               <Radio
-                checked={key === target()}
+                checked={key === target.get()}
                 onChange={() => {
-                  changeTarget(key);
+                  target.set(key);
                 }}
               >
                 {label}
               </Radio>
-              {key === 'vscode' && target() === 'vscode' && (
+              {key === 'vscode' && target.get() === 'vscode' && (
                 <Button
                   size="xs"
                   variant="ghost"
                   onClick={() => {
-                    changeTarget(
+                    target.set(
                       allTargets['vscode'].url.replace(
                         'vscode://',
                         'vscode-insiders://'
@@ -65,10 +42,10 @@ export function Editor() {
             </div>
           ))}
           <Radio
-            checked={allTargets[target()] === undefined}
+            checked={allTargets[target.get()] === undefined}
             onChange={() => {
-              if (allTargets[target()]) {
-                changeTarget(allTargets[target()].url);
+              if (allTargets[target.get()]) {
+                target.set(allTargets[target.get()].url);
               }
               input?.focus();
               input?.select();
@@ -82,17 +59,21 @@ export function Editor() {
         <Input
           placeholder="Basic usage"
           ref={input}
-          value={allTargets[target()] ? allTargets[target()].url : target()}
-          onInput={(e) => changeTarget(e.currentTarget.value)}
+          value={
+            allTargets[target.get()]
+              ? allTargets[target.get()].url
+              : target.get()
+          }
+          onInput={(e) => target.set(e.currentTarget.value)}
           type="text"
           name="link"
           id="link"
           class={
-            allTargets[target()] ? 'text-gray-400 focus:text-gray-800' : ''
+            allTargets[target.get()] ? 'text-gray-400 focus:text-gray-800' : ''
           }
         />
 
-        {!allTargets[target()] ? (
+        {!allTargets[target.get()] ? (
           <div class="text-gray-500 mt-1">
             Available variables: {`projectPath, filePath, line, column`}
           </div>

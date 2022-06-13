@@ -22,6 +22,7 @@
     "postcss": "^8.4.13",
     "postcss-loader": "^6.2.1",
     "postcss-preset-env": "^7.5.0",
+    "posthog-js": "^1.23.0",
     "raw-loader": "^4.0.2",
     "semver": "^7.3.7",
     "solid-icons": "^0.4.12",

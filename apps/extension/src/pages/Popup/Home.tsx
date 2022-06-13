@@ -2,8 +2,9 @@ import { Editor } from './Editor';
 import { Button, Kbd } from '@hope-ui/solid';
 import { HiSolidCog } from 'solid-icons/hi';
 import { altTitle } from './Popup';
-import { controlsMap } from './controls';
+
 import { modifiersTitles } from '@locator/shared';
+import { useSyncedState } from './syncedState';
 
 type Props = {
   setPage: (page: 'home' | 'edit-controls') => void;
@@ -70,9 +71,10 @@ export function Home({ setPage }: Props) {
 }
 
 function Modifiers() {
+  const { controls } = useSyncedState();
   return (
     <>
-      {Object.keys(controlsMap()).map((key, i) => {
+      {Object.keys(controls.getMap()).map((key, i) => {
         return (
           <>
             {i === 0 ? '' : ' + '}

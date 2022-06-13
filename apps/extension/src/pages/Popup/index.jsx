@@ -1,5 +1,5 @@
 import { render } from 'solid-js/web';
-
+import './analytics';
 import App from './App';
 import './index.css';
 

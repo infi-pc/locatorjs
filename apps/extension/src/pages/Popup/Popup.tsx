@@ -1,6 +1,5 @@
 import './Popup.css';
 import { createSignal } from 'solid-js';
-import browser from '../../browser';
 import {
   Alert,
   AlertDescription,
@@ -12,7 +11,7 @@ import {
 import { hope } from '@hope-ui/solid';
 import { Home } from './Home';
 import { EditControls } from './EditControls';
-import { requestStatusMessage } from './requestStatusMessage';
+import { requestStatus } from './requestStatus';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -25,27 +24,12 @@ const Popup = () => {
   );
   const [page, setPage] = createSignal<'home' | 'edit-controls'>('home');
 
-  function requestStatus() {
-    browser.tabs.query(
-      {
-        active: true,
-        currentWindow: true,
-      },
-      (tabs) => {
-        const currentTab = tabs[0];
-        if (currentTab.id) {
-          requestStatusMessage(currentTab.id, setMessage);
-        }
-      }
-    );
-  }
-
-  requestStatus();
+  requestStatus(setMessage);
 
   setInterval(() => {
     // Need to get the status periodically, needed when pages are loading slow + status can change after refresh.
     // I didn't find a reliable way to notify Popup from content without trowing an error.
-    requestStatus();
+    requestStatus(setMessage);
   }, 1000);
 
   return (
