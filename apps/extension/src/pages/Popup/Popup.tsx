@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js';
+import { createEffect, createSignal } from 'solid-js';
 import {
   Alert,
   AlertDescription,
@@ -21,6 +21,7 @@ import { Page } from './Page';
 import { SharePage } from './SharePage';
 import SectionHeadline from './SectionHeadline';
 import { BsGithub } from 'solid-icons/bs';
+import posthog from 'posthog-js';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -42,6 +43,17 @@ const Popup = () => {
     // I didn't find a reliable way to notify Popup from content without trowing an error.
     requestStatus(setMessage);
   }, 1000);
+
+  createEffect(() => {
+    const newMsg = message();
+    if (newMsg == 'loading' || newMsg === 'ok') {
+      return;
+    }
+
+    posthog.capture('Hook error', {
+      message: newMsg,
+    });
+  });
 
   return (
     <>
