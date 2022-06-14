@@ -131,7 +131,7 @@ export default function SocialShare({ setPage }: Props) {
                 sharedOnSocialMedia.set('close');
               }}
             >
-              <BsX />
+              <BsX size={'20px'} />
             </IconWrapper>
           </div>
         </div>
