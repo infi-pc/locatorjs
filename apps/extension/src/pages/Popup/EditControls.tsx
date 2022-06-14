@@ -1,20 +1,20 @@
 import { CloseButton, IconButton, Switch } from '@hope-ui/solid';
 import { modifiersTitles } from '@locator/shared';
-import { HiSolidX } from 'solid-icons/hi';
+import { Page } from './Page';
+import SectionHeadline from './SectionHeadline';
 import { useSyncedState } from './syncedState';
 
 type Props = {
-  setPage: (page: 'home' | 'edit-controls') => void;
+  setPage: (page: Page) => void;
 };
 
 export function EditControls({ setPage }: Props) {
-  const { clicks, controls, allowTracking } = useSyncedState();
+  const { clicks, controls, allowTracking, sharedOnSocialMedia } =
+    useSyncedState();
   return (
     <div class="flex justify-between">
       <div>
-        <label class="text-lg font-medium text-gray-900 mb-4">
-          Mouse-click modifiers:{' '}
-        </label>
+        <SectionHeadline>Mouse-click modifiers: </SectionHeadline>
         <p>Modifier keys to enable "mouse click" and other shortcuts:</p>
         <div class="flex flex-col items-start gap-1 mt-2 flex-wrap mb-4">
           {Object.entries(modifiersTitles).map(([key, title]) => {
@@ -33,9 +33,7 @@ export function EditControls({ setPage }: Props) {
           })}
         </div>
 
-        <label class="text-lg font-medium text-gray-900 mb-4">
-          Total clicks:{' '}
-        </label>
+        <SectionHeadline>Total clicks: </SectionHeadline>
         <p class=" mb-4">
           {clicks() ? (
             <>
@@ -46,8 +44,8 @@ export function EditControls({ setPage }: Props) {
           )}
         </p>
 
-        <label class="text-lg font-medium text-gray-900 mb-4">Tracking: </label>
-        <div class=" mb-4">
+        <SectionHeadline>Others: </SectionHeadline>
+        <div class="flex flex-col gap-1 mb-2 items-start">
           <Switch
             size={'sm'}
             labelPlacement="end"
@@ -58,11 +56,23 @@ export function EditControls({ setPage }: Props) {
           >
             Allow anonymous tracking
           </Switch>
+          <Switch
+            size={'sm'}
+            labelPlacement="end"
+            onChange={(e: any) => {
+              sharedOnSocialMedia.set(
+                e.currentTarget.checked ? 'disabled_in_settings' : ''
+              );
+            }}
+            checked={!!sharedOnSocialMedia.get()}
+          >
+            Hide share panel
+          </Switch>
         </div>
       </div>
       <CloseButton
         onClick={() => {
-          setPage('home');
+          setPage({ type: 'home' });
         }}
       />
     </div>

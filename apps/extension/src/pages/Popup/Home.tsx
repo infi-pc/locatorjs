@@ -5,9 +5,11 @@ import { altTitle } from './Popup';
 
 import { modifiersTitles } from '@locator/shared';
 import { useSyncedState } from './syncedState';
+import { Page } from './Page';
+import SectionHeadline from './SectionHeadline';
 
 type Props = {
-  setPage: (page: 'home' | 'edit-controls') => void;
+  setPage: (page: Page) => void;
 };
 
 export function Home({ setPage }: Props) {
@@ -15,9 +17,7 @@ export function Home({ setPage }: Props) {
     <>
       <div class="flex justify-between">
         <div>
-          <label class="text-lg font-medium text-gray-900 mb-4">
-            Controls:{' '}
-          </label>
+          <SectionHeadline>Controls: </SectionHeadline>
 
           <div class="py-1 text-sm">
             <b>
@@ -58,7 +58,7 @@ export function Home({ setPage }: Props) {
             size="xs"
             class="gap-1"
             onClick={() => {
-              setPage('edit-controls');
+              setPage({ type: 'edit-controls' });
             }}
           >
             <HiSolidCog /> settings

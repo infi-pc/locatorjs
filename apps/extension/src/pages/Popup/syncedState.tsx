@@ -16,6 +16,10 @@ type SyncedState = {
     get: Accessor<boolean | null>;
     set: (target: boolean) => void;
   };
+  sharedOnSocialMedia: {
+    get: Accessor<string | null>;
+    set: (target: string) => void;
+  };
 };
 
 const SyncedStateContext = createContext<SyncedState>();
@@ -25,12 +29,25 @@ export function SyncedStateProvider(props: { children: any }) {
   const [error, setError] = createSignal<string | null>(null);
 
   browser.storage.local
-    .get(['clickCount', 'target', 'controls', 'allowTracking'])
+    .get([
+      'clickCount',
+      'target',
+      'controls',
+      'allowTracking',
+      'sharedOnSocialMedia',
+    ])
     .then((result) => {
       const [clicks] = createSignal(result.clickCount || 0);
-      const [target, setTarget] = createSignal(result.target || 'vscode');
-      const [controls, setControls] = createSignal(result.controls || 'alt');
-      const [allowTracking, setAllowTracking] = createSignal(
+      const [sharedOnSocialMedia, setSharedOnSocialMedia] = createSignal<
+        string | null
+      >(result.sharedOnSocialMedia || null);
+      const [target, setTarget] = createSignal<string>(
+        result.target || 'vscode'
+      );
+      const [controls, setControls] = createSignal<string>(
+        result.controls || 'alt'
+      );
+      const [allowTracking, setAllowTracking] = createSignal<boolean | null>(
         result.allowTracking ?? null
       );
       const controlsMap = () => getModifiersMap(controls() || 'alt');
@@ -65,6 +82,13 @@ export function SyncedStateProvider(props: { children: any }) {
           set: (newAllowTracking: boolean) => {
             setAllowTracking(newAllowTracking);
             browser.storage.local.set({ allowTracking: newAllowTracking });
+          },
+        },
+        sharedOnSocialMedia: {
+          get: sharedOnSocialMedia,
+          set: (newValue: string) => {
+            setSharedOnSocialMedia(newValue);
+            browser.storage.local.set({ sharedOnSocialMedia: newValue });
           },
         },
       });

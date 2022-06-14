@@ -1,5 +1,6 @@
 import { Button, Input, Radio } from '@hope-ui/solid';
 import { allTargets } from '@locator/shared';
+import SectionHeadline from './SectionHeadline';
 import { useSyncedState } from './syncedState';
 
 export function Editor() {
@@ -8,7 +9,7 @@ export function Editor() {
 
   return (
     <div class="mt-2">
-      <label class="text-lg font-medium text-gray-900 mb-3">Editor link:</label>
+      <SectionHeadline>Editor link:</SectionHeadline>
       <p class="text-sm leading-5 text-gray-500"></p>
       <fieldset class="mt-2">
         <legend class="sr-only">Notification method</legend>
@@ -55,7 +56,7 @@ export function Editor() {
           </Radio>
         </div>
       </fieldset>
-      <div class="mt-2 pb-4">
+      <div class="mt-2 pb-2">
         <Input
           placeholder="Basic usage"
           ref={input}
