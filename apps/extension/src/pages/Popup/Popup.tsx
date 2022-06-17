@@ -140,20 +140,41 @@ const Popup = () => {
                 </Alert>
 
                 <div class="mt-2">
+                  <SectionHeadline>Requirements to check:</SectionHeadline>
+                  <p>Make sure that the page:</p>
+                  <ul class="pl-4">
+                    <li>is running React</li>
+                    <li>is running in development mode</li>
+                    <li>
+                      has{' '}
+                      <a
+                        class="underline"
+                        href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#requirements"
+                        target="_blank"
+                      >
+                        sources plugin
+                      </a>{' '}
+                      (CRA, Next.js and others have it automatically)
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="mt-2 pb-4">
                   <SectionHeadline>Helpful links:</SectionHeadline>
                   <hope.a
                     target="_blank"
                     class="flex gap-1 items-center"
                     href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
                   >
-                    <BsGithub /> Readme.md: Troubleshooting
+                    <BsGithub />{' '}
+                    <span class="underline">Readme.md: Troubleshooting</span>
                   </hope.a>
                   <hope.a
                     target="_blank"
                     class="flex gap-1 items-center"
                     href="https://github.com/infi-pc/locatorjs/issues"
                   >
-                    <BsGithub /> GitHub issues
+                    <BsGithub /> <span class="underline">GitHub issues</span>
                   </hope.a>
                 </div>
               </div>
