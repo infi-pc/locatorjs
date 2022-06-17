@@ -4,7 +4,7 @@ declare global {
         __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
     }
 }
-declare type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options" | "no-renderer";
+declare type LocatorJSMode = "disabled" | "hidden" | "minimal" | "options" | "xray" | "no-renderer";
 export declare function setup(props: {
     defaultMode?: LocatorJSMode;
     targets?: {

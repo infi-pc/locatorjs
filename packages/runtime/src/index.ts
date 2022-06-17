@@ -7,6 +7,11 @@ import {
   altTitle,
 } from "@locator/shared";
 import { allTargets as allTargetsOriginal } from "@locator/shared";
+import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
+
+// import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
+const initRender =
+  typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
 
 let allTargets = { ...allTargetsOriginal };
 
@@ -24,6 +29,7 @@ type LocatorJSMode =
   | "hidden"
   | "minimal"
   | "options"
+  | "xray"
   | "no-renderer";
 
 type SourceLocation = {
@@ -90,24 +96,13 @@ let linkTemplateUrl = (): string => {
 let modeInCookies = getCookie("LOCATORJS") as LocatorJSMode | undefined;
 let defaultMode: LocatorJSMode = "hidden";
 
-function getMode(): LocatorJSMode {
+function getModeToRender(): LocatorJSMode {
   const proposedMode = modeInCookies || defaultMode;
+  // TODO do not use it as mode, but as different parameter
   if (proposedMode !== "hidden" && detectMissingRenderers()) {
     return "no-renderer";
   }
   return proposedMode;
-}
-
-function getMouseModifiers() {
-  const mouseModifiers =
-    document.documentElement.dataset.locatorMouseModifiers || "alt";
-  const mouseModifiersArray = mouseModifiers.split("+");
-  const modifiers: { [key: string]: true } = {};
-  mouseModifiersArray.forEach((modifier) => {
-    modifiers[modifier] = true;
-  }, {});
-
-  return modifiers;
 }
 
 function trackClickStats() {
@@ -117,6 +112,7 @@ function trackClickStats() {
 
 function setMode(newMode: LocatorJSMode) {
   setCookie("LOCATORJS", newMode);
+
   modeInCookies = newMode;
 }
 
@@ -128,10 +124,10 @@ function setTemplate(lOrTemplate: string) {
 if (typeof window !== "undefined") {
   document.addEventListener("keyup", globalKeyUpListener);
 
-  let locatorDisabled = getMode() === "disabled";
+  let locatorDisabled = getModeToRender() === "disabled";
   if (!locatorDisabled) {
     onDocumentLoad(function () {
-      init(getMode());
+      init(getModeToRender());
     });
   }
 }
@@ -194,7 +190,7 @@ function rerenderLayer(found: HTMLElement, isModifierPressed: boolean) {
     // in cases it's destroyed in the meantime
     return;
   }
-  if (getMode() === "hidden" && !isModifierPressed) {
+  if (getModeToRender() === "hidden" && !isModifierPressed) {
     el.innerHTML = "";
     document.body.style.cursor = "";
     return;
@@ -447,7 +443,7 @@ function keyUpListener(e: KeyboardEvent) {
 
 function globalKeyUpListener(e: KeyboardEvent) {
   if (e.code === "KeyD" && isCombinationModifiersPressed(e)) {
-    if (getMode() === "hidden") {
+    if (getModeToRender() === "hidden") {
       destroy();
       if (isExtension) {
         setMode("minimal");
@@ -463,16 +459,6 @@ function globalKeyUpListener(e: KeyboardEvent) {
     }
     return;
   }
-}
-
-function isCombinationModifiersPressed(e: MouseEvent | KeyboardEvent) {
-  const modifiers = getMouseModifiers();
-  return (
-    e.altKey == !!modifiers.alt &&
-    e.ctrlKey == !!modifiers.ctrl &&
-    e.metaKey == !!modifiers.meta &&
-    e.shiftKey == !!modifiers.shift
-  );
 }
 
 function clickListener(e: MouseEvent) {
@@ -522,6 +508,11 @@ function init(mode: LocatorJSMode) {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
   style.innerHTML = `
+      #locatorjs-solid-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
       #locatorjs-layer * {
         box-sizing: border-box;
       }
@@ -661,7 +652,13 @@ function init(mode: LocatorJSMode) {
     pointerEvents: "none",
   });
 
+  const solidLayer = document.createElement("div");
+  solidLayer.setAttribute("id", "locatorjs-solid-layer");
+
+  document.body.appendChild(solidLayer);
   document.body.appendChild(layer);
+
+  initRender(solidLayer);
 
   if (mode === "no-renderer") {
     showMissingRenderer();
