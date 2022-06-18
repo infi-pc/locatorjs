@@ -4,10 +4,19 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = nonNullable;
+exports.linkTemplateUrl = void 0;
 exports.register = register;
 exports.setup = setup;
 
 var _shared = require("@locator/shared");
+
+var _buidLink = require("./buidLink");
+
+var _findDebugSource = require("./findDebugSource");
+
+var _findFiberByHtmlElement = require("./findFiberByHtmlElement");
+
+var _getFiberLabel = require("./getFiberLabel");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
@@ -39,6 +48,7 @@ let linkTemplateUrl = () => {
   return l ? l.url : getLinkTypeOrTemplate();
 };
 
+exports.linkTemplateUrl = linkTemplateUrl;
 let modeInCookies = getCookie("LOCATORJS");
 let defaultMode = "hidden";
 
@@ -108,23 +118,6 @@ function setup(props) {
 
 function register(input) {
   dataByFilename[input.projectPath + input.filePath] = input;
-}
-
-function evalTemplate(str, params) {
-  const names = Object.keys(params);
-  const vals = Object.values(params); // @ts-ignore
-
-  return new Function(...names, `return \`${str}\`;`)(...vals);
-}
-
-function buidLink(filePath, projectPath, loc) {
-  const params = {
-    filePath,
-    projectPath,
-    line: loc.start.line,
-    column: loc.start.column + 1
-  };
-  return evalTemplate(linkTemplateUrl(), params);
 }
 
 function rerenderLayer(found, isModifierPressed) {
@@ -230,7 +223,7 @@ function getLabels(found) {
   }
 
   if (labels.length === 0) {
-    const fiber = findFiberByHtmlElement(found, false);
+    const fiber = (0, _findFiberByHtmlElement.findFiberByHtmlElement)(found, false);
 
     if (fiber) {
       const allPotentialFibers = getAllParentsWithTheSameBoundingBox(fiber); // This handles a common case when the component root is basically the comopnent itself, so I want to go to usage of the component
@@ -240,10 +233,10 @@ function getLabels(found) {
       }
 
       allPotentialFibers.forEach(fiber => {
-        const fiberWithSource = findDebugSource(fiber);
+        const fiberWithSource = (0, _findDebugSource.findDebugSource)(fiber);
 
         if (fiberWithSource) {
-          const label = getFiberLabel(fiberWithSource.fiber, fiberWithSource.source);
+          const label = (0, _getFiberLabel.getFiberLabel)(fiberWithSource.fiber, fiberWithSource.source);
           labels.push(label);
         }
       });
@@ -291,28 +284,6 @@ function getAllParentsWithTheSameBoundingBox(fiber) {
   }
 
   return parents;
-}
-
-function getFiberLabel(fiber, source) {
-  const {
-    name,
-    wrappingComponent
-  } = findNames(fiber);
-  const link = source ? buidLink(source.fileName, "", {
-    start: {
-      column: source.columnNumber || 0,
-      line: source.lineNumber || 0
-    },
-    end: {
-      column: source.columnNumber || 0,
-      line: source.lineNumber || 0
-    }
-  }) : null;
-  const label = {
-    label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
-    link
-  };
-  return label;
 }
 
 function parseDataId(dataId) {
@@ -828,7 +799,7 @@ function getDataForDataId(dataId) {
     return null;
   }
 
-  const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+  const link = (0, _buidLink.buidLink)(fileData.filePath, fileData.projectPath, expData.loc);
   let label;
 
   if (expData.type === "jsx") {
@@ -847,56 +818,11 @@ function nonNullable(value) {
   return value !== null && value !== undefined;
 }
 
-function findFiberByHtmlElement(target, shouldHaveDebugSource) {
-  var _window$__REACT_DEVTO;
-
-  const renderers = (_window$__REACT_DEVTO = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _window$__REACT_DEVTO === void 0 ? void 0 : _window$__REACT_DEVTO.renderers; // console.log("RENDERERS: ", renderers);
-
-  const renderersValues = renderers === null || renderers === void 0 ? void 0 : renderers.values();
-
-  if (renderersValues) {
-    for (const renderer of Array.from(renderersValues)) {
-      if (renderer.findFiberByHostInstance) {
-        const found = renderer.findFiberByHostInstance(target);
-
-        if (found) {
-          if (shouldHaveDebugSource) {
-            var _findDebugSource;
-
-            return ((_findDebugSource = findDebugSource(found)) === null || _findDebugSource === void 0 ? void 0 : _findDebugSource.fiber) || null;
-          } else {
-            return found;
-          }
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-function findDebugSource(fiber) {
-  let current = fiber;
-
-  while (current) {
-    if (current._debugSource) {
-      return {
-        fiber: current,
-        source: current._debugSource
-      };
-    }
-
-    current = current._debugOwner || null;
-  }
-
-  return null;
-}
-
 function searchDevtoolsRenderersForClosestTarget(target) {
   let closest = target;
 
   while (closest) {
-    if (findFiberByHtmlElement(closest, false)) {
+    if ((0, _findFiberByHtmlElement.findFiberByHtmlElement)(closest, false)) {
       return closest;
     }
 
@@ -906,78 +832,8 @@ function searchDevtoolsRenderersForClosestTarget(target) {
   return null;
 }
 
-function findNames(fiber) {
-  // if (fiber._debugOwner?.elementType?.styledComponentId) {
-  //   // This is special case for styled-components, we need to show one level up
-  //   return {
-  //     name: getUsableName(fiber._debugOwner),
-  //     wrappingComponent: getUsableName(fiber._debugOwner?._debugOwner),
-  //   };
-  // } else {
-  return {
-    name: getUsableName(fiber),
-    wrappingComponent: getUsableName(fiber._debugOwner)
-  }; // }
-} // function printDebugOwnerTree(fiber: Fiber): string | null {
-//   let current: Fiber | null = fiber || null;
-//   let results = [];
-//   while (current) {
-//     results.push(getUsableName(current));
-//     current = current._debugOwner || null;
-//   }
-//   console.log('DEBUG OWNER: ', results);
-//   return null;
-// }
-// function printReturnTree(fiber: Fiber): string | null {
-//   let current: Fiber | null = fiber || null;
-//   let results = [];
-//   while (current) {
-//     results.push(getUsableName(current));
-//     current = current.return || null;
-//   }
-//   console.log('RETURN: ', results);
-//   return null;
-// }
-
-
-function getUsableName(fiber) {
-  var _fiber$elementType$ty, _fiber$elementType$_p, _fiber$elementType$_p2;
-
-  if (!fiber) {
-    return "Not found";
-  }
-
-  if (typeof fiber.elementType === "string") {
-    return fiber.elementType;
-  }
-
-  if (!fiber.elementType) {
-    return "Anonymous";
-  }
-
-  if (fiber.elementType.name) {
-    return fiber.elementType.name;
-  } // Not sure about this
-
-
-  if (fiber.elementType.displayName) {
-    return fiber.elementType.displayName;
-  } // Used in rect.memo
-
-
-  if ((_fiber$elementType$ty = fiber.elementType.type) !== null && _fiber$elementType$ty !== void 0 && _fiber$elementType$ty.name) {
-    return fiber.elementType.type.name;
-  }
-
-  if ((_fiber$elementType$_p = fiber.elementType._payload) !== null && _fiber$elementType$_p !== void 0 && (_fiber$elementType$_p2 = _fiber$elementType$_p._result) !== null && _fiber$elementType$_p2 !== void 0 && _fiber$elementType$_p2.name) {
-    return fiber.elementType._payload._result.name;
-  }
-
-  return "Anonymous";
-}
-
 function detectMissingRenderers() {
-  var _window$__REACT_DEVTO2, _window$__REACT_DEVTO3;
+  var _window$__REACT_DEVTO, _window$__REACT_DEVTO2;
 
-  return ((_window$__REACT_DEVTO2 = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _window$__REACT_DEVTO2 === void 0 ? void 0 : (_window$__REACT_DEVTO3 = _window$__REACT_DEVTO2.renderers) === null || _window$__REACT_DEVTO3 === void 0 ? void 0 : _window$__REACT_DEVTO3.size) === 0;
+  return ((_window$__REACT_DEVTO = window.__REACT_DEVTOOLS_GLOBAL_HOOK__) === null || _window$__REACT_DEVTO === void 0 ? void 0 : (_window$__REACT_DEVTO2 = _window$__REACT_DEVTO.renderers) === null || _window$__REACT_DEVTO2 === void 0 ? void 0 : _window$__REACT_DEVTO2.size) === 0;
 }

@@ -1,12 +1,9 @@
-import {
-  Fiber,
-  Source,
-  ReactDevtoolsHook,
-  Renderer,
-  Target,
-  altTitle,
-} from "@locator/shared";
+import { Fiber, ReactDevtoolsHook, Target, altTitle } from "@locator/shared";
 import { allTargets as allTargetsOriginal } from "@locator/shared";
+import { buidLink } from "./buidLink";
+import { findDebugSource } from "./findDebugSource";
+import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
+import { getFiberLabel } from "./getFiberLabel";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
@@ -88,7 +85,7 @@ let getLinkTypeOrTemplate = () =>
   document.documentElement.dataset.locatorTarget || localLinkOrTemplate;
 
 let linkTemplate = () => allTargets[getLinkTypeOrTemplate()];
-let linkTemplateUrl = (): string => {
+export let linkTemplateUrl = (): string => {
   const l = linkTemplate();
   return l ? l.url : getLinkTypeOrTemplate();
 };
@@ -165,23 +162,6 @@ export function setup(props: {
 
 export function register(input: any) {
   dataByFilename[input.projectPath + input.filePath] = input;
-}
-
-function evalTemplate(str: string, params: { [key: string]: string }) {
-  const names = Object.keys(params);
-  const vals = Object.values(params);
-  // @ts-ignore
-  return new Function(...names, `return \`${str}\`;`)(...vals);
-}
-
-function buidLink(filePath: string, projectPath: string, loc: any) {
-  const params = {
-    filePath,
-    projectPath,
-    line: loc.start.line,
-    column: loc.start.column + 1,
-  };
-  return evalTemplate(linkTemplateUrl(), params);
 }
 
 function rerenderLayer(found: HTMLElement, isModifierPressed: boolean) {
@@ -359,28 +339,6 @@ function getAllParentsWithTheSameBoundingBox(fiber: Fiber): Fiber[] {
     }
   }
   return parents;
-}
-
-function getFiberLabel(fiber: Fiber, source?: Source) {
-  const { name, wrappingComponent } = findNames(fiber);
-
-  const link = source
-    ? buidLink(source.fileName, "", {
-        start: {
-          column: source.columnNumber || 0,
-          line: source.lineNumber || 0,
-        },
-        end: {
-          column: source.columnNumber || 0,
-          line: source.lineNumber || 0,
-        },
-      })
-    : null;
-  const label = {
-    label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
-    link,
-  };
-  return label;
 }
 
 function parseDataId(dataId: string): [fileFullPath: string, id: string] {
@@ -935,45 +893,6 @@ export default function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
 
-function findFiberByHtmlElement(
-  target: HTMLElement,
-  shouldHaveDebugSource: boolean
-): Fiber | null {
-  const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
-  // console.log("RENDERERS: ", renderers);
-
-  const renderersValues = renderers?.values();
-  if (renderersValues) {
-    for (const renderer of Array.from(renderersValues) as Renderer[]) {
-      if (renderer.findFiberByHostInstance) {
-        const found = renderer.findFiberByHostInstance(target as any);
-        if (found) {
-          if (shouldHaveDebugSource) {
-            return findDebugSource(found)?.fiber || null;
-          } else {
-            return found;
-          }
-        }
-      }
-    }
-  }
-  return null;
-}
-
-function findDebugSource(
-  fiber: Fiber
-): { fiber: Fiber; source: Source } | null {
-  let current: Fiber | null = fiber;
-  while (current) {
-    if (current._debugSource) {
-      return { fiber: current, source: current._debugSource };
-    }
-    current = current._debugOwner || null;
-  }
-
-  return null;
-}
-
 function searchDevtoolsRenderersForClosestTarget(
   target: HTMLElement
 ): HTMLElement | null {
@@ -988,74 +907,6 @@ function searchDevtoolsRenderersForClosestTarget(
   return null;
 }
 
-function findNames(fiber: Fiber): { name: string; wrappingComponent: string } {
-  // if (fiber._debugOwner?.elementType?.styledComponentId) {
-  //   // This is special case for styled-components, we need to show one level up
-  //   return {
-  //     name: getUsableName(fiber._debugOwner),
-  //     wrappingComponent: getUsableName(fiber._debugOwner?._debugOwner),
-  //   };
-  // } else {
-  return {
-    name: getUsableName(fiber),
-    wrappingComponent: getUsableName(fiber._debugOwner),
-  };
-  // }
-}
-
-// function printDebugOwnerTree(fiber: Fiber): string | null {
-//   let current: Fiber | null = fiber || null;
-//   let results = [];
-//   while (current) {
-//     results.push(getUsableName(current));
-//     current = current._debugOwner || null;
-//   }
-
-//   console.log('DEBUG OWNER: ', results);
-//   return null;
-// }
-
-// function printReturnTree(fiber: Fiber): string | null {
-//   let current: Fiber | null = fiber || null;
-//   let results = [];
-//   while (current) {
-//     results.push(getUsableName(current));
-//     current = current.return || null;
-//   }
-
-//   console.log('RETURN: ', results);
-//   return null;
-// }
-
-function getUsableName(fiber: Fiber | null | undefined) {
-  if (!fiber) {
-    return "Not found";
-  }
-
-  if (typeof fiber.elementType === "string") {
-    return fiber.elementType;
-  }
-  if (!fiber.elementType) {
-    return "Anonymous";
-  }
-
-  if (fiber.elementType.name) {
-    return fiber.elementType.name;
-  }
-  // Not sure about this
-  if (fiber.elementType.displayName) {
-    return fiber.elementType.displayName;
-  }
-  // Used in rect.memo
-  if (fiber.elementType.type?.name) {
-    return fiber.elementType.type.name;
-  }
-  if (fiber.elementType._payload?._result?.name) {
-    return fiber.elementType._payload._result.name;
-  }
-
-  return "Anonymous";
-}
 function detectMissingRenderers(): boolean {
   return window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers?.size === 0;
 }
