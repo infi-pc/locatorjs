@@ -62,8 +62,9 @@ function Runtime() {
               width: pair.box.width + "px",
               height: pair.box.height + "px",
               border:
-                pair.type === "component" ? "4px solid green" : "1px solid red",
+                pair.type === "component" ? "2px solid green" : "1px solid red",
               "border-radius": "4px",
+              "z-index": pair.type === "component" ? 1000 : 10,
             }}
           >
             <div
@@ -262,12 +263,17 @@ function getComposedBoundingBox(fiber: Fiber): DOMRect | null {
   const children = getAllFiberChildren(fiber);
   children.forEach((child) => {
     const rect = getBoundingRect(child.stateNode);
-    if (rect) {
-      if (composedRect) {
-        composedRect = mergeRects(composedRect, rect);
-      } else {
-        composedRect = rect;
-      }
+    if (!rect) {
+      return;
+    }
+    if (rect.width <= 0 || rect.height <= 0) {
+      // ignore zero-sized rects
+      return;
+    }
+    if (composedRect) {
+      composedRect = mergeRects(composedRect, rect);
+    } else {
+      composedRect = rect;
     }
   });
   return composedRect;

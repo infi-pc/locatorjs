@@ -83,17 +83,19 @@ function Runtime() {
                 _v$2 = pair.box.top + "px",
                 _v$3 = pair.box.width + "px",
                 _v$4 = pair.box.height + "px",
-                _v$5 = pair.type === "component" ? "4px solid green" : "1px solid red",
-                _v$6 = pair.type === "component" ? "rgba(0,200,0,0.2)" : "rgba(200,0,0,0.2)",
-                _v$7 = pair.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
+                _v$5 = pair.type === "component" ? "2px solid green" : "1px solid red",
+                _v$6 = pair.type === "component" ? 1000 : 10,
+                _v$7 = pair.type === "component" ? "rgba(0,200,0,0.2)" : "rgba(200,0,0,0.2)",
+                _v$8 = pair.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
 
           _v$ !== _p$._v$ && _el$5.style.setProperty("left", _p$._v$ = _v$);
           _v$2 !== _p$._v$2 && _el$5.style.setProperty("top", _p$._v$2 = _v$2);
           _v$3 !== _p$._v$3 && _el$5.style.setProperty("width", _p$._v$3 = _v$3);
           _v$4 !== _p$._v$4 && _el$5.style.setProperty("height", _p$._v$4 = _v$4);
           _v$5 !== _p$._v$5 && _el$5.style.setProperty("border", _p$._v$5 = _v$5);
-          _v$6 !== _p$._v$6 && _el$6.style.setProperty("background", _p$._v$6 = _v$6);
-          _v$7 !== _p$._v$7 && _el$6.style.setProperty("color", _p$._v$7 = _v$7);
+          _v$6 !== _p$._v$6 && _el$5.style.setProperty("z-index", _p$._v$6 = _v$6);
+          _v$7 !== _p$._v$7 && _el$6.style.setProperty("background", _p$._v$7 = _v$7);
+          _v$8 !== _p$._v$8 && _el$6.style.setProperty("color", _p$._v$8 = _v$8);
           return _p$;
         }, {
           _v$: undefined,
@@ -102,7 +104,8 @@ function Runtime() {
           _v$4: undefined,
           _v$5: undefined,
           _v$6: undefined,
-          _v$7: undefined
+          _v$7: undefined,
+          _v$8: undefined
         });
         return _el$5;
       })()
@@ -279,12 +282,19 @@ function getComposedBoundingBox(fiber) {
   children.forEach(child => {
     const rect = getBoundingRect(child.stateNode);
 
-    if (rect) {
-      if (composedRect) {
-        composedRect = mergeRects(composedRect, rect);
-      } else {
-        composedRect = rect;
-      }
+    if (!rect) {
+      return;
+    }
+
+    if (rect.width <= 0 || rect.height <= 0) {
+      // ignore zero-sized rects
+      return;
+    }
+
+    if (composedRect) {
+      composedRect = mergeRects(composedRect, rect);
+    } else {
+      composedRect = rect;
     }
   });
   return composedRect;
