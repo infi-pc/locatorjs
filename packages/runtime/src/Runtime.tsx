@@ -1,8 +1,6 @@
 import { Fiber } from "@locator/shared";
-import { children, createEffect, createSignal, For, onCleanup } from "solid-js";
-import { render, template } from "solid-js/web";
-import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
-import { getFiberLabel } from "./getFiberLabel";
+import { createEffect, createSignal, For, onCleanup } from "solid-js";
+import { render } from "solid-js/web";
 import { getUsableName } from "./getUsableName";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 
@@ -58,60 +56,93 @@ function Runtime() {
     }
   };
 
-  // createEffect(() => {});
-
   return (
     <div>
-      SOLID RUNTIME!!! mode: {solidMode()}{" "}
+      Mode: {solidMode()}{" "}
       <For each={getFoundNodes()}>
-        {(node, i) => <RenderNode node={node} />}
+        {(node, i) => <RenderNode node={node} parentIsHovered={false} />}
       </For>
     </div>
   );
 }
 
-function RenderNode({ node }: { node: SimpleNode }) {
+function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
+  const [isHovered, setIsHovered] = createSignal(false);
+
+  createEffect(() => {
+    console.log("RenderNode", props.node, props.parentIsHovered, isHovered());
+  });
+
+  const offset = props.node.type === "component" ? 4 : 0;
   return (
-    <>
-      {node.box ? (
+    <div>
+      {props.node.box ? (
         <div
+          onMouseEnter={
+            props.node.type === "component"
+              ? () => setIsHovered(true)
+              : undefined
+          }
+          onMouseLeave={
+            props.node.type === "component"
+              ? () => setIsHovered(false)
+              : undefined
+          }
           style={{
             position: "absolute",
-            left: node.box.left + "px",
-            top: node.box.top + "px",
-            width: node.box.width + "px",
-            height: node.box.height + "px",
+            left: props.node.box.left - offset + "px",
+            top: props.node.box.top - offset + "px",
+            width: props.node.box.width + offset * 2 + "px",
+            height: props.node.box.height + offset * 2 + "px",
             border:
-              node.type === "component" ? "2px solid green" : "1px solid red",
+              isHovered() || props.parentIsHovered
+                ? props.node.type === "component"
+                  ? "2px solid green"
+                  : "1px solid rgba(200,0,0,1)"
+                : props.node.type === "component"
+                ? "1px solid green"
+                : "1px solid rgba(200,0,0,0.1)",
             "border-radius": "4px",
-            "z-index": node.type === "component" ? 1000 : 10,
+            "z-index": props.node.type === "component" ? 1000 : 10,
           }}
         >
-          <div
-            style={{
-              padding: "1px 4px",
-              background:
-                node.type === "component"
-                  ? "rgba(0,200,0,0.2)"
-                  : "rgba(200,0,0,0.2)",
-              color:
-                node.type === "component"
-                  ? "rgba(50,150,50,1)"
-                  : "rgba(150,50,50,1)",
-              position: "absolute",
-              "font-size": "12px",
-              "border-radius": "0px 0px 4px 4px",
-              // top: "-20px",
-              height: "20px",
-              "white-space": "nowrap",
-            }}
-          >
-            {node.name}
-          </div>
+          {props.node.type === "component" || props.parentIsHovered ? (
+            <div
+              style={{
+                padding: "1px 4px",
+                background:
+                  props.node.type === "component" ? "rgba(0,200,0,0.2)" : "",
+                color:
+                  props.node.type === "component"
+                    ? "rgba(50,150,50,1)"
+                    : "rgba(150,50,50,1)",
+                position: "absolute",
+                "font-size": "12px",
+                "border-radius": "0px 0px 4px 4px",
+                // top: "-20px",
+                height: "20px",
+                "white-space": "nowrap",
+              }}
+            >
+              {props.node.name}
+            </div>
+          ) : null}
         </div>
       ) : null}
-      <For each={node.children}>{(node, i) => <RenderNode node={node} />}</For>
-    </>
+      <For each={props.node.children}>
+        {(childNode, i) => {
+          return (
+            <RenderNode
+              node={childNode}
+              parentIsHovered={
+                isHovered() ||
+                (props.node.type === "element" && props.parentIsHovered)
+              }
+            />
+          );
+        }}
+      </For>
+    </div>
   );
 }
 // function gatherNodes(parentNode: HTMLElement, mutable_foundPairs: Pair[]) {

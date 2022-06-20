@@ -13,8 +13,8 @@ var _getUsableName = require("./getUsableName");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
-const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div>SOLID RUNTIME!!! mode: <!> </div>`, 3),
-      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div><div></div></div>`, 4);
+const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div>Mode: <!> </div>`, 3),
+      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div></div>`, 2);
 
 function Runtime() {
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
@@ -41,8 +41,7 @@ function Runtime() {
     } else {
       return [];
     }
-  }; // createEffect(() => {});
-
+  };
 
   return (() => {
     const _el$ = _tmpl$.cloneNode(true),
@@ -57,80 +56,113 @@ function Runtime() {
       },
 
       children: (node, i) => (0, _web.createComponent)(RenderNode, {
-        node: node
+        node: node,
+        parentIsHovered: false
       })
     }), null);
     return _el$;
   })();
 }
 
-function RenderNode({
-  node
-}) {
-  return [(0, _web.memo)((() => {
-    const _c$ = (0, _web.memo)(() => !!node.box, true);
+function RenderNode(props) {
+  const [isHovered, setIsHovered] = (0, _solidJs.createSignal)(false);
+  (0, _solidJs.createEffect)(() => {
+    console.log("RenderNode", props.node, props.parentIsHovered, isHovered());
+  });
+  const offset = props.node.type === "component" ? 4 : 0;
+  return (() => {
+    const _el$5 = _tmpl$2.cloneNode(true);
 
-    return () => _c$() ? (() => {
-      const _el$5 = _tmpl$2.cloneNode(true),
-            _el$6 = _el$5.firstChild;
+    (0, _web.insert)(_el$5, (() => {
+      const _c$ = (0, _web.memo)(() => !!props.node.box, true);
 
-      _el$5.style.setProperty("position", "absolute");
+      return () => _c$() ? (() => {
+        const _el$6 = _tmpl$2.cloneNode(true);
 
-      _el$5.style.setProperty("border-radius", "4px");
+        (0, _web.addEventListener)(_el$6, "mouseleave", props.node.type === "component" ? () => setIsHovered(false) : undefined);
+        (0, _web.addEventListener)(_el$6, "mouseenter", props.node.type === "component" ? () => setIsHovered(true) : undefined);
 
-      _el$6.style.setProperty("padding", "1px 4px");
+        _el$6.style.setProperty("position", "absolute");
 
-      _el$6.style.setProperty("position", "absolute");
+        _el$6.style.setProperty("border-radius", "4px");
 
-      _el$6.style.setProperty("font-size", "12px");
+        (0, _web.insert)(_el$6, (() => {
+          const _c$2 = (0, _web.memo)(() => !!(props.node.type === "component" || props.parentIsHovered), true);
 
-      _el$6.style.setProperty("border-radius", "0px 0px 4px 4px");
+          return () => _c$2() ? (() => {
+            const _el$7 = _tmpl$2.cloneNode(true);
 
-      _el$6.style.setProperty("height", "20px");
+            _el$7.style.setProperty("padding", "1px 4px");
 
-      _el$6.style.setProperty("white-space", "nowrap");
+            _el$7.style.setProperty("position", "absolute");
 
-      (0, _web.insert)(_el$6, () => node.name);
-      (0, _web.effect)(_p$ => {
-        const _v$ = node.box.left + "px",
-              _v$2 = node.box.top + "px",
-              _v$3 = node.box.width + "px",
-              _v$4 = node.box.height + "px",
-              _v$5 = node.type === "component" ? "2px solid green" : "1px solid red",
-              _v$6 = node.type === "component" ? 1000 : 10,
-              _v$7 = node.type === "component" ? "rgba(0,200,0,0.2)" : "rgba(200,0,0,0.2)",
-              _v$8 = node.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
+            _el$7.style.setProperty("font-size", "12px");
 
-        _v$ !== _p$._v$ && _el$5.style.setProperty("left", _p$._v$ = _v$);
-        _v$2 !== _p$._v$2 && _el$5.style.setProperty("top", _p$._v$2 = _v$2);
-        _v$3 !== _p$._v$3 && _el$5.style.setProperty("width", _p$._v$3 = _v$3);
-        _v$4 !== _p$._v$4 && _el$5.style.setProperty("height", _p$._v$4 = _v$4);
-        _v$5 !== _p$._v$5 && _el$5.style.setProperty("border", _p$._v$5 = _v$5);
-        _v$6 !== _p$._v$6 && _el$5.style.setProperty("z-index", _p$._v$6 = _v$6);
-        _v$7 !== _p$._v$7 && _el$6.style.setProperty("background", _p$._v$7 = _v$7);
-        _v$8 !== _p$._v$8 && _el$6.style.setProperty("color", _p$._v$8 = _v$8);
-        return _p$;
-      }, {
-        _v$: undefined,
-        _v$2: undefined,
-        _v$3: undefined,
-        _v$4: undefined,
-        _v$5: undefined,
-        _v$6: undefined,
-        _v$7: undefined,
-        _v$8: undefined
-      });
-      return _el$5;
-    })() : null;
-  })()), (0, _web.createComponent)(_solidJs.For, {
-    get each() {
-      return node.children;
-    },
+            _el$7.style.setProperty("border-radius", "0px 0px 4px 4px");
 
-    children: (node, i) => (0, _web.createComponent)(RenderNode, {
-      node: node
-    })
-  })];
+            _el$7.style.setProperty("height", "20px");
+
+            _el$7.style.setProperty("white-space", "nowrap");
+
+            (0, _web.insert)(_el$7, () => props.node.name);
+            (0, _web.effect)(_p$ => {
+              const _v$7 = props.node.type === "component" ? "rgba(0,200,0,0.2)" : "",
+                    _v$8 = props.node.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
+
+              _v$7 !== _p$._v$7 && _el$7.style.setProperty("background", _p$._v$7 = _v$7);
+              _v$8 !== _p$._v$8 && _el$7.style.setProperty("color", _p$._v$8 = _v$8);
+              return _p$;
+            }, {
+              _v$7: undefined,
+              _v$8: undefined
+            });
+            return _el$7;
+          })() : null;
+        })());
+        (0, _web.effect)(_p$ => {
+          const _v$ = props.node.box.left - offset + "px",
+                _v$2 = props.node.box.top - offset + "px",
+                _v$3 = props.node.box.width + offset * 2 + "px",
+                _v$4 = props.node.box.height + offset * 2 + "px",
+                _v$5 = isHovered() || props.parentIsHovered ? props.node.type === "component" ? "2px solid green" : "1px solid rgba(200,0,0,1)" : props.node.type === "component" ? "1px solid green" : "1px solid rgba(200,0,0,0.1)",
+                _v$6 = props.node.type === "component" ? 1000 : 10;
+
+          _v$ !== _p$._v$ && _el$6.style.setProperty("left", _p$._v$ = _v$);
+          _v$2 !== _p$._v$2 && _el$6.style.setProperty("top", _p$._v$2 = _v$2);
+          _v$3 !== _p$._v$3 && _el$6.style.setProperty("width", _p$._v$3 = _v$3);
+          _v$4 !== _p$._v$4 && _el$6.style.setProperty("height", _p$._v$4 = _v$4);
+          _v$5 !== _p$._v$5 && _el$6.style.setProperty("border", _p$._v$5 = _v$5);
+          _v$6 !== _p$._v$6 && _el$6.style.setProperty("z-index", _p$._v$6 = _v$6);
+          return _p$;
+        }, {
+          _v$: undefined,
+          _v$2: undefined,
+          _v$3: undefined,
+          _v$4: undefined,
+          _v$5: undefined,
+          _v$6: undefined
+        });
+        return _el$6;
+      })() : null;
+    })(), null);
+    (0, _web.insert)(_el$5, (0, _web.createComponent)(_solidJs.For, {
+      get each() {
+        return props.node.children;
+      },
+
+      children: (childNode, i) => {
+        return (0, _web.createComponent)(RenderNode, {
+          node: childNode,
+
+          get parentIsHovered() {
+            return isHovered() || props.node.type === "element" && props.parentIsHovered;
+          }
+
+        });
+      }
+    }), null);
+    return _el$5;
+  })();
 } // function gatherNodes(parentNode: HTMLElement, mutable_foundPairs: Pair[]) {
 //   const nodes = parentNode.childNodes;
 //   for (let i = 0; i < nodes.length; i++) {
