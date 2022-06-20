@@ -6,12 +6,24 @@ import { getFiberLabel } from "./getFiberLabel";
 import { getUsableName } from "./getUsableName";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 
-type Pair = {
-  element?: Element | Text;
+type SimpleElement = {
+  type: "element";
+  name: string;
   fiber: Fiber;
-  box: DOMRect;
-  type: "element" | "component";
+  box: DOMRect | null;
+  element: Element | Text;
+  children: (SimpleElement | SimpleComponent)[];
 };
+
+type SimpleComponent = {
+  type: "component";
+  name: string;
+  fiber: Fiber;
+  box: DOMRect | null;
+  children: (SimpleElement | SimpleComponent)[];
+};
+
+type SimpleNode = SimpleElement | SimpleComponent;
 
 function Runtime() {
   const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
@@ -30,18 +42,17 @@ function Runtime() {
 
   // const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
 
-  const getFoundPairs = () => {
+  const getFoundNodes = (): SimpleNode[] => {
     if (solidMode() === "xray") {
-      const foundPairs: Pair[] = [];
       const foundFiberRoots: Fiber[] = [];
 
       gatherFiberRoots(document.body, foundFiberRoots);
 
-      foundFiberRoots.forEach((fiber) => {
-        gatherFiberChildren(fiber, foundPairs);
+      const simpleRoots = foundFiberRoots.map((fiber) => {
+        return fiberToSimple(fiber);
       });
 
-      return foundPairs;
+      return simpleRoots;
     } else {
       return [];
     }
@@ -52,49 +63,57 @@ function Runtime() {
   return (
     <div>
       SOLID RUNTIME!!! mode: {solidMode()}{" "}
-      <For each={getFoundPairs()}>
-        {(pair, i) => (
-          <div
-            style={{
-              position: "absolute",
-              left: pair.box.left + "px",
-              top: pair.box.top + "px",
-              width: pair.box.width + "px",
-              height: pair.box.height + "px",
-              border:
-                pair.type === "component" ? "2px solid green" : "1px solid red",
-              "border-radius": "4px",
-              "z-index": pair.type === "component" ? 1000 : 10,
-            }}
-          >
-            <div
-              style={{
-                padding: "1px 4px",
-                background:
-                  pair.type === "component"
-                    ? "rgba(0,200,0,0.2)"
-                    : "rgba(200,0,0,0.2)",
-                color:
-                  pair.type === "component"
-                    ? "rgba(50,150,50,1)"
-                    : "rgba(150,50,50,1)",
-                position: "absolute",
-                "font-size": "12px",
-                "border-radius": "0px 0px 4px 4px",
-                // top: "-20px",
-                height: "20px",
-                "white-space": "nowrap",
-              }}
-            >
-              {getUsableName(pair.fiber)}
-            </div>
-          </div>
-        )}
+      <For each={getFoundNodes()}>
+        {(node, i) => <RenderNode node={node} />}
       </For>
     </div>
   );
 }
 
+function RenderNode({ node }: { node: SimpleNode }) {
+  return (
+    <>
+      {node.box ? (
+        <div
+          style={{
+            position: "absolute",
+            left: node.box.left + "px",
+            top: node.box.top + "px",
+            width: node.box.width + "px",
+            height: node.box.height + "px",
+            border:
+              node.type === "component" ? "2px solid green" : "1px solid red",
+            "border-radius": "4px",
+            "z-index": node.type === "component" ? 1000 : 10,
+          }}
+        >
+          <div
+            style={{
+              padding: "1px 4px",
+              background:
+                node.type === "component"
+                  ? "rgba(0,200,0,0.2)"
+                  : "rgba(200,0,0,0.2)",
+              color:
+                node.type === "component"
+                  ? "rgba(50,150,50,1)"
+                  : "rgba(150,50,50,1)",
+              position: "absolute",
+              "font-size": "12px",
+              "border-radius": "0px 0px 4px 4px",
+              // top: "-20px",
+              height: "20px",
+              "white-space": "nowrap",
+            }}
+          >
+            {node.name}
+          </div>
+        </div>
+      ) : null}
+      <For each={node.children}>{(node, i) => <RenderNode node={node} />}</For>
+    </>
+  );
+}
 // function gatherNodes(parentNode: HTMLElement, mutable_foundPairs: Pair[]) {
 //   const nodes = parentNode.childNodes;
 //   for (let i = 0; i < nodes.length; i++) {
@@ -183,42 +202,35 @@ function getAllFiberChildren(fiber: Fiber) {
   return allChildren;
 }
 
-function gatherFiberChildren(fiber: Fiber, mutable_foundPairs: Pair[]) {
-  const node =
+function fiberToSimple(fiber: Fiber): SimpleNode {
+  const children = getAllFiberChildren(fiber);
+
+  const simpleChildren = children.map((child) => {
+    return fiberToSimple(child);
+  });
+  const element =
     fiber.stateNode instanceof Element || fiber.stateNode instanceof Text
       ? fiber.stateNode
       : fiber.stateNode?.containerInfo;
 
-  if (node) {
-    const box = getBoundingRect(node);
-    if (box) {
-      mutable_foundPairs.push({
-        fiber,
-        element: node,
-        box: box,
-        type: "element",
-      });
-    }
+  if (element) {
+    const box = getBoundingRect(element);
+    return {
+      type: "element",
+      element: element,
+      fiber: fiber,
+      name: getUsableName(fiber),
+      box: box || getComposedBoundingBox(simpleChildren),
+      children: simpleChildren,
+    };
   } else {
-    if (fiber.elementType?.name) {
-      const box = getComposedBoundingBox(fiber);
-      if (box) {
-        console.log("Creating comp");
-        mutable_foundPairs.push({
-          fiber,
-          element: node,
-          box: box,
-          type: "component",
-        });
-      }
-    }
-
-    console.log("NO NODE", fiber);
-  }
-
-  const children = getAllFiberChildren(fiber);
-  for (const child of children) {
-    gatherFiberChildren(child, mutable_foundPairs);
+    return {
+      type: "component",
+      fiber: fiber,
+      name: getUsableName(fiber),
+      box: getComposedBoundingBox(simpleChildren),
+      children: simpleChildren,
+    };
   }
 }
 
@@ -234,12 +246,6 @@ function getBoundingRect(node: Element | Text): DOMRect | null {
   }
 }
 
-// type DOMRectLike = {
-//   left: number;
-//   top: number;
-//   width: number;
-//   height: number;
-// };
 function mergeRects(a: DOMRect, b: DOMRect): DOMRect {
   const newRect = new DOMRect();
 
@@ -249,31 +255,24 @@ function mergeRects(a: DOMRect, b: DOMRect): DOMRect {
   newRect.height = Math.max(a.y + a.height, b.y + b.height) - newRect.y;
 
   return newRect;
-  // return {
-  //   left: Math.min(a.x, b.x),
-  //   top: Math.min(a.y, b.y),
-  //   width: Math.max(a.right, b.right) - Math.min(a.x, b.x),
-  //   height: Math.max(a.bottom, b.bottom) - Math.min(a.y, b.y),
-
-  // };
 }
 
-function getComposedBoundingBox(fiber: Fiber): DOMRect | null {
+function getComposedBoundingBox(children: SimpleNode[]): DOMRect | null {
   let composedRect: DOMRect | null = null;
-  const children = getAllFiberChildren(fiber);
+
   children.forEach((child) => {
-    const rect = getBoundingRect(child.stateNode);
-    if (!rect) {
+    const box = child.box;
+    if (!box) {
       return;
     }
-    if (rect.width <= 0 || rect.height <= 0) {
+    if (box.width <= 0 || box.height <= 0) {
       // ignore zero-sized rects
       return;
     }
     if (composedRect) {
-      composedRect = mergeRects(composedRect, rect);
+      composedRect = mergeRects(composedRect, box);
     } else {
-      composedRect = rect;
+      composedRect = box;
     }
   });
   return composedRect;

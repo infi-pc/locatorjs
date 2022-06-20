@@ -30,15 +30,14 @@ function Runtime() {
     document.removeEventListener("keyup", globalKeyUpListener);
   }); // const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
 
-  const getFoundPairs = () => {
+  const getFoundNodes = () => {
     if (solidMode() === "xray") {
-      const foundPairs = [];
       const foundFiberRoots = [];
       gatherFiberRoots(document.body, foundFiberRoots);
-      foundFiberRoots.forEach(fiber => {
-        gatherFiberChildren(fiber, foundPairs);
+      const simpleRoots = foundFiberRoots.map(fiber => {
+        return fiberToSimple(fiber);
       });
-      return foundPairs;
+      return simpleRoots;
     } else {
       return [];
     }
@@ -54,64 +53,84 @@ function Runtime() {
     (0, _web.insert)(_el$, solidMode, _el$4);
     (0, _web.insert)(_el$, (0, _web.createComponent)(_solidJs.For, {
       get each() {
-        return getFoundPairs();
+        return getFoundNodes();
       },
 
-      children: (pair, i) => (() => {
-        const _el$5 = _tmpl$2.cloneNode(true),
-              _el$6 = _el$5.firstChild;
-
-        _el$5.style.setProperty("position", "absolute");
-
-        _el$5.style.setProperty("border-radius", "4px");
-
-        _el$6.style.setProperty("padding", "1px 4px");
-
-        _el$6.style.setProperty("position", "absolute");
-
-        _el$6.style.setProperty("font-size", "12px");
-
-        _el$6.style.setProperty("border-radius", "0px 0px 4px 4px");
-
-        _el$6.style.setProperty("height", "20px");
-
-        _el$6.style.setProperty("white-space", "nowrap");
-
-        (0, _web.insert)(_el$6, () => (0, _getUsableName.getUsableName)(pair.fiber));
-        (0, _web.effect)(_p$ => {
-          const _v$ = pair.box.left + "px",
-                _v$2 = pair.box.top + "px",
-                _v$3 = pair.box.width + "px",
-                _v$4 = pair.box.height + "px",
-                _v$5 = pair.type === "component" ? "2px solid green" : "1px solid red",
-                _v$6 = pair.type === "component" ? 1000 : 10,
-                _v$7 = pair.type === "component" ? "rgba(0,200,0,0.2)" : "rgba(200,0,0,0.2)",
-                _v$8 = pair.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
-
-          _v$ !== _p$._v$ && _el$5.style.setProperty("left", _p$._v$ = _v$);
-          _v$2 !== _p$._v$2 && _el$5.style.setProperty("top", _p$._v$2 = _v$2);
-          _v$3 !== _p$._v$3 && _el$5.style.setProperty("width", _p$._v$3 = _v$3);
-          _v$4 !== _p$._v$4 && _el$5.style.setProperty("height", _p$._v$4 = _v$4);
-          _v$5 !== _p$._v$5 && _el$5.style.setProperty("border", _p$._v$5 = _v$5);
-          _v$6 !== _p$._v$6 && _el$5.style.setProperty("z-index", _p$._v$6 = _v$6);
-          _v$7 !== _p$._v$7 && _el$6.style.setProperty("background", _p$._v$7 = _v$7);
-          _v$8 !== _p$._v$8 && _el$6.style.setProperty("color", _p$._v$8 = _v$8);
-          return _p$;
-        }, {
-          _v$: undefined,
-          _v$2: undefined,
-          _v$3: undefined,
-          _v$4: undefined,
-          _v$5: undefined,
-          _v$6: undefined,
-          _v$7: undefined,
-          _v$8: undefined
-        });
-        return _el$5;
-      })()
+      children: (node, i) => (0, _web.createComponent)(RenderNode, {
+        node: node
+      })
     }), null);
     return _el$;
   })();
+}
+
+function RenderNode({
+  node
+}) {
+  return [(0, _web.memo)((() => {
+    const _c$ = (0, _web.memo)(() => !!node.box, true);
+
+    return () => _c$() ? (() => {
+      const _el$5 = _tmpl$2.cloneNode(true),
+            _el$6 = _el$5.firstChild;
+
+      _el$5.style.setProperty("position", "absolute");
+
+      _el$5.style.setProperty("border-radius", "4px");
+
+      _el$6.style.setProperty("padding", "1px 4px");
+
+      _el$6.style.setProperty("position", "absolute");
+
+      _el$6.style.setProperty("font-size", "12px");
+
+      _el$6.style.setProperty("border-radius", "0px 0px 4px 4px");
+
+      _el$6.style.setProperty("height", "20px");
+
+      _el$6.style.setProperty("white-space", "nowrap");
+
+      (0, _web.insert)(_el$6, () => node.name);
+      (0, _web.effect)(_p$ => {
+        const _v$ = node.box.left + "px",
+              _v$2 = node.box.top + "px",
+              _v$3 = node.box.width + "px",
+              _v$4 = node.box.height + "px",
+              _v$5 = node.type === "component" ? "2px solid green" : "1px solid red",
+              _v$6 = node.type === "component" ? 1000 : 10,
+              _v$7 = node.type === "component" ? "rgba(0,200,0,0.2)" : "rgba(200,0,0,0.2)",
+              _v$8 = node.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
+
+        _v$ !== _p$._v$ && _el$5.style.setProperty("left", _p$._v$ = _v$);
+        _v$2 !== _p$._v$2 && _el$5.style.setProperty("top", _p$._v$2 = _v$2);
+        _v$3 !== _p$._v$3 && _el$5.style.setProperty("width", _p$._v$3 = _v$3);
+        _v$4 !== _p$._v$4 && _el$5.style.setProperty("height", _p$._v$4 = _v$4);
+        _v$5 !== _p$._v$5 && _el$5.style.setProperty("border", _p$._v$5 = _v$5);
+        _v$6 !== _p$._v$6 && _el$5.style.setProperty("z-index", _p$._v$6 = _v$6);
+        _v$7 !== _p$._v$7 && _el$6.style.setProperty("background", _p$._v$7 = _v$7);
+        _v$8 !== _p$._v$8 && _el$6.style.setProperty("color", _p$._v$8 = _v$8);
+        return _p$;
+      }, {
+        _v$: undefined,
+        _v$2: undefined,
+        _v$3: undefined,
+        _v$4: undefined,
+        _v$5: undefined,
+        _v$6: undefined,
+        _v$7: undefined,
+        _v$8: undefined
+      });
+      return _el$5;
+    })() : null;
+  })()), (0, _web.createComponent)(_solidJs.For, {
+    get each() {
+      return node.children;
+    },
+
+    children: (node, i) => (0, _web.createComponent)(RenderNode, {
+      node: node
+    })
+  })];
 } // function gatherNodes(parentNode: HTMLElement, mutable_foundPairs: Pair[]) {
 //   const nodes = parentNode.childNodes;
 //   for (let i = 0; i < nodes.length; i++) {
@@ -201,46 +220,33 @@ function getAllFiberChildren(fiber) {
   return allChildren;
 }
 
-function gatherFiberChildren(fiber, mutable_foundPairs) {
+function fiberToSimple(fiber) {
   var _fiber$stateNode;
 
-  const node = fiber.stateNode instanceof Element || fiber.stateNode instanceof Text ? fiber.stateNode : (_fiber$stateNode = fiber.stateNode) === null || _fiber$stateNode === void 0 ? void 0 : _fiber$stateNode.containerInfo;
-
-  if (node) {
-    const box = getBoundingRect(node);
-
-    if (box) {
-      mutable_foundPairs.push({
-        fiber,
-        element: node,
-        box: box,
-        type: "element"
-      });
-    }
-  } else {
-    var _fiber$elementType;
-
-    if ((_fiber$elementType = fiber.elementType) !== null && _fiber$elementType !== void 0 && _fiber$elementType.name) {
-      const box = getComposedBoundingBox(fiber);
-
-      if (box) {
-        console.log("Creating comp");
-        mutable_foundPairs.push({
-          fiber,
-          element: node,
-          box: box,
-          type: "component"
-        });
-      }
-    }
-
-    console.log("NO NODE", fiber);
-  }
-
   const children = getAllFiberChildren(fiber);
+  const simpleChildren = children.map(child => {
+    return fiberToSimple(child);
+  });
+  const element = fiber.stateNode instanceof Element || fiber.stateNode instanceof Text ? fiber.stateNode : (_fiber$stateNode = fiber.stateNode) === null || _fiber$stateNode === void 0 ? void 0 : _fiber$stateNode.containerInfo;
 
-  for (const child of children) {
-    gatherFiberChildren(child, mutable_foundPairs);
+  if (element) {
+    const box = getBoundingRect(element);
+    return {
+      type: "element",
+      element: element,
+      fiber: fiber,
+      name: (0, _getUsableName.getUsableName)(fiber),
+      box: box || getComposedBoundingBox(simpleChildren),
+      children: simpleChildren
+    };
+  } else {
+    return {
+      type: "component",
+      fiber: fiber,
+      name: (0, _getUsableName.getUsableName)(fiber),
+      box: getComposedBoundingBox(simpleChildren),
+      children: simpleChildren
+    };
   }
 }
 
@@ -254,13 +260,7 @@ function getBoundingRect(node) {
   } else {
     return null;
   }
-} // type DOMRectLike = {
-//   left: number;
-//   top: number;
-//   width: number;
-//   height: number;
-// };
-
+}
 
 function mergeRects(a, b) {
   const newRect = new DOMRect();
@@ -268,33 +268,27 @@ function mergeRects(a, b) {
   newRect.y = Math.min(a.y, b.y);
   newRect.width = Math.max(a.x + a.width, b.x + b.width) - newRect.x;
   newRect.height = Math.max(a.y + a.height, b.y + b.height) - newRect.y;
-  return newRect; // return {
-  //   left: Math.min(a.x, b.x),
-  //   top: Math.min(a.y, b.y),
-  //   width: Math.max(a.right, b.right) - Math.min(a.x, b.x),
-  //   height: Math.max(a.bottom, b.bottom) - Math.min(a.y, b.y),
-  // };
+  return newRect;
 }
 
-function getComposedBoundingBox(fiber) {
+function getComposedBoundingBox(children) {
   let composedRect = null;
-  const children = getAllFiberChildren(fiber);
   children.forEach(child => {
-    const rect = getBoundingRect(child.stateNode);
+    const box = child.box;
 
-    if (!rect) {
+    if (!box) {
       return;
     }
 
-    if (rect.width <= 0 || rect.height <= 0) {
+    if (box.width <= 0 || box.height <= 0) {
       // ignore zero-sized rects
       return;
     }
 
     if (composedRect) {
-      composedRect = mergeRects(composedRect, rect);
+      composedRect = mergeRects(composedRect, box);
     } else {
-      composedRect = rect;
+      composedRect = box;
     }
   });
   return composedRect;
