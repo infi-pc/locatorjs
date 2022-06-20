@@ -46,6 +46,7 @@ function Runtime() {
 
       gatherFiberRoots(document.body, foundFiberRoots);
 
+      console.log({ foundFiberRoots });
       const simpleRoots = foundFiberRoots.map((fiber) => {
         return fiberToSimple(fiber);
       });
@@ -73,7 +74,7 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
     console.log("RenderNode", props.node, props.parentIsHovered, isHovered());
   });
 
-  const offset = props.node.type === "component" ? 4 : 0;
+  const offset = props.node.type === "component" ? 2 : 0;
   return (
     <div>
       {props.node.box ? (
@@ -97,12 +98,12 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
             border:
               isHovered() || props.parentIsHovered
                 ? props.node.type === "component"
-                  ? "2px solid green"
-                  : "1px solid rgba(200,0,0,1)"
+                  ? "2px solid rgba(100,0,0,1)"
+                  : "1px solid rgba(200,0,0,0.6)"
                 : props.node.type === "component"
-                ? "1px solid green"
+                ? "2px solid rgba(200,0,0,1)"
                 : "1px solid rgba(200,0,0,0.1)",
-            "border-radius": "4px",
+            "border-radius": props.node.type === "component" ? "5px" : "3px",
             "z-index": props.node.type === "component" ? 1000 : 10,
           }}
         >

@@ -34,6 +34,9 @@ function Runtime() {
     if (solidMode() === "xray") {
       const foundFiberRoots = [];
       gatherFiberRoots(document.body, foundFiberRoots);
+      console.log({
+        foundFiberRoots
+      });
       const simpleRoots = foundFiberRoots.map(fiber => {
         return fiberToSimple(fiber);
       });
@@ -69,7 +72,7 @@ function RenderNode(props) {
   (0, _solidJs.createEffect)(() => {
     console.log("RenderNode", props.node, props.parentIsHovered, isHovered());
   });
-  const offset = props.node.type === "component" ? 4 : 0;
+  const offset = props.node.type === "component" ? 2 : 0;
   return (() => {
     const _el$5 = _tmpl$2.cloneNode(true);
 
@@ -83,8 +86,6 @@ function RenderNode(props) {
         (0, _web.addEventListener)(_el$6, "mouseenter", props.node.type === "component" ? () => setIsHovered(true) : undefined);
 
         _el$6.style.setProperty("position", "absolute");
-
-        _el$6.style.setProperty("border-radius", "4px");
 
         (0, _web.insert)(_el$6, (() => {
           const _c$2 = (0, _web.memo)(() => !!(props.node.type === "component" || props.parentIsHovered), true);
@@ -106,15 +107,15 @@ function RenderNode(props) {
 
             (0, _web.insert)(_el$7, () => props.node.name);
             (0, _web.effect)(_p$ => {
-              const _v$7 = props.node.type === "component" ? "rgba(0,200,0,0.2)" : "",
-                    _v$8 = props.node.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
+              const _v$8 = props.node.type === "component" ? "rgba(0,200,0,0.2)" : "",
+                    _v$9 = props.node.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
 
-              _v$7 !== _p$._v$7 && _el$7.style.setProperty("background", _p$._v$7 = _v$7);
-              _v$8 !== _p$._v$8 && _el$7.style.setProperty("color", _p$._v$8 = _v$8);
+              _v$8 !== _p$._v$8 && _el$7.style.setProperty("background", _p$._v$8 = _v$8);
+              _v$9 !== _p$._v$9 && _el$7.style.setProperty("color", _p$._v$9 = _v$9);
               return _p$;
             }, {
-              _v$7: undefined,
-              _v$8: undefined
+              _v$8: undefined,
+              _v$9: undefined
             });
             return _el$7;
           })() : null;
@@ -124,15 +125,17 @@ function RenderNode(props) {
                 _v$2 = props.node.box.top - offset + "px",
                 _v$3 = props.node.box.width + offset * 2 + "px",
                 _v$4 = props.node.box.height + offset * 2 + "px",
-                _v$5 = isHovered() || props.parentIsHovered ? props.node.type === "component" ? "2px solid green" : "1px solid rgba(200,0,0,1)" : props.node.type === "component" ? "1px solid green" : "1px solid rgba(200,0,0,0.1)",
-                _v$6 = props.node.type === "component" ? 1000 : 10;
+                _v$5 = isHovered() || props.parentIsHovered ? props.node.type === "component" ? "2px solid rgba(100,0,0,1)" : "1px solid rgba(200,0,0,0.6)" : props.node.type === "component" ? "2px solid rgba(200,0,0,1)" : "1px solid rgba(200,0,0,0.1)",
+                _v$6 = props.node.type === "component" ? "5px" : "3px",
+                _v$7 = props.node.type === "component" ? 1000 : 10;
 
           _v$ !== _p$._v$ && _el$6.style.setProperty("left", _p$._v$ = _v$);
           _v$2 !== _p$._v$2 && _el$6.style.setProperty("top", _p$._v$2 = _v$2);
           _v$3 !== _p$._v$3 && _el$6.style.setProperty("width", _p$._v$3 = _v$3);
           _v$4 !== _p$._v$4 && _el$6.style.setProperty("height", _p$._v$4 = _v$4);
           _v$5 !== _p$._v$5 && _el$6.style.setProperty("border", _p$._v$5 = _v$5);
-          _v$6 !== _p$._v$6 && _el$6.style.setProperty("z-index", _p$._v$6 = _v$6);
+          _v$6 !== _p$._v$6 && _el$6.style.setProperty("border-radius", _p$._v$6 = _v$6);
+          _v$7 !== _p$._v$7 && _el$6.style.setProperty("z-index", _p$._v$7 = _v$7);
           return _p$;
         }, {
           _v$: undefined,
@@ -140,7 +143,8 @@ function RenderNode(props) {
           _v$3: undefined,
           _v$4: undefined,
           _v$5: undefined,
-          _v$6: undefined
+          _v$6: undefined,
+          _v$7: undefined
         });
         return _el$6;
       })() : null;
