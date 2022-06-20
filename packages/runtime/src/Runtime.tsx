@@ -2,6 +2,7 @@
 import { Fiber } from "@locator/shared";
 import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
+import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 import { getUsableName } from "./getUsableName";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 
@@ -70,8 +71,8 @@ function Runtime() {
       {solidMode() ? (
         <div
           id="locator-solid-overlay"
-          onScroll={(e) => {
-            e.stopPropagation();
+          onClick={(e) => {
+            setSolidMode(null);
           }}
         >
           <div
@@ -306,11 +307,18 @@ function gatherFiberRoots(
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (node instanceof HTMLElement) {
-      const fiber = (node as any)._reactRootContainer?._internalRoot?.current;
+      const fiber =
+        (node as any)._reactRootContainer?._internalRoot?.current ||
+        (node as any)._reactRootContainer?.current;
       if (fiber) {
         mutable_foundFibers.push(fiber);
       } else {
-        gatherFiberRoots(node, mutable_foundFibers);
+        const rootFiber = findFiberByHtmlElement(node!, false);
+        if (rootFiber) {
+          mutable_foundFibers.push(rootFiber);
+        } else {
+          gatherFiberRoots(node, mutable_foundFibers);
+        }
       }
     }
   }

@@ -9,6 +9,8 @@ var _web = require("solid-js/web");
 
 var _solidJs = require("solid-js");
 
+var _findFiberByHtmlElement = require("./findFiberByHtmlElement");
+
 var _getUsableName = require("./getUsableName");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
@@ -61,9 +63,9 @@ function Runtime() {
       const _el$ = _tmpl$.cloneNode(true),
             _el$2 = _el$.firstChild;
 
-      _el$.addEventListener("scroll", e => {
-        e.stopPropagation();
-      });
+      _el$.$$click = e => {
+        setSolidMode(null);
+      };
 
       _el$2.style.setProperty("transform", "scale(0.7)");
 
@@ -331,14 +333,20 @@ function gatherFiberRoots(parentNode, mutable_foundFibers) {
     const node = nodes[i];
 
     if (node instanceof HTMLElement) {
-      var _reactRootContainer, _reactRootContainer$_;
+      var _reactRootContainer, _reactRootContainer$_, _reactRootContainer2;
 
-      const fiber = (_reactRootContainer = node._reactRootContainer) === null || _reactRootContainer === void 0 ? void 0 : (_reactRootContainer$_ = _reactRootContainer._internalRoot) === null || _reactRootContainer$_ === void 0 ? void 0 : _reactRootContainer$_.current;
+      const fiber = ((_reactRootContainer = node._reactRootContainer) === null || _reactRootContainer === void 0 ? void 0 : (_reactRootContainer$_ = _reactRootContainer._internalRoot) === null || _reactRootContainer$_ === void 0 ? void 0 : _reactRootContainer$_.current) || ((_reactRootContainer2 = node._reactRootContainer) === null || _reactRootContainer2 === void 0 ? void 0 : _reactRootContainer2.current);
 
       if (fiber) {
         mutable_foundFibers.push(fiber);
       } else {
-        gatherFiberRoots(node, mutable_foundFibers);
+        const rootFiber = (0, _findFiberByHtmlElement.findFiberByHtmlElement)(node, false);
+
+        if (rootFiber) {
+          mutable_foundFibers.push(rootFiber);
+        } else {
+          gatherFiberRoots(node, mutable_foundFibers);
+        }
       }
     }
   }
@@ -433,3 +441,5 @@ function getComposedBoundingBox(children) {
 function initRender(solidLayer) {
   (0, _web.render)(() => (0, _web.createComponent)(Runtime, {}), solidLayer);
 }
+
+(0, _web.delegateEvents)(["click"]);
