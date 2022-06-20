@@ -1,5 +1,6 @@
+/* eslint-disable react/no-unknown-property */
 import { Fiber } from "@locator/shared";
-import { createEffect, createSignal, For, onCleanup } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
 import { getUsableName } from "./getUsableName";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
@@ -57,13 +58,34 @@ function Runtime() {
     }
   };
 
+  createEffect(() => {
+    if (solidMode()) {
+      document.body.classList.add("locator-solid-mode");
+    } else {
+      document.body.classList.remove("locator-solid-mode");
+    }
+  });
   return (
-    <div>
-      Mode: {solidMode()}{" "}
-      <For each={getFoundNodes()}>
-        {(node, i) => <RenderNode node={node} parentIsHovered={false} />}
-      </For>
-    </div>
+    <>
+      {solidMode() ? (
+        <div
+          id="locator-solid-overlay"
+          onScroll={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <div
+            style={{
+              transform: "scale(0.7)",
+            }}
+          >
+            <For each={getFoundNodes()}>
+              {(node, i) => <RenderNode node={node} parentIsHovered={false} />}
+            </For>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -101,10 +123,11 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
                   ? "2px solid rgba(100,0,0,1)"
                   : "1px solid rgba(200,0,0,0.6)"
                 : props.node.type === "component"
-                ? "2px solid rgba(200,0,0,1)"
-                : "1px solid rgba(200,0,0,0.1)",
+                ? "0px solid rgba(200,0,0,1)"
+                : "0px solid rgba(200,0,0,0.1)",
             "border-radius": props.node.type === "component" ? "5px" : "3px",
             "z-index": props.node.type === "component" ? 1000 : 10,
+            // transform: "scale(0.98)",
           }}
         >
           {props.node.type === "component" || props.parentIsHovered ? (
@@ -130,6 +153,27 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
           ) : null}
         </div>
       ) : null}
+      {props.node.type === "component" ? (
+        <For each={props.node.children}>
+          {(childNode, i) => {
+            if (
+              childNode.type === "element" &&
+              childNode.element instanceof HTMLElement &&
+              childNode.box
+            ) {
+              return (
+                <RenderNodeClone
+                  element={childNode.element}
+                  box={childNode.box}
+                  isHovered={isHovered()}
+                />
+              );
+            }
+
+            return null;
+          }}
+        </For>
+      ) : null}
       <For each={props.node.children}>
         {(childNode, i) => {
           return (
@@ -143,6 +187,54 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
           );
         }}
       </For>
+    </div>
+  );
+}
+
+function RenderNodeClone(props: {
+  element: HTMLElement;
+  box: DOMRect;
+  isHovered: boolean;
+}) {
+  let myDiv: HTMLDivElement | undefined;
+
+  onMount(() => {
+    if (myDiv) {
+      const clone = props.element.cloneNode(true);
+      myDiv.appendChild(clone);
+
+      // html2canvas(document.body).then(function (canvas) {
+      //   myDiv!.appendChild(canvas);
+      // });
+    }
+  });
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: props.box.left + "px",
+        top: props.box.top + "px",
+        width: props.box.width + "px",
+        height: props.box.height + "px",
+        "box-shadow":
+          "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        background: "rgba(255,255,255,1)",
+        // "backdrop-filter": "blur(20px)",
+        "border-radius": "5px",
+        cursor: "pointer",
+        overflow: "hidden",
+        transform: props.isHovered ? "scale(1)" : "scale(0.97)",
+        // transform: "translate(-5px, -5px) scale(0.9)",
+      }}
+      // eslint-disable-next-line react/no-unknown-property
+      class="locator-cloned-element"
+    >
+      <div
+        ref={myDiv}
+        style={{
+          "pointer-events": "none",
+        }}
+      ></div>
     </div>
   );
 }

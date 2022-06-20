@@ -13,8 +13,9 @@ var _getUsableName = require("./getUsableName");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
-const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div>Mode: <!> </div>`, 3),
-      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div></div>`, 2);
+const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"><div></div></div>`, 4),
+      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div></div>`, 2),
+      _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<div class="locator-cloned-element"><div></div></div>`, 4);
 
 function Runtime() {
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
@@ -46,25 +47,39 @@ function Runtime() {
     }
   };
 
-  return (() => {
-    const _el$ = _tmpl$.cloneNode(true),
-          _el$2 = _el$.firstChild,
-          _el$4 = _el$2.nextSibling,
-          _el$3 = _el$4.nextSibling;
+  (0, _solidJs.createEffect)(() => {
+    if (solidMode()) {
+      document.body.classList.add("locator-solid-mode");
+    } else {
+      document.body.classList.remove("locator-solid-mode");
+    }
+  });
+  return (0, _web.memo)((() => {
+    const _c$ = (0, _web.memo)(() => !!solidMode(), true);
 
-    (0, _web.insert)(_el$, solidMode, _el$4);
-    (0, _web.insert)(_el$, (0, _web.createComponent)(_solidJs.For, {
-      get each() {
-        return getFoundNodes();
-      },
+    return () => _c$() ? (() => {
+      const _el$ = _tmpl$.cloneNode(true),
+            _el$2 = _el$.firstChild;
 
-      children: (node, i) => (0, _web.createComponent)(RenderNode, {
-        node: node,
-        parentIsHovered: false
-      })
-    }), null);
-    return _el$;
-  })();
+      _el$.addEventListener("scroll", e => {
+        e.stopPropagation();
+      });
+
+      _el$2.style.setProperty("transform", "scale(0.7)");
+
+      (0, _web.insert)(_el$2, (0, _web.createComponent)(_solidJs.For, {
+        get each() {
+          return getFoundNodes();
+        },
+
+        children: (node, i) => (0, _web.createComponent)(RenderNode, {
+          node: node,
+          parentIsHovered: false
+        })
+      }));
+      return _el$;
+    })() : null;
+  })());
 }
 
 function RenderNode(props) {
@@ -74,50 +89,50 @@ function RenderNode(props) {
   });
   const offset = props.node.type === "component" ? 2 : 0;
   return (() => {
-    const _el$5 = _tmpl$2.cloneNode(true);
+    const _el$3 = _tmpl$2.cloneNode(true);
 
-    (0, _web.insert)(_el$5, (() => {
-      const _c$ = (0, _web.memo)(() => !!props.node.box, true);
+    (0, _web.insert)(_el$3, (() => {
+      const _c$2 = (0, _web.memo)(() => !!props.node.box, true);
 
-      return () => _c$() ? (() => {
-        const _el$6 = _tmpl$2.cloneNode(true);
+      return () => _c$2() ? (() => {
+        const _el$4 = _tmpl$2.cloneNode(true);
 
-        (0, _web.addEventListener)(_el$6, "mouseleave", props.node.type === "component" ? () => setIsHovered(false) : undefined);
-        (0, _web.addEventListener)(_el$6, "mouseenter", props.node.type === "component" ? () => setIsHovered(true) : undefined);
+        (0, _web.addEventListener)(_el$4, "mouseleave", props.node.type === "component" ? () => setIsHovered(false) : undefined);
+        (0, _web.addEventListener)(_el$4, "mouseenter", props.node.type === "component" ? () => setIsHovered(true) : undefined);
 
-        _el$6.style.setProperty("position", "absolute");
+        _el$4.style.setProperty("position", "absolute");
 
-        (0, _web.insert)(_el$6, (() => {
-          const _c$2 = (0, _web.memo)(() => !!(props.node.type === "component" || props.parentIsHovered), true);
+        (0, _web.insert)(_el$4, (() => {
+          const _c$4 = (0, _web.memo)(() => !!(props.node.type === "component" || props.parentIsHovered), true);
 
-          return () => _c$2() ? (() => {
-            const _el$7 = _tmpl$2.cloneNode(true);
+          return () => _c$4() ? (() => {
+            const _el$5 = _tmpl$2.cloneNode(true);
 
-            _el$7.style.setProperty("padding", "1px 4px");
+            _el$5.style.setProperty("padding", "1px 4px");
 
-            _el$7.style.setProperty("position", "absolute");
+            _el$5.style.setProperty("position", "absolute");
 
-            _el$7.style.setProperty("font-size", "12px");
+            _el$5.style.setProperty("font-size", "12px");
 
-            _el$7.style.setProperty("border-radius", "0px 0px 4px 4px");
+            _el$5.style.setProperty("border-radius", "0px 0px 4px 4px");
 
-            _el$7.style.setProperty("height", "20px");
+            _el$5.style.setProperty("height", "20px");
 
-            _el$7.style.setProperty("white-space", "nowrap");
+            _el$5.style.setProperty("white-space", "nowrap");
 
-            (0, _web.insert)(_el$7, () => props.node.name);
+            (0, _web.insert)(_el$5, () => props.node.name);
             (0, _web.effect)(_p$ => {
               const _v$8 = props.node.type === "component" ? "rgba(0,200,0,0.2)" : "",
                     _v$9 = props.node.type === "component" ? "rgba(50,150,50,1)" : "rgba(150,50,50,1)";
 
-              _v$8 !== _p$._v$8 && _el$7.style.setProperty("background", _p$._v$8 = _v$8);
-              _v$9 !== _p$._v$9 && _el$7.style.setProperty("color", _p$._v$9 = _v$9);
+              _v$8 !== _p$._v$8 && _el$5.style.setProperty("background", _p$._v$8 = _v$8);
+              _v$9 !== _p$._v$9 && _el$5.style.setProperty("color", _p$._v$9 = _v$9);
               return _p$;
             }, {
               _v$8: undefined,
               _v$9: undefined
             });
-            return _el$7;
+            return _el$5;
           })() : null;
         })());
         (0, _web.effect)(_p$ => {
@@ -125,17 +140,17 @@ function RenderNode(props) {
                 _v$2 = props.node.box.top - offset + "px",
                 _v$3 = props.node.box.width + offset * 2 + "px",
                 _v$4 = props.node.box.height + offset * 2 + "px",
-                _v$5 = isHovered() || props.parentIsHovered ? props.node.type === "component" ? "2px solid rgba(100,0,0,1)" : "1px solid rgba(200,0,0,0.6)" : props.node.type === "component" ? "2px solid rgba(200,0,0,1)" : "1px solid rgba(200,0,0,0.1)",
+                _v$5 = isHovered() || props.parentIsHovered ? props.node.type === "component" ? "2px solid rgba(100,0,0,1)" : "1px solid rgba(200,0,0,0.6)" : props.node.type === "component" ? "0px solid rgba(200,0,0,1)" : "0px solid rgba(200,0,0,0.1)",
                 _v$6 = props.node.type === "component" ? "5px" : "3px",
                 _v$7 = props.node.type === "component" ? 1000 : 10;
 
-          _v$ !== _p$._v$ && _el$6.style.setProperty("left", _p$._v$ = _v$);
-          _v$2 !== _p$._v$2 && _el$6.style.setProperty("top", _p$._v$2 = _v$2);
-          _v$3 !== _p$._v$3 && _el$6.style.setProperty("width", _p$._v$3 = _v$3);
-          _v$4 !== _p$._v$4 && _el$6.style.setProperty("height", _p$._v$4 = _v$4);
-          _v$5 !== _p$._v$5 && _el$6.style.setProperty("border", _p$._v$5 = _v$5);
-          _v$6 !== _p$._v$6 && _el$6.style.setProperty("border-radius", _p$._v$6 = _v$6);
-          _v$7 !== _p$._v$7 && _el$6.style.setProperty("z-index", _p$._v$7 = _v$7);
+          _v$ !== _p$._v$ && _el$4.style.setProperty("left", _p$._v$ = _v$);
+          _v$2 !== _p$._v$2 && _el$4.style.setProperty("top", _p$._v$2 = _v$2);
+          _v$3 !== _p$._v$3 && _el$4.style.setProperty("width", _p$._v$3 = _v$3);
+          _v$4 !== _p$._v$4 && _el$4.style.setProperty("height", _p$._v$4 = _v$4);
+          _v$5 !== _p$._v$5 && _el$4.style.setProperty("border", _p$._v$5 = _v$5);
+          _v$6 !== _p$._v$6 && _el$4.style.setProperty("border-radius", _p$._v$6 = _v$6);
+          _v$7 !== _p$._v$7 && _el$4.style.setProperty("z-index", _p$._v$7 = _v$7);
           return _p$;
         }, {
           _v$: undefined,
@@ -146,10 +161,40 @@ function RenderNode(props) {
           _v$6: undefined,
           _v$7: undefined
         });
-        return _el$6;
+        return _el$4;
       })() : null;
     })(), null);
-    (0, _web.insert)(_el$5, (0, _web.createComponent)(_solidJs.For, {
+    (0, _web.insert)(_el$3, (() => {
+      const _c$3 = (0, _web.memo)(() => props.node.type === "component", true);
+
+      return () => _c$3() ? (0, _web.createComponent)(_solidJs.For, {
+        get each() {
+          return props.node.children;
+        },
+
+        children: (childNode, i) => {
+          if (childNode.type === "element" && childNode.element instanceof HTMLElement && childNode.box) {
+            return (0, _web.createComponent)(RenderNodeClone, {
+              get element() {
+                return childNode.element;
+              },
+
+              get box() {
+                return childNode.box;
+              },
+
+              get isHovered() {
+                return isHovered();
+              }
+
+            });
+          }
+
+          return null;
+        }
+      }) : null;
+    })(), null);
+    (0, _web.insert)(_el$3, (0, _web.createComponent)(_solidJs.For, {
       get each() {
         return props.node.children;
       },
@@ -165,7 +210,62 @@ function RenderNode(props) {
         });
       }
     }), null);
-    return _el$5;
+    return _el$3;
+  })();
+}
+
+function RenderNodeClone(props) {
+  let myDiv;
+  (0, _solidJs.onMount)(() => {
+    if (myDiv) {
+      const clone = props.element.cloneNode(true);
+      myDiv.appendChild(clone); // html2canvas(document.body).then(function (canvas) {
+      //   myDiv!.appendChild(canvas);
+      // });
+    }
+  });
+  return (() => {
+    const _el$6 = _tmpl$3.cloneNode(true),
+          _el$7 = _el$6.firstChild;
+
+    _el$6.style.setProperty("position", "absolute");
+
+    _el$6.style.setProperty("box-shadow", "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 25px 50px -12px rgb(0 0 0 / 0.25)");
+
+    _el$6.style.setProperty("background", "rgba(255,255,255,1)");
+
+    _el$6.style.setProperty("border-radius", "5px");
+
+    _el$6.style.setProperty("cursor", "pointer");
+
+    _el$6.style.setProperty("overflow", "hidden");
+
+    const _ref$ = myDiv;
+    typeof _ref$ === "function" ? _ref$(_el$7) : myDiv = _el$7;
+
+    _el$7.style.setProperty("pointer-events", "none");
+
+    (0, _web.effect)(_p$ => {
+      const _v$10 = props.box.left + "px",
+            _v$11 = props.box.top + "px",
+            _v$12 = props.box.width + "px",
+            _v$13 = props.box.height + "px",
+            _v$14 = props.isHovered ? "scale(1)" : "scale(0.97)";
+
+      _v$10 !== _p$._v$10 && _el$6.style.setProperty("left", _p$._v$10 = _v$10);
+      _v$11 !== _p$._v$11 && _el$6.style.setProperty("top", _p$._v$11 = _v$11);
+      _v$12 !== _p$._v$12 && _el$6.style.setProperty("width", _p$._v$12 = _v$12);
+      _v$13 !== _p$._v$13 && _el$6.style.setProperty("height", _p$._v$13 = _v$13);
+      _v$14 !== _p$._v$14 && _el$6.style.setProperty("transform", _p$._v$14 = _v$14);
+      return _p$;
+    }, {
+      _v$10: undefined,
+      _v$11: undefined,
+      _v$12: undefined,
+      _v$13: undefined,
+      _v$14: undefined
+    });
+    return _el$6;
   })();
 } // function gatherNodes(parentNode: HTMLElement, mutable_foundPairs: Pair[]) {
 //   const nodes = parentNode.childNodes;

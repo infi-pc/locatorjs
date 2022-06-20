@@ -28,6 +28,7 @@
   "license": "MIT",
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "dependencies": {
+    "html2canvas": "^1.4.1",
     "solid-js": "^1.4.4"
   }
 }

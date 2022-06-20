@@ -417,10 +417,29 @@ function init(mode) {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
   style.innerHTML = `
-      #locatorjs-solid-layer {
+      .locator-cloned-element {
+        transform: scale(0.95);
+        transition: transform 0.2s ease-in-out;
+      }
+      .locator-solid-mode {
+        overflow: hidden;
+      }
+      #locator-solid-layer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100000000000000;
+      }
+      #locator-solid-overlay {
+        z-index: 100000000000000;
         position: absolute;
         top: 0;
         left: 0;
+        backdrop-filter: blur(100px);
+        background-color: rgba(255,255,255,0.2);
+        width: 100vw;
+        height: 100vh;
+        overflow: scroll;
       }
       #locatorjs-layer * {
         box-sizing: border-box;
