@@ -466,29 +466,13 @@ function init(mode: LocatorJSMode) {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
   style.innerHTML = `
-      .locator-cloned-element {
-        transform: scale(0.95);
-        transition: transform 0.2s ease-in-out;
-      }
-      .locator-solid-mode {
-        overflow: hidden;
-      }
       #locator-solid-layer {
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 100000000000000;
-      }
-      #locator-solid-overlay {
-        z-index: 100000000000000;
         position: absolute;
         top: 0;
         left: 0;
-        backdrop-filter: blur(100px);
-        background-color: rgba(255,255,255,0.2);
+        z-index: 100000000000000;
         width: 100vw;
         height: 100vh;
-        overflow: scroll;
       }
       #locatorjs-layer * {
         box-sizing: border-box;
@@ -556,7 +540,7 @@ function init(mode: LocatorJSMode) {
         color: #aaa;
       }
       #locatorjs-options-close:hover {
-          color: #eee
+        color: #eee
       }
       #locatorjs-options .locatorjs-editors-options {
         display: flex;

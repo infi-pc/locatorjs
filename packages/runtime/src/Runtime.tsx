@@ -40,8 +40,6 @@ function Runtime() {
     document.removeEventListener("keyup", globalKeyUpListener);
   });
 
-  // const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
-
   const getFoundNodes = (): SimpleNode[] => {
     if (solidMode() === "xray") {
       const foundFiberRoots: Fiber[] = [];
@@ -59,13 +57,6 @@ function Runtime() {
     }
   };
 
-  createEffect(() => {
-    if (solidMode()) {
-      document.body.classList.add("locator-solid-mode");
-    } else {
-      document.body.classList.remove("locator-solid-mode");
-    }
-  });
   return (
     <>
       {solidMode() ? (
@@ -75,15 +66,9 @@ function Runtime() {
             setSolidMode(null);
           }}
         >
-          <div
-            style={{
-              transform: "scale(0.7)",
-            }}
-          >
-            <For each={getFoundNodes()}>
-              {(node, i) => <RenderNode node={node} parentIsHovered={false} />}
-            </For>
-          </div>
+          <For each={getFoundNodes()}>
+            {(node, i) => <RenderNode node={node} parentIsHovered={false} />}
+          </For>
         </div>
       ) : null}
     </>
@@ -92,10 +77,6 @@ function Runtime() {
 
 function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
   const [isHovered, setIsHovered] = createSignal(false);
-
-  createEffect(() => {
-    console.log("RenderNode", props.node, props.parentIsHovered, isHovered());
-  });
 
   const offset = props.node.type === "component" ? 2 : 0;
   return (
@@ -124,11 +105,10 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
                   ? "2px solid rgba(100,0,0,1)"
                   : "1px solid rgba(200,0,0,0.6)"
                 : props.node.type === "component"
-                ? "0px solid rgba(200,0,0,1)"
-                : "0px solid rgba(200,0,0,0.1)",
+                ? "1px solid rgba(200,0,0,1)"
+                : "1px solid rgba(200,0,0,0.1)",
             "border-radius": props.node.type === "component" ? "5px" : "3px",
             "z-index": props.node.type === "component" ? 1000 : 10,
-            // transform: "scale(0.98)",
           }}
         >
           {props.node.type === "component" || props.parentIsHovered ? (
@@ -144,7 +124,6 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
                 position: "absolute",
                 "font-size": "12px",
                 "border-radius": "0px 0px 4px 4px",
-                // top: "-20px",
                 height: "20px",
                 "white-space": "nowrap",
               }}
@@ -154,7 +133,7 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
           ) : null}
         </div>
       ) : null}
-      {props.node.type === "component" ? (
+      {/* {props.node.type === "component" ? (
         <For each={props.node.children}>
           {(childNode, i) => {
             if (
@@ -174,7 +153,7 @@ function RenderNode(props: { node: SimpleNode; parentIsHovered: boolean }) {
             return null;
           }}
         </For>
-      ) : null}
+      ) : null} */}
       <For each={props.node.children}>
         {(childNode, i) => {
           return (
@@ -199,16 +178,6 @@ function RenderNodeClone(props: {
 }) {
   let myDiv: HTMLDivElement | undefined;
 
-  onMount(() => {
-    if (myDiv) {
-      const clone = props.element.cloneNode(true);
-      myDiv.appendChild(clone);
-
-      // html2canvas(document.body).then(function (canvas) {
-      //   myDiv!.appendChild(canvas);
-      // });
-    }
-  });
   return (
     <div
       style={{
@@ -220,12 +189,9 @@ function RenderNodeClone(props: {
         "box-shadow":
           "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 25px 50px -12px rgb(0 0 0 / 0.25)",
         background: "rgba(255,255,255,1)",
-        // "backdrop-filter": "blur(20px)",
         "border-radius": "5px",
         cursor: "pointer",
         overflow: "hidden",
-        transform: props.isHovered ? "scale(1)" : "scale(0.97)",
-        // transform: "translate(-5px, -5px) scale(0.9)",
       }}
       // eslint-disable-next-line react/no-unknown-property
       class="locator-cloned-element"
