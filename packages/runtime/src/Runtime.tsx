@@ -5,7 +5,9 @@ import { render } from "solid-js/web";
 import { fiberToSimple } from "./fiberToSimple";
 import { gatherFiberRoots } from "./gatherFiberRoots";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
+import { Outline } from "./Outline";
 import { RenderXrayNode } from "./RenderNode";
+import { searchDevtoolsRenderersForClosestTarget } from "./searchDevtoolsRenderersForClosestTarget";
 
 type SimpleElement = {
   type: "element";
@@ -28,20 +30,61 @@ export type SimpleNode = SimpleElement | SimpleComponent;
 
 function Runtime() {
   const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
+  const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
+  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    null
+  );
 
-  function globalKeyUpListener(e: KeyboardEvent) {
+  createEffect(() => {
+    console.log({ holding: holdingModKey(), currentElement: currentElement() });
+  });
+
+  function keyUpListener(e: KeyboardEvent) {
     if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
       setSolidMode(solidMode() === "xray" ? null : "xray");
     }
+
+    setHoldingModKey(isCombinationModifiersPressed(e));
   }
 
-  document.addEventListener("keyup", globalKeyUpListener);
+  function keyDownListener(e: KeyboardEvent) {
+    setHoldingModKey(isCombinationModifiersPressed(e));
+  }
+
+  function mouseOverListener(e: MouseEvent) {
+    const target = e.target;
+    if (target && target instanceof HTMLElement) {
+      if (
+        target.className == "locatorjs-label" ||
+        target.id == "locatorjs-labels-section"
+      ) {
+        return;
+      }
+
+      const found =
+        target.closest("[data-locatorjs-id]") ||
+        searchDevtoolsRenderersForClosestTarget(target);
+      if (found && found instanceof HTMLElement) {
+        setCurrentElement(found);
+      }
+    }
+  }
+
+  document.addEventListener("mouseover", mouseOverListener, {
+    capture: true,
+  });
+  document.addEventListener("keydown", keyDownListener);
+  document.addEventListener("keyup", keyUpListener);
 
   onCleanup(() => {
-    document.removeEventListener("keyup", globalKeyUpListener);
+    document.removeEventListener("keyup", keyUpListener);
+    document.removeEventListener("keydown", keyDownListener);
+    document.removeEventListener("mouseover", mouseOverListener, {
+      capture: true,
+    });
   });
 
-  const getFoundNodes = (): SimpleNode[] => {
+  const getAllNodes = (): SimpleNode[] => {
     if (solidMode() === "xray") {
       const foundFiberRoots: Fiber[] = [];
 
@@ -60,19 +103,34 @@ function Runtime() {
 
   return (
     <>
-      {solidMode() ? (
+      {solidMode() === "xray" ? (
         <div
           id="locator-solid-overlay"
           onClick={(e) => {
             setSolidMode(null);
           }}
         >
-          <For each={getFoundNodes()}>
+          <For each={getAllNodes()}>
             {(node, i) => (
               <RenderXrayNode node={node} parentIsHovered={false} />
             )}
           </For>
         </div>
+      ) : null}
+      {holdingModKey() ? (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            background: "rgba(255,255,255,0.5)",
+          }}
+        >
+          LocatorJS
+        </div>
+      ) : null}
+      {holdingModKey() && currentElement() ? (
+        <Outline element={currentElement()!} />
       ) : null}
     </>
   );

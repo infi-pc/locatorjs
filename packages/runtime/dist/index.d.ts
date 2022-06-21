@@ -1,4 +1,5 @@
 import { ReactDevtoolsHook, Target } from "@locator/shared";
+import { LabelData } from "./LabelData";
 declare global {
     interface Window {
         __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
@@ -13,5 +14,6 @@ export declare function setup(props: {
     };
 }): void;
 export declare function register(input: any): void;
+export declare function getDataForDataId(dataId: string): LabelData | null;
 export default function nonNullable<T>(value: T): value is NonNullable<T>;
 export {};

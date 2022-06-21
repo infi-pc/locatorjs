@@ -1,10 +1,10 @@
-import { Fiber, ReactDevtoolsHook, Target, altTitle } from "@locator/shared";
+import { ReactDevtoolsHook, Target, altTitle } from "@locator/shared";
 import { allTargets as allTargetsOriginal } from "@locator/shared";
 import { buidLink } from "./buidLink";
-import { findDebugSource } from "./findDebugSource";
-import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
-import { getFiberLabel } from "./getFiberLabel";
+import { getLabels } from "./getLabels";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
+import { LabelData } from "./LabelData";
+import { trackClickStats } from "./trackClickStats";
 
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
 const initRender =
@@ -102,11 +102,6 @@ function getModeToRender(): LocatorJSMode {
   return proposedMode;
 }
 
-function trackClickStats() {
-  const current = Number(document.head.dataset.locatorClickCount) || 0;
-  document.head.dataset.locatorClickCount = String(current + 1);
-}
-
 function setMode(newMode: LocatorJSMode) {
   setCookie("LOCATORJS", newMode);
 
@@ -119,7 +114,7 @@ function setTemplate(lOrTemplate: string) {
 }
 
 if (typeof window !== "undefined") {
-  document.addEventListener("keyup", globalKeyUpListener);
+  // document.addEventListener("keyup", globalKeyUpListener);
 
   let locatorDisabled = getModeToRender() === "disabled";
   if (!locatorDisabled) {
@@ -164,183 +159,6 @@ export function register(input: any) {
   dataByFilename[input.projectPath + input.filePath] = input;
 }
 
-function rerenderLayer(found: HTMLElement, isModifierPressed: boolean) {
-  const el = document.getElementById("locatorjs-layer");
-  if (!el) {
-    // in cases it's destroyed in the meantime
-    return;
-  }
-  if (getModeToRender() === "hidden" && !isModifierPressed) {
-    el.innerHTML = "";
-    document.body.style.cursor = "";
-    return;
-  }
-
-  if (isModifierPressed) {
-    document.body.style.cursor = "pointer";
-  } else {
-    document.body.style.cursor = "";
-  }
-
-  let labels: LabelData[] = getLabels(found);
-
-  if (labels.length === 0) {
-    return;
-  }
-
-  const bbox = found.getBoundingClientRect();
-  const rect = document.createElement("div");
-  css(rect, {
-    position: "absolute",
-    left: bbox.x - PADDING + "px",
-    top: bbox.y - PADDING + "px",
-    width: bbox.width + PADDING * 2 + "px",
-    height: bbox.height + PADDING * 2 + "px",
-    border: "2px solid " + baseColor,
-    borderRadius: "8px",
-  });
-
-  if (isModifierPressed) {
-    rect.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
-  }
-  const isReversed = bbox.y < 30;
-  const labelsSection = document.createElement("div");
-  labelsSection.id = "locatorjs-labels-section";
-  labelsSection.style.position = "absolute";
-  labelsSection.style.display = "flex";
-  labelsSection.style.justifyContent = "center";
-  if (isReversed) {
-    labelsSection.style.bottom = "-28px";
-  } else {
-    labelsSection.style.top = "-28px";
-  }
-
-  labelsSection.style.left = "0px";
-  labelsSection.style.width = "100%";
-  // Uncomment when need to debug
-  // labelsSection.style.backgroundColor = "rgba(0, 255, 0, 0.5)";
-  labelsSection.style.pointerEvents = "auto";
-  if (isReversed) {
-    labelsSection.style.borderBottomLeftRadius = "100%";
-    labelsSection.style.borderBottomRightRadius = "100%";
-  } else {
-    labelsSection.style.borderTopLeftRadius = "100%";
-    labelsSection.style.borderTopRightRadius = "100%";
-  }
-
-  rect.appendChild(labelsSection);
-
-  const labelWrapper = document.createElement("div");
-  labelWrapper.id = "locatorjs-labels-wrapper";
-  labelWrapper.style.padding = isReversed
-    ? "10px 10px 2px 10px"
-    : "2px 10px 10px 10px";
-
-  labelsSection.appendChild(labelWrapper);
-
-  labels.forEach(({ link, label }) => {
-    const labelEl = document.createElement("a");
-    labelEl.className = "locatorjs-label";
-    labelEl.href = link;
-    labelEl.innerText = label;
-    labelEl.target = HREF_TARGET;
-    labelEl.onclick = (e) => {
-      trackClickStats();
-      window.open(link, HREF_TARGET);
-    };
-
-    labelWrapper.appendChild(labelEl);
-  });
-
-  el.innerHTML = "";
-  el.appendChild(rect);
-}
-
-function getLabels(found: HTMLElement) {
-  let labels: LabelData[] = [];
-  if (
-    found.dataset &&
-    (found.dataset.locatorjsId || found.dataset.locatorjsStyled)
-  ) {
-    labels = [
-      found.dataset.locatorjsId
-        ? getDataForDataId(found.dataset.locatorjsId)
-        : null,
-      found.dataset.locatorjsStyled
-        ? getDataForDataId(found.dataset.locatorjsStyled)
-        : null,
-    ].filter(nonNullable);
-  }
-
-  if (labels.length === 0) {
-    const fiber = findFiberByHtmlElement(found, false);
-    if (fiber) {
-      const allPotentialFibers = getAllParentsWithTheSameBoundingBox(fiber);
-
-      // This handles a common case when the component root is basically the comopnent itself, so I want to go to usage of the component
-      if (fiber.return && fiber.return === fiber._debugOwner) {
-        allPotentialFibers.push(fiber.return);
-      }
-
-      allPotentialFibers.forEach((fiber) => {
-        const fiberWithSource = findDebugSource(fiber);
-        if (fiberWithSource) {
-          const label = getFiberLabel(
-            fiberWithSource.fiber,
-            fiberWithSource.source
-          );
-          labels.push(label);
-        }
-      });
-    }
-  }
-  return deduplicateLabels(labels);
-}
-
-function deduplicateLabels(labels: LabelData[]): LabelData[] {
-  const labelsIds: { [key: string]: true } = {};
-  return labels
-    .map((label) => {
-      const id = JSON.stringify(label);
-      if (labelsIds[id]) {
-        return null;
-      }
-      labelsIds[id] = true;
-      return label;
-    })
-    .filter(nonNullable);
-}
-
-function getAllParentsWithTheSameBoundingBox(fiber: Fiber): Fiber[] {
-  const parents: Fiber[] = [fiber];
-
-  if (fiber.stateNode === null) {
-    return parents;
-  }
-
-  let currentFiber = fiber;
-  while (currentFiber.return) {
-    currentFiber = currentFiber.return;
-    if (
-      currentFiber.stateNode &&
-      currentFiber.stateNode.getBoundingClientRect
-    ) {
-      const bbox = currentFiber.stateNode.getBoundingClientRect();
-      if (
-        bbox.x === fiber.stateNode.getBoundingClientRect().x &&
-        bbox.y === fiber.stateNode.getBoundingClientRect().y &&
-        bbox.width === fiber.stateNode.getBoundingClientRect().width &&
-        bbox.height === fiber.stateNode.getBoundingClientRect().height
-      ) {
-        parents.push(currentFiber);
-      } else {
-        break;
-      }
-    }
-  }
-  return parents;
-}
-
 function parseDataId(dataId: string): [fileFullPath: string, id: string] {
   const [fileFullPath, id] = dataId.split("::");
   if (!fileFullPath || !id) {
@@ -359,65 +177,25 @@ function scrollListener() {
   el.innerHTML = "";
 }
 
-function mouseOverListener(e: MouseEvent) {
-  const target = e.target;
-  if (target && target instanceof HTMLElement) {
-    if (
-      target.className == "locatorjs-label" ||
-      target.id == "locatorjs-labels-section"
-    ) {
-      return;
-    }
-
-    const found =
-      target.closest("[data-locatorjs-id]") ||
-      searchDevtoolsRenderersForClosestTarget(target);
-    if (found && found instanceof HTMLElement) {
-      // @ts-ignore
-      currentElementRef = new WeakRef(found);
-
-      rerenderLayer(found, isCombinationModifiersPressed(e));
-    }
-  }
-}
-
-function keyDownListener(e: KeyboardEvent) {
-  if (currentElementRef) {
-    const el = currentElementRef.deref();
-    if (el) {
-      rerenderLayer(el, isCombinationModifiersPressed(e));
-    }
-  }
-}
-
-function keyUpListener(e: KeyboardEvent) {
-  if (currentElementRef) {
-    const el = currentElementRef.deref();
-    if (el) {
-      rerenderLayer(el, isCombinationModifiersPressed(e));
-    }
-  }
-}
-
-function globalKeyUpListener(e: KeyboardEvent) {
-  if (e.code === "KeyD" && isCombinationModifiersPressed(e)) {
-    if (getModeToRender() === "hidden") {
-      destroy();
-      if (isExtension) {
-        setMode("minimal");
-        init("minimal");
-      } else {
-        setMode("options");
-        init("options");
-      }
-    } else {
-      destroy();
-      setMode("hidden");
-      init("hidden");
-    }
-    return;
-  }
-}
+// function globalKeyUpListener(e: KeyboardEvent) {
+//   if (e.code === "KeyD" && isCombinationModifiersPressed(e)) {
+//     if (getModeToRender() === "hidden") {
+//       destroy();
+//       if (isExtension) {
+//         setMode("minimal");
+//         init("minimal");
+//       } else {
+//         setMode("options");
+//         init("options");
+//       }
+//     } else {
+//       destroy();
+//       setMode("hidden");
+//       init("hidden");
+//     }
+//     return;
+//   }
+// }
 
 function clickListener(e: MouseEvent) {
   if (!isCombinationModifiersPressed(e)) {
@@ -594,9 +372,6 @@ function init(mode: LocatorJSMode) {
   document.head.appendChild(style);
 
   document.addEventListener("scroll", scrollListener);
-  document.addEventListener("mouseover", mouseOverListener, { capture: true });
-  document.addEventListener("keydown", keyDownListener);
-  document.addEventListener("keyup", keyUpListener);
   document.addEventListener("click", clickListener, { capture: true });
 
   // add layer to body
@@ -786,11 +561,6 @@ function destroy() {
   const el = document.getElementById("locatorjs-layer");
   if (el) {
     document.removeEventListener("scroll", scrollListener);
-    document.removeEventListener("mouseover", mouseOverListener, {
-      capture: true,
-    });
-    document.removeEventListener("keydown", keyDownListener);
-    document.removeEventListener("keyup", keyUpListener);
     document.removeEventListener("click", clickListener);
 
     el.remove();
@@ -854,17 +624,7 @@ function hideAlertHandler() {
   init("hidden");
 }
 
-type LabelData = {
-  // fileData: {
-  //   filePath: string;
-  //   projectPath: string;
-  // };
-  // expData: ExpressionInfo;
-  link: string;
-  label: string;
-};
-
-function getDataForDataId(dataId: string): LabelData | null {
+export function getDataForDataId(dataId: string): LabelData | null {
   const [fileFullPath, id] = parseDataId(dataId);
 
   const fileData = dataByFilename[fileFullPath];
@@ -894,20 +654,6 @@ function getDataForDataId(dataId: string): LabelData | null {
 
 export default function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
-}
-
-function searchDevtoolsRenderersForClosestTarget(
-  target: HTMLElement
-): HTMLElement | null {
-  let closest: HTMLElement | null = target;
-  while (closest) {
-    if (findFiberByHtmlElement(closest, false)) {
-      return closest;
-    }
-    closest = closest.parentElement;
-  }
-
-  return null;
 }
 
 function detectMissingRenderers(): boolean {
