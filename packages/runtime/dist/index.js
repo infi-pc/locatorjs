@@ -204,13 +204,8 @@ function init(mode) {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
   style.innerHTML = `
-      #locator-solid-layer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 100000000000000;
-        width: 100vw;
-        height: 100vh;
+      #locatorjs-solid-layer {
+        pointer-events: none;
       }
       #locatorjs-layer * {
         box-sizing: border-box;

@@ -56,7 +56,8 @@ function Runtime() {
     if (target && target instanceof HTMLElement) {
       if (
         target.className == "locatorjs-label" ||
-        target.id == "locatorjs-labels-section"
+        target.id == "locatorjs-labels-section" ||
+        target.id == "locatorjs-solid-layer"
       ) {
         return;
       }
