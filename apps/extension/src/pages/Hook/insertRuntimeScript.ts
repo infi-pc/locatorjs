@@ -82,9 +82,13 @@ function insertScript(locatorClientUrl: string) {
     }
     const foundIFrames = document.getElementsByTagName('iframe');
     for (let iframe of foundIFrames) {
-      const script = document.createElement('script');
-      script.src = locatorClientUrl;
-      iframe.contentWindow?.document.head.appendChild(script);
+      try {
+        const script = document.createElement('script');
+        script.src = locatorClientUrl;
+        iframe.contentWindow?.document.head.appendChild(script);
+      } catch (e) {
+        // Fail silently, in most cases it will be cross-origin, and we don't need Locator there.
+      }
     }
     return true;
   }
