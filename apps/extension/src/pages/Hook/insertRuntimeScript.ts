@@ -3,6 +3,9 @@ import { isValidRenderer } from '@locator/react-devtools-hook';
 type Renderer = any;
 
 export function insertRuntimeScript() {
+  let scriptLoaded = false;
+  let attemptsNecessaryToShowError = 4; // but not necessarily all attempts, we want to show loading for a while
+
   const locatorClientUrl = document.documentElement.dataset.locatorClientUrl;
 
   function sendStatusMessage(message: string) {
@@ -10,9 +13,30 @@ export function insertRuntimeScript() {
     console.warn(`[locatorjs]: ${message}`);
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', loadedHandler);
+  setTimeout(loadedHandler, 1000);
+  setTimeout(loadedHandler, 2000);
+  setTimeout(loadedHandler, 5000);
+  setTimeout(loadedHandler, 8000);
+  setTimeout(loadedHandler, 12000);
+
+  function loadedHandler() {
+    if (scriptLoaded) {
+      return;
+    }
+    attemptsNecessaryToShowError--;
+    const msg = tryToInsertScript();
+
+    if (attemptsNecessaryToShowError <= 0) {
+      sendStatusMessage(msg);
+    } else {
+      sendStatusMessage(msg === 'ok' ? 'ok' : `loading: ${msg}`);
+    }
+  }
+
+  function tryToInsertScript(): string {
     if (!locatorClientUrl) {
-      throw new Error('Locator client url not found');
+      return 'Locator client url not found';
     }
     const renderersMap = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
     if (renderersMap) {
@@ -25,32 +49,44 @@ export function insertRuntimeScript() {
         }
       );
       if (renderers.length) {
-        insertScript(locatorClientUrl);
-        sendStatusMessage('ok');
+        const inserted = insertScript(locatorClientUrl);
+        if (inserted) {
+          scriptLoaded = true;
+          return 'ok';
+        } else {
+          return `Could not insert script`;
+        }
       } else {
         if (problematicRenderers.length) {
-          sendStatusMessage(problematicRenderers.join('\n'));
+          return problematicRenderers.join('\n');
         } else {
-          sendStatusMessage('No valid renderers found.');
+          return 'No valid renderers found.';
         }
       }
     } else {
-      sendStatusMessage(
-        'React devtools hook was not found. It can be caused by collision with other extension using devtools hook.'
-      );
-    }
-  });
-
-  function insertScript(locatorClientUrl: string) {
-    const script = document.createElement('script');
-    script.src = locatorClientUrl;
-    if (document.head) {
-      document.head.appendChild(script);
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-        // TODO maybe add back
-        // delete document.documentElement.dataset.locatorClientUrl;
-      }
+      return 'React devtools hook was not found. It can be caused by collision with other extension using devtools hook.';
     }
   }
+}
+
+function insertScript(locatorClientUrl: string) {
+  const script = document.createElement('script');
+  script.src = locatorClientUrl;
+
+  if (document.head) {
+    document.head.appendChild(script);
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+      // TODO maybe add back
+      // delete document.documentElement.dataset.locatorClientUrl;
+    }
+    const foundIFrames = document.getElementsByTagName('iframe');
+    for (let iframe of foundIFrames) {
+      const script = document.createElement('script');
+      script.src = locatorClientUrl;
+      iframe.contentWindow?.document.head.appendChild(script);
+    }
+    return true;
+  }
+  return false;
 }
