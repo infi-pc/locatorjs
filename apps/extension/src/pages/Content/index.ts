@@ -61,7 +61,10 @@ switch (document.contentType) {
 }
 
 function getHookStatusMessage() {
-  return document.head.dataset.locatorHookStatusMessage || 'loading';
+  return (
+    document.head.dataset.locatorHookStatusMessage ||
+    `loading: waiting for hook`
+  );
 }
 
 browser.runtime.onMessage.addListener((msg, sender, response) => {
