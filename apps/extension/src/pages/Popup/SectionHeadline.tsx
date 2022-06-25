@@ -3,7 +3,7 @@ export default function SectionHeadline(props: any) {
     <label
       {...props}
       class={
-        'text-lg font-medium text-gray-900 mb-3 ' +
+        'text-lg font-medium text-gray-900 mb-3 dark:text-gray-200' +
         (props.class ? ` ${props.class}` : '')
       }
     >

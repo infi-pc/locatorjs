@@ -41,7 +41,7 @@ export default function SocialShare({ setPage }: Props) {
   return (
     <>
       {sharedOnSocialMedia.get() ? null : (
-        <div class="flex justify-between w-full bg-slate-100 px-4 py-1 items-center">
+        <div class="flex justify-between w-full bg-slate-100 dark:bg-gray-800 px-4 py-1 items-center">
           <div class="share-panel">
             Share Locator on
             <div class="share-icons">

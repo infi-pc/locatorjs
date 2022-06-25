@@ -28,10 +28,11 @@ const isMac =
   navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 export const altTitle = isMac ? '⌥ Option' : 'Alt';
 
+type Message = 'loading' | 'ok' | `loading: ${string}` | string;
+
 const Popup = () => {
-  const [message, setMessage] = createSignal<'loading' | 'ok' | string>(
-    'loading'
-  );
+  const [message, setMessage] = createSignal<Message>('loading');
+
   const [page, setPage] = createSignal<Page>({ type: 'home' });
 
   const { allowTracking, clicks } = useSyncedState();
@@ -46,7 +47,7 @@ const Popup = () => {
 
   createEffect(() => {
     const newMsg = message();
-    if (newMsg == 'loading' || newMsg === 'ok') {
+    if (newMsg === 'ok' || newMsg.startsWith('loading')) {
       return;
     }
 
@@ -103,10 +104,11 @@ const Popup = () => {
               ) : (
                 <>No page</>
               )
-            ) : message() === 'loading' ? (
-              <div class="flex flex-col h-80 justify-center items-center gap-2">
+            ) : message().startsWith('loading') ? (
+              <div class="flex flex-col h-80 justify-center items-center gap-2 text-center">
                 <Spinner></Spinner>
                 <div class="text-lg">Loading...</div>
+                <span class="text-red-700">{getLoadingMessage(message())}</span>
                 <div>
                   This may take couple of seconds, depending how large is your
                   page.
@@ -203,3 +205,10 @@ const Popup = () => {
 };
 
 export default Popup;
+
+function getLoadingMessage(msg: string) {
+  if (msg.startsWith('loading: ')) {
+    return msg.replace('loading: ', '');
+  }
+  return null;
+}

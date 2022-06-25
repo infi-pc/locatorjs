@@ -47,7 +47,7 @@ export function Home({ setPage }: Props) {
             </b>{' '}
             toggle select mode
           </div>
-          <p class="text-xs leading-5 text-gray-800">
+          <p class="text-xs leading-5 text-gray-800 dark:text-gray-200">
             remember to <b>focus your app</b> (click on any surface)
           </p>
         </div>
