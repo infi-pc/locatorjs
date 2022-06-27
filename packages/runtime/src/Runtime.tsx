@@ -32,17 +32,22 @@ type SimpleComponent = {
 export type SimpleNode = SimpleElement | SimpleComponent;
 
 function Runtime() {
-  // console.log("RUNTIME");
-
   const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
-  // TODO save the real closest element, not the one with fiber
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
   );
 
   createEffect(() => {
     console.log({ holding: holdingModKey(), currentElement: currentElement() });
+  });
+
+  createEffect(() => {
+    if (holdingModKey() && currentElement()) {
+      document.body.classList.add("locatorjs-active-pointer");
+    } else {
+      document.body.classList.remove("locatorjs-active-pointer");
+    }
   });
 
   function keyUpListener(e: KeyboardEvent) {
@@ -58,27 +63,26 @@ function Runtime() {
   }
 
   function mouseOverListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(e)) {
-      return;
-    }
-    setHoldingModKey(true);
+    setHoldingModKey(isCombinationModifiersPressed(e));
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
       if (
         target.className == "locatorjs-label" ||
         target.id == "locatorjs-labels-section" ||
-        target.id == "locatorjs-solid-layer"
+        target.id == "locatorjs-layer" ||
+        target.id == "locatorjs-wrapper"
       ) {
         return;
       }
+      setCurrentElement(target);
 
-      const found =
-        target.closest("[data-locatorjs-id]") ||
-        searchDevtoolsRenderersForClosestTarget(target);
-      if (found && found instanceof HTMLElement) {
-        setCurrentElement(found);
-      }
+      // const found =
+      //   target.closest("[data-locatorjs-id]") ||
+      //   searchDevtoolsRenderersForClosestTarget(target);
+      // if (found && found instanceof HTMLElement) {
+      //   setCurrentElement(found);
+      // }
     }
   }
 
@@ -161,11 +165,25 @@ function Runtime() {
           LocatorJS
         </div>
       ) : null}
-      {holdingModKey() &&
+      {(() => {
+        if (!holdingModKey()) {
+          return null;
+        }
+        const el = currentElement();
+        if (!el) {
+          return null;
+        }
+        const elInfo = getElementInfo(el);
+        if (!elInfo) {
+          return null;
+        }
+        return <Outline element={elInfo} />;
+      })()}
+      {/* {holdingModKey() &&
       currentElement() &&
       getElementInfo(currentElement()!) ? (
         <Outline element={getElementInfo(currentElement()!)!} />
-      ) : null}
+      ) : null} */}
     </>
   );
 }

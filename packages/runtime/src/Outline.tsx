@@ -1,3 +1,4 @@
+/* eslint-disable react/display-name */
 /* eslint-disable react/no-unknown-property */
 import { For } from "solid-js";
 import { baseColor, HREF_TARGET, PADDING } from "./consts";
@@ -23,8 +24,23 @@ export function Outline(props: { element: FullElementInfo }) {
             "background-color": "rgba(222, 0, 0, 0.3)",
             border: "1px solid rgba(222, 0, 0, 0.5)",
             "border-radius": "2px",
+            color: "rgba(222, 0, 0, 1)",
+            overflow: "hidden",
           }}
-        ></div>
+        >
+          <div
+            style={{
+              "margin-left": "4px",
+              "margin-top": "4px",
+              "font-size": "12px",
+              "font-weight": "bold",
+              "text-shadow":
+                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
+            }}
+          >
+            {props.element.thisElement.label}
+          </div>
+        </div>
       </div>
       <ComponentOutline
         labels={props.element.componentsLabels}
@@ -36,63 +52,85 @@ export function Outline(props: { element: FullElementInfo }) {
 
 function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
   const isReversed = () => props.bbox.y < 30;
-  return (
-    <div
-      style={{
-        position: "fixed",
-        left: props.bbox.x - PADDING + "px",
-        top: props.bbox.y - PADDING + "px",
-        width: props.bbox.width + PADDING * 2 + "px",
-        height: props.bbox.height + PADDING * 2 + "px",
-        border: "2px solid " + baseColor,
-        "border-radius": "8px",
-      }}
-    >
+  return () => {
+    const left = Math.max(props.bbox.x - PADDING, 0);
+    const top = Math.max(props.bbox.y - PADDING, 0);
+    const width = Math.min(props.bbox.width + PADDING * 2, window.innerWidth);
+    const height = Math.min(
+      props.bbox.height + PADDING * 2,
+      window.innerHeight
+    );
+    return (
       <div
-        id="locatorjs-labels-section"
         style={{
-          position: "absolute",
-          display: "flex",
-          "justify-content": "center",
-          bottom: isReversed() ? "-28px" : undefined,
-          top: isReversed() ? undefined : "-28px",
-          left: "0px",
-          width: "100%",
-          "pointer-events": "auto",
-          ...(isReversed()
-            ? {
-                "border-bottom-left-radius": "100%",
-                "border-bottom-right-radius": "100%",
-              }
-            : {
-                "border-top-left-radius": "100%",
-                "border-top-right-radius": "100%",
-              }),
+          position: "fixed",
+          left: left + "px",
+          top: top + "px",
+          width: width + "px",
+          height: height + "px",
+          border: "2px solid " + baseColor,
+          // "border-radius": "8px",
+          "border-top-left-radius": left === 0 || top === 0 ? "0" : "8px",
+          "border-top-right-radius":
+            left + width === window.innerWidth || top === 0 ? "0" : "8px",
+          "border-bottom-left-radius":
+            left === 0 || top + height === window.innerHeight ? "0" : "8px",
+          "border-bottom-right-radius":
+            left + width === window.innerWidth ||
+            top + height === window.innerHeight
+              ? "0"
+              : "8px",
         }}
       >
         <div
-          id="locatorjs-labels-wrapper"
+          id="locatorjs-labels-section"
           style={{
-            padding: isReversed() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
+            position: "absolute",
+            display: "flex",
+            "justify-content": "center",
+            bottom: isReversed() ? "-28px" : undefined,
+            top: isReversed() ? undefined : "-28px",
+            left: "0px",
+            width: "100%",
+            "pointer-events": "auto",
+            cursor: "pointer",
+            ...(isReversed()
+              ? {
+                  "border-bottom-left-radius": "100%",
+                  "border-bottom-right-radius": "100%",
+                }
+              : {
+                  "border-top-left-radius": "100%",
+                  "border-top-right-radius": "100%",
+                }),
           }}
         >
-          <For each={props.labels}>
-            {(label, i) => (
-              <a
-                class="locatorjs-label"
-                href={label.link}
-                target={HREF_TARGET}
-                onClick={() => {
-                  trackClickStats();
-                  window.open(label.link, HREF_TARGET);
-                }}
-              >
-                {label.label}
-              </a>
-            )}
-          </For>
+          <div
+            id="locatorjs-labels-wrapper"
+            style={{
+              padding: isReversed()
+                ? "10px 10px 2px 10px"
+                : "2px 10px 10px 10px",
+            }}
+          >
+            <For each={props.labels}>
+              {(label, i) => (
+                <a
+                  class="locatorjs-label"
+                  href={label.link}
+                  target={HREF_TARGET}
+                  onClick={() => {
+                    trackClickStats();
+                    window.open(label.link, HREF_TARGET);
+                  }}
+                >
+                  {label.label}
+                </a>
+              )}
+            </For>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 }

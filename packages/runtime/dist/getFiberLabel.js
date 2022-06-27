@@ -5,16 +5,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getFiberLabel = getFiberLabel;
 
-var _findNames = require("./findNames");
-
 var _buidLink = require("./buidLink");
+
+var _getUsableName = require("./getUsableName");
 
 // TODO maybe we don't need source/wrappingComponent because we won't show it in the same label
 function getFiberLabel(fiber, source) {
-  const {
-    name,
-    wrappingComponent
-  } = (0, _findNames.findNames)(fiber);
+  const name = (0, _getUsableName.getUsableName)(fiber);
   const link = source ? (0, _buidLink.buidLink)(source.fileName, "", {
     start: {
       column: source.columnNumber || 0,
@@ -26,7 +23,7 @@ function getFiberLabel(fiber, source) {
     }
   }) : null;
   const label = {
-    label: (wrappingComponent ? `${wrappingComponent}: ` : "") + name,
+    label: name,
     link
   };
   return label;

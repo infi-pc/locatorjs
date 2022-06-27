@@ -94,6 +94,17 @@ function init() {
         gap: 8px;
       }
     `;
+  const globalStyle = document.createElement("style");
+  globalStyle.id = "locatorjs-global-style";
+  globalStyle.innerHTML = `
+      #locatorjs-wrapper {
+        z-index: 99999999;
+        pointer-events: none;
+      }
+      .locatorjs-active-pointer * {
+        cursor: pointer !important;
+      }
+    `;
   const wrapper = document.createElement("div");
   wrapper.setAttribute("id", "locatorjs-wrapper");
   const shadow = wrapper.attachShadow({
@@ -103,7 +114,7 @@ function init() {
   layer.setAttribute("id", "locatorjs-layer");
   shadow.appendChild(style);
   shadow.appendChild(layer);
-  wrapper.style.zIndex = "99999999";
   document.body.appendChild(wrapper);
+  document.head.appendChild(globalStyle);
   initRender(layer);
 }

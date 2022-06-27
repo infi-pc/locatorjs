@@ -23,24 +23,27 @@ var _Outline = require("./Outline");
 
 var _RenderNode = require("./RenderNode");
 
-var _searchDevtoolsRenderersForClosestTarget = require("./searchDevtoolsRenderersForClosestTarget");
-
 var _trackClickStats = require("./trackClickStats");
 
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
 
 function Runtime() {
-  // console.log("RUNTIME");
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
-  const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false); // TODO save the real closest element, not the one with fiber
-
+  const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
   (0, _solidJs.createEffect)(() => {
     console.log({
       holding: holdingModKey(),
       currentElement: currentElement()
     });
+  });
+  (0, _solidJs.createEffect)(() => {
+    if (holdingModKey() && currentElement()) {
+      document.body.classList.add("locatorjs-active-pointer");
+    } else {
+      document.body.classList.remove("locatorjs-active-pointer");
+    }
   });
 
   function keyUpListener(e) {
@@ -56,23 +59,20 @@ function Runtime() {
   }
 
   function mouseOverListener(e) {
-    if (!(0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
-      return;
-    }
-
-    setHoldingModKey(true);
+    setHoldingModKey((0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e));
     const target = e.target;
 
     if (target && target instanceof HTMLElement) {
-      if (target.className == "locatorjs-label" || target.id == "locatorjs-labels-section" || target.id == "locatorjs-solid-layer") {
+      if (target.className == "locatorjs-label" || target.id == "locatorjs-labels-section" || target.id == "locatorjs-layer" || target.id == "locatorjs-wrapper") {
         return;
       }
 
-      const found = target.closest("[data-locatorjs-id]") || (0, _searchDevtoolsRenderersForClosestTarget.searchDevtoolsRenderersForClosestTarget)(target);
-
-      if (found && found instanceof HTMLElement) {
-        setCurrentElement(found);
-      }
+      setCurrentElement(target); // const found =
+      //   target.closest("[data-locatorjs-id]") ||
+      //   searchDevtoolsRenderersForClosestTarget(target);
+      // if (found && found instanceof HTMLElement) {
+      //   setCurrentElement(found);
+      // }
     }
   }
 
@@ -169,16 +169,27 @@ function Runtime() {
 
       return _el$2;
     })() : null;
-  })()), (0, _web.memo)((() => {
-    const _c$3 = (0, _web.memo)(() => !!(holdingModKey() && currentElement() && (0, _reactDevToolsAdapter.getElementInfo)(currentElement())), true);
+  })()), (0, _web.memo)(() => {
+    if (!holdingModKey()) {
+      return null;
+    }
 
-    return () => _c$3() ? (0, _web.createComponent)(_Outline.Outline, {
-      get element() {
-        return (0, _reactDevToolsAdapter.getElementInfo)(currentElement());
-      }
+    const el = currentElement();
 
-    }) : null;
-  })())];
+    if (!el) {
+      return null;
+    }
+
+    const elInfo = (0, _reactDevToolsAdapter.getElementInfo)(el);
+
+    if (!elInfo) {
+      return null;
+    }
+
+    return (0, _web.createComponent)(_Outline.Outline, {
+      element: elInfo
+    });
+  })];
 }
 
 function initRender(solidLayer) {
