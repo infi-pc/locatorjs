@@ -21,7 +21,7 @@ var _getUsableName = require("../../getUsableName");
 
 var _mergeRects = require("../../mergeRects");
 
-var _getFiberComponentBoundingBox = require("../getFiberComponentBoundingBox");
+var _getFiberComponentBoundingBox = require("./getFiberComponentBoundingBox");
 
 function getElementInfo(found) {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.

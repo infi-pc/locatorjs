@@ -5,11 +5,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getFiberComponentBoundingBox = getFiberComponentBoundingBox;
 
-var _getFiberBoundingBox = require("./react/getFiberBoundingBox");
+var _getFiberBoundingBox = require("./getFiberBoundingBox");
 
-var _getAllFiberChildren = require("../getAllFiberChildren");
+var _getAllFiberChildren = require("../../getAllFiberChildren");
 
-var _mergeRects = require("../mergeRects");
+var _mergeRects = require("../../mergeRects");
 
 function getFiberComponentBoundingBox(fiber) {
   const children = (0, _getAllFiberChildren.getAllFiberChildren)(fiber);

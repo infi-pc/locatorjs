@@ -8,7 +8,7 @@ import { getFiberBoundingBox } from "./getFiberBoundingBox";
 import { Fiber } from "@locator/shared";
 import { getUsableName } from "../../getUsableName";
 import { mergeRects } from "../../mergeRects";
-import { getFiberComponentBoundingBox } from "../getFiberComponentBoundingBox";
+import { getFiberComponentBoundingBox } from "./getFiberComponentBoundingBox";
 
 type ElementInfo = {
   box: DOMRect;

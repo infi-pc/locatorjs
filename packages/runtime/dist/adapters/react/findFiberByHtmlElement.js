@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.findFiberByHtmlElement = findFiberByHtmlElement;
 
-var _findDebugSource2 = require("../../findDebugSource");
+var _findDebugSource2 = require("./findDebugSource");
 
 function findFiberByHtmlElement(target, shouldHaveDebugSource) {
   var _window$__REACT_DEVTO;

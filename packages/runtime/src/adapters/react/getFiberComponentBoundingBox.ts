@@ -1,7 +1,7 @@
-import { getFiberBoundingBox } from "./react/getFiberBoundingBox";
+import { getFiberBoundingBox } from "./getFiberBoundingBox";
 import { Fiber } from "@locator/shared";
-import { getAllFiberChildren } from "../getAllFiberChildren";
-import { mergeRects } from "../mergeRects";
+import { getAllFiberChildren } from "../../getAllFiberChildren";
+import { mergeRects } from "../../mergeRects";
 
 export function getFiberComponentBoundingBox(fiber: Fiber) {
   const children = getAllFiberChildren(fiber);

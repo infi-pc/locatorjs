@@ -1,5 +1,5 @@
 import { Fiber, Renderer } from "@locator/shared";
-import { findDebugSource } from "../../findDebugSource";
+import { findDebugSource } from "./findDebugSource";
 
 export function findFiberByHtmlElement(
   target: HTMLElement,
