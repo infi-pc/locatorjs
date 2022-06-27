@@ -13,9 +13,9 @@ var _consts = require("./consts");
 
 var _fiberToSimple = require("./fiberToSimple");
 
-var _gatherFiberRoots = require("./gatherFiberRoots");
+var _gatherFiberRoots = require("./adapters/react/gatherFiberRoots");
 
-var _getLabels = require("./getLabels");
+var _reactDevToolsAdapter = require("./adapters/reactDevToolsAdapter");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
@@ -33,7 +33,8 @@ const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay">
 function Runtime() {
   // console.log("RUNTIME");
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
-  const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
+  const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false); // TODO save the real closest element, not the one with fiber
+
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
   (0, _solidJs.createEffect)(() => {
     console.log({
@@ -55,6 +56,11 @@ function Runtime() {
   }
 
   function mouseOverListener(e) {
+    if (!(0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
+      return;
+    }
+
+    setHoldingModKey(true);
     const target = e.target;
 
     if (target && target instanceof HTMLElement) {
@@ -78,7 +84,7 @@ function Runtime() {
     const target = e.target;
 
     if (target && target instanceof HTMLElement) {
-      const labels = (0, _getLabels.getLabels)(target);
+      const labels = (0, _reactDevToolsAdapter.getElementInfo)(target);
       const firstLabel = labels[0];
 
       if (firstLabel) {
@@ -164,11 +170,11 @@ function Runtime() {
       return _el$2;
     })() : null;
   })()), (0, _web.memo)((() => {
-    const _c$3 = (0, _web.memo)(() => !!(holdingModKey() && currentElement()), true);
+    const _c$3 = (0, _web.memo)(() => !!(holdingModKey() && currentElement() && (0, _reactDevToolsAdapter.getElementInfo)(currentElement())), true);
 
     return () => _c$3() ? (0, _web.createComponent)(_Outline.Outline, {
       get element() {
-        return currentElement();
+        return (0, _reactDevToolsAdapter.getElementInfo)(currentElement());
       }
 
     }) : null;

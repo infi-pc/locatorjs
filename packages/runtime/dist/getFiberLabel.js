@@ -9,6 +9,7 @@ var _findNames = require("./findNames");
 
 var _buidLink = require("./buidLink");
 
+// TODO maybe we don't need source/wrappingComponent because we won't show it in the same label
 function getFiberLabel(fiber, source) {
   const {
     name,

@@ -1,22 +1,49 @@
 /* eslint-disable react/no-unknown-property */
 import { For } from "solid-js";
 import { baseColor, HREF_TARGET, PADDING } from "./consts";
-import { getLabels } from "./getLabels";
+import {
+  FullElementInfo,
+  getElementInfo,
+} from "./adapters/reactDevToolsAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
 
-export function Outline(props: { element: HTMLElement }) {
-  const bbox = () => props.element.getBoundingClientRect();
-  const isReversed = () => bbox().y < 30;
-  let labels = (): LabelData[] => getLabels(props.element);
+export function Outline(props: { element: FullElementInfo }) {
+  const box = () => props.element.thisElement.box;
+  return (
+    <>
+      <div>
+        <div
+          style={{
+            position: "fixed",
+            left: box().x + "px",
+            top: box().y + "px",
+            width: box().width + "px",
+            height: box().height + "px",
+            "background-color": "rgba(222, 0, 0, 0.3)",
+            border: "1px solid rgba(222, 0, 0, 0.5)",
+            "border-radius": "2px",
+          }}
+        ></div>
+      </div>
+      <ComponentOutline
+        labels={props.element.componentsLabels}
+        bbox={props.element.componentBox}
+      />
+    </>
+  );
+}
+
+function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
+  const isReversed = () => props.bbox.y < 30;
   return (
     <div
       style={{
         position: "fixed",
-        left: bbox().x - PADDING + "px",
-        top: bbox().y - PADDING + "px",
-        width: bbox().width + PADDING * 2 + "px",
-        height: bbox().height + PADDING * 2 + "px",
+        left: props.bbox.x - PADDING + "px",
+        top: props.bbox.y - PADDING + "px",
+        width: props.bbox.width + PADDING * 2 + "px",
+        height: props.bbox.height + PADDING * 2 + "px",
         border: "2px solid " + baseColor,
         "border-radius": "8px",
       }}
@@ -49,7 +76,7 @@ export function Outline(props: { element: HTMLElement }) {
             padding: isReversed() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
           }}
         >
-          <For each={labels()}>
+          <For each={props.labels}>
             {(label, i) => (
               <a
                 class="locatorjs-label"

@@ -1,8 +1,10 @@
 import { Fiber, Source } from "@locator/shared";
 import { findNames } from "./findNames";
 import { buidLink } from "./buidLink";
+import { LabelData } from "./LabelData";
 
-export function getFiberLabel(fiber: Fiber, source?: Source) {
+// TODO maybe we don't need source/wrappingComponent because we won't show it in the same label
+export function getFiberLabel(fiber: Fiber, source?: Source): LabelData {
   const { name, wrappingComponent } = findNames(fiber);
 
   const link = source

@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.searchDevtoolsRenderersForClosestTarget = searchDevtoolsRenderersForClosestTarget;
 
-var _findFiberByHtmlElement = require("./findFiberByHtmlElement");
+var _findFiberByHtmlElement = require("./adapters/react/findFiberByHtmlElement");
 
 function searchDevtoolsRenderersForClosestTarget(target) {
   let closest = target;

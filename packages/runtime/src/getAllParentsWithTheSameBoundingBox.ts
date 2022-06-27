@@ -1,4 +1,5 @@
 import { Fiber } from "@locator/shared";
+import { getFiberBoundingBox } from "./adapters/react/getFiberBoundingBox";
 
 export function getAllParentsWithTheSameBoundingBox(fiber: Fiber): Fiber[] {
   const parents: Fiber[] = [fiber];
@@ -10,16 +11,14 @@ export function getAllParentsWithTheSameBoundingBox(fiber: Fiber): Fiber[] {
   let currentFiber = fiber;
   while (currentFiber.return) {
     currentFiber = currentFiber.return;
-    if (
-      currentFiber.stateNode &&
-      currentFiber.stateNode.getBoundingClientRect
-    ) {
-      const bbox = currentFiber.stateNode.getBoundingClientRect();
+    const fiberBox = getFiberBoundingBox(fiber);
+    const currentFiberBox = getFiberBoundingBox(currentFiber);
+    if (fiberBox && currentFiberBox) {
       if (
-        bbox.x === fiber.stateNode.getBoundingClientRect().x &&
-        bbox.y === fiber.stateNode.getBoundingClientRect().y &&
-        bbox.width === fiber.stateNode.getBoundingClientRect().width &&
-        bbox.height === fiber.stateNode.getBoundingClientRect().height
+        currentFiberBox.x === fiberBox.x &&
+        currentFiberBox.y === fiberBox.y &&
+        currentFiberBox.width === fiberBox.width &&
+        currentFiberBox.height === fiberBox.height
       ) {
         parents.push(currentFiber);
       } else {

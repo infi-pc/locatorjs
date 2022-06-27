@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.gatherFiberRoots = gatherFiberRoots;
 
-var _findFiberByHtmlElement = require("./adapters/react/findFiberByHtmlElement");
+var _findFiberByHtmlElement = require("./findFiberByHtmlElement");
 
 function gatherFiberRoots(parentNode, mutable_foundFibers) {
   const nodes = parentNode.childNodes;

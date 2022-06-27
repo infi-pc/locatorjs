@@ -1,5 +1,5 @@
 {
-  "include": ["src/*.ts", "src/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/, "src/adapters/react/gatherFiberRoots.tsx", "src/adapters/react/getFiberBoundingBox.ts", "src/adapters/findFiberByHtmlElement.ts"*.tsx"],
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",

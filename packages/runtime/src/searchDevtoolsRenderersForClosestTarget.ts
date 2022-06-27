@@ -1,4 +1,4 @@
-import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
+import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
 
 export function searchDevtoolsRenderersForClosestTarget(
   target: HTMLElement

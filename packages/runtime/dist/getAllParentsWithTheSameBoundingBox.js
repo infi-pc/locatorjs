@@ -5,6 +5,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getAllParentsWithTheSameBoundingBox = getAllParentsWithTheSameBoundingBox;
 
+var _getFiberBoundingBox = require("./adapters/react/getFiberBoundingBox");
+
 function getAllParentsWithTheSameBoundingBox(fiber) {
   const parents = [fiber];
 
@@ -16,11 +18,11 @@ function getAllParentsWithTheSameBoundingBox(fiber) {
 
   while (currentFiber.return) {
     currentFiber = currentFiber.return;
+    const fiberBox = (0, _getFiberBoundingBox.getFiberBoundingBox)(fiber);
+    const currentFiberBox = (0, _getFiberBoundingBox.getFiberBoundingBox)(currentFiber);
 
-    if (currentFiber.stateNode && currentFiber.stateNode.getBoundingClientRect) {
-      const bbox = currentFiber.stateNode.getBoundingClientRect();
-
-      if (bbox.x === fiber.stateNode.getBoundingClientRect().x && bbox.y === fiber.stateNode.getBoundingClientRect().y && bbox.width === fiber.stateNode.getBoundingClientRect().width && bbox.height === fiber.stateNode.getBoundingClientRect().height) {
+    if (fiberBox && currentFiberBox) {
+      if (currentFiberBox.x === fiberBox.x && currentFiberBox.y === fiberBox.y && currentFiberBox.width === fiberBox.width && currentFiberBox.height === fiberBox.height) {
         parents.push(currentFiber);
       } else {
         break;

@@ -87,6 +87,7 @@ function init() {
   shadow.appendChild(style);
   shadow.appendChild(layer);
 
+  wrapper.style.zIndex = "99999999";
   document.body.appendChild(wrapper);
 
   initRender(layer);

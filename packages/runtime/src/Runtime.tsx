@@ -4,8 +4,8 @@ import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
 import { HREF_TARGET } from "./consts";
 import { fiberToSimple } from "./fiberToSimple";
-import { gatherFiberRoots } from "./gatherFiberRoots";
-import { getLabels } from "./getLabels";
+import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
+import { getElementInfo } from "./adapters/reactDevToolsAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { Outline } from "./Outline";
 import { RenderXrayNode } from "./RenderNode";
@@ -36,6 +36,7 @@ function Runtime() {
 
   const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
+  // TODO save the real closest element, not the one with fiber
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
   );
@@ -57,6 +58,11 @@ function Runtime() {
   }
 
   function mouseOverListener(e: MouseEvent) {
+    if (!isCombinationModifiersPressed(e)) {
+      return;
+    }
+    setHoldingModKey(true);
+
     const target = e.target;
     if (target && target instanceof HTMLElement) {
       if (
@@ -83,7 +89,7 @@ function Runtime() {
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
-      const labels = getLabels(target);
+      const labels = getElementInfo(target);
       const firstLabel = labels[0];
       if (firstLabel) {
         e.preventDefault();
@@ -155,8 +161,10 @@ function Runtime() {
           LocatorJS
         </div>
       ) : null}
-      {holdingModKey() && currentElement() ? (
-        <Outline element={currentElement()!} />
+      {holdingModKey() &&
+      currentElement() &&
+      getElementInfo(currentElement()!) ? (
+        <Outline element={getElementInfo(currentElement()!)!} />
       ) : null}
     </>
   );
