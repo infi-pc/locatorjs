@@ -33,12 +33,6 @@ function Runtime(props) {
   const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
   (0, _solidJs.createEffect)(() => {
-    console.log({
-      holding: holdingModKey(),
-      currentElement: currentElement()
-    });
-  });
-  (0, _solidJs.createEffect)(() => {
     if (holdingModKey() && currentElement()) {
       document.body.classList.add("locatorjs-active-pointer");
     } else {
@@ -125,9 +119,6 @@ function Runtime(props) {
     if (solidMode() === "xray") {
       const foundFiberRoots = [];
       (0, _gatherFiberRoots.gatherFiberRoots)(document.body, foundFiberRoots);
-      console.log({
-        foundFiberRoots
-      });
       const simpleRoots = foundFiberRoots.map(fiber => {
         return (0, _fiberToSimple.fiberToSimple)(fiber);
       });

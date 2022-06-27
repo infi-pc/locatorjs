@@ -39,10 +39,6 @@ function Runtime(props: { adapter: Adapter }) {
   );
 
   createEffect(() => {
-    console.log({ holding: holdingModKey(), currentElement: currentElement() });
-  });
-
-  createEffect(() => {
     if (holdingModKey() && currentElement()) {
       document.body.classList.add("locatorjs-active-pointer");
     } else {
@@ -134,7 +130,6 @@ function Runtime(props: { adapter: Adapter }) {
 
       gatherFiberRoots(document.body, foundFiberRoots);
 
-      console.log({ foundFiberRoots });
       const simpleRoots = foundFiberRoots.map((fiber) => {
         return fiberToSimple(fiber);
       });

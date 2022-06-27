@@ -23,20 +23,16 @@ export function Outline(props: { element: FullElementInfo }) {
             "border-radius": "2px",
             color: "rgba(222, 0, 0, 1)",
             overflow: "hidden",
+            "padding-left": "4px",
+            "padding-top": box().height > 20 ? "4px" : "0px",
+            "font-size": "12px",
+            "font-weight": "bold",
+            "text-shadow":
+              "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
+            "text-overflow": "ellipsis",
           }}
         >
-          <div
-            style={{
-              "margin-left": "4px",
-              "margin-top": "4px",
-              "font-size": "12px",
-              "font-weight": "bold",
-              "text-shadow":
-                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-            }}
-          >
-            {props.element.thisElement.label}
-          </div>
+          {props.element.thisElement.label}
         </div>
       </div>
       <ComponentOutline
@@ -51,10 +47,6 @@ function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
   const isInside = () => props.bbox.height >= window.innerHeight - 40;
   const isBelow = () => props.bbox.y < 30 && !isInside();
 
-  createEffect(() => {
-    console.log("H:", props.bbox.height, window.innerHeight);
-    console.log("INSIDE: ", isInside(), isBelow());
-  });
   return () => {
     const left = Math.max(props.bbox.x - PADDING, 0);
     const top = Math.max(props.bbox.y - PADDING, 0);
