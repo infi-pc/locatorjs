@@ -1,9 +1,9 @@
 import { Fiber } from "@locator/shared";
-import { getBoundingRect } from "./getBoundingRect";
-import { getComposedBoundingBox } from "./getComposedBoundingBox";
-import { getUsableName } from "./getUsableName";
-import { SimpleNode } from "./Runtime";
-import { getAllFiberChildren } from "./getAllFiberChildren";
+import { getBoundingRect } from "../../getBoundingRect";
+import { getComposedBoundingBox } from "../../getComposedBoundingBox";
+import { getUsableName } from "../../getUsableName";
+import { SimpleNode } from "../../Runtime";
+import { getAllFiberChildren } from "../../getAllFiberChildren";
 
 export function fiberToSimple(fiber: Fiber): SimpleNode {
   const children = getAllFiberChildren(fiber);

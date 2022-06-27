@@ -1,3 +1,4 @@
+import { FullElementInfo } from "./adapters/react/reactDevToolsAdapter";
 export declare function Outline(props: {
-    element: HTMLElement;
+    element: FullElementInfo;
 }): import("solid-js").JSX.Element;

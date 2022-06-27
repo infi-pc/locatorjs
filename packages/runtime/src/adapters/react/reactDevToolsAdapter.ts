@@ -1,16 +1,14 @@
-import { findDebugSource } from "../findDebugSource";
-import { findFiberByHtmlElement } from "./react/findFiberByHtmlElement";
-import { getFiberLabel } from "../getFiberLabel";
-import nonNullable from "../nonNullable";
-import { getDataForDataId } from "../runtimeStore";
-import { getAllParentsWithTheSameBoundingBox } from "../getAllParentsWithTheSameBoundingBox";
-import { deduplicateLabels } from "../deduplicateLabels";
-import { LabelData } from "../LabelData";
-import { getFiberBoundingBox } from "./react/getFiberBoundingBox";
+import { findDebugSource } from "./findDebugSource";
+import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
+import { getFiberLabel } from "./getFiberLabel";
+import { getAllWrappingParents } from "./getAllWrappingParents";
+import { deduplicateLabels } from "../../deduplicateLabels";
+import { LabelData } from "../../LabelData";
+import { getFiberBoundingBox } from "./getFiberBoundingBox";
 import { Fiber } from "@locator/shared";
-import { getUsableName } from "../getUsableName";
-import { getAllFiberChildren } from "../getAllFiberChildren";
-import { mergeRects } from "../mergeRects";
+import { getUsableName } from "../../getUsableName";
+import { mergeRects } from "../../mergeRects";
+import { getFiberComponentBoundingBox } from "../getFiberComponentBoundingBox";
 
 type ElementInfo = {
   box: DOMRect;
@@ -34,8 +32,7 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
     const { component, componentBox, parentElements } =
       getAllParentsElementsAndRootComponent(fiber);
 
-    const allPotentialComponentFibers =
-      getAllParentsWithTheSameBoundingBox(component);
+    const allPotentialComponentFibers = getAllWrappingParents(component);
 
     // This handles a common case when the component root is basically the comopnent itself, so I want to go to usage of the component
     if (fiber.return && fiber.return === fiber._debugOwner) {
@@ -53,10 +50,7 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
       }
     });
 
-    // TODO parentElements
-    // TODO parentComponents
-
-    const thisLabel = getFiberLabel(fiber);
+    const thisLabel = getFiberLabel(fiber, findDebugSource(fiber)?.source);
     return {
       thisElement: {
         box: getFiberBoundingBox(fiber) || found.getBoundingClientRect(),
@@ -88,8 +82,8 @@ function getAllParentsElementsAndRootComponent(fiber: Fiber): {
   let componentBox: DOMRect = deepestElement.getBoundingClientRect();
 
   let currentFiber = fiber;
-  while (currentFiber.return) {
-    currentFiber = currentFiber.return;
+  while (currentFiber._debugOwner || currentFiber.return) {
+    currentFiber = currentFiber._debugOwner || currentFiber.return!;
     const currentElement = currentFiber.stateNode;
     if (!currentElement || !(currentElement instanceof HTMLElement)) {
       console.log("When fragment, we should go up", currentFiber);
@@ -116,25 +110,4 @@ function getAllParentsElementsAndRootComponent(fiber: Fiber): {
     });
   }
   throw new Error("Could not find root component");
-}
-
-function getFiberComponentBoundingBox(fiber: Fiber) {
-  const children = getAllFiberChildren(fiber);
-  let composedRect: DOMRect | undefined;
-  children.forEach((child) => {
-    const box = getFiberBoundingBox(child);
-    if (!box) {
-      return;
-    }
-    if (box.width <= 0 || box.height <= 0) {
-      // ignore zero-sized rects
-      return;
-    }
-    if (composedRect) {
-      composedRect = mergeRects(composedRect, box);
-    } else {
-      composedRect = box;
-    }
-  });
-  return composedRect;
 }

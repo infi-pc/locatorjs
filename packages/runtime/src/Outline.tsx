@@ -5,7 +5,7 @@ import { baseColor, HREF_TARGET, PADDING } from "./consts";
 import {
   FullElementInfo,
   getElementInfo,
-} from "./adapters/reactDevToolsAdapter";
+} from "./adapters/react/reactDevToolsAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
 
@@ -51,7 +51,10 @@ export function Outline(props: { element: FullElementInfo }) {
 }
 
 function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
-  const isReversed = () => props.bbox.y < 30;
+  const isInside = () =>
+    props.bbox.height >= 600 || props.bbox.height >= window.innerHeight - 40;
+  const isBelow = () => props.bbox.y < 30 && !isInside();
+
   return () => {
     const left = Math.max(props.bbox.x - PADDING, 0);
     const top = Math.max(props.bbox.y - PADDING, 0);
@@ -88,13 +91,13 @@ function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
             position: "absolute",
             display: "flex",
             "justify-content": "center",
-            bottom: isReversed() ? "-28px" : undefined,
-            top: isReversed() ? undefined : "-28px",
+            bottom: isBelow() ? (isInside() ? "2px" : "-28px") : undefined,
+            top: isBelow() ? undefined : isInside() ? "2px" : "-28px",
             left: "0px",
             width: "100%",
             "pointer-events": "auto",
             cursor: "pointer",
-            ...(isReversed()
+            ...(isBelow()
               ? {
                   "border-bottom-left-radius": "100%",
                   "border-bottom-right-radius": "100%",
@@ -108,9 +111,7 @@ function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
           <div
             id="locatorjs-labels-wrapper"
             style={{
-              padding: isReversed()
-                ? "10px 10px 2px 10px"
-                : "2px 10px 10px 10px",
+              padding: isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
             }}
           >
             <For each={props.labels}>
@@ -119,7 +120,8 @@ function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
                   class="locatorjs-label"
                   href={label.link}
                   target={HREF_TARGET}
-                  onClick={() => {
+                  //@ts-ignore
+                  oncapture:click={() => {
                     trackClickStats();
                     window.open(label.link, HREF_TARGET);
                   }}

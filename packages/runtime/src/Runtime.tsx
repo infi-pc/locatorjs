@@ -3,9 +3,9 @@ import { Fiber } from "@locator/shared";
 import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
 import { HREF_TARGET } from "./consts";
-import { fiberToSimple } from "./fiberToSimple";
+import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
-import { getElementInfo } from "./adapters/reactDevToolsAdapter";
+import { getElementInfo } from "./adapters/react/reactDevToolsAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { Outline } from "./Outline";
 import { RenderXrayNode } from "./RenderNode";
@@ -51,9 +51,10 @@ function Runtime() {
   });
 
   function keyUpListener(e: KeyboardEvent) {
-    if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-      setSolidMode(solidMode() === "xray" ? null : "xray");
-    }
+    // XRay is disabled for now
+    // if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+    //   setSolidMode(solidMode() === "xray" ? null : "xray");
+    // }
 
     setHoldingModKey(isCombinationModifiersPressed(e));
   }
@@ -93,13 +94,14 @@ function Runtime() {
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
-      const labels = getElementInfo(target);
-      const firstLabel = labels[0];
-      if (firstLabel) {
+      const elInfo = getElementInfo(target);
+
+      if (elInfo) {
+        const link = elInfo.thisElement.link;
         e.preventDefault();
         e.stopPropagation();
         trackClickStats();
-        window.open(firstLabel.link, HREF_TARGET);
+        window.open(link, HREF_TARGET);
       }
     }
   }

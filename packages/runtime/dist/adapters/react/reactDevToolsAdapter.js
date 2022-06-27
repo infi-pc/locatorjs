@@ -5,23 +5,23 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getElementInfo = getElementInfo;
 
-var _findDebugSource = require("../findDebugSource");
+var _findDebugSource2 = require("./findDebugSource");
 
-var _findFiberByHtmlElement = require("./react/findFiberByHtmlElement");
+var _findFiberByHtmlElement = require("./findFiberByHtmlElement");
 
-var _getFiberLabel = require("../getFiberLabel");
+var _getFiberLabel = require("./getFiberLabel");
 
-var _getAllWrappingParents = require("../getAllWrappingParents");
+var _getAllWrappingParents = require("./getAllWrappingParents");
 
-var _deduplicateLabels = require("../deduplicateLabels");
+var _deduplicateLabels = require("../../deduplicateLabels");
 
-var _getFiberBoundingBox = require("./react/getFiberBoundingBox");
+var _getFiberBoundingBox = require("./getFiberBoundingBox");
 
-var _getUsableName = require("../getUsableName");
+var _getUsableName = require("../../getUsableName");
 
-var _mergeRects = require("../mergeRects");
+var _mergeRects = require("../../mergeRects");
 
-var _getFiberComponentBoundingBox = require("./getFiberComponentBoundingBox");
+var _getFiberComponentBoundingBox = require("../getFiberComponentBoundingBox");
 
 function getElementInfo(found) {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
@@ -29,6 +29,8 @@ function getElementInfo(found) {
   const fiber = (0, _findFiberByHtmlElement.findFiberByHtmlElement)(found, false);
 
   if (fiber) {
+    var _findDebugSource;
+
     const {
       component,
       componentBox,
@@ -41,16 +43,14 @@ function getElementInfo(found) {
     }
 
     allPotentialComponentFibers.forEach(fiber => {
-      const fiberWithSource = (0, _findDebugSource.findDebugSource)(fiber);
+      const fiberWithSource = (0, _findDebugSource2.findDebugSource)(fiber);
 
       if (fiberWithSource) {
         const label = (0, _getFiberLabel.getFiberLabel)(fiberWithSource.fiber, fiberWithSource.source);
         labels.push(label);
       }
-    }); // TODO parentElements
-    // TODO parentComponents
-
-    const thisLabel = (0, _getFiberLabel.getFiberLabel)(fiber);
+    });
+    const thisLabel = (0, _getFiberLabel.getFiberLabel)(fiber, (_findDebugSource = (0, _findDebugSource2.findDebugSource)(fiber)) === null || _findDebugSource === void 0 ? void 0 : _findDebugSource.source);
     return {
       thisElement: {
         box: (0, _getFiberBoundingBox.getFiberBoundingBox)(fiber) || found.getBoundingClientRect(),

@@ -3,17 +3,12 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getAllParentsWithTheSameBoundingBox = getAllParentsWithTheSameBoundingBox;
+exports.getAllWrappingParents = getAllWrappingParents;
 
 var _getFiberBoundingBox = require("./adapters/react/getFiberBoundingBox");
 
-function getAllParentsWithTheSameBoundingBox(fiber) {
+function getAllWrappingParents(fiber) {
   const parents = [fiber];
-
-  if (fiber.stateNode === null) {
-    return parents;
-  }
-
   let currentFiber = fiber;
 
   while (currentFiber.return) {

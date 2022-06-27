@@ -11,11 +11,11 @@ var _solidJs = require("solid-js");
 
 var _consts = require("./consts");
 
-var _fiberToSimple = require("./fiberToSimple");
+var _fiberToSimple = require("./adapters/react/fiberToSimple");
 
 var _gatherFiberRoots = require("./adapters/react/gatherFiberRoots");
 
-var _reactDevToolsAdapter = require("./adapters/reactDevToolsAdapter");
+var _reactDevToolsAdapter = require("./adapters/react/reactDevToolsAdapter");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
@@ -47,10 +47,10 @@ function Runtime() {
   });
 
   function keyUpListener(e) {
-    if (e.code === "KeyO" && (0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
-      setSolidMode(solidMode() === "xray" ? null : "xray");
-    }
-
+    // XRay is disabled for now
+    // if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+    //   setSolidMode(solidMode() === "xray" ? null : "xray");
+    // }
     setHoldingModKey((0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e));
   }
 
@@ -84,14 +84,14 @@ function Runtime() {
     const target = e.target;
 
     if (target && target instanceof HTMLElement) {
-      const labels = (0, _reactDevToolsAdapter.getElementInfo)(target);
-      const firstLabel = labels[0];
+      const elInfo = (0, _reactDevToolsAdapter.getElementInfo)(target);
 
-      if (firstLabel) {
+      if (elInfo) {
+        const link = elInfo.thisElement.link;
         e.preventDefault();
         e.stopPropagation();
         (0, _trackClickStats.trackClickStats)();
-        window.open(firstLabel.link, _consts.HREF_TARGET);
+        window.open(link, _consts.HREF_TARGET);
       }
     }
   }

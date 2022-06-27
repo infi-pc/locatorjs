@@ -5,9 +5,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getFiberLabel = getFiberLabel;
 
-var _buidLink = require("./buidLink");
+var _buidLink = require("../../buidLink");
 
-var _getUsableName = require("./getUsableName");
+var _getUsableName = require("../../getUsableName");
 
 function getFiberLabel(fiber, source) {
   const name = (0, _getUsableName.getUsableName)(fiber);

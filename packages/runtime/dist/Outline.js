@@ -79,7 +79,9 @@ function Outline(props) {
 }
 
 function ComponentOutline(props) {
-  const isReversed = () => props.bbox.y < 30;
+  const isInside = () => props.bbox.height >= 600 || props.bbox.height >= window.innerHeight - 40;
+
+  const isBelow = () => props.bbox.y < 30 && !isInside();
 
   return () => {
     const left = Math.max(props.bbox.x - _consts.PADDING, 0);
@@ -113,12 +115,13 @@ function ComponentOutline(props) {
         children: (label, i) => (() => {
           const _el$7 = _tmpl$3.cloneNode(true);
 
-          _el$7.$$click = () => {
+          (0, _web.setAttribute)(_el$7, "target", _consts.HREF_TARGET);
+
+          _el$7.addEventListener("click", () => {
             (0, _trackClickStats.trackClickStats)();
             window.open(label.link, _consts.HREF_TARGET);
-          };
+          }, true);
 
-          (0, _web.setAttribute)(_el$7, "target", _consts.HREF_TARGET);
           (0, _web.insert)(_el$7, () => label.label);
           (0, _web.effect)(() => (0, _web.setAttribute)(_el$7, "href", label.link));
           return _el$7;
@@ -132,13 +135,13 @@ function ComponentOutline(props) {
           position: "absolute",
           display: "flex",
           "justify-content": "center",
-          bottom: isReversed() ? "-28px" : undefined,
-          top: isReversed() ? undefined : "-28px",
+          bottom: isBelow() ? isInside() ? "2px" : "-28px" : undefined,
+          top: isBelow() ? undefined : isInside() ? "2px" : "-28px",
           left: "0px",
           width: "100%",
           "pointer-events": "auto",
           cursor: "pointer",
-          ...(isReversed() ? {
+          ...(isBelow() ? {
             "border-bottom-left-radius": "100%",
             "border-bottom-right-radius": "100%"
           } : {
@@ -146,7 +149,7 @@ function ComponentOutline(props) {
             "border-top-right-radius": "100%"
           })
         },
-              _v$9 = isReversed() ? "10px 10px 2px 10px" : "2px 10px 10px 10px";
+              _v$9 = isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px";
 
         _v$5 !== _p$._v$5 && _el$4.style.setProperty("border-top-right-radius", _p$._v$5 = _v$5);
         _v$6 !== _p$._v$6 && _el$4.style.setProperty("border-bottom-left-radius", _p$._v$6 = _v$6);
@@ -165,5 +168,3 @@ function ComponentOutline(props) {
     })();
   };
 }
-
-(0, _web.delegateEvents)(["click"]);
