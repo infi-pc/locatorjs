@@ -96,6 +96,10 @@ function Runtime() {
     }
   }
 
+  function scrollListener() {
+    setCurrentElement(null);
+  }
+
   document.addEventListener("mouseover", mouseOverListener, {
     capture: true
   });
@@ -104,6 +108,7 @@ function Runtime() {
   document.addEventListener("click", clickListener, {
     capture: true
   });
+  document.addEventListener("scroll", scrollListener);
   (0, _solidJs.onCleanup)(() => {
     document.removeEventListener("keyup", keyUpListener);
     document.removeEventListener("keydown", keyDownListener);
@@ -113,6 +118,7 @@ function Runtime() {
     document.removeEventListener("click", clickListener, {
       capture: true
     });
+    document.removeEventListener("scroll", scrollListener);
   });
 
   const getAllNodes = () => {

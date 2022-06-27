@@ -104,12 +104,17 @@ function Runtime() {
     }
   }
 
+  function scrollListener() {
+    setCurrentElement(null);
+  }
+
   document.addEventListener("mouseover", mouseOverListener, {
     capture: true,
   });
   document.addEventListener("keydown", keyDownListener);
   document.addEventListener("keyup", keyUpListener);
   document.addEventListener("click", clickListener, { capture: true });
+  document.addEventListener("scroll", scrollListener);
 
   onCleanup(() => {
     document.removeEventListener("keyup", keyUpListener);
@@ -118,6 +123,7 @@ function Runtime() {
       capture: true,
     });
     document.removeEventListener("click", clickListener, { capture: true });
+    document.removeEventListener("scroll", scrollListener);
   });
 
   const getAllNodes = (): SimpleNode[] => {
