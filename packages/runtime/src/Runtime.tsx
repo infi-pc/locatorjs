@@ -5,7 +5,7 @@ import { render } from "solid-js/web";
 import { HREF_TARGET } from "./consts";
 import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
-import { getElementInfo } from "./adapters/react/reactDevToolsAdapter";
+import { getElementInfo } from "./adapters/react/reactAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { Outline } from "./Outline";
 import { RenderXrayNode } from "./RenderNode";

@@ -1,11 +1,8 @@
 /* eslint-disable react/display-name */
 /* eslint-disable react/no-unknown-property */
-import { For } from "solid-js";
+import { createEffect, For } from "solid-js";
 import { baseColor, HREF_TARGET, PADDING } from "./consts";
-import {
-  FullElementInfo,
-  getElementInfo,
-} from "./adapters/react/reactDevToolsAdapter";
+import { FullElementInfo, getElementInfo } from "./adapters/react/reactAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
 
@@ -51,10 +48,13 @@ export function Outline(props: { element: FullElementInfo }) {
 }
 
 function ComponentOutline(props: { bbox: DOMRect; labels: LabelData[] }) {
-  const isInside = () =>
-    props.bbox.height >= 600 || props.bbox.height >= window.innerHeight - 40;
+  const isInside = () => props.bbox.height >= window.innerHeight - 40;
   const isBelow = () => props.bbox.y < 30 && !isInside();
 
+  createEffect(() => {
+    console.log("H:", props.bbox.height, window.innerHeight);
+    console.log("INSIDE: ", isInside(), isBelow());
+  });
   return () => {
     const left = Math.max(props.bbox.x - PADDING, 0);
     const top = Math.max(props.bbox.y - PADDING, 0);

@@ -15,7 +15,7 @@ var _fiberToSimple = require("./adapters/react/fiberToSimple");
 
 var _gatherFiberRoots = require("./adapters/react/gatherFiberRoots");
 
-var _reactDevToolsAdapter = require("./adapters/react/reactDevToolsAdapter");
+var _reactAdapter = require("./adapters/react/reactAdapter");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
@@ -84,7 +84,7 @@ function Runtime() {
     const target = e.target;
 
     if (target && target instanceof HTMLElement) {
-      const elInfo = (0, _reactDevToolsAdapter.getElementInfo)(target);
+      const elInfo = (0, _reactAdapter.getElementInfo)(target);
 
       if (elInfo) {
         const link = elInfo.thisElement.link;
@@ -186,7 +186,7 @@ function Runtime() {
       return null;
     }
 
-    const elInfo = (0, _reactDevToolsAdapter.getElementInfo)(el);
+    const elInfo = (0, _reactAdapter.getElementInfo)(el);
 
     if (!elInfo) {
       return null;

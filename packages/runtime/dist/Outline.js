@@ -79,10 +79,14 @@ function Outline(props) {
 }
 
 function ComponentOutline(props) {
-  const isInside = () => props.bbox.height >= 600 || props.bbox.height >= window.innerHeight - 40;
+  const isInside = () => props.bbox.height >= window.innerHeight - 40;
 
   const isBelow = () => props.bbox.y < 30 && !isInside();
 
+  (0, _solidJs.createEffect)(() => {
+    console.log("H:", props.bbox.height, window.innerHeight);
+    console.log("INSIDE: ", isInside(), isBelow());
+  });
   return () => {
     const left = Math.max(props.bbox.x - _consts.PADDING, 0);
     const top = Math.max(props.bbox.y - _consts.PADDING, 0);

@@ -5,12 +5,9 @@ import { getAllWrappingParents } from "./getAllWrappingParents";
 import { deduplicateLabels } from "../../deduplicateLabels";
 import { LabelData } from "../../LabelData";
 import { getFiberBoundingBox } from "./getFiberBoundingBox";
-import { Fiber } from "@locator/shared";
-import { getUsableName } from "../../getUsableName";
-import { mergeRects } from "../../mergeRects";
-import { getFiberComponentBoundingBox } from "./getFiberComponentBoundingBox";
+import { getAllParentsElementsAndRootComponent } from "./getAllParentsElementsAndRootComponent";
 
-type ElementInfo = {
+export type ElementInfo = {
   box: DOMRect;
   label: string;
   link: string;
@@ -63,51 +60,4 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   }
 
   return null;
-}
-
-function getAllParentsElementsAndRootComponent(fiber: Fiber): {
-  component: Fiber;
-  componentBox: DOMRect;
-  parentElements: ElementInfo[];
-} {
-  console.log("getAllParentsElementsAndRootComponent", fiber);
-
-  const parentElements: ElementInfo[] = [];
-  const deepestElement = fiber.stateNode;
-  if (!deepestElement || !(deepestElement instanceof HTMLElement)) {
-    throw new Error(
-      "This functions works only for Fibres with HTMLElement stateNode"
-    );
-  }
-  let componentBox: DOMRect = deepestElement.getBoundingClientRect();
-
-  let currentFiber = fiber;
-  while (currentFiber._debugOwner || currentFiber.return) {
-    currentFiber = currentFiber._debugOwner || currentFiber.return!;
-    const currentElement = currentFiber.stateNode;
-    if (!currentElement || !(currentElement instanceof HTMLElement)) {
-      console.log("When fragment, we should go up", currentFiber);
-
-      return {
-        component: currentFiber,
-        parentElements,
-        componentBox:
-          getFiberComponentBoundingBox(currentFiber) || componentBox,
-      };
-    }
-
-    const usableName = getUsableName(currentFiber);
-
-    componentBox = mergeRects(
-      componentBox,
-      currentElement.getBoundingClientRect()
-    );
-
-    parentElements.push({
-      box: currentElement.getBoundingClientRect(),
-      label: usableName,
-      link: "TODO",
-    });
-  }
-  throw new Error("Could not find root component");
 }
