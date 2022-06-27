@@ -2,7 +2,7 @@
 import { Fiber } from "@locator/shared";
 import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
-import { HREF_TARGET } from "./consts";
+import { Adapter, HREF_TARGET } from "./consts";
 import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
 import { getElementInfo } from "./adapters/react/reactAdapter";
@@ -31,7 +31,7 @@ type SimpleComponent = {
 
 export type SimpleNode = SimpleElement | SimpleComponent;
 
-function Runtime() {
+function Runtime(props: { adapter: Adapter }) {
   const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -196,6 +196,6 @@ function Runtime() {
   );
 }
 
-export function initRender(solidLayer: HTMLDivElement) {
-  render(() => <Runtime />, solidLayer);
+export function initRender(solidLayer: HTMLDivElement, adapter: Adapter) {
+  render(() => <Runtime adapter={adapter} />, solidLayer);
 }

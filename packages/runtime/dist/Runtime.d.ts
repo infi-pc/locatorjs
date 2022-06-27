@@ -1,4 +1,5 @@
 import { Fiber } from "@locator/shared";
+import { Adapter } from "./consts";
 declare type SimpleElement = {
     type: "element";
     name: string;
@@ -15,5 +16,5 @@ declare type SimpleComponent = {
     children: (SimpleElement | SimpleComponent)[];
 };
 export declare type SimpleNode = SimpleElement | SimpleComponent;
-export declare function initRender(solidLayer: HTMLDivElement): void;
+export declare function initRender(solidLayer: HTMLDivElement, adapter: Adapter): void;
 export {};

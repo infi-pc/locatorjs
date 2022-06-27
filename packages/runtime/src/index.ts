@@ -1,20 +1,29 @@
-import { baseColor, fontFamily, hoverColor } from "./consts";
+import { Target } from "@locator/shared";
+import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
 export * from "./runtimeStore";
 
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
 const initRender =
   typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
 
-if (typeof window !== "undefined") {
+const isExtension =
+  typeof document !== "undefined"
+    ? !!document.documentElement.dataset.locatorClientUrl
+    : false;
+
+if (typeof window !== "undefined" && isExtension) {
   setTimeout(init, 0);
 }
 
-export function setup(props: {
+export function setup({
+  adapter,
+}: {
+  adapter: Adapter;
   // defaultMode?: LocatorJSMode;
   // targets?: { [k: string]: Target | string };
 }) {
   if (typeof window !== "undefined") {
-    init();
+    init({ adapter });
   }
   // if (props.defaultMode) {
   //   defaultMode = props.defaultMode;
@@ -35,7 +44,7 @@ export function setup(props: {
   // }
 }
 
-function init() {
+function init({ adapter }: { adapter?: Adapter } = {}) {
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;
@@ -102,5 +111,5 @@ function init() {
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  initRender(layer);
+  initRender(layer, adapter);
 }

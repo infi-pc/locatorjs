@@ -1,2 +1,5 @@
+import { Adapter } from "./consts";
 export * from "./runtimeStore";
-export declare function setup(props: {}): void;
+export declare function setup({ adapter, }: {
+    adapter: Adapter;
+}): void;

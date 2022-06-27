@@ -25,14 +25,19 @@ Object.keys(_runtimeStore).forEach(function (key) {
 });
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
 const initRender = typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
+const isExtension = typeof document !== "undefined" ? !!document.documentElement.dataset.locatorClientUrl : false;
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && isExtension) {
   setTimeout(init, 0);
 }
 
-function setup(props) {
+function setup({
+  adapter
+}) {
   if (typeof window !== "undefined") {
-    init();
+    init({
+      adapter
+    });
   } // if (props.defaultMode) {
   //   defaultMode = props.defaultMode;
   // }
@@ -53,7 +58,9 @@ function setup(props) {
 
 }
 
-function init() {
+function init({
+  adapter
+} = {}) {
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;
@@ -116,5 +123,5 @@ function init() {
   shadow.appendChild(layer);
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
-  initRender(layer);
+  initRender(layer, adapter);
 }

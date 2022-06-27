@@ -28,7 +28,7 @@ var _trackClickStats = require("./trackClickStats");
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
 
-function Runtime() {
+function Runtime(props) {
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
   const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
@@ -198,8 +198,10 @@ function Runtime() {
   })];
 }
 
-function initRender(solidLayer) {
-  (0, _web.render)(() => (0, _web.createComponent)(Runtime, {}), solidLayer);
+function initRender(solidLayer, adapter) {
+  (0, _web.render)(() => (0, _web.createComponent)(Runtime, {
+    adapter: adapter
+  }), solidLayer);
 }
 
 (0, _web.delegateEvents)(["click"]);
