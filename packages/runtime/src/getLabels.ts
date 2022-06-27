@@ -1,7 +1,8 @@
 import { findDebugSource } from "./findDebugSource";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 import { getFiberLabel } from "./getFiberLabel";
-import nonNullable, { getDataForDataId } from "./index";
+import nonNullable from "./nonNullable";
+import { getDataForDataId } from "./runtimeStore";
 import { getAllParentsWithTheSameBoundingBox } from "./getAllParentsWithTheSameBoundingBox";
 import { deduplicateLabels } from "./deduplicateLabels";
 import { LabelData } from "./LabelData";

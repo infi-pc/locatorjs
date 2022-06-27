@@ -9,9 +9,13 @@ var _web = require("solid-js/web");
 
 var _solidJs = require("solid-js");
 
+var _consts = require("./consts");
+
 var _fiberToSimple = require("./fiberToSimple");
 
 var _gatherFiberRoots = require("./gatherFiberRoots");
+
+var _getLabels = require("./getLabels");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
@@ -21,10 +25,13 @@ var _RenderNode = require("./RenderNode");
 
 var _searchDevtoolsRenderersForClosestTarget = require("./searchDevtoolsRenderersForClosestTarget");
 
+var _trackClickStats = require("./trackClickStats");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
 
 function Runtime() {
+  // console.log("RUNTIME");
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
   const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
@@ -63,15 +70,41 @@ function Runtime() {
     }
   }
 
+  function clickListener(e) {
+    if (!(0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
+      return;
+    }
+
+    const target = e.target;
+
+    if (target && target instanceof HTMLElement) {
+      const labels = (0, _getLabels.getLabels)(target);
+      const firstLabel = labels[0];
+
+      if (firstLabel) {
+        e.preventDefault();
+        e.stopPropagation();
+        (0, _trackClickStats.trackClickStats)();
+        window.open(firstLabel.link, _consts.HREF_TARGET);
+      }
+    }
+  }
+
   document.addEventListener("mouseover", mouseOverListener, {
     capture: true
   });
   document.addEventListener("keydown", keyDownListener);
   document.addEventListener("keyup", keyUpListener);
+  document.addEventListener("click", clickListener, {
+    capture: true
+  });
   (0, _solidJs.onCleanup)(() => {
     document.removeEventListener("keyup", keyUpListener);
     document.removeEventListener("keydown", keyDownListener);
     document.removeEventListener("mouseover", mouseOverListener, {
+      capture: true
+    });
+    document.removeEventListener("click", clickListener, {
       capture: true
     });
   });

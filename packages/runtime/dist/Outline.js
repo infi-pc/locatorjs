@@ -9,16 +9,14 @@ var _web = require("solid-js/web");
 
 var _solidJs = require("solid-js");
 
+var _consts = require("./consts");
+
 var _getLabels = require("./getLabels");
 
 var _trackClickStats = require("./trackClickStats");
 
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div><div id="locatorjs-labels-section"><div id="locatorjs-labels-wrapper"></div></div></div>`, 6),
-      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<a class="locatorjs-label" target="_self"></a>`, 2);
-
-const HREF_TARGET = "_self";
-const PADDING = 6;
-const baseColor = "#e90139";
+      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<a class="locatorjs-label"></a>`, 2);
 
 function Outline(props) {
   const bbox = () => props.element.getBoundingClientRect();
@@ -32,9 +30,9 @@ function Outline(props) {
           _el$2 = _el$.firstChild,
           _el$3 = _el$2.firstChild;
 
-    _el$.style.setProperty("position", "absolute");
+    _el$.style.setProperty("position", "fixed");
 
-    _el$.style.setProperty("border", "2px solid #e90139");
+    _el$.style.setProperty("border", "2px solid " + _consts.baseColor);
 
     _el$.style.setProperty("border-radius", "8px");
 
@@ -48,19 +46,20 @@ function Outline(props) {
 
         _el$4.$$click = () => {
           (0, _trackClickStats.trackClickStats)();
-          window.open(label.link, HREF_TARGET);
+          window.open(label.link, _consts.HREF_TARGET);
         };
 
+        (0, _web.setAttribute)(_el$4, "target", _consts.HREF_TARGET);
         (0, _web.insert)(_el$4, () => label.label);
         (0, _web.effect)(() => (0, _web.setAttribute)(_el$4, "href", label.link));
         return _el$4;
       })()
     }));
     (0, _web.effect)(_p$ => {
-      const _v$ = bbox().x - PADDING + "px",
-            _v$2 = bbox().y - PADDING + "px",
-            _v$3 = bbox().width + PADDING * 2 + "px",
-            _v$4 = bbox().height + PADDING * 2 + "px",
+      const _v$ = bbox().x - _consts.PADDING + "px",
+            _v$2 = bbox().y - _consts.PADDING + "px",
+            _v$3 = bbox().width + _consts.PADDING * 2 + "px",
+            _v$4 = bbox().height + _consts.PADDING * 2 + "px",
             _v$5 = {
         position: "absolute",
         display: "flex",

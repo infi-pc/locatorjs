@@ -1,5 +1,5 @@
 import { LabelData } from "./LabelData";
-import nonNullable from "./index";
+import nonNullable from "./nonNullable";
 
 export function deduplicateLabels(labels: LabelData[]): LabelData[] {
   const labelsIds: { [key: string]: true } = {};

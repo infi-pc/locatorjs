@@ -1,12 +1,9 @@
 /* eslint-disable react/no-unknown-property */
 import { For } from "solid-js";
+import { baseColor, HREF_TARGET, PADDING } from "./consts";
 import { getLabels } from "./getLabels";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
-
-const HREF_TARGET = "_self";
-const PADDING = 6;
-const baseColor = "#e90139";
 
 export function Outline(props: { element: HTMLElement }) {
   const bbox = () => props.element.getBoundingClientRect();
@@ -15,7 +12,7 @@ export function Outline(props: { element: HTMLElement }) {
   return (
     <div
       style={{
-        position: "absolute",
+        position: "fixed",
         left: bbox().x - PADDING + "px",
         top: bbox().y - PADDING + "px",
         width: bbox().width + PADDING * 2 + "px",

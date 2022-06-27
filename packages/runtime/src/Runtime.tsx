@@ -2,12 +2,15 @@
 import { Fiber } from "@locator/shared";
 import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
+import { HREF_TARGET } from "./consts";
 import { fiberToSimple } from "./fiberToSimple";
 import { gatherFiberRoots } from "./gatherFiberRoots";
+import { getLabels } from "./getLabels";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { Outline } from "./Outline";
 import { RenderXrayNode } from "./RenderNode";
 import { searchDevtoolsRenderersForClosestTarget } from "./searchDevtoolsRenderersForClosestTarget";
+import { trackClickStats } from "./trackClickStats";
 
 type SimpleElement = {
   type: "element";
@@ -29,6 +32,8 @@ type SimpleComponent = {
 export type SimpleNode = SimpleElement | SimpleComponent;
 
 function Runtime() {
+  // console.log("RUNTIME");
+
   const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -71,11 +76,30 @@ function Runtime() {
     }
   }
 
+  function clickListener(e: MouseEvent) {
+    if (!isCombinationModifiersPressed(e)) {
+      return;
+    }
+
+    const target = e.target;
+    if (target && target instanceof HTMLElement) {
+      const labels = getLabels(target);
+      const firstLabel = labels[0];
+      if (firstLabel) {
+        e.preventDefault();
+        e.stopPropagation();
+        trackClickStats();
+        window.open(firstLabel.link, HREF_TARGET);
+      }
+    }
+  }
+
   document.addEventListener("mouseover", mouseOverListener, {
     capture: true,
   });
   document.addEventListener("keydown", keyDownListener);
   document.addEventListener("keyup", keyUpListener);
+  document.addEventListener("click", clickListener, { capture: true });
 
   onCleanup(() => {
     document.removeEventListener("keyup", keyUpListener);
@@ -83,6 +107,7 @@ function Runtime() {
     document.removeEventListener("mouseover", mouseOverListener, {
       capture: true,
     });
+    document.removeEventListener("click", clickListener, { capture: true });
   });
 
   const getAllNodes = (): SimpleNode[] => {

@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.deduplicateLabels = deduplicateLabels;
 
-var _index = _interopRequireDefault(require("./index"));
+var _nonNullable = _interopRequireDefault(require("./nonNullable"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -20,5 +20,5 @@ function deduplicateLabels(labels) {
 
     labelsIds[id] = true;
     return label;
-  }).filter(_index.default);
+  }).filter(_nonNullable.default);
 }

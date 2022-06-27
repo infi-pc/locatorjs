@@ -1,4 +1,4 @@
-import { linkTemplateUrl } from "./index";
+import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
 
 export function buidLink(filePath: string, projectPath: string, loc: any) {
