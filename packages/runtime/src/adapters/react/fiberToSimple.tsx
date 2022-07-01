@@ -2,8 +2,9 @@ import { Fiber } from "@locator/shared";
 import { getBoundingRect } from "../../getBoundingRect";
 import { getComposedBoundingBox } from "../../getComposedBoundingBox";
 import { getUsableName } from "../../getUsableName";
-import { SimpleNode } from "../../Runtime";
+
 import { getAllFiberChildren } from "../../getAllFiberChildren";
+import { SimpleNode } from "../../types";
 
 export function fiberToSimple(fiber: Fiber): SimpleNode {
   const children = getAllFiberChildren(fiber);
@@ -25,6 +26,7 @@ export function fiberToSimple(fiber: Fiber): SimpleNode {
       name: getUsableName(fiber),
       box: box || getComposedBoundingBox(simpleChildren),
       children: simpleChildren,
+      source: fiber._debugSource || null,
     };
   } else {
     return {
@@ -33,6 +35,7 @@ export function fiberToSimple(fiber: Fiber): SimpleNode {
       name: getUsableName(fiber),
       box: getComposedBoundingBox(simpleChildren),
       children: simpleChildren,
+      source: fiber._debugSource || null,
     };
   }
 }

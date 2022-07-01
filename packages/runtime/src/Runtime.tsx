@@ -11,28 +11,10 @@ import { Outline } from "./Outline";
 import { RenderXrayNode } from "./RenderNode";
 import { searchDevtoolsRenderersForClosestTarget } from "./searchDevtoolsRenderersForClosestTarget";
 import { trackClickStats } from "./trackClickStats";
-
-type SimpleElement = {
-  type: "element";
-  name: string;
-  fiber: Fiber;
-  box: DOMRect | null;
-  element: Element | Text;
-  children: (SimpleElement | SimpleComponent)[];
-};
-
-type SimpleComponent = {
-  type: "component";
-  name: string;
-  fiber: Fiber;
-  box: DOMRect | null;
-  children: (SimpleElement | SimpleComponent)[];
-};
-
-export type SimpleNode = SimpleElement | SimpleComponent;
+import { SimpleNode } from "./types";
 
 function Runtime(props: { adapter: Adapter }) {
-  const [solidMode, setSolidMode] = createSignal<null | "xray">(null);
+  const [solidMode, setSolidMode] = createSignal<null | "tree">(null);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
@@ -46,11 +28,18 @@ function Runtime(props: { adapter: Adapter }) {
     }
   });
 
+  createEffect(() => {
+    if (solidMode() === "tree") {
+      document.body.classList.add("locatorjs-move-body");
+    } else {
+      document.body.classList.remove("locatorjs-move-body");
+    }
+  });
+
   function keyUpListener(e: KeyboardEvent) {
-    // XRay is disabled for now
-    // if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-    //   setSolidMode(solidMode() === "xray" ? null : "xray");
-    // }
+    if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+      setSolidMode(solidMode() === "tree" ? null : "tree");
+    }
 
     setHoldingModKey(isCombinationModifiersPressed(e));
   }
@@ -125,7 +114,7 @@ function Runtime(props: { adapter: Adapter }) {
   });
 
   const getAllNodes = (): SimpleNode[] => {
-    if (solidMode() === "xray") {
+    if (solidMode() === "tree") {
       const foundFiberRoots: Fiber[] = [];
 
       gatherFiberRoots(document.body, foundFiberRoots);
@@ -142,18 +131,30 @@ function Runtime(props: { adapter: Adapter }) {
 
   return (
     <>
-      {solidMode() === "xray" ? (
+      {solidMode() === "tree" ? (
         <div
           id="locator-solid-overlay"
           onClick={(e) => {
             setSolidMode(null);
           }}
+          style={{
+            position: "fixed",
+            top: "0",
+            left: "0",
+            width: "50vw",
+            height: "100vh",
+            overflow: "auto",
+            "pointer-events": "auto",
+          }}
         >
           <For each={getAllNodes()}>
+            {(node, i) => <TreeNode node={node} />}
+          </For>
+          {/* <For each={getAllNodes()}>
             {(node, i) => (
               <RenderXrayNode node={node} parentIsHovered={false} />
             )}
-          </For>
+          </For> */}
         </div>
       ) : null}
       {holdingModKey() ? (
@@ -193,4 +194,61 @@ function Runtime(props: { adapter: Adapter }) {
 
 export function initRender(solidLayer: HTMLDivElement, adapter: Adapter) {
   render(() => <Runtime adapter={adapter} />, solidLayer);
+}
+
+function TreeNode({ node }: { node: SimpleNode }) {
+  return (
+    <div
+      style={{
+        "padding-left": "1em",
+        "font-size": "14px",
+        "font-family": "monospace",
+      }}
+    >
+      <div>
+        {"<"}
+        {node.name}
+        {">"}
+      </div>
+      {node.type === "component" && node.source?.fileName ? (
+        <div
+          style={{
+            border: "1px solid #ccc",
+            padding: "0.5em",
+          }}
+        >
+          <div
+            style={{
+              "font-size": "12px",
+              display: "flex",
+              "justify-content": "space-between",
+              "font-family": "Helvitica, sans-serif",
+            }}
+          >
+            <div
+              style={{
+                "font-weight": "bold",
+              }}
+            >
+              {node.name}:
+            </div>{" "}
+            <div
+              style={{
+                color: "#888",
+              }}
+            >
+              {node.source?.fileName}
+            </div>
+          </div>
+          <For each={node.children}>
+            {(child, i) => <TreeNode node={child} />}
+          </For>
+        </div>
+      ) : (
+        <For each={node.children}>
+          {(child, i) => <TreeNode node={child} />}
+        </For>
+      )}
+    </div>
+  );
 }

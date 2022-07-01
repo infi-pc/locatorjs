@@ -30,7 +30,8 @@ function fiberToSimple(fiber) {
       fiber: fiber,
       name: (0, _getUsableName.getUsableName)(fiber),
       box: box || (0, _getComposedBoundingBox.getComposedBoundingBox)(simpleChildren),
-      children: simpleChildren
+      children: simpleChildren,
+      source: fiber._debugSource || null
     };
   } else {
     return {
@@ -38,7 +39,8 @@ function fiberToSimple(fiber) {
       fiber: fiber,
       name: (0, _getUsableName.getUsableName)(fiber),
       box: (0, _getComposedBoundingBox.getComposedBoundingBox)(simpleChildren),
-      children: simpleChildren
+      children: simpleChildren,
+      source: fiber._debugSource || null
     };
   }
 }

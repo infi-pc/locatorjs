@@ -21,12 +21,12 @@ var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
 var _Outline = require("./Outline");
 
-var _RenderNode = require("./RenderNode");
-
 var _trackClickStats = require("./trackClickStats");
 
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
-      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
+      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2),
+      _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<div><div>&lt;<!>></div></div>`, 5),
+      _tmpl$4 = /*#__PURE__*/(0, _web.template)(`<div><div><div>:</div> <div></div></div></div>`, 8);
 
 function Runtime(props) {
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
@@ -39,12 +39,19 @@ function Runtime(props) {
       document.body.classList.remove("locatorjs-active-pointer");
     }
   });
+  (0, _solidJs.createEffect)(() => {
+    if (solidMode() === "tree") {
+      document.body.classList.add("locatorjs-move-body");
+    } else {
+      document.body.classList.remove("locatorjs-move-body");
+    }
+  });
 
   function keyUpListener(e) {
-    // XRay is disabled for now
-    // if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-    //   setSolidMode(solidMode() === "xray" ? null : "xray");
-    // }
+    if (e.code === "KeyO" && (0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
+      setSolidMode(solidMode() === "tree" ? null : "tree");
+    }
+
     setHoldingModKey((0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e));
   }
 
@@ -116,7 +123,7 @@ function Runtime(props) {
   });
 
   const getAllNodes = () => {
-    if (solidMode() === "xray") {
+    if (solidMode() === "tree") {
       const foundFiberRoots = [];
       (0, _gatherFiberRoots.gatherFiberRoots)(document.body, foundFiberRoots);
       const simpleRoots = foundFiberRoots.map(fiber => {
@@ -129,7 +136,7 @@ function Runtime(props) {
   };
 
   return [(0, _web.memo)((() => {
-    const _c$ = (0, _web.memo)(() => solidMode() === "xray", true);
+    const _c$ = (0, _web.memo)(() => solidMode() === "tree", true);
 
     return () => _c$() ? (() => {
       const _el$ = _tmpl$.cloneNode(true);
@@ -138,14 +145,27 @@ function Runtime(props) {
         setSolidMode(null);
       };
 
+      _el$.style.setProperty("position", "fixed");
+
+      _el$.style.setProperty("top", "0");
+
+      _el$.style.setProperty("left", "0");
+
+      _el$.style.setProperty("width", "50vw");
+
+      _el$.style.setProperty("height", "100vh");
+
+      _el$.style.setProperty("overflow", "auto");
+
+      _el$.style.setProperty("pointer-events", "auto");
+
       (0, _web.insert)(_el$, (0, _web.createComponent)(_solidJs.For, {
         get each() {
           return getAllNodes();
         },
 
-        children: (node, i) => (0, _web.createComponent)(_RenderNode.RenderXrayNode, {
-          node: node,
-          parentIsHovered: false
+        children: (node, i) => (0, _web.createComponent)(TreeNode, {
+          node: node
         })
       }));
       return _el$;
@@ -193,6 +213,85 @@ function initRender(solidLayer, adapter) {
   (0, _web.render)(() => (0, _web.createComponent)(Runtime, {
     adapter: adapter
   }), solidLayer);
+}
+
+function TreeNode({
+  node
+}) {
+  return (() => {
+    const _el$3 = _tmpl$3.cloneNode(true),
+          _el$4 = _el$3.firstChild,
+          _el$5 = _el$4.firstChild,
+          _el$7 = _el$5.nextSibling,
+          _el$6 = _el$7.nextSibling;
+
+    _el$3.style.setProperty("padding-left", "1em");
+
+    _el$3.style.setProperty("font-size", "14px");
+
+    _el$3.style.setProperty("font-family", "monospace");
+
+    (0, _web.insert)(_el$4, () => node.name, _el$7);
+    (0, _web.insert)(_el$3, (() => {
+      const _c$3 = (0, _web.memo)(() => {
+        var _node$source;
+
+        return !!(node.type === "component" && (_node$source = node.source) !== null && _node$source !== void 0 && _node$source.fileName);
+      }, true);
+
+      return () => _c$3() ? (() => {
+        const _el$8 = _tmpl$4.cloneNode(true),
+              _el$9 = _el$8.firstChild,
+              _el$10 = _el$9.firstChild,
+              _el$11 = _el$10.firstChild,
+              _el$12 = _el$10.nextSibling,
+              _el$13 = _el$12.nextSibling;
+
+        _el$8.style.setProperty("border", "1px solid #ccc");
+
+        _el$8.style.setProperty("padding", "0.5em");
+
+        _el$9.style.setProperty("font-size", "12px");
+
+        _el$9.style.setProperty("display", "flex");
+
+        _el$9.style.setProperty("justify-content", "space-between");
+
+        _el$9.style.setProperty("font-family", "Helvitica, sans-serif");
+
+        _el$10.style.setProperty("font-weight", "bold");
+
+        (0, _web.insert)(_el$10, () => node.name, _el$11);
+
+        _el$13.style.setProperty("color", "#888");
+
+        (0, _web.insert)(_el$13, () => {
+          var _node$source2;
+
+          return (_node$source2 = node.source) === null || _node$source2 === void 0 ? void 0 : _node$source2.fileName;
+        });
+        (0, _web.insert)(_el$8, (0, _web.createComponent)(_solidJs.For, {
+          get each() {
+            return node.children;
+          },
+
+          children: (child, i) => (0, _web.createComponent)(TreeNode, {
+            node: child
+          })
+        }), null);
+        return _el$8;
+      })() : (0, _web.createComponent)(_solidJs.For, {
+        get each() {
+          return node.children;
+        },
+
+        children: (child, i) => (0, _web.createComponent)(TreeNode, {
+          node: child
+        })
+      });
+    })(), null);
+    return _el$3;
+  })();
 }
 
 (0, _web.delegateEvents)(["click"]);

@@ -1,4 +1,4 @@
-import { SimpleNode } from "./Runtime";
+import { SimpleNode } from "./types";
 export declare function RenderXrayNode(props: {
     node: SimpleNode;
     parentIsHovered: boolean;

@@ -96,6 +96,19 @@ function init({ adapter }: { adapter?: Adapter } = {}) {
       .locatorjs-active-pointer * {
         cursor: pointer !important;
       }
+      body.locatorjs-move-body > * {
+        transition: transform 0.2s ease-in-out;
+        transform: scale(0.5) translate(50%, -50%);
+      }
+      body.locatorjs-move-body > * { 
+        box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+      }
+      body.locatorjs-move-body > #locatorjs-wrapper { 
+        transform: scale(1);
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
     `;
 
   const wrapper = document.createElement("div");
