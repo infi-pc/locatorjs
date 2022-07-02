@@ -14,6 +14,7 @@ import { trackClickStats } from "./trackClickStats";
 import { SimpleNode } from "./types";
 import { getPathToParent } from "./getPathToParent";
 import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
+import { RootTreeNode } from "./RootTreeNode";
 
 function Runtime(props: { adapter: Adapter }) {
   const [solidMode, setSolidMode] = createSignal<
@@ -166,7 +167,7 @@ function Runtime(props: { adapter: Adapter }) {
         >
           <For each={getAllNodes()}>
             {(node, i) => (
-              <TreeNode
+              <RootTreeNode
                 node={node}
                 idsToShow={
                   solidMode()[0] === "treeFromElement"
@@ -222,92 +223,4 @@ function Runtime(props: { adapter: Adapter }) {
 
 export function initRender(solidLayer: HTMLDivElement, adapter: Adapter) {
   render(() => <Runtime adapter={adapter} />, solidLayer);
-}
-
-function TreeNode(props: {
-  node: SimpleNode;
-  idsToShow: {
-    [id: string]: true;
-  };
-}) {
-  return (
-    <div
-      class="locatorjs-tree-node"
-      style={{
-        "padding-left": "1em",
-        "font-size": "14px",
-        "font-family": "monospace",
-        "min-width": "300px",
-        "pointer-events": "auto",
-        cursor: "pointer",
-        // display: "flex",
-        // "flex-direction": "column",
-      }}
-      // onClick={(e) => {
-      //   alert("F");
-      //   console.log(props.node.fiber);
-      // }}
-    >
-      <button
-        // TODO we should not need capture
-        // @ts-ignore
-        oncapture:click={() => {
-          console.log(props.node.fiber);
-        }}
-        style={{
-          "background-color": props.idsToShow[props.node.uniqueId]
-            ? "yellow"
-            : "",
-        }}
-      >
-        {"<"}
-        {props.node.name}
-        {">"}
-      </button>
-      {props.node.type === "component" && props.node.source?.fileName ? (
-        <div
-          style={{
-            border: "1px solid #ccc",
-            padding: "0.5em",
-            "min-width": "300px",
-            // display: "flex",
-            // "flex-direction": "column",
-          }}
-        >
-          <div
-            style={{
-              "font-size": "12px",
-              display: "flex",
-              "justify-content": "space-between",
-              "font-family": "Helvitica, sans-serif",
-            }}
-          >
-            <div
-              style={{
-                "font-weight": "bold",
-              }}
-            >
-              {props.node.name}:
-            </div>{" "}
-            <div
-              style={{
-                color: "#888",
-              }}
-            >
-              {props.node.source?.fileName}
-            </div>
-          </div>
-          <For each={props.node.children}>
-            {(child, i) => (
-              <TreeNode node={child} idsToShow={props.idsToShow} />
-            )}
-          </For>
-        </div>
-      ) : (
-        <For each={props.node.children}>
-          {(child, i) => <TreeNode node={child} idsToShow={props.idsToShow} />}
-        </For>
-      )}
-    </div>
-  );
 }

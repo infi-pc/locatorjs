@@ -25,10 +25,10 @@ var _trackClickStats = require("./trackClickStats");
 
 var _getIdsOnPathToRoot = require("./getIdsOnPathToRoot");
 
+var _RootTreeNode = require("./RootTreeNode");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
-      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2),
-      _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<div class="locatorjs-tree-node"><button>&lt;<!>></button></div>`, 5),
-      _tmpl$4 = /*#__PURE__*/(0, _web.template)(`<div><div><div>:</div> <div></div></div></div>`, 8);
+      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
 
 function Runtime(props) {
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(["off"]);
@@ -180,7 +180,7 @@ function Runtime(props) {
           return getAllNodes();
         },
 
-        children: (node, i) => (0, _web.createComponent)(TreeNode, {
+        children: (node, i) => (0, _web.createComponent)(_RootTreeNode.RootTreeNode, {
           node: node,
 
           get idsToShow() {
@@ -235,106 +235,6 @@ function initRender(solidLayer, adapter) {
   (0, _web.render)(() => (0, _web.createComponent)(Runtime, {
     adapter: adapter
   }), solidLayer);
-}
-
-function TreeNode(props) {
-  return (() => {
-    const _el$3 = _tmpl$3.cloneNode(true),
-          _el$4 = _el$3.firstChild,
-          _el$5 = _el$4.firstChild,
-          _el$7 = _el$5.nextSibling,
-          _el$6 = _el$7.nextSibling;
-
-    _el$3.style.setProperty("padding-left", "1em");
-
-    _el$3.style.setProperty("font-size", "14px");
-
-    _el$3.style.setProperty("font-family", "monospace");
-
-    _el$3.style.setProperty("min-width", "300px");
-
-    _el$3.style.setProperty("pointer-events", "auto");
-
-    _el$3.style.setProperty("cursor", "pointer");
-
-    _el$4.addEventListener("click", () => {
-      console.log(props.node.fiber);
-    }, true);
-
-    (0, _web.insert)(_el$4, () => props.node.name, _el$7);
-    (0, _web.insert)(_el$3, (() => {
-      const _c$3 = (0, _web.memo)(() => {
-        var _props$node$source;
-
-        return !!(props.node.type === "component" && (_props$node$source = props.node.source) !== null && _props$node$source !== void 0 && _props$node$source.fileName);
-      }, true);
-
-      return () => _c$3() ? (() => {
-        const _el$8 = _tmpl$4.cloneNode(true),
-              _el$9 = _el$8.firstChild,
-              _el$10 = _el$9.firstChild,
-              _el$11 = _el$10.firstChild,
-              _el$12 = _el$10.nextSibling,
-              _el$13 = _el$12.nextSibling;
-
-        _el$8.style.setProperty("border", "1px solid #ccc");
-
-        _el$8.style.setProperty("padding", "0.5em");
-
-        _el$8.style.setProperty("min-width", "300px");
-
-        _el$9.style.setProperty("font-size", "12px");
-
-        _el$9.style.setProperty("display", "flex");
-
-        _el$9.style.setProperty("justify-content", "space-between");
-
-        _el$9.style.setProperty("font-family", "Helvitica, sans-serif");
-
-        _el$10.style.setProperty("font-weight", "bold");
-
-        (0, _web.insert)(_el$10, () => props.node.name, _el$11);
-
-        _el$13.style.setProperty("color", "#888");
-
-        (0, _web.insert)(_el$13, () => {
-          var _props$node$source2;
-
-          return (_props$node$source2 = props.node.source) === null || _props$node$source2 === void 0 ? void 0 : _props$node$source2.fileName;
-        });
-        (0, _web.insert)(_el$8, (0, _web.createComponent)(_solidJs.For, {
-          get each() {
-            return props.node.children;
-          },
-
-          children: (child, i) => (0, _web.createComponent)(TreeNode, {
-            node: child,
-
-            get idsToShow() {
-              return props.idsToShow;
-            }
-
-          })
-        }), null);
-        return _el$8;
-      })() : (0, _web.createComponent)(_solidJs.For, {
-        get each() {
-          return props.node.children;
-        },
-
-        children: (child, i) => (0, _web.createComponent)(TreeNode, {
-          node: child,
-
-          get idsToShow() {
-            return props.idsToShow;
-          }
-
-        })
-      });
-    })(), null);
-    (0, _web.effect)(() => _el$4.style.setProperty("background-color", props.idsToShow[props.node.uniqueId] ? "yellow" : ""));
-    return _el$3;
-  })();
 }
 
 (0, _web.delegateEvents)(["click"]);
