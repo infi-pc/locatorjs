@@ -23,13 +23,15 @@ var _Outline = require("./Outline");
 
 var _trackClickStats = require("./trackClickStats");
 
+var _getIdsOnPathToRoot = require("./getIdsOnPathToRoot");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2),
-      _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<div><div>&lt;<!>></div></div>`, 5),
+      _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<div class="locatorjs-tree-node"><button>&lt;<!>></button></div>`, 5),
       _tmpl$4 = /*#__PURE__*/(0, _web.template)(`<div><div><div>:</div> <div></div></div></div>`, 8);
 
 function Runtime(props) {
-  const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(null);
+  const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(["off"]);
   const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
   (0, _solidJs.createEffect)(() => {
@@ -40,7 +42,7 @@ function Runtime(props) {
     }
   });
   (0, _solidJs.createEffect)(() => {
-    if (solidMode() === "tree") {
+    if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
       document.body.classList.add("locatorjs-move-body");
     } else {
       document.body.classList.remove("locatorjs-move-body");
@@ -49,7 +51,11 @@ function Runtime(props) {
 
   function keyUpListener(e) {
     if (e.code === "KeyO" && (0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
-      setSolidMode(solidMode() === "tree" ? null : "tree");
+      if (solidMode()[0] === "tree") {
+        setSolidMode(["off"]);
+      } else {
+        setSolidMode(["tree"]);
+      }
     }
 
     setHoldingModKey((0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e));
@@ -123,26 +129,36 @@ function Runtime(props) {
   });
 
   const getAllNodes = () => {
-    if (solidMode() === "tree") {
+    if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
       const foundFiberRoots = [];
       (0, _gatherFiberRoots.gatherFiberRoots)(document.body, foundFiberRoots);
       const simpleRoots = foundFiberRoots.map(fiber => {
         return (0, _fiberToSimple.fiberToSimple)(fiber);
       });
       return simpleRoots;
-    } else {
-      return [];
-    }
+    } //  else if () {
+    //   const pathToParentTree = getIdsOnPathToRoot(solidMode()[1]!);
+    //   if (pathToParentTree) {
+    //     return [pathToParentTree];
+    //   }
+    // }
+
+
+    return [];
   };
 
+  function showTreeFromElement(element) {
+    setSolidMode(["treeFromElement", element]);
+  }
+
   return [(0, _web.memo)((() => {
-    const _c$ = (0, _web.memo)(() => solidMode() === "tree", true);
+    const _c$ = (0, _web.memo)(() => !!(solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement"), true);
 
     return () => _c$() ? (() => {
       const _el$ = _tmpl$.cloneNode(true);
 
       _el$.$$click = e => {
-        setSolidMode(null);
+        setSolidMode(["off"]);
       };
 
       _el$.style.setProperty("position", "fixed");
@@ -165,7 +181,12 @@ function Runtime(props) {
         },
 
         children: (node, i) => (0, _web.createComponent)(TreeNode, {
-          node: node
+          node: node,
+
+          get idsToShow() {
+            return (0, _web.memo)(() => solidMode()[0] === "treeFromElement", true)() ? (0, _getIdsOnPathToRoot.getIdsOnPathToRoot)(solidMode()[1]) : {};
+          }
+
         })
       }));
       return _el$;
@@ -204,7 +225,8 @@ function Runtime(props) {
     }
 
     return (0, _web.createComponent)(_Outline.Outline, {
-      element: elInfo
+      element: elInfo,
+      showTreeFromElement: showTreeFromElement
     });
   })];
 }
@@ -215,9 +237,7 @@ function initRender(solidLayer, adapter) {
   }), solidLayer);
 }
 
-function TreeNode({
-  node
-}) {
+function TreeNode(props) {
   return (() => {
     const _el$3 = _tmpl$3.cloneNode(true),
           _el$4 = _el$3.firstChild,
@@ -231,12 +251,22 @@ function TreeNode({
 
     _el$3.style.setProperty("font-family", "monospace");
 
-    (0, _web.insert)(_el$4, () => node.name, _el$7);
+    _el$3.style.setProperty("min-width", "300px");
+
+    _el$3.style.setProperty("pointer-events", "auto");
+
+    _el$3.style.setProperty("cursor", "pointer");
+
+    _el$4.addEventListener("click", () => {
+      console.log(props.node.fiber);
+    }, true);
+
+    (0, _web.insert)(_el$4, () => props.node.name, _el$7);
     (0, _web.insert)(_el$3, (() => {
       const _c$3 = (0, _web.memo)(() => {
-        var _node$source;
+        var _props$node$source;
 
-        return !!(node.type === "component" && (_node$source = node.source) !== null && _node$source !== void 0 && _node$source.fileName);
+        return !!(props.node.type === "component" && (_props$node$source = props.node.source) !== null && _props$node$source !== void 0 && _props$node$source.fileName);
       }, true);
 
       return () => _c$3() ? (() => {
@@ -251,6 +281,8 @@ function TreeNode({
 
         _el$8.style.setProperty("padding", "0.5em");
 
+        _el$8.style.setProperty("min-width", "300px");
+
         _el$9.style.setProperty("font-size", "12px");
 
         _el$9.style.setProperty("display", "flex");
@@ -261,35 +293,46 @@ function TreeNode({
 
         _el$10.style.setProperty("font-weight", "bold");
 
-        (0, _web.insert)(_el$10, () => node.name, _el$11);
+        (0, _web.insert)(_el$10, () => props.node.name, _el$11);
 
         _el$13.style.setProperty("color", "#888");
 
         (0, _web.insert)(_el$13, () => {
-          var _node$source2;
+          var _props$node$source2;
 
-          return (_node$source2 = node.source) === null || _node$source2 === void 0 ? void 0 : _node$source2.fileName;
+          return (_props$node$source2 = props.node.source) === null || _props$node$source2 === void 0 ? void 0 : _props$node$source2.fileName;
         });
         (0, _web.insert)(_el$8, (0, _web.createComponent)(_solidJs.For, {
           get each() {
-            return node.children;
+            return props.node.children;
           },
 
           children: (child, i) => (0, _web.createComponent)(TreeNode, {
-            node: child
+            node: child,
+
+            get idsToShow() {
+              return props.idsToShow;
+            }
+
           })
         }), null);
         return _el$8;
       })() : (0, _web.createComponent)(_solidJs.For, {
         get each() {
-          return node.children;
+          return props.node.children;
         },
 
         children: (child, i) => (0, _web.createComponent)(TreeNode, {
-          node: child
+          node: child,
+
+          get idsToShow() {
+            return props.idsToShow;
+          }
+
         })
       });
     })(), null);
+    (0, _web.effect)(() => _el$4.style.setProperty("background-color", props.idsToShow[props.node.uniqueId] ? "yellow" : ""));
     return _el$3;
   })();
 }

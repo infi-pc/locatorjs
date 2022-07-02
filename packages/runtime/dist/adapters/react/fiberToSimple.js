@@ -13,13 +13,22 @@ var _getUsableName = require("../../getUsableName");
 
 var _getAllFiberChildren = require("../../getAllFiberChildren");
 
-function fiberToSimple(fiber) {
+var _makeFiberId = require("./makeFiberId");
+
+function fiberToSimple(fiber, manualChildren) {
   var _fiber$stateNode;
 
-  const children = (0, _getAllFiberChildren.getAllFiberChildren)(fiber);
-  const simpleChildren = children.map(child => {
-    return fiberToSimple(child);
-  });
+  let simpleChildren;
+
+  if (manualChildren) {
+    simpleChildren = manualChildren;
+  } else {
+    const children = (0, _getAllFiberChildren.getAllFiberChildren)(fiber);
+    simpleChildren = children.map(child => {
+      return fiberToSimple(child);
+    });
+  }
+
   const element = fiber.stateNode instanceof Element || fiber.stateNode instanceof Text ? fiber.stateNode : (_fiber$stateNode = fiber.stateNode) === null || _fiber$stateNode === void 0 ? void 0 : _fiber$stateNode.containerInfo;
 
   if (element) {
@@ -28,6 +37,7 @@ function fiberToSimple(fiber) {
       type: "element",
       element: element,
       fiber: fiber,
+      uniqueId: (0, _makeFiberId.makeFiberId)(fiber),
       name: (0, _getUsableName.getUsableName)(fiber),
       box: box || (0, _getComposedBoundingBox.getComposedBoundingBox)(simpleChildren),
       children: simpleChildren,
@@ -37,6 +47,7 @@ function fiberToSimple(fiber) {
     return {
       type: "component",
       fiber: fiber,
+      uniqueId: (0, _makeFiberId.makeFiberId)(fiber),
       name: (0, _getUsableName.getUsableName)(fiber),
       box: (0, _getComposedBoundingBox.getComposedBoundingBox)(simpleChildren),
       children: simpleChildren,

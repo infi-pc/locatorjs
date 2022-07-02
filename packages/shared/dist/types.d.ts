@@ -309,6 +309,7 @@ export interface Fiber {
     _debugOwner?: Fiber | null;
     _debugIsCurrentlyTiming?: boolean;
     _debugNeedsRemount?: boolean;
+    _debugID: number;
     _debugHookTypes?: Array<HookType> | null;
 }
 export declare type PathFrame = {

@@ -9,6 +9,7 @@ export type Source = {
 type SimpleElement = {
   type: "element";
   name: string;
+  uniqueId: string;
   fiber: Fiber;
   box: DOMRect | null;
   element: Element | Text;
@@ -18,6 +19,7 @@ type SimpleElement = {
 
 type SimpleComponent = {
   type: "component";
+  uniqueId: string;
   name: string;
   fiber: Fiber;
   box: DOMRect | null;

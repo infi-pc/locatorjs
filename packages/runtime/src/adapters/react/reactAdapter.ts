@@ -15,6 +15,7 @@ export type ElementInfo = {
 
 export type FullElementInfo = {
   thisElement: ElementInfo;
+  htmlElement: HTMLElement;
   parentElements: ElementInfo[];
   componentBox: DOMRect;
   componentsLabels: LabelData[];
@@ -53,6 +54,7 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
         box: getFiberBoundingBox(fiber) || found.getBoundingClientRect(),
         ...thisLabel,
       },
+      htmlElement: found,
       parentElements: parentElements,
       componentBox,
       componentsLabels: deduplicateLabels(labels),

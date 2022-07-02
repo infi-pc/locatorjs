@@ -12,9 +12,13 @@ import { RenderXrayNode } from "./RenderNode";
 import { searchDevtoolsRenderersForClosestTarget } from "./searchDevtoolsRenderersForClosestTarget";
 import { trackClickStats } from "./trackClickStats";
 import { SimpleNode } from "./types";
+import { getPathToParent } from "./getPathToParent";
+import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
 
 function Runtime(props: { adapter: Adapter }) {
-  const [solidMode, setSolidMode] = createSignal<null | "tree">(null);
+  const [solidMode, setSolidMode] = createSignal<
+    ["off"] | ["tree"] | ["treeFromElement", HTMLElement]
+  >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
@@ -29,7 +33,7 @@ function Runtime(props: { adapter: Adapter }) {
   });
 
   createEffect(() => {
-    if (solidMode() === "tree") {
+    if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
       document.body.classList.add("locatorjs-move-body");
     } else {
       document.body.classList.remove("locatorjs-move-body");
@@ -38,7 +42,11 @@ function Runtime(props: { adapter: Adapter }) {
 
   function keyUpListener(e: KeyboardEvent) {
     if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-      setSolidMode(solidMode() === "tree" ? null : "tree");
+      if (solidMode()[0] === "tree") {
+        setSolidMode(["off"]);
+      } else {
+        setSolidMode(["tree"]);
+      }
     }
 
     setHoldingModKey(isCombinationModifiersPressed(e));
@@ -114,7 +122,7 @@ function Runtime(props: { adapter: Adapter }) {
   });
 
   const getAllNodes = (): SimpleNode[] => {
-    if (solidMode() === "tree") {
+    if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
       const foundFiberRoots: Fiber[] = [];
 
       gatherFiberRoots(document.body, foundFiberRoots);
@@ -124,18 +132,27 @@ function Runtime(props: { adapter: Adapter }) {
       });
 
       return simpleRoots;
-    } else {
-      return [];
     }
+    //  else if () {
+    //   const pathToParentTree = getIdsOnPathToRoot(solidMode()[1]!);
+    //   if (pathToParentTree) {
+    //     return [pathToParentTree];
+    //   }
+    // }
+    return [];
   };
+
+  function showTreeFromElement(element: HTMLElement) {
+    setSolidMode(["treeFromElement", element]);
+  }
 
   return (
     <>
-      {solidMode() === "tree" ? (
+      {solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement" ? (
         <div
           id="locator-solid-overlay"
           onClick={(e) => {
-            setSolidMode(null);
+            setSolidMode(["off"]);
           }}
           style={{
             position: "fixed",
@@ -148,7 +165,16 @@ function Runtime(props: { adapter: Adapter }) {
           }}
         >
           <For each={getAllNodes()}>
-            {(node, i) => <TreeNode node={node} />}
+            {(node, i) => (
+              <TreeNode
+                node={node}
+                idsToShow={
+                  solidMode()[0] === "treeFromElement"
+                    ? getIdsOnPathToRoot(solidMode()[1]!)
+                    : {}
+                }
+              />
+            )}
           </For>
           {/* <For each={getAllNodes()}>
             {(node, i) => (
@@ -181,7 +207,9 @@ function Runtime(props: { adapter: Adapter }) {
         if (!elInfo) {
           return null;
         }
-        return <Outline element={elInfo} />;
+        return (
+          <Outline element={elInfo} showTreeFromElement={showTreeFromElement} />
+        );
       })()}
       {/* {holdingModKey() &&
       currentElement() &&
@@ -196,25 +224,54 @@ export function initRender(solidLayer: HTMLDivElement, adapter: Adapter) {
   render(() => <Runtime adapter={adapter} />, solidLayer);
 }
 
-function TreeNode({ node }: { node: SimpleNode }) {
+function TreeNode(props: {
+  node: SimpleNode;
+  idsToShow: {
+    [id: string]: true;
+  };
+}) {
   return (
     <div
+      class="locatorjs-tree-node"
       style={{
         "padding-left": "1em",
         "font-size": "14px",
         "font-family": "monospace",
+        "min-width": "300px",
+        "pointer-events": "auto",
+        cursor: "pointer",
+        // display: "flex",
+        // "flex-direction": "column",
       }}
+      // onClick={(e) => {
+      //   alert("F");
+      //   console.log(props.node.fiber);
+      // }}
     >
-      <div>
+      <button
+        // TODO we should not need capture
+        // @ts-ignore
+        oncapture:click={() => {
+          console.log(props.node.fiber);
+        }}
+        style={{
+          "background-color": props.idsToShow[props.node.uniqueId]
+            ? "yellow"
+            : "",
+        }}
+      >
         {"<"}
-        {node.name}
+        {props.node.name}
         {">"}
-      </div>
-      {node.type === "component" && node.source?.fileName ? (
+      </button>
+      {props.node.type === "component" && props.node.source?.fileName ? (
         <div
           style={{
             border: "1px solid #ccc",
             padding: "0.5em",
+            "min-width": "300px",
+            // display: "flex",
+            // "flex-direction": "column",
           }}
         >
           <div
@@ -230,23 +287,25 @@ function TreeNode({ node }: { node: SimpleNode }) {
                 "font-weight": "bold",
               }}
             >
-              {node.name}:
+              {props.node.name}:
             </div>{" "}
             <div
               style={{
                 color: "#888",
               }}
             >
-              {node.source?.fileName}
+              {props.node.source?.fileName}
             </div>
           </div>
-          <For each={node.children}>
-            {(child, i) => <TreeNode node={child} />}
+          <For each={props.node.children}>
+            {(child, i) => (
+              <TreeNode node={child} idsToShow={props.idsToShow} />
+            )}
           </For>
         </div>
       ) : (
-        <For each={node.children}>
-          {(child, i) => <TreeNode node={child} />}
+        <For each={props.node.children}>
+          {(child, i) => <TreeNode node={child} idsToShow={props.idsToShow} />}
         </For>
       )}
     </div>

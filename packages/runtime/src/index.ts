@@ -84,6 +84,9 @@ function init({ adapter }: { adapter?: Adapter } = {}) {
         display: flex;
         gap: 8px;
       }
+      .locatorjs-tree-node:hover {
+        background-color: #eee;
+      }
     `;
 
   const globalStyle = document.createElement("style");

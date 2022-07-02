@@ -5,13 +5,24 @@ import { getUsableName } from "../../getUsableName";
 
 import { getAllFiberChildren } from "../../getAllFiberChildren";
 import { SimpleNode } from "../../types";
+import { makeFiberId } from "./makeFiberId";
 
-export function fiberToSimple(fiber: Fiber): SimpleNode {
-  const children = getAllFiberChildren(fiber);
+export function fiberToSimple(
+  fiber: Fiber,
+  manualChildren?: SimpleNode[]
+): SimpleNode {
+  let simpleChildren;
 
-  const simpleChildren = children.map((child) => {
-    return fiberToSimple(child);
-  });
+  if (manualChildren) {
+    simpleChildren = manualChildren;
+  } else {
+    const children = getAllFiberChildren(fiber);
+
+    simpleChildren = children.map((child) => {
+      return fiberToSimple(child);
+    });
+  }
+
   const element =
     fiber.stateNode instanceof Element || fiber.stateNode instanceof Text
       ? fiber.stateNode
@@ -23,6 +34,7 @@ export function fiberToSimple(fiber: Fiber): SimpleNode {
       type: "element",
       element: element,
       fiber: fiber,
+      uniqueId: makeFiberId(fiber),
       name: getUsableName(fiber),
       box: box || getComposedBoundingBox(simpleChildren),
       children: simpleChildren,
@@ -32,6 +44,7 @@ export function fiberToSimple(fiber: Fiber): SimpleNode {
     return {
       type: "component",
       fiber: fiber,
+      uniqueId: makeFiberId(fiber),
       name: getUsableName(fiber),
       box: getComposedBoundingBox(simpleChildren),
       children: simpleChildren,

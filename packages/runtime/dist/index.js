@@ -100,6 +100,9 @@ function init({
         display: flex;
         gap: 8px;
       }
+      .locatorjs-tree-node:hover {
+        background-color: #eee;
+      }
     `;
   const globalStyle = document.createElement("style");
   globalStyle.id = "locatorjs-global-style";

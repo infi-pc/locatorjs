@@ -14,7 +14,7 @@ var _consts = require("./consts");
 var _trackClickStats = require("./trackClickStats");
 
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div><div></div></div>`, 4),
-      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div><div id="locatorjs-labels-section"><div id="locatorjs-labels-wrapper"></div></div></div>`, 6),
+      _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div><div id="locatorjs-labels-section"><div id="locatorjs-labels-wrapper"><a class="locatorjs-label"><svg style="width:16px;height:16px" viewBox="0 0 24 24"><path fill="currentColor" d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"></path></svg></a></div></div></div>`, 12),
       _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<a class="locatorjs-label"></a>`, 2);
 
 function Outline(props) {
@@ -75,6 +75,14 @@ function Outline(props) {
 
     get bbox() {
       return props.element.componentBox;
+    },
+
+    get element() {
+      return props.element.htmlElement;
+    },
+
+    get showTreeFromElement() {
+      return props.showTreeFromElement;
     }
 
   })];
@@ -93,7 +101,8 @@ function ComponentOutline(props) {
     return (() => {
       const _el$3 = _tmpl$2.cloneNode(true),
             _el$4 = _el$3.firstChild,
-            _el$5 = _el$4.firstChild;
+            _el$5 = _el$4.firstChild,
+            _el$6 = _el$5.firstChild;
 
       _el$3.style.setProperty("position", "fixed");
 
@@ -109,26 +118,32 @@ function ComponentOutline(props) {
 
       _el$3.style.setProperty("border-top-left-radius", left === 0 || top === 0 ? "0" : "8px");
 
+      (0, _web.setAttribute)(_el$6, "target", _consts.HREF_TARGET);
+
+      _el$6.addEventListener("click", () => {
+        props.showTreeFromElement(props.element);
+      }, true);
+
       (0, _web.insert)(_el$5, (0, _web.createComponent)(_solidJs.For, {
         get each() {
           return props.labels;
         },
 
         children: (label, i) => (() => {
-          const _el$6 = _tmpl$3.cloneNode(true);
+          const _el$7 = _tmpl$3.cloneNode(true);
 
-          (0, _web.setAttribute)(_el$6, "target", _consts.HREF_TARGET);
+          (0, _web.setAttribute)(_el$7, "target", _consts.HREF_TARGET);
 
-          _el$6.addEventListener("click", () => {
+          _el$7.addEventListener("click", () => {
             (0, _trackClickStats.trackClickStats)();
             window.open(label.link, _consts.HREF_TARGET);
           }, true);
 
-          (0, _web.insert)(_el$6, () => label.label);
-          (0, _web.effect)(() => (0, _web.setAttribute)(_el$6, "href", label.link));
-          return _el$6;
+          (0, _web.insert)(_el$7, () => label.label);
+          (0, _web.effect)(() => (0, _web.setAttribute)(_el$7, "href", label.link));
+          return _el$7;
         })()
-      }));
+      }), null);
       (0, _web.effect)(_p$ => {
         const _v$6 = left + width === window.innerWidth || top === 0 ? "0" : "8px",
               _v$7 = left === 0 || top + height === window.innerHeight ? "0" : "8px",

@@ -6,6 +6,7 @@ export declare type ElementInfo = {
 };
 export declare type FullElementInfo = {
     thisElement: ElementInfo;
+    htmlElement: HTMLElement;
     parentElements: ElementInfo[];
     componentBox: DOMRect;
     componentsLabels: LabelData[];

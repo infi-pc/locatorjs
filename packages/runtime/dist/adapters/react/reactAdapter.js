@@ -52,6 +52,7 @@ function getElementInfo(found) {
         box: (0, _getFiberBoundingBox.getFiberBoundingBox)(fiber) || found.getBoundingClientRect(),
         ...thisLabel
       },
+      htmlElement: found,
       parentElements: parentElements,
       componentBox,
       componentsLabels: (0, _deduplicateLabels.deduplicateLabels)(labels)

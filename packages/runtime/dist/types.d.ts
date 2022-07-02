@@ -7,6 +7,7 @@ export declare type Source = {
 declare type SimpleElement = {
     type: "element";
     name: string;
+    uniqueId: string;
     fiber: Fiber;
     box: DOMRect | null;
     element: Element | Text;
@@ -15,6 +16,7 @@ declare type SimpleElement = {
 };
 declare type SimpleComponent = {
     type: "component";
+    uniqueId: string;
     name: string;
     fiber: Fiber;
     box: DOMRect | null;

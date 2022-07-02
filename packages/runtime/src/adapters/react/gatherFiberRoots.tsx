@@ -13,15 +13,23 @@ export function gatherFiberRoots(
         (node as any)._reactRootContainer?._internalRoot?.current ||
         (node as any)._reactRootContainer?.current;
       if (fiber) {
-        mutable_foundFibers.push(fiber);
+        mutable_foundFibers.push(getRoot(fiber));
       } else {
         const rootFiber = findFiberByHtmlElement(node!, false);
         if (rootFiber) {
-          mutable_foundFibers.push(rootFiber);
+          mutable_foundFibers.push(getRoot(rootFiber));
         } else {
           gatherFiberRoots(node, mutable_foundFibers);
         }
       }
     }
   }
+}
+
+function getRoot(fiber: Fiber): Fiber {
+  let thisFiber: Fiber = fiber;
+  while (thisFiber.return) {
+    thisFiber = thisFiber.return;
+  }
+  return thisFiber;
 }
