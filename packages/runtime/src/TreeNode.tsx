@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unknown-property */
-import { For } from "solid-js";
+import { createSignal, For } from "solid-js";
 import { SimpleNode } from "./types";
 
 export function TreeNode(props: {
@@ -11,8 +11,12 @@ export function TreeNode(props: {
     [id: string]: true;
   };
 }) {
+  const [manuallyExpanded, setManuallyExpanded] = createSignal(false);
   function isExpanded() {
-    return props.idsThatHaveExpandedSuccessor[props.node.uniqueId];
+    return (
+      manuallyExpanded() ||
+      props.idsThatHaveExpandedSuccessor[props.node.uniqueId]
+    );
   }
   function renderChildren() {
     return (
@@ -102,9 +106,16 @@ export function TreeNode(props: {
             renderChildren()
           )}
         </>
-      ) : (
-        <button>...</button>
-      )}
+      ) : props.node.children.length ? (
+        <button
+          // @ts-ignore
+          oncapture:click={() => {
+            setManuallyExpanded(true);
+          }}
+        >
+          ...
+        </button>
+      ) : null}
     </div>
   );
 }

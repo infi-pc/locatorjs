@@ -14,8 +14,10 @@ const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div class="locatorjs-tree-node"
       _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<button>...</button>`, 2);
 
 function TreeNode(props) {
+  const [manuallyExpanded, setManuallyExpanded] = (0, _solidJs.createSignal)(false);
+
   function isExpanded() {
-    return props.idsThatHaveExpandedSuccessor[props.node.uniqueId];
+    return manuallyExpanded() || props.idsThatHaveExpandedSuccessor[props.node.uniqueId];
   }
 
   function renderChildren() {
@@ -67,13 +69,13 @@ function TreeNode(props) {
       const _c$ = (0, _web.memo)(() => !!isExpanded(), true);
 
       return () => _c$() ? (0, _web.memo)((() => {
-        const _c$2 = (0, _web.memo)(() => {
+        const _c$3 = (0, _web.memo)(() => {
           var _props$node$source;
 
           return !!(props.node.type === "component" && (_props$node$source = props.node.source) !== null && _props$node$source !== void 0 && _props$node$source.fileName);
         }, true);
 
-        return () => _c$2() ? (() => {
+        return () => _c$3() ? (() => {
           const _el$6 = _tmpl$2.cloneNode(true),
                 _el$7 = _el$6.firstChild,
                 _el$8 = _el$7.firstChild,
@@ -109,7 +111,19 @@ function TreeNode(props) {
           (0, _web.insert)(_el$6, renderChildren, null);
           return _el$6;
         })() : renderChildren();
-      })()) : _tmpl$3.cloneNode(true);
+      })()) : (() => {
+        const _c$2 = (0, _web.memo)(() => !!props.node.children.length, true);
+
+        return () => _c$2() ? (() => {
+          const _el$12 = _tmpl$3.cloneNode(true);
+
+          _el$12.addEventListener("click", () => {
+            setManuallyExpanded(true);
+          }, true);
+
+          return _el$12;
+        })() : null;
+      })();
     })(), null);
     (0, _web.effect)(_p$ => {
       const _v$ = props.idsToShow[props.node.uniqueId] ? "yellow" : "",
