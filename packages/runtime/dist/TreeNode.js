@@ -103,11 +103,7 @@ function TreeNode(props) {
 
           _el$11.style.setProperty("color", "#888");
 
-          (0, _web.insert)(_el$11, () => {
-            var _props$node$source2;
-
-            return (_props$node$source2 = props.node.source) === null || _props$node$source2 === void 0 ? void 0 : _props$node$source2.fileName;
-          });
+          (0, _web.insert)(_el$11, () => props.node.definitionSourceFile);
           (0, _web.insert)(_el$6, renderChildren, null);
           return _el$6;
         })() : renderChildren();

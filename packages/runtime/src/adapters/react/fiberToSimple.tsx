@@ -49,6 +49,16 @@ export function fiberToSimple(
       box: getComposedBoundingBox(simpleChildren),
       children: simpleChildren,
       source: fiber._debugSource || null,
+      definitionSourceFile: simpleChildren.reduce<string | null>(
+        (acc, curr) => {
+          if (curr.source?.fileName) {
+            return curr.source?.fileName;
+          } else {
+            return acc;
+          }
+        },
+        null
+      ),
     };
   }
 }

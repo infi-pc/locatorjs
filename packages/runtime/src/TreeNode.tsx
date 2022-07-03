@@ -97,7 +97,7 @@ export function TreeNode(props: {
                     color: "#888",
                   }}
                 >
-                  {props.node.source?.fileName}
+                  {props.node.definitionSourceFile}
                 </div>
               </div>
               {renderChildren()}

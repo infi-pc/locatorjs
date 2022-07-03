@@ -51,7 +51,18 @@ function fiberToSimple(fiber, manualChildren) {
       name: (0, _getUsableName.getUsableName)(fiber),
       box: (0, _getComposedBoundingBox.getComposedBoundingBox)(simpleChildren),
       children: simpleChildren,
-      source: fiber._debugSource || null
+      source: fiber._debugSource || null,
+      definitionSourceFile: simpleChildren.reduce((acc, curr) => {
+        var _curr$source;
+
+        if ((_curr$source = curr.source) !== null && _curr$source !== void 0 && _curr$source.fileName) {
+          var _curr$source2;
+
+          return (_curr$source2 = curr.source) === null || _curr$source2 === void 0 ? void 0 : _curr$source2.fileName;
+        } else {
+          return acc;
+        }
+      }, null)
     };
   }
 }

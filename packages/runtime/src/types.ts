@@ -25,6 +25,7 @@ type SimpleComponent = {
   box: DOMRect | null;
   children: (SimpleElement | SimpleComponent)[];
   source: Source | null;
+  definitionSourceFile: string | null;
 };
 
 export type SimpleNode = SimpleElement | SimpleComponent;
