@@ -60,9 +60,9 @@ function TreeNode(props) {
 
     _el$.style.setProperty("cursor", "pointer");
 
-    _el$2.addEventListener("click", () => {
+    _el$2.$$click = () => {
       console.log(props.node.fiber);
-    }, true);
+    };
 
     (0, _web.insert)(_el$2, () => props.node.name, _el$5);
     (0, _web.insert)(_el$, (() => {
@@ -113,9 +113,9 @@ function TreeNode(props) {
         return () => _c$2() ? (() => {
           const _el$12 = _tmpl$3.cloneNode(true);
 
-          _el$12.addEventListener("click", () => {
+          _el$12.$$click = () => {
             setManuallyExpanded(true);
-          }, true);
+          };
 
           return _el$12;
         })() : null;
@@ -135,3 +135,5 @@ function TreeNode(props) {
     return _el$;
   })();
 }
+
+(0, _web.delegateEvents)(["click"]);

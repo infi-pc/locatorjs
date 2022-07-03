@@ -27,8 +27,7 @@ export function RootTreeNode(props: { node: SimpleNode; idsToShow: IdsMap }) {
       !expanded() ? (
         <>
           <button
-            // @ts-ignore
-            oncapture:click={() => {
+            onClick={() => {
               setExpanded(true);
             }}
           >
@@ -43,8 +42,7 @@ export function RootTreeNode(props: { node: SimpleNode; idsToShow: IdsMap }) {
       ) : (
         <>
           <button
-            // @ts-ignore
-            oncapture:click={() => {
+            onClick={() => {
               setExpanded(false);
             }}
           >

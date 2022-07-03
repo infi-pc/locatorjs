@@ -34,9 +34,9 @@ function RootTreeNode(props) {
     return () => _c$() ? [(() => {
       const _el$ = _tmpl$.cloneNode(true);
 
-      _el$.addEventListener("click", () => {
+      _el$.$$click = () => {
         setExpanded(true);
-      }, true);
+      };
 
       return _el$;
     })(), (0, _web.createComponent)(_TreeNode.TreeNode, {
@@ -55,9 +55,9 @@ function RootTreeNode(props) {
     })] : [(() => {
       const _el$2 = _tmpl$2.cloneNode(true);
 
-      _el$2.addEventListener("click", () => {
+      _el$2.$$click = () => {
         setExpanded(false);
-      }, true);
+      };
 
       return _el$2;
     })(), (0, _web.createComponent)(_TreeNode.TreeNode, {
@@ -105,3 +105,5 @@ function findExpandedNode(node, idsToShow, idsThatHaveExpandedSuccessor) {
 
   return undefined;
 }
+
+(0, _web.delegateEvents)(["click"]);

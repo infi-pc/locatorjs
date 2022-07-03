@@ -5,9 +5,6 @@ import { baseColor, HREF_TARGET, PADDING } from "./consts";
 import { FullElementInfo, getElementInfo } from "./adapters/react/reactAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
-import { Fiber } from "@locator/shared";
-import { SimpleNode } from "./types";
-import { getPathToParent } from "./getPathToParent";
 
 export function Outline(props: {
   element: FullElementInfo;
@@ -60,99 +57,95 @@ function ComponentOutline(props: {
   const isInside = () => props.bbox.height >= window.innerHeight - 40;
   const isBelow = () => props.bbox.y < 30 && !isInside();
 
-  return () => {
-    const left = Math.max(props.bbox.x - PADDING, 0);
-    const top = Math.max(props.bbox.y - PADDING, 0);
-    const width = Math.min(props.bbox.width + PADDING * 2, window.innerWidth);
-    const height = Math.min(
-      props.bbox.height + PADDING * 2,
-      window.innerHeight
-    );
-    return (
+  const left = () => Math.max(props.bbox.x - PADDING, 0);
+  const top = () => Math.max(props.bbox.y - PADDING, 0);
+  const width = () =>
+    Math.min(props.bbox.width + PADDING * 2, window.innerWidth);
+  const height = () =>
+    Math.min(props.bbox.height + PADDING * 2, window.innerHeight);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: left() + "px",
+        top: top() + "px",
+        width: width() + "px",
+        height: height() + "px",
+        border: "2px solid " + baseColor,
+        // "border-radius": "8px",
+        "border-top-left-radius": left() === 0 || top() === 0 ? "0" : "8px",
+        "border-top-right-radius":
+          left() + width() === window.innerWidth || top() === 0 ? "0" : "8px",
+        "border-bottom-left-radius":
+          left() === 0 || top() + height() === window.innerHeight ? "0" : "8px",
+        "border-bottom-right-radius":
+          left() + width() === window.innerWidth ||
+          top() + height() === window.innerHeight
+            ? "0"
+            : "8px",
+      }}
+    >
       <div
+        id="locatorjs-labels-section"
         style={{
-          position: "fixed",
-          left: left + "px",
-          top: top + "px",
-          width: width + "px",
-          height: height + "px",
-          border: "2px solid " + baseColor,
-          // "border-radius": "8px",
-          "border-top-left-radius": left === 0 || top === 0 ? "0" : "8px",
-          "border-top-right-radius":
-            left + width === window.innerWidth || top === 0 ? "0" : "8px",
-          "border-bottom-left-radius":
-            left === 0 || top + height === window.innerHeight ? "0" : "8px",
-          "border-bottom-right-radius":
-            left + width === window.innerWidth ||
-            top + height === window.innerHeight
-              ? "0"
-              : "8px",
+          position: "absolute",
+          display: "flex",
+          "justify-content": "center",
+          bottom: isBelow() ? (isInside() ? "2px" : "-28px") : undefined,
+          top: isBelow() ? undefined : isInside() ? "2px" : "-28px",
+          left: "0px",
+          width: "100%",
+          "pointer-events": "auto",
+          cursor: "pointer",
+          ...(isBelow()
+            ? {
+                "border-bottom-left-radius": "100%",
+                "border-bottom-right-radius": "100%",
+              }
+            : {
+                "border-top-left-radius": "100%",
+                "border-top-right-radius": "100%",
+              }),
         }}
       >
         <div
-          id="locatorjs-labels-section"
+          id="locatorjs-labels-wrapper"
           style={{
-            position: "absolute",
-            display: "flex",
-            "justify-content": "center",
-            bottom: isBelow() ? (isInside() ? "2px" : "-28px") : undefined,
-            top: isBelow() ? undefined : isInside() ? "2px" : "-28px",
-            left: "0px",
-            width: "100%",
-            "pointer-events": "auto",
-            cursor: "pointer",
-            ...(isBelow()
-              ? {
-                  "border-bottom-left-radius": "100%",
-                  "border-bottom-right-radius": "100%",
-                }
-              : {
-                  "border-top-left-radius": "100%",
-                  "border-top-right-radius": "100%",
-                }),
+            padding: isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
           }}
         >
-          <div
-            id="locatorjs-labels-wrapper"
-            style={{
-              padding: isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
+          <a
+            class="locatorjs-label"
+            target={HREF_TARGET}
+            onClick={() => {
+              props.showTreeFromElement(props.element);
             }}
           >
-            <a
-              class="locatorjs-label"
-              target={HREF_TARGET}
-              //@ts-ignore
-              oncapture:click={() => {
-                props.showTreeFromElement(props.element);
-              }}
-            >
-              <svg style="width:16px;height:16px" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"
-                />
-              </svg>
-            </a>
-            <For each={props.labels}>
-              {(label, i) => (
-                <a
-                  class="locatorjs-label"
-                  href={label.link}
-                  target={HREF_TARGET}
-                  //@ts-ignore
-                  oncapture:click={() => {
-                    trackClickStats();
-                    window.open(label.link, HREF_TARGET);
-                  }}
-                >
-                  {label.label}
-                </a>
-              )}
-            </For>
-          </div>
+            <svg style="width:16px;height:16px" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"
+              />
+            </svg>
+          </a>
+          <For each={props.labels}>
+            {(label, i) => (
+              <a
+                class="locatorjs-label"
+                href={label.link}
+                target={HREF_TARGET}
+                onClick={() => {
+                  trackClickStats();
+                  window.open(label.link, HREF_TARGET);
+                }}
+              >
+                {label.label}
+              </a>
+            )}
+          </For>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
 }

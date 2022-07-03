@@ -15,6 +15,7 @@ import { SimpleNode } from "./types";
 import { getPathToParent } from "./getPathToParent";
 import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
+import { MaybeOutline } from "./MaybeOutline";
 
 function Runtime(props: { adapter: Adapter }) {
   const [solidMode, setSolidMode] = createSignal<
@@ -196,22 +197,12 @@ function Runtime(props: { adapter: Adapter }) {
           LocatorJS
         </div>
       ) : null}
-      {(() => {
-        if (!holdingModKey()) {
-          return null;
-        }
-        const el = currentElement();
-        if (!el) {
-          return null;
-        }
-        const elInfo = getElementInfo(el);
-        if (!elInfo) {
-          return null;
-        }
-        return (
-          <Outline element={elInfo} showTreeFromElement={showTreeFromElement} />
-        );
-      })()}
+      {holdingModKey() && currentElement() ? (
+        <MaybeOutline
+          currentElement={currentElement()!}
+          showTreeFromElement={showTreeFromElement}
+        />
+      ) : null}
       {/* {holdingModKey() &&
       currentElement() &&
       getElementInfo(currentElement()!) ? (

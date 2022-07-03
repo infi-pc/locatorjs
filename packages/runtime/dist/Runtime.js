@@ -19,13 +19,13 @@ var _reactAdapter = require("./adapters/react/reactAdapter");
 
 var _isCombinationModifiersPressed = require("./isCombinationModifiersPressed");
 
-var _Outline = require("./Outline");
-
 var _trackClickStats = require("./trackClickStats");
 
 var _getIdsOnPathToRoot = require("./getIdsOnPathToRoot");
 
 var _RootTreeNode = require("./RootTreeNode");
+
+var _MaybeOutline = require("./MaybeOutline");
 
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
@@ -207,28 +207,17 @@ function Runtime(props) {
 
       return _el$2;
     })() : null;
-  })()), (0, _web.memo)(() => {
-    if (!holdingModKey()) {
-      return null;
-    }
+  })()), (0, _web.memo)((() => {
+    const _c$3 = (0, _web.memo)(() => !!(holdingModKey() && currentElement()), true);
 
-    const el = currentElement();
+    return () => _c$3() ? (0, _web.createComponent)(_MaybeOutline.MaybeOutline, {
+      get currentElement() {
+        return currentElement();
+      },
 
-    if (!el) {
-      return null;
-    }
-
-    const elInfo = (0, _reactAdapter.getElementInfo)(el);
-
-    if (!elInfo) {
-      return null;
-    }
-
-    return (0, _web.createComponent)(_Outline.Outline, {
-      element: elInfo,
       showTreeFromElement: showTreeFromElement
-    });
-  })];
+    }) : null;
+  })())];
 }
 
 function initRender(solidLayer, adapter) {

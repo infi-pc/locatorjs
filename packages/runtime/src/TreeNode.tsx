@@ -47,9 +47,7 @@ export function TreeNode(props: {
       }}
     >
       <button
-        // TODO we should not need capture
-        // @ts-ignore
-        oncapture:click={() => {
+        onClick={() => {
           console.log(props.node.fiber);
         }}
         style={{
@@ -108,8 +106,7 @@ export function TreeNode(props: {
         </>
       ) : props.node.children.length ? (
         <button
-          // @ts-ignore
-          oncapture:click={() => {
+          onClick={() => {
             setManuallyExpanded(true);
           }}
         >

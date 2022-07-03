@@ -74,6 +74,7 @@ function init({ adapter }: { adapter?: Adapter } = {}) {
         white-space: nowrap;
         text-decoration: none !important;
         line-height: 18px;
+        pointer-events: auto;
       }
       .locatorjs-label:hover {
         background-color: ${hoverColor};
@@ -117,7 +118,7 @@ function init({ adapter }: { adapter?: Adapter } = {}) {
   const wrapper = document.createElement("div");
   wrapper.setAttribute("id", "locatorjs-wrapper");
 
-  const shadow = wrapper.attachShadow({ mode: "closed" });
+  const shadow = wrapper.attachShadow({ mode: "open" });
   const layer = document.createElement("div");
   layer.setAttribute("id", "locatorjs-layer");
 

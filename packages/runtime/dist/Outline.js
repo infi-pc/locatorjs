@@ -93,95 +93,102 @@ function ComponentOutline(props) {
 
   const isBelow = () => props.bbox.y < 30 && !isInside();
 
-  return () => {
-    const left = Math.max(props.bbox.x - _consts.PADDING, 0);
-    const top = Math.max(props.bbox.y - _consts.PADDING, 0);
-    const width = Math.min(props.bbox.width + _consts.PADDING * 2, window.innerWidth);
-    const height = Math.min(props.bbox.height + _consts.PADDING * 2, window.innerHeight);
-    return (() => {
-      const _el$3 = _tmpl$2.cloneNode(true),
-            _el$4 = _el$3.firstChild,
-            _el$5 = _el$4.firstChild,
-            _el$6 = _el$5.firstChild;
+  const left = () => Math.max(props.bbox.x - _consts.PADDING, 0);
 
-      _el$3.style.setProperty("position", "fixed");
+  const top = () => Math.max(props.bbox.y - _consts.PADDING, 0);
 
-      _el$3.style.setProperty("left", left + "px");
+  const width = () => Math.min(props.bbox.width + _consts.PADDING * 2, window.innerWidth);
 
-      _el$3.style.setProperty("top", top + "px");
+  const height = () => Math.min(props.bbox.height + _consts.PADDING * 2, window.innerHeight);
 
-      _el$3.style.setProperty("width", width + "px");
+  return (() => {
+    const _el$3 = _tmpl$2.cloneNode(true),
+          _el$4 = _el$3.firstChild,
+          _el$5 = _el$4.firstChild,
+          _el$6 = _el$5.firstChild;
 
-      _el$3.style.setProperty("height", height + "px");
+    _el$3.style.setProperty("position", "fixed");
 
-      _el$3.style.setProperty("border", "2px solid " + _consts.baseColor);
+    _el$3.style.setProperty("border", "2px solid " + _consts.baseColor);
 
-      _el$3.style.setProperty("border-top-left-radius", left === 0 || top === 0 ? "0" : "8px");
+    _el$6.$$click = () => {
+      props.showTreeFromElement(props.element);
+    };
 
-      (0, _web.setAttribute)(_el$6, "target", _consts.HREF_TARGET);
+    (0, _web.setAttribute)(_el$6, "target", _consts.HREF_TARGET);
+    (0, _web.insert)(_el$5, (0, _web.createComponent)(_solidJs.For, {
+      get each() {
+        return props.labels;
+      },
 
-      _el$6.addEventListener("click", () => {
-        props.showTreeFromElement(props.element);
-      }, true);
+      children: (label, i) => (() => {
+        const _el$7 = _tmpl$3.cloneNode(true);
 
-      (0, _web.insert)(_el$5, (0, _web.createComponent)(_solidJs.For, {
-        get each() {
-          return props.labels;
-        },
+        _el$7.$$click = () => {
+          (0, _trackClickStats.trackClickStats)();
+          window.open(label.link, _consts.HREF_TARGET);
+        };
 
-        children: (label, i) => (() => {
-          const _el$7 = _tmpl$3.cloneNode(true);
+        (0, _web.setAttribute)(_el$7, "target", _consts.HREF_TARGET);
+        (0, _web.insert)(_el$7, () => label.label);
+        (0, _web.effect)(() => (0, _web.setAttribute)(_el$7, "href", label.link));
+        return _el$7;
+      })()
+    }), null);
+    (0, _web.effect)(_p$ => {
+      const _v$6 = left() + "px",
+            _v$7 = top() + "px",
+            _v$8 = width() + "px",
+            _v$9 = height() + "px",
+            _v$10 = left() === 0 || top() === 0 ? "0" : "8px",
+            _v$11 = left() + width() === window.innerWidth || top() === 0 ? "0" : "8px",
+            _v$12 = left() === 0 || top() + height() === window.innerHeight ? "0" : "8px",
+            _v$13 = left() + width() === window.innerWidth || top() + height() === window.innerHeight ? "0" : "8px",
+            _v$14 = {
+        position: "absolute",
+        display: "flex",
+        "justify-content": "center",
+        bottom: isBelow() ? isInside() ? "2px" : "-28px" : undefined,
+        top: isBelow() ? undefined : isInside() ? "2px" : "-28px",
+        left: "0px",
+        width: "100%",
+        "pointer-events": "auto",
+        cursor: "pointer",
+        ...(isBelow() ? {
+          "border-bottom-left-radius": "100%",
+          "border-bottom-right-radius": "100%"
+        } : {
+          "border-top-left-radius": "100%",
+          "border-top-right-radius": "100%"
+        })
+      },
+            _v$15 = isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px";
 
-          (0, _web.setAttribute)(_el$7, "target", _consts.HREF_TARGET);
-
-          _el$7.addEventListener("click", () => {
-            (0, _trackClickStats.trackClickStats)();
-            window.open(label.link, _consts.HREF_TARGET);
-          }, true);
-
-          (0, _web.insert)(_el$7, () => label.label);
-          (0, _web.effect)(() => (0, _web.setAttribute)(_el$7, "href", label.link));
-          return _el$7;
-        })()
-      }), null);
-      (0, _web.effect)(_p$ => {
-        const _v$6 = left + width === window.innerWidth || top === 0 ? "0" : "8px",
-              _v$7 = left === 0 || top + height === window.innerHeight ? "0" : "8px",
-              _v$8 = left + width === window.innerWidth || top + height === window.innerHeight ? "0" : "8px",
-              _v$9 = {
-          position: "absolute",
-          display: "flex",
-          "justify-content": "center",
-          bottom: isBelow() ? isInside() ? "2px" : "-28px" : undefined,
-          top: isBelow() ? undefined : isInside() ? "2px" : "-28px",
-          left: "0px",
-          width: "100%",
-          "pointer-events": "auto",
-          cursor: "pointer",
-          ...(isBelow() ? {
-            "border-bottom-left-radius": "100%",
-            "border-bottom-right-radius": "100%"
-          } : {
-            "border-top-left-radius": "100%",
-            "border-top-right-radius": "100%"
-          })
-        },
-              _v$10 = isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px";
-
-        _v$6 !== _p$._v$6 && _el$3.style.setProperty("border-top-right-radius", _p$._v$6 = _v$6);
-        _v$7 !== _p$._v$7 && _el$3.style.setProperty("border-bottom-left-radius", _p$._v$7 = _v$7);
-        _v$8 !== _p$._v$8 && _el$3.style.setProperty("border-bottom-right-radius", _p$._v$8 = _v$8);
-        _p$._v$9 = (0, _web.style)(_el$4, _v$9, _p$._v$9);
-        _v$10 !== _p$._v$10 && _el$5.style.setProperty("padding", _p$._v$10 = _v$10);
-        return _p$;
-      }, {
-        _v$6: undefined,
-        _v$7: undefined,
-        _v$8: undefined,
-        _v$9: undefined,
-        _v$10: undefined
-      });
-      return _el$3;
-    })();
-  };
+      _v$6 !== _p$._v$6 && _el$3.style.setProperty("left", _p$._v$6 = _v$6);
+      _v$7 !== _p$._v$7 && _el$3.style.setProperty("top", _p$._v$7 = _v$7);
+      _v$8 !== _p$._v$8 && _el$3.style.setProperty("width", _p$._v$8 = _v$8);
+      _v$9 !== _p$._v$9 && _el$3.style.setProperty("height", _p$._v$9 = _v$9);
+      _v$10 !== _p$._v$10 && _el$3.style.setProperty("border-top-left-radius", _p$._v$10 = _v$10);
+      _v$11 !== _p$._v$11 && _el$3.style.setProperty("border-top-right-radius", _p$._v$11 = _v$11);
+      _v$12 !== _p$._v$12 && _el$3.style.setProperty("border-bottom-left-radius", _p$._v$12 = _v$12);
+      _v$13 !== _p$._v$13 && _el$3.style.setProperty("border-bottom-right-radius", _p$._v$13 = _v$13);
+      _p$._v$14 = (0, _web.style)(_el$4, _v$14, _p$._v$14);
+      _v$15 !== _p$._v$15 && _el$5.style.setProperty("padding", _p$._v$15 = _v$15);
+      return _p$;
+    }, {
+      _v$6: undefined,
+      _v$7: undefined,
+      _v$8: undefined,
+      _v$9: undefined,
+      _v$10: undefined,
+      _v$11: undefined,
+      _v$12: undefined,
+      _v$13: undefined,
+      _v$14: undefined,
+      _v$15: undefined
+    });
+    return _el$3;
+  })();
 }
+
+(0, _web.delegateEvents)(["click"]);
