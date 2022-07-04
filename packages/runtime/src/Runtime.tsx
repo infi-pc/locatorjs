@@ -1,6 +1,13 @@
 /* eslint-disable react/no-unknown-property */
 import { Fiber } from "@locator/shared";
-import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
+import {
+  batch,
+  createEffect,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+} from "solid-js";
 import { render } from "solid-js/web";
 import { Adapter, HREF_TARGET } from "./consts";
 import { fiberToSimple } from "./adapters/react/fiberToSimple";
@@ -8,7 +15,7 @@ import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
 import { getElementInfo } from "./adapters/react/reactAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { Outline } from "./Outline";
-import { RenderXrayNode } from "./RenderNode";
+import { RenderNode } from "./RenderNode";
 import { searchDevtoolsRenderersForClosestTarget } from "./searchDevtoolsRenderersForClosestTarget";
 import { trackClickStats } from "./trackClickStats";
 import { SimpleNode } from "./types";
@@ -16,6 +23,9 @@ import { getPathToParent } from "./getPathToParent";
 import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
+import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
+import { makeFiberId } from "./adapters/react/makeFiberId";
+import { SimpleNodeOutline } from "./SimpleNodeOutline";
 
 function Runtime(props: { adapter: Adapter }) {
   const [solidMode, setSolidMode] = createSignal<
@@ -23,6 +33,10 @@ function Runtime(props: { adapter: Adapter }) {
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    null
+  );
+
+  const [highlightedNode, setHighlightedNode] = createSignal<null | SimpleNode>(
     null
   );
 
@@ -71,7 +85,21 @@ function Runtime(props: { adapter: Adapter }) {
       ) {
         return;
       }
-      setCurrentElement(target);
+      if (target.matches("#locatorjs-wrapper *")) {
+        return;
+      }
+
+      batch(() => {
+        setCurrentElement(target);
+        if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
+          const fiber = findFiberByHtmlElement(target, false);
+          if (fiber) {
+            const id = fiberToSimple(fiber, []);
+
+            setHighlightedNode(id);
+          }
+        }
+      });
 
       // const found =
       //   target.closest("[data-locatorjs-id]") ||
@@ -89,6 +117,10 @@ function Runtime(props: { adapter: Adapter }) {
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
+      if (target.matches("#locatorjs-wrapper *")) {
+        return;
+      }
+
       const elInfo = getElementInfo(target);
 
       if (elInfo) {
@@ -153,9 +185,9 @@ function Runtime(props: { adapter: Adapter }) {
       {solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement" ? (
         <div
           id="locator-solid-overlay"
-          onClick={(e) => {
-            setSolidMode(["off"]);
-          }}
+          // onClick={(e) => {
+          //   setSolidMode(["off"]);
+          // }}
           style={{
             position: "fixed",
             top: "0",
@@ -175,6 +207,12 @@ function Runtime(props: { adapter: Adapter }) {
                     ? getIdsOnPathToRoot(solidMode()[1]!)
                     : {}
                 }
+                highlightedNode={{
+                  getNode: highlightedNode,
+                  setNode: (newId) => {
+                    setHighlightedNode(newId);
+                  },
+                }}
               />
             )}
           </For>
@@ -202,6 +240,9 @@ function Runtime(props: { adapter: Adapter }) {
           currentElement={currentElement()!}
           showTreeFromElement={showTreeFromElement}
         />
+      ) : null}
+      {highlightedNode() ? (
+        <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
       {/* {holdingModKey() &&
       currentElement() &&

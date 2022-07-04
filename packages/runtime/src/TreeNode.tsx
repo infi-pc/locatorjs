@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unknown-property */
 import { createSignal, For } from "solid-js";
-import { SimpleNode } from "./types";
+import { HighlightedNode, SimpleNode } from "./types";
 
 export function TreeNode(props: {
   node: SimpleNode;
@@ -10,6 +10,7 @@ export function TreeNode(props: {
   idsThatHaveExpandedSuccessor: {
     [id: string]: true;
   };
+  highlightedNode: HighlightedNode;
 }) {
   const [manuallyExpanded, setManuallyExpanded] = createSignal(false);
   function isExpanded() {
@@ -26,11 +27,15 @@ export function TreeNode(props: {
             node={child}
             idsToShow={props.idsToShow}
             idsThatHaveExpandedSuccessor={props.idsThatHaveExpandedSuccessor}
+            highlightedNode={props.highlightedNode}
           />
         )}
       </For>
     );
   }
+
+  const isHighlighted = () =>
+    props.highlightedNode.getNode()?.uniqueId === props.node.uniqueId;
 
   return (
     <div
@@ -48,15 +53,21 @@ export function TreeNode(props: {
     >
       <button
         onClick={() => {
-          console.log(props.node.fiber);
+          console.log("CLICK", props.node.fiber);
         }}
         style={{
-          "background-color": props.idsToShow[props.node.uniqueId]
-            ? "yellow"
-            : "",
+          "background-color": isHighlighted() ? "rgba(0,0,0,0.1)" : "white",
+          color: props.idsToShow[props.node.uniqueId] ? "red" : "",
           border: props.idsThatHaveExpandedSuccessor[props.node.uniqueId]
             ? "1px solid red"
             : "1px solid black",
+          "pointer-events": "auto",
+        }}
+        // From some reason onMouseOver does not work in shadow dom
+        // @ts-ignore
+        on:mouseover={(e) => {
+          e.stopPropagation();
+          props.highlightedNode.setNode(props.node);
         }}
       >
         {"<"}
@@ -73,6 +84,13 @@ export function TreeNode(props: {
                 "min-width": "300px",
                 // display: "flex",
                 // "flex-direction": "column",
+                background: isHighlighted() ? "rgba(0,0,0,0.1)" : "transparent",
+              }}
+              // From some reason onMouseOver does not work in shadow dom
+              // @ts-ignore
+              on:mouseover={(e) => {
+                e.stopPropagation();
+                props.highlightedNode.setNode(props.node);
               }}
             >
               <div

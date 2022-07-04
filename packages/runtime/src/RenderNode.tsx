@@ -1,7 +1,7 @@
 import { createSignal, For } from "solid-js";
 import { SimpleNode } from "./types";
 
-export function RenderXrayNode(props: {
+export function RenderNode(props: {
   node: SimpleNode;
   parentIsHovered: boolean;
 }) {
@@ -86,7 +86,7 @@ export function RenderXrayNode(props: {
       <For each={props.node.children}>
         {(childNode, i) => {
           return (
-            <RenderXrayNode
+            <RenderNode
               node={childNode}
               parentIsHovered={
                 isHovered() ||

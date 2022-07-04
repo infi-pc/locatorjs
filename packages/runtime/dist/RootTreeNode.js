@@ -50,6 +50,10 @@ function RootTreeNode(props) {
 
       get idsThatHaveExpandedSuccessor() {
         return idsThatHaveExpandedSuccessor();
+      },
+
+      get highlightedNode() {
+        return props.highlightedNode;
       }
 
     })] : [(() => {
@@ -71,6 +75,10 @@ function RootTreeNode(props) {
 
       get idsThatHaveExpandedSuccessor() {
         return idsThatHaveExpandedSuccessor();
+      },
+
+      get highlightedNode() {
+        return props.highlightedNode;
       }
 
     })];

@@ -1,4 +1,4 @@
-import { SimpleNode } from "./types";
+import { HighlightedNode, SimpleNode } from "./types";
 export declare function TreeNode(props: {
     node: SimpleNode;
     idsToShow: {
@@ -7,4 +7,5 @@ export declare function TreeNode(props: {
     idsThatHaveExpandedSuccessor: {
         [id: string]: true;
     };
+    highlightedNode: HighlightedNode;
 }): import("solid-js").JSX.Element;

@@ -135,7 +135,9 @@ function init({
     mode: "open"
   });
   const layer = document.createElement("div");
-  layer.setAttribute("id", "locatorjs-layer");
+  layer.setAttribute("id", "locatorjs-layer"); // wrapper.appendChild(style);
+  // wrapper.appendChild(layer);
+
   shadow.appendChild(style);
   shadow.appendChild(layer);
   document.body.appendChild(wrapper);

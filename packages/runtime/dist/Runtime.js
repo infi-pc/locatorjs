@@ -27,6 +27,10 @@ var _RootTreeNode = require("./RootTreeNode");
 
 var _MaybeOutline = require("./MaybeOutline");
 
+var _findFiberByHtmlElement = require("./adapters/react/findFiberByHtmlElement");
+
+var _SimpleNodeOutline = require("./SimpleNodeOutline");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
 
@@ -34,6 +38,7 @@ function Runtime(props) {
   const [solidMode, setSolidMode] = (0, _solidJs.createSignal)(["off"]);
   const [holdingModKey, setHoldingModKey] = (0, _solidJs.createSignal)(false);
   const [currentElement, setCurrentElement] = (0, _solidJs.createSignal)(null);
+  const [highlightedNode, setHighlightedNode] = (0, _solidJs.createSignal)(null);
   (0, _solidJs.createEffect)(() => {
     if (holdingModKey() && currentElement()) {
       document.body.classList.add("locatorjs-active-pointer");
@@ -74,7 +79,22 @@ function Runtime(props) {
         return;
       }
 
-      setCurrentElement(target); // const found =
+      if (target.matches("#locatorjs-wrapper *")) {
+        return;
+      }
+
+      (0, _solidJs.batch)(() => {
+        setCurrentElement(target);
+
+        if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
+          const fiber = (0, _findFiberByHtmlElement.findFiberByHtmlElement)(target, false);
+
+          if (fiber) {
+            const id = (0, _fiberToSimple.fiberToSimple)(fiber, []);
+            setHighlightedNode(id);
+          }
+        }
+      }); // const found =
       //   target.closest("[data-locatorjs-id]") ||
       //   searchDevtoolsRenderersForClosestTarget(target);
       // if (found && found instanceof HTMLElement) {
@@ -91,6 +111,10 @@ function Runtime(props) {
     const target = e.target;
 
     if (target && target instanceof HTMLElement) {
+      if (target.matches("#locatorjs-wrapper *")) {
+        return;
+      }
+
       const elInfo = (0, _reactAdapter.getElementInfo)(target);
 
       if (elInfo) {
@@ -157,10 +181,6 @@ function Runtime(props) {
     return () => _c$() ? (() => {
       const _el$ = _tmpl$.cloneNode(true);
 
-      _el$.$$click = e => {
-        setSolidMode(["off"]);
-      };
-
       _el$.style.setProperty("position", "fixed");
 
       _el$.style.setProperty("top", "0");
@@ -185,8 +205,14 @@ function Runtime(props) {
 
           get idsToShow() {
             return (0, _web.memo)(() => solidMode()[0] === "treeFromElement", true)() ? (0, _getIdsOnPathToRoot.getIdsOnPathToRoot)(solidMode()[1]) : {};
-          }
+          },
 
+          highlightedNode: {
+            getNode: highlightedNode,
+            setNode: newId => {
+              setHighlightedNode(newId);
+            }
+          }
         })
       }));
       return _el$;
@@ -217,6 +243,15 @@ function Runtime(props) {
 
       showTreeFromElement: showTreeFromElement
     }) : null;
+  })()), (0, _web.memo)((() => {
+    const _c$4 = (0, _web.memo)(() => !!highlightedNode(), true);
+
+    return () => _c$4() ? (0, _web.createComponent)(_SimpleNodeOutline.SimpleNodeOutline, {
+      get node() {
+        return highlightedNode();
+      }
+
+    }) : null;
   })())];
 }
 
@@ -225,5 +260,3 @@ function initRender(solidLayer, adapter) {
     adapter: adapter
   }), solidLayer);
 }
-
-(0, _web.delegateEvents)(["click"]);

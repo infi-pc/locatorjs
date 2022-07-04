@@ -29,3 +29,8 @@ type SimpleComponent = {
 };
 
 export type SimpleNode = SimpleElement | SimpleComponent;
+
+export type HighlightedNode = {
+  getNode: () => SimpleNode | null;
+  setNode: (node: SimpleNode | null) => void;
+};

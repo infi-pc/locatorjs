@@ -122,6 +122,8 @@ function init({ adapter }: { adapter?: Adapter } = {}) {
   const layer = document.createElement("div");
   layer.setAttribute("id", "locatorjs-layer");
 
+  // wrapper.appendChild(style);
+  // wrapper.appendChild(layer);
   shadow.appendChild(style);
   shadow.appendChild(layer);
 

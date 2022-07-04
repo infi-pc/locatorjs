@@ -35,11 +35,21 @@ function TreeNode(props) {
 
         get idsThatHaveExpandedSuccessor() {
           return props.idsThatHaveExpandedSuccessor;
+        },
+
+        get highlightedNode() {
+          return props.highlightedNode;
         }
 
       })
     });
   }
+
+  const isHighlighted = () => {
+    var _props$highlightedNod;
+
+    return ((_props$highlightedNod = props.highlightedNode.getNode()) === null || _props$highlightedNod === void 0 ? void 0 : _props$highlightedNod.uniqueId) === props.node.uniqueId;
+  };
 
   return (() => {
     const _el$ = _tmpl$.cloneNode(true),
@@ -61,8 +71,15 @@ function TreeNode(props) {
     _el$.style.setProperty("cursor", "pointer");
 
     _el$2.$$click = () => {
-      console.log(props.node.fiber);
+      console.log("CLICK", props.node.fiber);
     };
+
+    _el$2.style.setProperty("pointer-events", "auto");
+
+    _el$2.addEventListener("mouseover", e => {
+      e.stopPropagation();
+      props.highlightedNode.setNode(props.node);
+    });
 
     (0, _web.insert)(_el$2, () => props.node.name, _el$5);
     (0, _web.insert)(_el$, (() => {
@@ -89,6 +106,11 @@ function TreeNode(props) {
 
           _el$6.style.setProperty("min-width", "300px");
 
+          _el$6.addEventListener("mouseover", e => {
+            e.stopPropagation();
+            props.highlightedNode.setNode(props.node);
+          });
+
           _el$7.style.setProperty("font-size", "12px");
 
           _el$7.style.setProperty("display", "flex");
@@ -105,6 +127,7 @@ function TreeNode(props) {
 
           (0, _web.insert)(_el$11, () => props.node.definitionSourceFile);
           (0, _web.insert)(_el$6, renderChildren, null);
+          (0, _web.effect)(() => _el$6.style.setProperty("background", isHighlighted() ? "rgba(0,0,0,0.1)" : "transparent"));
           return _el$6;
         })() : renderChildren();
       })()) : (() => {
@@ -122,15 +145,18 @@ function TreeNode(props) {
       })();
     })(), null);
     (0, _web.effect)(_p$ => {
-      const _v$ = props.idsToShow[props.node.uniqueId] ? "yellow" : "",
-            _v$2 = props.idsThatHaveExpandedSuccessor[props.node.uniqueId] ? "1px solid red" : "1px solid black";
+      const _v$ = isHighlighted() ? "rgba(0,0,0,0.1)" : "white",
+            _v$2 = props.idsToShow[props.node.uniqueId] ? "red" : "",
+            _v$3 = props.idsThatHaveExpandedSuccessor[props.node.uniqueId] ? "1px solid red" : "1px solid black";
 
       _v$ !== _p$._v$ && _el$2.style.setProperty("background-color", _p$._v$ = _v$);
-      _v$2 !== _p$._v$2 && _el$2.style.setProperty("border", _p$._v$2 = _v$2);
+      _v$2 !== _p$._v$2 && _el$2.style.setProperty("color", _p$._v$2 = _v$2);
+      _v$3 !== _p$._v$3 && _el$2.style.setProperty("border", _p$._v$3 = _v$3);
       return _p$;
     }, {
       _v$: undefined,
-      _v$2: undefined
+      _v$2: undefined,
+      _v$3: undefined
     });
     return _el$;
   })();

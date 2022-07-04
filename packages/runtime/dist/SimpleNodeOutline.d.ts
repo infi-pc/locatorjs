@@ -1,5 +1,4 @@
 import { SimpleNode } from "./types";
-export declare function RenderNode(props: {
+export declare function SimpleNodeOutline(props: {
     node: SimpleNode;
-    parentIsHovered: boolean;
 }): import("solid-js").JSX.Element;

@@ -25,4 +25,8 @@ declare type SimpleComponent = {
     definitionSourceFile: string | null;
 };
 export declare type SimpleNode = SimpleElement | SimpleComponent;
+export declare type HighlightedNode = {
+    getNode: () => SimpleNode | null;
+    setNode: (node: SimpleNode | null) => void;
+};
 export {};
