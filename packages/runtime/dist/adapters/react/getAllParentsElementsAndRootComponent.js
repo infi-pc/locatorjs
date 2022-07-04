@@ -27,7 +27,6 @@ function getAllParentsElementsAndRootComponent(fiber) {
     const currentElement = currentFiber.stateNode;
 
     if (!currentElement || !(currentElement instanceof HTMLElement)) {
-      console.log("When fragment, we should go up", currentFiber);
       return {
         component: currentFiber,
         parentElements,

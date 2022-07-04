@@ -31,6 +31,8 @@ var _findFiberByHtmlElement = require("./adapters/react/findFiberByHtmlElement")
 
 var _SimpleNodeOutline = require("./SimpleNodeOutline");
 
+var _hasExperimentalFeatures = require("./hasExperimentalFeatures");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div id="locator-solid-overlay"></div>`, 2),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div>LocatorJS</div>`, 2);
 
@@ -55,11 +57,13 @@ function Runtime(props) {
   });
 
   function keyUpListener(e) {
-    if (e.code === "KeyO" && (0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
-      if (solidMode()[0] === "tree") {
-        setSolidMode(["off"]);
-      } else {
-        setSolidMode(["tree"]);
+    if ((0, _hasExperimentalFeatures.hasExperimentalFeatures)()) {
+      if (e.code === "KeyO" && (0, _isCombinationModifiersPressed.isCombinationModifiersPressed)(e)) {
+        if (solidMode()[0] === "tree") {
+          setSolidMode(["off"]);
+        } else {
+          setSolidMode(["tree"]);
+        }
       }
     }
 

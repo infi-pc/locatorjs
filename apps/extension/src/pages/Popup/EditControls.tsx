@@ -9,8 +9,13 @@ type Props = {
 };
 
 export function EditControls({ setPage }: Props) {
-  const { clicks, controls, allowTracking, sharedOnSocialMedia } =
-    useSyncedState();
+  const {
+    clicks,
+    controls,
+    allowTracking,
+    sharedOnSocialMedia,
+    enableExperimentalFeatures,
+  } = useSyncedState();
   return (
     <div class="flex justify-between">
       <div>
@@ -67,6 +72,16 @@ export function EditControls({ setPage }: Props) {
             checked={!!sharedOnSocialMedia.get()}
           >
             Hide share panel
+          </Switch>
+          <Switch
+            size={'sm'}
+            labelPlacement="end"
+            onChange={(e: any) => {
+              enableExperimentalFeatures.set(e.currentTarget.checked);
+            }}
+            checked={!!enableExperimentalFeatures.get()}
+          >
+            Enable experimental features
           </Switch>
         </div>
       </div>

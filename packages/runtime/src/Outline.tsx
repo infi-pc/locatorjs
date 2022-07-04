@@ -5,6 +5,7 @@ import { baseColor, HREF_TARGET, PADDING } from "./consts";
 import { FullElementInfo, getElementInfo } from "./adapters/react/reactAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
+import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 
 export function Outline(props: {
   element: FullElementInfo;
@@ -115,20 +116,22 @@ function ComponentOutline(props: {
             padding: isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
           }}
         >
-          <a
-            class="locatorjs-label"
-            target={HREF_TARGET}
-            onClick={() => {
-              props.showTreeFromElement(props.element);
-            }}
-          >
-            <svg style="width:16px;height:16px" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"
-              />
-            </svg>
-          </a>
+          {hasExperimentalFeatures() ? (
+            <a
+              class="locatorjs-label"
+              target={HREF_TARGET}
+              onClick={() => {
+                props.showTreeFromElement(props.element);
+              }}
+            >
+              <svg style="width:16px;height:16px" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"
+                />
+              </svg>
+            </a>
+          ) : null}
           <For each={props.labels}>
             {(label, i) => (
               <a

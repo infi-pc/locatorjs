@@ -23,8 +23,6 @@ export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
     currentFiber = currentFiber._debugOwner || currentFiber.return!;
     const currentElement = currentFiber.stateNode;
     if (!currentElement || !(currentElement instanceof HTMLElement)) {
-      console.log("When fragment, we should go up", currentFiber);
-
       return {
         component: currentFiber,
         parentElements,

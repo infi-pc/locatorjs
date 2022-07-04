@@ -26,6 +26,7 @@ import { MaybeOutline } from "./MaybeOutline";
 import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
 import { makeFiberId } from "./adapters/react/makeFiberId";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
+import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 
 function Runtime(props: { adapter: Adapter }) {
   const [solidMode, setSolidMode] = createSignal<
@@ -57,11 +58,13 @@ function Runtime(props: { adapter: Adapter }) {
   });
 
   function keyUpListener(e: KeyboardEvent) {
-    if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-      if (solidMode()[0] === "tree") {
-        setSolidMode(["off"]);
-      } else {
-        setSolidMode(["tree"]);
+    if (hasExperimentalFeatures()) {
+      if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+        if (solidMode()[0] === "tree") {
+          setSolidMode(["off"]);
+        } else {
+          setSolidMode(["tree"]);
+        }
       }
     }
 
