@@ -1,12 +1,13 @@
 import { Fiber } from "@locator/shared";
 import { getUsableName } from "../../getUsableName";
 import { mergeRects } from "../../mergeRects";
+import { SimpleDOMRect } from "../../types";
 import { getFiberComponentBoundingBox } from "./getFiberComponentBoundingBox";
 import { ElementInfo } from "./reactAdapter";
 
 export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
   component: Fiber;
-  componentBox: DOMRect;
+  componentBox: SimpleDOMRect;
   parentElements: ElementInfo[];
 } {
   const parentElements: ElementInfo[] = [];
@@ -16,7 +17,7 @@ export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
       "This functions works only for Fibres with HTMLElement stateNode"
     );
   }
-  let componentBox: DOMRect = deepestElement.getBoundingClientRect();
+  let componentBox: SimpleDOMRect = deepestElement.getBoundingClientRect();
 
   let currentFiber = fiber;
   while (currentFiber._debugOwner || currentFiber.return) {

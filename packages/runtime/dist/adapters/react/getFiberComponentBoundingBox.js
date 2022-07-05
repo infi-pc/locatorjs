@@ -5,17 +5,23 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getFiberComponentBoundingBox = getFiberComponentBoundingBox;
 
-var _getFiberBoundingBox = require("./getFiberBoundingBox");
+var _getFiberOwnBoundingBox = require("./getFiberOwnBoundingBox");
 
 var _getAllFiberChildren = require("../../getAllFiberChildren");
 
 var _mergeRects = require("../../mergeRects");
 
-function getFiberComponentBoundingBox(fiber) {
+const MAX_LEVEL = 6;
+
+function getFiberComponentBoundingBox(fiber, level = 0) {
   const children = (0, _getAllFiberChildren.getAllFiberChildren)(fiber);
   let composedRect;
   children.forEach(child => {
-    const box = (0, _getFiberBoundingBox.getFiberBoundingBox)(child);
+    let box = (0, _getFiberOwnBoundingBox.getFiberOwnBoundingBox)(child);
+
+    if (!box && level < MAX_LEVEL) {
+      box = getFiberComponentBoundingBox(child, level + 1) || null;
+    }
 
     if (!box) {
       return;

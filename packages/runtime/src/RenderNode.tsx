@@ -24,8 +24,8 @@ export function RenderNode(props: {
           }
           style={{
             position: "absolute",
-            left: props.node.box.left - offset + "px",
-            top: props.node.box.top - offset + "px",
+            left: props.node.box.x - offset + "px",
+            top: props.node.box.y - offset + "px",
             width: props.node.box.width + offset * 2 + "px",
             height: props.node.box.height + offset * 2 + "px",
             border:

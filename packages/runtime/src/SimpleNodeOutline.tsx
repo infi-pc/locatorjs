@@ -1,4 +1,3 @@
-import { createSignal, For } from "solid-js";
 import { SimpleNode } from "./types";
 
 export function SimpleNodeOutline(props: { node: SimpleNode }) {
@@ -9,8 +8,8 @@ export function SimpleNodeOutline(props: { node: SimpleNode }) {
         <div
           style={{
             position: "absolute",
-            left: props.node.box.left - offset + "px",
-            top: props.node.box.top - offset + "px",
+            left: props.node.box.x - offset + "px",
+            top: props.node.box.y - offset + "px",
             width: props.node.box.width + offset * 2 + "px",
             height: props.node.box.height + offset * 2 + "px",
             border:

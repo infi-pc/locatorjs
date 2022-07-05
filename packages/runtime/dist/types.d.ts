@@ -9,7 +9,7 @@ declare type SimpleElement = {
     name: string;
     uniqueId: string;
     fiber: Fiber;
-    box: DOMRect | null;
+    box: SimpleDOMRect | null;
     element: Element | Text;
     children: (SimpleElement | SimpleComponent)[];
     source: Source | null;
@@ -19,7 +19,7 @@ declare type SimpleComponent = {
     uniqueId: string;
     name: string;
     fiber: Fiber;
-    box: DOMRect | null;
+    box: SimpleDOMRect | null;
     children: (SimpleElement | SimpleComponent)[];
     source: Source | null;
     definitionSourceFile: string | null;
@@ -28,5 +28,11 @@ export declare type SimpleNode = SimpleElement | SimpleComponent;
 export declare type HighlightedNode = {
     getNode: () => SimpleNode | null;
     setNode: (node: SimpleNode | null) => void;
+};
+export declare type SimpleDOMRect = {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
 };
 export {};

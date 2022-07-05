@@ -23,8 +23,8 @@ function SimpleNodeOutline(props) {
         _el$2.style.setProperty("position", "absolute");
 
         (0, _web.effect)(_p$ => {
-          const _v$ = props.node.box.left - offset + "px",
-                _v$2 = props.node.box.top - offset + "px",
+          const _v$ = props.node.box.x - offset + "px",
+                _v$2 = props.node.box.y - offset + "px",
                 _v$3 = props.node.box.width + offset * 2 + "px",
                 _v$4 = props.node.box.height + offset * 2 + "px",
                 _v$5 = props.node.type === "component" ? "2px solid rgba(200,0,0,1)" : "1px solid rgba(200,0,0,1)",

@@ -11,7 +11,7 @@ type SimpleElement = {
   name: string;
   uniqueId: string;
   fiber: Fiber;
-  box: DOMRect | null;
+  box: SimpleDOMRect | null;
   element: Element | Text;
   children: (SimpleElement | SimpleComponent)[];
   source: Source | null;
@@ -22,7 +22,7 @@ type SimpleComponent = {
   uniqueId: string;
   name: string;
   fiber: Fiber;
-  box: DOMRect | null;
+  box: SimpleDOMRect | null;
   children: (SimpleElement | SimpleComponent)[];
   source: Source | null;
   definitionSourceFile: string | null;
@@ -33,4 +33,11 @@ export type SimpleNode = SimpleElement | SimpleComponent;
 export type HighlightedNode = {
   getNode: () => SimpleNode | null;
   setNode: (node: SimpleNode | null) => void;
+};
+
+export type SimpleDOMRect = {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
 };

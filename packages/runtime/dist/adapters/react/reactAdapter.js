@@ -15,7 +15,7 @@ var _getAllWrappingParents = require("./getAllWrappingParents");
 
 var _deduplicateLabels = require("../../deduplicateLabels");
 
-var _getFiberBoundingBox = require("./getFiberBoundingBox");
+var _getFiberOwnBoundingBox = require("./getFiberOwnBoundingBox");
 
 var _getAllParentsElementsAndRootComponent = require("./getAllParentsElementsAndRootComponent");
 
@@ -27,11 +27,15 @@ function getElementInfo(found) {
   if (fiber) {
     var _findDebugSource;
 
+    console.log("FOUND FIBER:!!!", fiber);
+    debugger;
     const {
       component,
       componentBox,
       parentElements
     } = (0, _getAllParentsElementsAndRootComponent.getAllParentsElementsAndRootComponent)(fiber);
+    console.log("FOUND COMPONENT:!!!", component);
+    console.log("FOUND COMPONENT BOX:!!!", componentBox);
     const allPotentialComponentFibers = (0, _getAllWrappingParents.getAllWrappingParents)(component); // This handles a common case when the component root is basically the comopnent itself, so I want to go to usage of the component
 
     if (fiber.return && fiber.return === fiber._debugOwner) {
@@ -49,7 +53,7 @@ function getElementInfo(found) {
     const thisLabel = (0, _getFiberLabel.getFiberLabel)(fiber, (_findDebugSource = (0, _findDebugSource2.findDebugSource)(fiber)) === null || _findDebugSource === void 0 ? void 0 : _findDebugSource.source);
     return {
       thisElement: {
-        box: (0, _getFiberBoundingBox.getFiberBoundingBox)(fiber) || found.getBoundingClientRect(),
+        box: (0, _getFiberOwnBoundingBox.getFiberOwnBoundingBox)(fiber) || found.getBoundingClientRect(),
         ...thisLabel
       },
       htmlElement: found,

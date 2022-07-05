@@ -6,6 +6,8 @@ import { FullElementInfo, getElementInfo } from "./adapters/react/reactAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
+import { goTo } from "./goTo";
+import { SimpleDOMRect } from "./types";
 
 export function Outline(props: {
   element: FullElementInfo;
@@ -50,7 +52,7 @@ export function Outline(props: {
 }
 
 function ComponentOutline(props: {
-  bbox: DOMRect;
+  bbox: SimpleDOMRect;
   labels: LabelData[];
   element: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
@@ -139,8 +141,9 @@ function ComponentOutline(props: {
                 href={label.link}
                 target={HREF_TARGET}
                 onClick={() => {
+                  console.log("click", label);
                   trackClickStats();
-                  window.open(label.link, HREF_TARGET);
+                  goTo(label.link);
                 }}
               >
                 {label.label}

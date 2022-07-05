@@ -6,10 +6,12 @@ Object.defineProperty(exports, "__esModule", {
 exports.mergeRects = mergeRects;
 
 function mergeRects(a, b) {
-  const newRect = new DOMRect();
-  newRect.x = Math.min(a.x, b.x);
-  newRect.y = Math.min(a.y, b.y);
-  newRect.width = Math.max(a.x + a.width, b.x + b.width) - newRect.x;
-  newRect.height = Math.max(a.y + a.height, b.y + b.height) - newRect.y;
-  return newRect;
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y
+  };
 }

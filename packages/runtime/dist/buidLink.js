@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.buidLink = buidLink;
+exports.buildLinkFromSource = buildLinkFromSource;
 
 var _linkTemplateUrl = require("./linkTemplateUrl");
 
@@ -17,4 +18,17 @@ function buidLink(filePath, projectPath, loc) {
     column: loc.start.column + 1
   };
   return (0, _evalTemplate.evalTemplate)((0, _linkTemplateUrl.linkTemplateUrl)(), params);
+}
+
+function buildLinkFromSource(source) {
+  return buidLink(source.fileName, "", {
+    start: {
+      column: source.columnNumber || 0,
+      line: source.lineNumber || 0
+    },
+    end: {
+      column: source.columnNumber || 0,
+      line: source.lineNumber || 0
+    }
+  });
 }

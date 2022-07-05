@@ -1,13 +1,18 @@
-import { getFiberBoundingBox } from "./getFiberBoundingBox";
+import { getFiberOwnBoundingBox } from "./getFiberOwnBoundingBox";
 import { Fiber } from "@locator/shared";
 import { getAllFiberChildren } from "../../getAllFiberChildren";
 import { mergeRects } from "../../mergeRects";
+import { SimpleDOMRect } from "../../types";
 
-export function getFiberComponentBoundingBox(fiber: Fiber) {
+const MAX_LEVEL = 6;
+export function getFiberComponentBoundingBox(fiber: Fiber, level = 0) {
   const children = getAllFiberChildren(fiber);
-  let composedRect: DOMRect | undefined;
+  let composedRect: SimpleDOMRect | undefined;
   children.forEach((child) => {
-    const box = getFiberBoundingBox(child);
+    let box = getFiberOwnBoundingBox(child);
+    if (!box && level < MAX_LEVEL) {
+      box = getFiberComponentBoundingBox(child, level + 1) || null;
+    }
     if (!box) {
       return;
     }

@@ -1,8 +1,10 @@
-import { SimpleNode } from "./Runtime";
 import { mergeRects } from "./mergeRects";
+import { SimpleDOMRect, SimpleNode } from "./types";
 
-export function getComposedBoundingBox(children: SimpleNode[]): DOMRect | null {
-  let composedRect: DOMRect | null = null;
+export function getComposedBoundingBox(
+  children: SimpleNode[]
+): SimpleDOMRect | null {
+  let composedRect: SimpleDOMRect | null = null;
 
   children.forEach((child) => {
     const box = child.box;

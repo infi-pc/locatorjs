@@ -9,6 +9,8 @@ var _web = require("solid-js/web");
 
 var _solidJs = require("solid-js");
 
+var _goTo = require("./goTo");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div class="locatorjs-tree-node"><button>&lt;<!>></button></div>`, 5),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div><div><div>:</div> <div></div></div></div>`, 8),
       _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<button>...</button>`, 2);
@@ -71,7 +73,9 @@ function TreeNode(props) {
     _el$.style.setProperty("cursor", "pointer");
 
     _el$2.$$click = () => {
-      console.log("CLICK", props.node.fiber);
+      if (props.node.source) {
+        (0, _goTo.goToSource)(props.node.source);
+      }
     };
 
     _el$2.style.setProperty("pointer-events", "auto");
@@ -147,16 +151,19 @@ function TreeNode(props) {
     (0, _web.effect)(_p$ => {
       const _v$ = isHighlighted() ? "rgba(0,0,0,0.1)" : "white",
             _v$2 = props.idsToShow[props.node.uniqueId] ? "red" : "",
-            _v$3 = props.idsThatHaveExpandedSuccessor[props.node.uniqueId] ? "1px solid red" : "1px solid black";
+            _v$3 = props.idsThatHaveExpandedSuccessor[props.node.uniqueId] ? "1px solid red" : "1px solid black",
+            _v$4 = props.node.source ? "underline" : "";
 
       _v$ !== _p$._v$ && _el$2.style.setProperty("background-color", _p$._v$ = _v$);
       _v$2 !== _p$._v$2 && _el$2.style.setProperty("color", _p$._v$2 = _v$2);
       _v$3 !== _p$._v$3 && _el$2.style.setProperty("border", _p$._v$3 = _v$3);
+      _v$4 !== _p$._v$4 && _el$2.style.setProperty("text-decoration", _p$._v$4 = _v$4);
       return _p$;
     }, {
       _v$: undefined,
       _v$2: undefined,
-      _v$3: undefined
+      _v$3: undefined,
+      _v$4: undefined
     });
     return _el$;
   })();

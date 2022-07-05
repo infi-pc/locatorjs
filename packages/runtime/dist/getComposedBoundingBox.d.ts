@@ -1,2 +1,2 @@
-import { SimpleNode } from "./Runtime";
-export declare function getComposedBoundingBox(children: SimpleNode[]): DOMRect | null;
+import { SimpleDOMRect, SimpleNode } from "./types";
+export declare function getComposedBoundingBox(children: SimpleNode[]): SimpleDOMRect | null;

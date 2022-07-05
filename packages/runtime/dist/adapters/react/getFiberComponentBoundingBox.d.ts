@@ -1,2 +1,3 @@
 import { Fiber } from "@locator/shared";
-export declare function getFiberComponentBoundingBox(fiber: Fiber): DOMRect | undefined;
+import { SimpleDOMRect } from "../../types";
+export declare function getFiberComponentBoundingBox(fiber: Fiber, level?: number): SimpleDOMRect | undefined;

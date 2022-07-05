@@ -1,6 +1,7 @@
 import { Fiber } from "@locator/shared";
+import { SimpleDOMRect } from "../../types";
 
-export function getFiberBoundingBox(fiber: Fiber): DOMRect | null {
+export function getFiberOwnBoundingBox(fiber: Fiber): SimpleDOMRect | null {
   if (fiber.stateNode && fiber.stateNode.getBoundingClientRect) {
     return fiber.stateNode.getBoundingClientRect();
   }

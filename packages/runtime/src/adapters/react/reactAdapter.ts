@@ -4,11 +4,12 @@ import { getFiberLabel } from "./getFiberLabel";
 import { getAllWrappingParents } from "./getAllWrappingParents";
 import { deduplicateLabels } from "../../deduplicateLabels";
 import { LabelData } from "../../LabelData";
-import { getFiberBoundingBox } from "./getFiberBoundingBox";
+import { getFiberOwnBoundingBox } from "./getFiberOwnBoundingBox";
 import { getAllParentsElementsAndRootComponent } from "./getAllParentsElementsAndRootComponent";
+import { SimpleDOMRect } from "../../types";
 
 export type ElementInfo = {
-  box: DOMRect;
+  box: SimpleDOMRect;
   label: string;
   link: string;
 };
@@ -17,7 +18,7 @@ export type FullElementInfo = {
   thisElement: ElementInfo;
   htmlElement: HTMLElement;
   parentElements: ElementInfo[];
-  componentBox: DOMRect;
+  componentBox: SimpleDOMRect;
   componentsLabels: LabelData[];
 };
 
@@ -27,8 +28,15 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
 
   const fiber = findFiberByHtmlElement(found, false);
   if (fiber) {
+    console.log("FOUND FIBER:!!!", fiber);
+
+    debugger;
+
     const { component, componentBox, parentElements } =
       getAllParentsElementsAndRootComponent(fiber);
+
+    console.log("FOUND COMPONENT:!!!", component);
+    console.log("FOUND COMPONENT BOX:!!!", componentBox);
 
     const allPotentialComponentFibers = getAllWrappingParents(component);
 
@@ -51,7 +59,7 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
     const thisLabel = getFiberLabel(fiber, findDebugSource(fiber)?.source);
     return {
       thisElement: {
-        box: getFiberBoundingBox(fiber) || found.getBoundingClientRect(),
+        box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
         ...thisLabel,
       },
       htmlElement: found,

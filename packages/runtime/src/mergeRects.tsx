@@ -1,10 +1,12 @@
-export function mergeRects(a: DOMRect, b: DOMRect): DOMRect {
-  const newRect = new DOMRect();
+import { SimpleDOMRect } from "./types";
 
-  newRect.x = Math.min(a.x, b.x);
-  newRect.y = Math.min(a.y, b.y);
-  newRect.width = Math.max(a.x + a.width, b.x + b.width) - newRect.x;
-  newRect.height = Math.max(a.y + a.height, b.y + b.height) - newRect.y;
-
-  return newRect;
+export function mergeRects(a: SimpleDOMRect, b: SimpleDOMRect): SimpleDOMRect {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y,
+  };
 }

@@ -1,5 +1,7 @@
 /* eslint-disable react/no-unknown-property */
 import { createSignal, For } from "solid-js";
+import { buidLink } from "./buidLink";
+import { goTo, goToSource } from "./goTo";
 import { HighlightedNode, SimpleNode } from "./types";
 
 export function TreeNode(props: {
@@ -53,7 +55,9 @@ export function TreeNode(props: {
     >
       <button
         onClick={() => {
-          console.log("CLICK", props.node.fiber);
+          if (props.node.source) {
+            goToSource(props.node.source);
+          }
         }}
         style={{
           "background-color": isHighlighted() ? "rgba(0,0,0,0.1)" : "white",
@@ -62,6 +66,7 @@ export function TreeNode(props: {
             ? "1px solid red"
             : "1px solid black",
           "pointer-events": "auto",
+          "text-decoration": props.node.source ? "underline" : "",
         }}
         // From some reason onMouseOver does not work in shadow dom
         // @ts-ignore

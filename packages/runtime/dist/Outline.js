@@ -15,6 +15,8 @@ var _trackClickStats = require("./trackClickStats");
 
 var _hasExperimentalFeatures = require("./hasExperimentalFeatures");
 
+var _goTo = require("./goTo");
+
 const _tmpl$ = /*#__PURE__*/(0, _web.template)(`<div><div></div></div>`, 4),
       _tmpl$2 = /*#__PURE__*/(0, _web.template)(`<div><div id="locatorjs-labels-section"><div id="locatorjs-labels-wrapper"></div></div></div>`, 6),
       _tmpl$3 = /*#__PURE__*/(0, _web.template)(`<a class="locatorjs-label"><svg style="width:16px;height:16px" viewBox="0 0 24 24"><path fill="currentColor" d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"></path></svg></a>`, 6),
@@ -136,8 +138,9 @@ function ComponentOutline(props) {
         const _el$7 = _tmpl$4.cloneNode(true);
 
         _el$7.$$click = () => {
+          console.log("click", label);
           (0, _trackClickStats.trackClickStats)();
-          window.open(label.link, _consts.HREF_TARGET);
+          (0, _goTo.goTo)(label.link);
         };
 
         (0, _web.setAttribute)(_el$7, "target", _consts.HREF_TARGET);
