@@ -3,6 +3,7 @@ import { getUsableName } from "../../getUsableName";
 import { mergeRects } from "../../mergeRects";
 import { SimpleDOMRect } from "../../types";
 import { getFiberComponentBoundingBox } from "./getFiberComponentBoundingBox";
+import { isStyledElement } from "./isStyled";
 import { ElementInfo } from "./reactAdapter";
 
 export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
@@ -19,7 +20,9 @@ export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
   }
   let componentBox: SimpleDOMRect = deepestElement.getBoundingClientRect();
 
-  let currentFiber = fiber;
+  // For styled-components we rather use parent element
+  let currentFiber =
+    isStyledElement(fiber) && fiber._debugOwner ? fiber._debugOwner : fiber;
   while (currentFiber._debugOwner || currentFiber.return) {
     currentFiber = currentFiber._debugOwner || currentFiber.return!;
     const currentElement = currentFiber.stateNode;

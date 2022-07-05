@@ -6,12 +6,21 @@ import { getUsableName } from "../../getUsableName";
 import { getAllFiberChildren } from "../../getAllFiberChildren";
 import { SimpleNode } from "../../types";
 import { makeFiberId } from "./makeFiberId";
+import { isStyledElement } from "./isStyled";
 
 export function fiberToSimple(
   fiber: Fiber,
   manualChildren?: SimpleNode[]
 ): SimpleNode {
   let simpleChildren;
+  if (fiber.elementType?.styledComponentId) {
+    const children = getAllFiberChildren(fiber);
+    if (children.length === 1) {
+      const simple = fiberToSimple(children[0]!, manualChildren);
+      simple.name = `${simple.name} (styled)`;
+      return simple;
+    }
+  }
 
   if (manualChildren) {
     simpleChildren = manualChildren;

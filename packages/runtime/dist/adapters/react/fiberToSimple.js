@@ -16,9 +16,19 @@ var _getAllFiberChildren = require("../../getAllFiberChildren");
 var _makeFiberId = require("./makeFiberId");
 
 function fiberToSimple(fiber, manualChildren) {
-  var _fiber$stateNode;
+  var _fiber$elementType, _fiber$stateNode;
 
   let simpleChildren;
+
+  if ((_fiber$elementType = fiber.elementType) !== null && _fiber$elementType !== void 0 && _fiber$elementType.styledComponentId) {
+    const children = (0, _getAllFiberChildren.getAllFiberChildren)(fiber);
+
+    if (children.length === 1) {
+      const simple = fiberToSimple(children[0], manualChildren);
+      simple.name = `${simple.name} (styled)`;
+      return simple;
+    }
+  }
 
   if (manualChildren) {
     simpleChildren = manualChildren;

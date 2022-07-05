@@ -11,6 +11,8 @@ var _mergeRects = require("../../mergeRects");
 
 var _getFiberComponentBoundingBox = require("./getFiberComponentBoundingBox");
 
+var _isStyled = require("./isStyled");
+
 function getAllParentsElementsAndRootComponent(fiber) {
   const parentElements = [];
   const deepestElement = fiber.stateNode;
@@ -19,8 +21,9 @@ function getAllParentsElementsAndRootComponent(fiber) {
     throw new Error("This functions works only for Fibres with HTMLElement stateNode");
   }
 
-  let componentBox = deepestElement.getBoundingClientRect();
-  let currentFiber = fiber;
+  let componentBox = deepestElement.getBoundingClientRect(); // For styled-components we rather use parent element
+
+  let currentFiber = (0, _isStyled.isStyledElement)(fiber) && fiber._debugOwner ? fiber._debugOwner : fiber;
 
   while (currentFiber._debugOwner || currentFiber.return) {
     currentFiber = currentFiber._debugOwner || currentFiber.return;

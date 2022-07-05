@@ -7,6 +7,7 @@ import { LabelData } from "../../LabelData";
 import { getFiberOwnBoundingBox } from "./getFiberOwnBoundingBox";
 import { getAllParentsElementsAndRootComponent } from "./getAllParentsElementsAndRootComponent";
 import { SimpleDOMRect } from "../../types";
+import { isStyledElement } from "./isStyled";
 
 export type ElementInfo = {
   box: SimpleDOMRect;
@@ -28,15 +29,8 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
 
   const fiber = findFiberByHtmlElement(found, false);
   if (fiber) {
-    console.log("FOUND FIBER:!!!", fiber);
-
-    debugger;
-
     const { component, componentBox, parentElements } =
       getAllParentsElementsAndRootComponent(fiber);
-
-    console.log("FOUND COMPONENT:!!!", component);
-    console.log("FOUND COMPONENT BOX:!!!", componentBox);
 
     const allPotentialComponentFibers = getAllWrappingParents(component);
 
@@ -57,6 +51,11 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
     });
 
     const thisLabel = getFiberLabel(fiber, findDebugSource(fiber)?.source);
+
+    if (isStyledElement(fiber)) {
+      thisLabel.label = `${thisLabel.label} (styled)`;
+    }
+
     return {
       thisElement: {
         box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
