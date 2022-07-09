@@ -31,6 +31,8 @@ if (typeof window !== "undefined" && isExtension) {
   setTimeout(init, 0);
 }
 
+const MAX_ZINDEX = 2147483647;
+
 function setup({
   adapter
 }) {
@@ -109,8 +111,9 @@ function init({
   globalStyle.id = "locatorjs-global-style";
   globalStyle.innerHTML = `
       #locatorjs-wrapper {
-        z-index: 99999999;
+        z-index: ${MAX_ZINDEX};
         pointer-events: none;
+        position: fixed;
       }
       .locatorjs-active-pointer * {
         cursor: pointer !important;
