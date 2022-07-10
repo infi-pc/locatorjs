@@ -6,22 +6,8 @@ import { deduplicateLabels } from "../../deduplicateLabels";
 import { LabelData } from "../../LabelData";
 import { getFiberOwnBoundingBox } from "./getFiberOwnBoundingBox";
 import { getAllParentsElementsAndRootComponent } from "./getAllParentsElementsAndRootComponent";
-import { SimpleDOMRect } from "../../types";
 import { isStyledElement } from "./isStyled";
-
-export type ElementInfo = {
-  box: SimpleDOMRect;
-  label: string;
-  link: string;
-};
-
-export type FullElementInfo = {
-  thisElement: ElementInfo;
-  htmlElement: HTMLElement;
-  parentElements: ElementInfo[];
-  componentBox: SimpleDOMRect;
-  componentsLabels: LabelData[];
-};
+import { AdapterObject, FullElementInfo } from "../adapterApi";
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
@@ -72,3 +58,9 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
 
   return null;
 }
+
+const reactAdapter: AdapterObject = {
+  getElementInfo,
+};
+
+export default reactAdapter;

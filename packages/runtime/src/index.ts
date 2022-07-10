@@ -19,13 +19,14 @@ const MAX_ZINDEX = 2147483647;
 
 export function setup({
   adapter,
+  targets,
 }: {
   adapter: Adapter;
   // defaultMode?: LocatorJSMode;
-  // targets?: { [k: string]: Target | string };
+  targets?: { [k: string]: Target | string };
 }) {
   if (typeof window !== "undefined") {
-    init({ adapter });
+    init({ adapter, targets });
   }
   // if (props.defaultMode) {
   //   defaultMode = props.defaultMode;
@@ -46,7 +47,9 @@ export function setup({
   // }
 }
 
-function init({ adapter }: { adapter?: Adapter } = {}) {
+function init({
+  adapter,
+}: { adapter?: Adapter; targets?: { [k: string]: Target | string } } = {}) {
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;

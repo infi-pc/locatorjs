@@ -1,13 +1,13 @@
 /* eslint-disable react/display-name */
 /* eslint-disable react/no-unknown-property */
-import { createEffect, For } from "solid-js";
+import { For } from "solid-js";
 import { baseColor, HREF_TARGET, PADDING } from "./consts";
-import { FullElementInfo, getElementInfo } from "./adapters/react/reactAdapter";
 import { LabelData } from "./LabelData";
 import { trackClickStats } from "./trackClickStats";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import { goTo } from "./goTo";
 import { SimpleDOMRect } from "./types";
+import { FullElementInfo } from "./adapters/adapterApi";
 
 export function Outline(props: {
   element: FullElementInfo;

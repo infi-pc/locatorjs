@@ -1,34 +1,24 @@
 /* eslint-disable react/no-unknown-property */
-import { Fiber } from "@locator/shared";
-import {
-  batch,
-  createEffect,
-  createSignal,
-  For,
-  onCleanup,
-  onMount,
-} from "solid-js";
+import { Fiber, Target } from "@locator/shared";
+import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
 import { Adapter, HREF_TARGET } from "./consts";
 import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
-import { getElementInfo } from "./adapters/react/reactAdapter";
+import reactAdapter from "./adapters/react/reactAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
-import { Outline } from "./Outline";
-import { RenderNode } from "./RenderNode";
-import { searchDevtoolsRenderersForClosestTarget } from "./searchDevtoolsRenderersForClosestTarget";
 import { trackClickStats } from "./trackClickStats";
 import { SimpleNode } from "./types";
-import { getPathToParent } from "./getPathToParent";
 import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
 import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
-import { makeFiberId } from "./adapters/react/makeFiberId";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
+import jsxAdapter from "./adapters/jsx/jsxAdapter";
+import { AdapterObject } from "./adapters/adapterApi";
 
-function Runtime(props: { adapter: Adapter }) {
+function Runtime(props: { adapter: AdapterObject }) {
   const [solidMode, setSolidMode] = createSignal<
     ["off"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
@@ -124,7 +114,7 @@ function Runtime(props: { adapter: Adapter }) {
         return;
       }
 
-      const elInfo = getElementInfo(target);
+      const elInfo = props.adapter.getElementInfo(target);
 
       if (elInfo) {
         const link = elInfo.thisElement.link;
@@ -242,6 +232,7 @@ function Runtime(props: { adapter: Adapter }) {
         <MaybeOutline
           currentElement={currentElement()!}
           showTreeFromElement={showTreeFromElement}
+          adapter={props.adapter}
         />
       ) : null}
       {highlightedNode() ? (
@@ -256,6 +247,11 @@ function Runtime(props: { adapter: Adapter }) {
   );
 }
 
-export function initRender(solidLayer: HTMLDivElement, adapter: Adapter) {
-  render(() => <Runtime adapter={adapter} />, solidLayer);
+export function initRender(
+  solidLayer: HTMLDivElement,
+  adapter: Adapter,
+  targets: Target[]
+) {
+  const adapterObject = adapter === "jsx" ? jsxAdapter : reactAdapter;
+  render(() => <Runtime adapter={adapterObject} />, solidLayer);
 }

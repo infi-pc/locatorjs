@@ -10,7 +10,7 @@ setupLocator(
     ? {
         // On production we have to enable it with cookies, on stagings it is just hidden
         // defaultMode: process.env.VERCEL_ENV === "production" ? "disabled" : "hidden",
-        defaultMode: "hidden",
+        adapter: "jsx",
         targets: {
           GitHub: `https://www.github.com/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
           Editor: `https://github.dev/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
@@ -18,7 +18,7 @@ setupLocator(
       }
     : {
         // Show initial setup to all devs in your team so they can choose their editor.
-        defaultMode: "options",
+        adapter: "jsx",
       }
 );
 

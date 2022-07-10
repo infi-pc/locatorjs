@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber, Target } from "@locator/shared";
 
 export type Source = {
   fileName: string;
@@ -41,3 +41,5 @@ export type SimpleDOMRect = {
   x: number;
   y: number;
 };
+
+export type Targets = { [k: string]: Target | string };
