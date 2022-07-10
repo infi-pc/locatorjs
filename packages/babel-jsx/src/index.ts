@@ -160,7 +160,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
             const id = addToStorage({
               type: "styledComponent",
               name: name,
-              loc: path.node.loc,
+              loc: path.node.loc || null,
               htmlTag: property.name || null,
             });
 
@@ -206,7 +206,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
           const id = addToStorage({
             type: "jsx",
             name: name,
-            loc: path.node.loc,
+            loc: path.node.loc || null,
             wrappingComponent: wrappingComponent?.name || null,
           });
           const newAttr = t.jSXAttribute(
