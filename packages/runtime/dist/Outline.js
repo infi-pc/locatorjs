@@ -102,9 +102,13 @@ function ComponentOutline(props) {
 
   const top = () => Math.max(props.bbox.y - _consts.PADDING, 0);
 
-  const width = () => Math.min(props.bbox.width + _consts.PADDING * 2, window.innerWidth);
+  const cutFromTop = () => props.bbox.y < 0 ? -(props.bbox.y - _consts.PADDING) : 0;
 
-  const height = () => Math.min(props.bbox.height + _consts.PADDING * 2, window.innerHeight);
+  const cutFromLeft = () => props.bbox.x < 0 ? -(props.bbox.x - _consts.PADDING) : 0;
+
+  const width = () => Math.min(props.bbox.width - cutFromLeft() + _consts.PADDING * 2, window.innerWidth);
+
+  const height = () => Math.min(props.bbox.height - cutFromTop() + _consts.PADDING * 2, window.innerHeight);
 
   return (() => {
     const _el$3 = _tmpl$2.cloneNode(true),

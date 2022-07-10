@@ -62,10 +62,17 @@ function ComponentOutline(props: {
 
   const left = () => Math.max(props.bbox.x - PADDING, 0);
   const top = () => Math.max(props.bbox.y - PADDING, 0);
+
+  const cutFromTop = () => (props.bbox.y < 0 ? -(props.bbox.y - PADDING) : 0);
+  const cutFromLeft = () => (props.bbox.x < 0 ? -(props.bbox.x - PADDING) : 0);
+
   const width = () =>
-    Math.min(props.bbox.width + PADDING * 2, window.innerWidth);
+    Math.min(props.bbox.width - cutFromLeft() + PADDING * 2, window.innerWidth);
   const height = () =>
-    Math.min(props.bbox.height + PADDING * 2, window.innerHeight);
+    Math.min(
+      props.bbox.height - cutFromTop() + PADDING * 2,
+      window.innerHeight
+    );
 
   return (
     <div
