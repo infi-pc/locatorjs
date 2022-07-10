@@ -46,9 +46,22 @@ function transformLocatorJsComponents(babel) {
                     var dataAst = (0, parser_1.parseExpression)(dataCode, {
                         sourceType: "script"
                     });
-                    path.node.body.push(t.expressionStatement(t.callExpression(t.memberExpression(t.callExpression(t.identifier("require"), [
-                        t.stringLiteral(RUNTIME_PATH),
-                    ]), t.identifier("register")), [dataAst])));
+                    var insertCode = "if (typeof window !== \"undefined\") {\n            window.__locatorData = window.__locatorData || []\n            window.__locatorData.push(".concat(dataCode, ")\n          }");
+                    var x = (0, parser_1.parse)(insertCode);
+                    path.node.push(x.program.body);
+                    // path.node.body.push(
+                    //   t.expressionStatement(
+                    //     t.callExpression(
+                    //       t.memberExpression(
+                    //         t.callExpression(t.identifier("require"), [
+                    //           t.stringLiteral(RUNTIME_PATH),
+                    //         ]),
+                    //         t.identifier("register")
+                    //       ),
+                    //       [dataAst]
+                    //     )
+                    //   )
+                    // );
                 }
             },
             // TODO add also for arrow function

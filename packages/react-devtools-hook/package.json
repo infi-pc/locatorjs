@@ -4,8 +4,8 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "test": "jest tests/",
-    "test:update": "jest tests/ -u",
+    "//test": "jest tests/",
+    "//test:update": "jest tests/ -u",
     "dev": "tsc src/*.ts --watch --declaration --outDir dist",
     "build": "tsc src/*.ts --declaration --outDir dist",
     "ts": "tsc src/*.ts --noEmit --outDir dist"

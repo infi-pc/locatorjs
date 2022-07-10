@@ -1,24 +1,40 @@
 export default () => {
-  return <Aaaa data-locatorjs-id={"0"}></Aaaa>;
+  return (
+    <Aaaa
+      data-locatorjs-id={
+        "/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/basic/code.js::0"
+      }
+    ></Aaaa>
+  );
 };
 
-require("locatorjs/dist/runtime.js").register({
-  path: "/Users/michaelmusil/www/templates/locatorjs/tests/fixtures/basic/code.js",
-  nextId: 1,
-  expressions: [
-    {
-      name: "Aaaa",
-      loc: {
-        start: {
-          line: 2,
-          column: 11,
+(() => {
+  if (typeof window !== "undefined") {
+    window.__locatorData = window.__locatorData || [];
+
+    window.__locatorData.push({
+      filePath: "/tests/fixtures/basic/code.js",
+      projectPath: "/Users/michaelmusil/www/locatorjs/packages/babel-jsx",
+      nextId: 1,
+      expressions: [
+        {
+          type: "jsx",
+          name: "Aaaa",
+          loc: {
+            start: {
+              line: 2,
+              column: 11,
+              index: 34,
+            },
+            end: {
+              line: 2,
+              column: 24,
+              index: 47,
+            },
+          },
+          wrappingComponent: null,
         },
-        end: {
-          line: 2,
-          column: 24,
-        },
-      },
-      wrappingComponent: null,
-    },
-  ],
-});
+      ],
+    });
+  }
+})();

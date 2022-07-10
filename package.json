@@ -10,6 +10,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
+    "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "publishPackages": "lerna publish"
   },
@@ -30,6 +31,9 @@
         ]
       },
       "lint": {
+        "outputs": []
+      },
+      "test": {
         "outputs": []
       },
       "dev": {

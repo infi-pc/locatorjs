@@ -86,19 +86,18 @@ export default function transformLocatorJsComponents(babel: Babel): {
             sourceType: "script",
           });
 
-          path.node.body.push(
-            t.expressionStatement(
-              t.callExpression(
-                t.memberExpression(
-                  t.callExpression(t.identifier("require"), [
-                    t.stringLiteral(RUNTIME_PATH),
-                  ]),
-                  t.identifier("register")
-                ),
-                [dataAst]
-              )
-            )
-          );
+          const insertCode = `(() => {
+            if (typeof window !== "undefined") {
+              window.__locatorData = window.__locatorData || [];
+              window.__locatorData.push(${dataCode});
+            }
+          })()`;
+
+          const insertAst = parseExpression(insertCode, {
+            sourceType: "script",
+          });
+
+          path.node.body.push(t.expressionStatement(insertAst));
         },
       },
       // TODO add also for arrow function
