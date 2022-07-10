@@ -46,22 +46,11 @@ function transformLocatorJsComponents(babel) {
                     var dataAst = (0, parser_1.parseExpression)(dataCode, {
                         sourceType: "script"
                     });
-                    var insertCode = "if (typeof window !== \"undefined\") {\n            window.__locatorData = window.__locatorData || []\n            window.__locatorData.push(".concat(dataCode, ")\n          }");
-                    var x = (0, parser_1.parse)(insertCode);
-                    path.node.push(x.program.body);
-                    // path.node.body.push(
-                    //   t.expressionStatement(
-                    //     t.callExpression(
-                    //       t.memberExpression(
-                    //         t.callExpression(t.identifier("require"), [
-                    //           t.stringLiteral(RUNTIME_PATH),
-                    //         ]),
-                    //         t.identifier("register")
-                    //       ),
-                    //       [dataAst]
-                    //     )
-                    //   )
-                    // );
+                    var insertCode = "(() => {\n            if (typeof window !== \"undefined\") {\n              window.__locatorData = window.__locatorData || [];\n              window.__locatorData.push(".concat(dataCode, ");\n            }\n          })()");
+                    var insertAst = (0, parser_1.parseExpression)(insertCode, {
+                        sourceType: "script"
+                    });
+                    path.node.body.push(t.expressionStatement(insertAst));
                 }
             },
             // TODO add also for arrow function
@@ -117,7 +106,7 @@ function transformLocatorJsComponents(babel) {
                         var id = addToStorage({
                             type: "styledComponent",
                             name: name_1,
-                            loc: path.node.loc,
+                            loc: path.node.loc || null,
                             htmlTag: property.name || null
                         });
                         path.node.tag = t.callExpression(t.memberExpression(tag, t.identifier("attrs")), [
@@ -149,7 +138,7 @@ function transformLocatorJsComponents(babel) {
                     var id = addToStorage({
                         type: "jsx",
                         name: name,
-                        loc: path.node.loc,
+                        loc: path.node.loc || null,
                         wrappingComponent: (wrappingComponent === null || wrappingComponent === void 0 ? void 0 : wrappingComponent.name) || null
                     });
                     var newAttr = t.jSXAttribute(t.jSXIdentifier("data-locatorjs-id"), t.jSXExpressionContainer(t.stringLiteral(
