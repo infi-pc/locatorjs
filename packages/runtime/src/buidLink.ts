@@ -2,7 +2,11 @@ import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
 import { Source } from "./types";
 
-export function buidLink(filePath: string, projectPath: string, loc: any) {
+export function buidLink(
+  filePath: string,
+  projectPath: string,
+  loc: any
+): string {
   const params = {
     filePath,
     projectPath,
@@ -12,7 +16,7 @@ export function buidLink(filePath: string, projectPath: string, loc: any) {
   return evalTemplate(linkTemplateUrl(), params);
 }
 
-export function buildLinkFromSource(source: Source) {
+export function buildLinkFromSource(source: Source): string {
   return buidLink(source.fileName, "", {
     start: {
       column: source.columnNumber || 0,

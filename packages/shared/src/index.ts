@@ -70,24 +70,22 @@ export type ComponentInfo = {
   loc: SourceLocation | null;
 };
 
-export type ExpressionInfo =
-  | {
-      type: "jsx";
-      name: string;
-      loc: SourceLocation | null;
-      wrappingComponentId: number | null;
-    }
-  | {
-      type: "styledComponent";
-      name: string | null;
-      loc: SourceLocation | null;
-      htmlTag: string | null;
-    };
+export type ExpressionInfo = {
+  name: string;
+  loc: SourceLocation;
+  wrappingComponentId: number | null;
+};
+
+export type StyledDefinitionInfo = {
+  name: string | null;
+  loc: SourceLocation;
+  htmlTag: string;
+};
 
 export type FileStorage = {
   filePath: string;
   projectPath: string;
-  nextId: number;
   expressions: ExpressionInfo[];
+  styledDefinitions: StyledDefinitionInfo[];
   components: ComponentInfo[];
 };
