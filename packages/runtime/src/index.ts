@@ -1,6 +1,6 @@
 import { Target } from "@locator/shared";
 import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
-export * from "./runtimeStore";
+export * from "./adapters/jsx/runtimeStore";
 
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
 const initRender =

@@ -8,17 +8,16 @@ import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
 import reactAdapter from "./adapters/react/reactAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { trackClickStats } from "./trackClickStats";
-import { SimpleNode } from "./types";
+import { SimpleNode, Targets } from "./types";
 import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
-import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import jsxAdapter from "./adapters/jsx/jsxAdapter";
 import { AdapterObject } from "./adapters/adapterApi";
 
-function Runtime(props: { adapter: AdapterObject }) {
+function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   const [solidMode, setSolidMode] = createSignal<
     ["off"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
@@ -70,28 +69,27 @@ function Runtime(props: { adapter: AdapterObject }) {
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
+      // Ignore LocatorJS elements
       if (
         target.className == "locatorjs-label" ||
         target.id == "locatorjs-labels-section" ||
         target.id == "locatorjs-layer" ||
-        target.id == "locatorjs-wrapper"
+        target.id == "locatorjs-wrapper" ||
+        target.matches("#locatorjs-wrapper *")
       ) {
-        return;
-      }
-      if (target.matches("#locatorjs-wrapper *")) {
         return;
       }
 
       batch(() => {
         setCurrentElement(target);
-        if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
-          const fiber = findFiberByHtmlElement(target, false);
-          if (fiber) {
-            const id = fiberToSimple(fiber, []);
-
-            setHighlightedNode(id);
-          }
-        }
+        // TODO: this is for highlighting elements in the tree, but need to move it to the adapter
+        // if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
+        //   const fiber = findFiberByHtmlElement(target, false);
+        //   if (fiber) {
+        //     const id = fiberToSimple(fiber, []);
+        //     setHighlightedNode(id);
+        //   }
+        // }
       });
 
       // const found =
@@ -250,8 +248,11 @@ function Runtime(props: { adapter: AdapterObject }) {
 export function initRender(
   solidLayer: HTMLDivElement,
   adapter: Adapter,
-  targets: Target[]
+  targets: Targets
 ) {
   const adapterObject = adapter === "jsx" ? jsxAdapter : reactAdapter;
-  render(() => <Runtime adapter={adapterObject} />, solidLayer);
+  render(
+    () => <Runtime adapter={adapterObject} targets={targets} />,
+    solidLayer
+  );
 }

@@ -2,6 +2,7 @@ import * as BabelTypes from "@babel/types";
 import { Visitor, NodePath } from "@babel/traverse";
 import { parse, parseExpression } from "@babel/parser";
 import { isDisallowedComponent } from "./isDisallowedComponent";
+import { ExpressionInfo, FileStorage, SourceLocation } from "@locator/shared";
 
 export interface PluginOptions {
   opts?: {
@@ -16,35 +17,17 @@ export interface PluginOptions {
 export interface Babel {
   types: typeof BabelTypes;
 }
-type ExpressionInfo =
-  | {
-      type: "jsx";
-      name: string;
-      wrappingComponent: string | null;
-      loc: BabelTypes.SourceLocation | null;
-    }
-  | {
-      type: "styledComponent";
-      name: string | null;
-      loc: BabelTypes.SourceLocation | null;
-      htmlTag: string | null;
-    };
-
-type FileStorage = {
-  filePath: string;
-  projectPath: string;
-  nextId: number;
-  expressions: ExpressionInfo[];
-};
-
-const RUNTIME_PATH = "@locator/runtime";
 
 export default function transformLocatorJsComponents(babel: Babel): {
   visitor: Visitor<PluginOptions>;
 } {
   const t = babel.types;
   let fileStorage: FileStorage | null = null;
-  let wrappingComponent: { name: string; locString: string } | null = null;
+  let wrappingComponent: {
+    name: string;
+    locString: string;
+    loc: SourceLocation;
+  } | null = null;
 
   function addToStorage(expression: ExpressionInfo) {
     if (fileStorage) {
@@ -88,8 +71,10 @@ export default function transformLocatorJsComponents(babel: Babel): {
 
           const insertCode = `(() => {
             if (typeof window !== "undefined") {
-              window.__locatorData = window.__locatorData || [];
-              window.__locatorData.push(${dataCode});
+              window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};
+              window.__LOCATOR_DATA__["${createFullPath(
+                fileStorage
+              )}"] = ${dataCode};
             }
           })()`;
 
@@ -114,6 +99,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
             name,
             locString:
               path.node.loc.start.line + ":" + path.node.loc.start.column,
+            loc: path.node.loc,
           };
         },
         exit(path, state) {
@@ -208,6 +194,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
             name: name,
             loc: path.node.loc || null,
             wrappingComponent: wrappingComponent?.name || null,
+            wrappingComponentLoc: wrappingComponent?.loc || null,
           });
           const newAttr = t.jSXAttribute(
             t.jSXIdentifier("data-locatorjs-id"),
@@ -228,5 +215,9 @@ export default function transformLocatorJsComponents(babel: Babel): {
 }
 
 function createDataId(fileStorage: FileStorage, id: number): string {
-  return fileStorage.projectPath + fileStorage.filePath + "::" + String(id);
+  return createFullPath(fileStorage) + "::" + String(id);
+}
+
+function createFullPath(fileStorage: FileStorage): string {
+  return fileStorage.projectPath + fileStorage.filePath;
 }

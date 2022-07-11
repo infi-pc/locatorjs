@@ -10,9 +10,9 @@ export default () => {
 
 (() => {
   if (typeof window !== "undefined") {
-    window.__locatorData = window.__locatorData || [];
+    window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || [];
 
-    window.__locatorData.push({
+    window.__LOCATOR_DATA__.push({
       filePath: "/tests/fixtures/basic/code.js",
       projectPath: "/Users/michaelmusil/www/locatorjs/packages/babel-jsx",
       nextId: 1,
