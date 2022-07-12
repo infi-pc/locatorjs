@@ -10,7 +10,7 @@ type Props = {
   media: string;
 };
 
-export function SharePage({ setPage, media }: Props) {
+export function SharePage(props: Props) {
   let textareaRef: HTMLTextAreaElement | undefined;
   const text =
     'Check out LocatorJS!. \nYou can click on any React component in a browser to open its code in Editor. \nhttps://www.locatorjs.com';
@@ -20,10 +20,11 @@ export function SharePage({ setPage, media }: Props) {
   return (
     <div class="flex justify-between gap-4">
       <div class="flex-grow">
-        <SectionHeadline>Share on {media}</SectionHeadline>
+        <SectionHeadline>Share on {props.media}</SectionHeadline>
         <p>
-          We don't have an automatic link to {media}, but for your convenience,
-          here is an example text you can copy-paste to your {media}
+          We don't have an automatic link to {props.media}, but for your
+          convenience, here is an example text you can copy-paste to your{' '}
+          {props.media}
         </p>
         <Textarea
           onClick={() => {
@@ -65,7 +66,7 @@ export function SharePage({ setPage, media }: Props) {
       </div>
       <CloseButton
         onClick={() => {
-          setPage({ type: 'home' });
+          props.setPage({ type: 'home' });
         }}
       />
     </div>

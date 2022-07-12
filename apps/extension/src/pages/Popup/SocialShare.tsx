@@ -1,6 +1,5 @@
 import {
   BsDiscord,
-  BsFacebook,
   BsLinkedin,
   BsReddit,
   BsSlack,
@@ -15,12 +14,13 @@ import './socialShare.css';
 import { Tooltip } from '@hope-ui/solid';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
+import { JSX } from 'solid-js';
 
 type Props = {
   setPage: (page: Page) => void;
 };
 
-export default function SocialShare({ setPage }: Props) {
+export default function SocialShare(props: Props) {
   const { sharedOnSocialMedia } = useSyncedState();
   const pageUrl = encodeURIComponent('https://www.locatorjs.com');
 
@@ -99,7 +99,7 @@ export default function SocialShare({ setPage }: Props) {
               <IconWrapper
                 label="Share it on Slack"
                 onClick={() => {
-                  setPage({ type: 'share', media: 'Slack' });
+                  props.setPage({ type: 'share', media: 'Slack' });
                 }}
               >
                 <BsSlack />
@@ -108,7 +108,7 @@ export default function SocialShare({ setPage }: Props) {
               <IconWrapper
                 label="Share it on Discord"
                 onClick={() => {
-                  setPage({ type: 'share', media: 'Discord' });
+                  props.setPage({ type: 'share', media: 'Discord' });
                 }}
               >
                 <BsDiscord />
@@ -117,7 +117,7 @@ export default function SocialShare({ setPage }: Props) {
               <IconWrapper
                 label="Share it on Teams"
                 onClick={() => {
-                  setPage({ type: 'share', media: 'Teams' });
+                  props.setPage({ type: 'share', media: 'Teams' });
                 }}
               >
                 <BiLogoMicrosoftTeams />
@@ -140,30 +140,25 @@ export default function SocialShare({ setPage }: Props) {
   );
 }
 
-function IconWrapper({
-  children,
-  label,
-  link,
-  onClick,
-}: {
-  children: any;
+function IconWrapper(props: {
   label: string;
   link?: string;
-  onClick?: (e: any) => void;
+  onClick: (e: MouseEvent) => void;
+  children?: JSX.Element;
 }) {
   //   const [isHover, setIsHover] = createSignal(false);
   return (
-    <Tooltip label={label} placement="top">
+    <Tooltip label={props.label} placement="top">
       <div>
         <a
           class="icon-wrapper block"
-          href={link}
+          href={props.link}
           target="_blank"
-          onClick={onClick}
+          onClick={(e) => props.onClick(e)}
           //   onMouseEnter={() => setIsHover(true)}
           //   onMouseLeave={() => setIsHover(false)}
         >
-          {children}
+          {props.children}
         </a>
       </div>
     </Tooltip>

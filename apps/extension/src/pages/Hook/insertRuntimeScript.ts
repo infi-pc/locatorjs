@@ -10,6 +10,7 @@ export function insertRuntimeScript() {
 
   function sendStatusMessage(message: string) {
     document.head.dataset.locatorHookStatusMessage = message;
+    // eslint-disable-next-line no-console
     console.warn(`[locatorjs]: ${message}`);
   }
 
@@ -81,7 +82,7 @@ function insertScript(locatorClientUrl: string) {
       // delete document.documentElement.dataset.locatorClientUrl;
     }
     const foundIFrames = document.getElementsByTagName('iframe');
-    for (let iframe of foundIFrames) {
+    for (const iframe of foundIFrames) {
       try {
         const script = document.createElement('script');
         script.src = locatorClientUrl;

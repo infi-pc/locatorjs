@@ -1,4 +1,3 @@
-import { createEffect } from 'solid-js';
 import posthog from 'posthog-js';
 import { useSyncedState } from './syncedState';
 
