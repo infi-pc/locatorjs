@@ -19,7 +19,7 @@ export default function Home() {
       <Installation></Installation>
       <Contribute></Contribute>
       <Subscribe></Subscribe>
-      <Faq></Faq>
+      {/* <Faq></Faq> */}
       <ReadMore></ReadMore>
       <Footer></Footer>
     </>
