@@ -12,7 +12,10 @@
     "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx",
     "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
     "ts": "tsc --noEmit --outDir dist",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "solid-js": "^1.4.4",
     "@locator/shared": "*"
   },
   "devDependencies": {
@@ -34,8 +37,5 @@
     "url": "https://github.com/infi-pc/locatorjs"
   },
   "license": "MIT",
-  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
-  "dependencies": {
-    "solid-js": "^1.4.4"
-  }
+  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
 }
