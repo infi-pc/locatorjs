@@ -1,8 +1,9 @@
-import { LabelData } from "../../LabelData";
 import { AdapterObject, FullElementInfo } from "../adapterApi";
 import { parseDataId } from "../../parseDataId";
 import { buidLink } from "../../buidLink";
 import { FileStorage } from "@locator/shared";
+import { getExpressionData } from "./getExpressionData";
+import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
@@ -32,7 +33,6 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       return null;
     }
 
-    console.log("C", locatorData, fileFullPath);
     const fileData: FileStorage | undefined = locatorData[fileFullPath];
     if (!fileData) {
       return null;
@@ -40,8 +40,8 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const styledFileData: FileStorage | undefined =
       styledFileFullPath && locatorData[styledFileFullPath];
 
-    console.log("D", fileData.expressions, Number(id));
-    const expData = fileData.expressions[Number(id)];
+    // console.log("D", fileData.expressions, Number(id));
+    const expData = getExpressionData(found, fileData);
     if (!expData) {
       return null;
     }
@@ -52,7 +52,11 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
     const styledLink =
       styledExpData &&
-      buidLink(fileData.filePath, fileData.projectPath, styledExpData.loc);
+      buidLink(
+        styledFileData.filePath,
+        styledFileData.projectPath,
+        styledExpData.loc
+      );
 
     // TODO move styled to separate data
     // const styled = found.dataset.locatorjsStyled
@@ -78,8 +82,12 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       },
       htmlElement: found,
       parentElements: [],
-      // TODO put here the component box, need to calculate it
-      componentBox: found.getBoundingClientRect(),
+      componentBox: getJSXComponentBoundingBox(
+        found,
+        locatorData,
+        fileFullPath,
+        Number(expData.wrappingComponentId)
+      ),
       componentsLabels: wrappingComponent
         ? [
             {

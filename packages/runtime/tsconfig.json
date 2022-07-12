@@ -6,7 +6,7 @@
     "noEmit": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "lib": ["ESNext", "dom"],
+    "lib": ["ESNext", "dom", "DOM.Iterable"],
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
