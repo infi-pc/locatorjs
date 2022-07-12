@@ -1,9 +1,8 @@
 import {
-  Fiber,
   FiberRoot,
   ReactInternals,
   ReactDevtoolsHook,
-} from "../../shared/src/types";
+} from "@locator/shared/src/types";
 import { isValidRenderer } from "./isValidRenderer";
 
 declare global {
