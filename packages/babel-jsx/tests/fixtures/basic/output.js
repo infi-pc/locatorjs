@@ -1,9 +1,7 @@
 export default () => {
   return (
     <Aaaa
-      data-locatorjs-id={
-        "/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/basic/code.js::0"
-      }
+      data-locatorjs-id={"/babel-jsx/tests/fixtures/basic/code.js::0"}
     ></Aaaa>
   );
 };
@@ -11,11 +9,9 @@ export default () => {
 (() => {
   if (typeof window !== "undefined") {
     window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};
-    window.__LOCATOR_DATA__[
-      "/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/basic/code.js"
-    ] = {
+    window.__LOCATOR_DATA__["/babel-jsx/tests/fixtures/basic/code.js"] = {
       filePath: "/tests/fixtures/basic/code.js",
-      projectPath: "/Users/michaelmusil/www/locatorjs/packages/babel-jsx",
+      projectPath: "/babel-jsx",
       expressions: [
         {
           name: "Aaaa",
