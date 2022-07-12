@@ -10,15 +10,14 @@ export default () => {
 
 (() => {
   if (typeof window !== "undefined") {
-    window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || [];
-
-    window.__LOCATOR_DATA__.push({
+    window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};
+    window.__LOCATOR_DATA__[
+      "/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/basic/code.js"
+    ] = {
       filePath: "/tests/fixtures/basic/code.js",
       projectPath: "/Users/michaelmusil/www/locatorjs/packages/babel-jsx",
-      nextId: 1,
       expressions: [
         {
-          type: "jsx",
           name: "Aaaa",
           loc: {
             start: {
@@ -32,9 +31,11 @@ export default () => {
               index: 47,
             },
           },
-          wrappingComponent: null,
+          wrappingComponentId: null,
         },
       ],
-    });
+      styledDefinitions: [],
+      components: [],
+    };
   }
 })();
