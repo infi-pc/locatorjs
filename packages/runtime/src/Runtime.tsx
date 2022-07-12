@@ -115,10 +115,14 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
 
       if (elInfo) {
         const link = elInfo.thisElement.link;
-        e.preventDefault();
-        e.stopPropagation();
-        trackClickStats();
-        window.open(link, HREF_TARGET);
+        if (link) {
+          e.preventDefault();
+          e.stopPropagation();
+          trackClickStats();
+          window.open(link, HREF_TARGET);
+        } else {
+          alert("No link found");
+        }
       }
     }
   }

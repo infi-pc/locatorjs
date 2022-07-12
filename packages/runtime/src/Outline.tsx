@@ -143,19 +143,23 @@ function ComponentOutline(props: {
             </a>
           ) : null}
           <For each={props.labels}>
-            {(label, i) => (
-              <a
-                class="locatorjs-label"
-                href={label.link}
-                target={HREF_TARGET}
-                onClick={() => {
-                  trackClickStats();
-                  goTo(label.link);
-                }}
-              >
-                {label.label}
-              </a>
-            )}
+            {(label, i) =>
+              label.link ? (
+                <a
+                  class="locatorjs-label"
+                  href={label.link}
+                  target={HREF_TARGET}
+                  onClick={() => {
+                    trackClickStats();
+                    goTo(label.link!);
+                  }}
+                >
+                  {label.label}
+                </a>
+              ) : (
+                <div class="locatorjs-label">{label.label}</div>
+              )
+            }
           </For>
         </div>
       </div>

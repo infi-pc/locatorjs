@@ -4,7 +4,7 @@ import { SimpleDOMRect } from "../types";
 export type ElementInfo = {
   box: SimpleDOMRect;
   label: string;
-  link: string;
+  link: string | null;
 };
 
 export type FullElementInfo = {

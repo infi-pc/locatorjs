@@ -81,11 +81,13 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
         ? [
             {
               label: wrappingComponent.name || "component",
-              link: buidLink(
-                fileData.filePath,
-                fileData.projectPath,
-                wrappingComponent.loc
-              ),
+              link: wrappingComponent.loc
+                ? buidLink(
+                    fileData.filePath,
+                    fileData.projectPath,
+                    wrappingComponent.loc
+                  )
+                : null,
             },
           ]
         : [],

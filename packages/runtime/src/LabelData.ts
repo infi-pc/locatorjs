@@ -1,4 +1,4 @@
 export type LabelData = {
-  link: string;
+  link: string | null;
   label: string;
 };

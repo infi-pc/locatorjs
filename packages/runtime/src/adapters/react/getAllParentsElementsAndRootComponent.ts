@@ -2,9 +2,9 @@ import { Fiber } from "@locator/shared";
 import { getUsableName } from "../../getUsableName";
 import { mergeRects } from "../../mergeRects";
 import { SimpleDOMRect } from "../../types";
+import { ElementInfo } from "../adapterApi";
 import { getFiberComponentBoundingBox } from "./getFiberComponentBoundingBox";
 import { isStyledElement } from "./isStyled";
-import { ElementInfo } from "./reactAdapter";
 
 export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
   component: Fiber;
@@ -45,7 +45,7 @@ export function getAllParentsElementsAndRootComponent(fiber: Fiber): {
     parentElements.push({
       box: currentElement.getBoundingClientRect(),
       label: usableName,
-      link: "TODO",
+      link: null,
     });
   }
   throw new Error("Could not find root component");
