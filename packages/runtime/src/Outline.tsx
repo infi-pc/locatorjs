@@ -1,5 +1,3 @@
-/* eslint-disable react/display-name */
-/* eslint-disable react/no-unknown-property */
 import { For } from "solid-js";
 import { baseColor, HREF_TARGET, PADDING } from "./consts";
 import { LabelData } from "./LabelData";

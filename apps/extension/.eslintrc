@@ -1,5 +1,5 @@
 {
-  "extends": ["prettier"],
+  "extends": ["../../packages/dev-config/eslint-solid-preset"],
   "parserOptions": {
     "ecmaVersion": 2017,
     "sourceType": "module",

@@ -1,0 +1,3 @@
+{
+  "extends": ["../dev-config/eslint-solid-preset.js"]
+}

@@ -11,7 +11,8 @@
     "build": "concurrently yarn:build:*",
     "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx",
     "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
-    "ts": "tsc --noEmit --outDir dist"
+    "ts": "tsc --noEmit --outDir dist",
+    "lint": "eslint src --ext .ts,.tsx"
   },
   "devDependencies": {
     "@babel/cli": "^7.17.10",

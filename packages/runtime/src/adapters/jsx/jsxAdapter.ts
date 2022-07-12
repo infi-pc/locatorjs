@@ -8,7 +8,6 @@ import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
 
-  console.log("getElementInfo", found);
   if (
     found &&
     found instanceof HTMLElement &&
@@ -17,12 +16,10 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   ) {
     const dataId = found.dataset.locatorjsId;
     const styledDataId = found.dataset.locatorjsStyled;
-    console.log("A");
     if (!dataId) {
       return null;
     }
 
-    console.log("B");
     const [fileFullPath, id] = parseDataId(dataId);
     const [styledFileFullPath, styledId] = styledDataId
       ? parseDataId(styledDataId)
@@ -40,7 +37,6 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const styledFileData: FileStorage | undefined =
       styledFileFullPath && locatorData[styledFileFullPath];
 
-    // console.log("D", fileData.expressions, Number(id));
     const expData = getExpressionData(found, fileData);
     if (!expData) {
       return null;
@@ -48,7 +44,6 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const styledExpData =
       styledFileData && styledFileData.styledDefinitions[Number(styledId)];
 
-    console.log("E");
     const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
     const styledLink =
       styledExpData &&
@@ -67,12 +62,6 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       expData.wrappingComponentId !== null
         ? fileData.components[Number(expData.wrappingComponentId)]
         : null;
-
-    console.log({
-      wrappingComponent,
-      id: Number(expData.wrappingComponentId),
-      comps: fileData.components,
-    });
 
     return {
       thisElement: {
