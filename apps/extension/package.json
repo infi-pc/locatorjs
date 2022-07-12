@@ -10,6 +10,7 @@
   "scripts": {
     "build": "node utils/build.js",
     "build:firefox": "TARGET_BROWSER=firefox node utils/build.js",
+    "lint": "eslint src --ext .ts,.tsx",
     "dev": "node utils/webserver.js",
     "dev:firefox": "TARGET_BROWSER=firefox node utils/webserver.js",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"

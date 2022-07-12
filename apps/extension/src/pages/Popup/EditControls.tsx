@@ -1,4 +1,5 @@
-import { CloseButton, IconButton, Switch } from '@hope-ui/solid';
+import { For } from 'solid-js';
+import { CloseButton, Switch } from '@hope-ui/solid';
 import { modifiersTitles } from '@locator/shared';
 import { Page } from './Page';
 import SectionHeadline from './SectionHeadline';
@@ -8,29 +9,36 @@ type Props = {
   setPage: (page: Page) => void;
 };
 
-export function EditControls({ setPage }: Props) {
-  const { clicks, controls, allowTracking, sharedOnSocialMedia } =
-    useSyncedState();
+export function EditControls(props: Props) {
+  const {
+    clicks,
+    controls,
+    allowTracking,
+    sharedOnSocialMedia,
+    enableExperimentalFeatures,
+  } = useSyncedState();
   return (
     <div class="flex justify-between">
       <div>
         <SectionHeadline>Mouse-click modifiers: </SectionHeadline>
         <p>Modifier keys to enable "mouse click" and other shortcuts:</p>
         <div class="flex flex-col items-start gap-1 mt-2 flex-wrap mb-4">
-          {Object.entries(modifiersTitles).map(([key, title]) => {
-            return (
-              <Switch
-                size={'sm'}
-                labelPlacement="end"
-                onChange={(e: any) => {
-                  controls.setControl(key, e.currentTarget.checked);
-                }}
-                checked={!!controls.getMap()[key]}
-              >
-                {title}
-              </Switch>
-            );
-          })}
+          <For each={Object.entries(modifiersTitles)}>
+            {([key, title]) => {
+              return (
+                <Switch
+                  size={'sm'}
+                  labelPlacement="end"
+                  onChange={(e: any) => {
+                    controls.setControl(key, e.currentTarget.checked);
+                  }}
+                  checked={!!controls.getMap()[key]}
+                >
+                  {title}
+                </Switch>
+              );
+            }}
+          </For>
         </div>
 
         <SectionHeadline>Total clicks: </SectionHeadline>
@@ -68,11 +76,21 @@ export function EditControls({ setPage }: Props) {
           >
             Hide share panel
           </Switch>
+          <Switch
+            size={'sm'}
+            labelPlacement="end"
+            onChange={(e: any) => {
+              enableExperimentalFeatures.set(e.currentTarget.checked);
+            }}
+            checked={!!enableExperimentalFeatures.get()}
+          >
+            Enable experimental features
+          </Switch>
         </div>
       </div>
       <CloseButton
         onClick={() => {
-          setPage({ type: 'home' });
+          props.setPage({ type: 'home' });
         }}
       />
     </div>

@@ -1,4 +1,5 @@
 import Contribute from "../components/Contribute";
+import Faq from "../components/Faq";
 import Footer from "../components/Footer";
 import GetExtension from "../components/GetExtension";
 import Header from "../components/Header";
@@ -18,6 +19,7 @@ export default function Home() {
       <Installation></Installation>
       <Contribute></Contribute>
       <Subscribe></Subscribe>
+      <Faq></Faq>
       <ReadMore></ReadMore>
       <Footer></Footer>
     </>

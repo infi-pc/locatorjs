@@ -4,15 +4,16 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "test": "jest tests/",
-    "test:update": "jest tests/ -u",
+    "//test": "jest tests/",
+    "//test:update": "jest tests/ -u",
     "dev": "tsc src/*.ts --watch --declaration --outDir dist",
     "build": "tsc src/*.ts --declaration --outDir dist",
     "ts": "tsc src/*.ts --noEmit --outDir dist"
   },
   "devDependencies": {
     "tsconfig": "^0.0.1",
-    "typescript": "^4.5.3"
+    "typescript": "^4.5.3",
+    "@locator/shared": "*"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "dependencies": {

@@ -53,3 +53,39 @@ export function getModifiersString(modifiersMap: { [key: string]: true }) {
   const modifiersArray = Object.keys(modifiersMap);
   return modifiersArray.join("+");
 }
+
+export type SourceLocation = {
+  start: {
+    line: number;
+    column: number;
+  };
+  end: {
+    line: number;
+    column: number;
+  };
+};
+
+export type ComponentInfo = {
+  name: string;
+  loc: SourceLocation | null;
+};
+
+export type ExpressionInfo = {
+  name: string;
+  loc: SourceLocation;
+  wrappingComponentId: number | null;
+};
+
+export type StyledDefinitionInfo = {
+  name: string | null;
+  loc: SourceLocation;
+  htmlTag: string;
+};
+
+export type FileStorage = {
+  filePath: string;
+  projectPath: string;
+  expressions: ExpressionInfo[];
+  styledDefinitions: StyledDefinitionInfo[];
+  components: ComponentInfo[];
+};

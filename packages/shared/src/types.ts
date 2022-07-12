@@ -504,7 +504,7 @@ export interface Fiber {
   _debugOwner?: Fiber | null;
   _debugIsCurrentlyTiming?: boolean;
   _debugNeedsRemount?: boolean;
-
+  _debugID: number;
   // Used to verify that the order of hooks does not change between renders.
   _debugHookTypes?: Array<HookType> | null;
 }

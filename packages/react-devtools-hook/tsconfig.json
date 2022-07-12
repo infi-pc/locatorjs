@@ -1,8 +1,5 @@
 {
   "extends": "@locator/dev-config/tsconfig.base.json",
-  "include": [
-    ".",
-    "../../apps/extension/src/pages/Hook/insertRuntimeScript.ts"
-  ],
+  "include": ["src"],
   "exclude": ["dist", "build", "node_modules"]
 }

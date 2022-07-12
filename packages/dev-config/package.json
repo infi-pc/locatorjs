@@ -10,8 +10,10 @@
     "tsconfig.react-library.json"
   ],
   "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.30.6",
     "eslint-config-next": "^12.0.3",
-    "eslint-config-prettier": "^8.3.0"
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-solid": "^0.7.1"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
 }

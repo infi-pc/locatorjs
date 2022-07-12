@@ -1,8 +1,6 @@
 import { Editor } from './Editor';
 import { Button, Kbd } from '@hope-ui/solid';
 import { HiSolidCog } from 'solid-icons/hi';
-import { altTitle } from './Popup';
-
 import { modifiersTitles } from '@locator/shared';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
@@ -12,7 +10,7 @@ type Props = {
   setPage: (page: Page) => void;
 };
 
-export function Home({ setPage }: Props) {
+export function Home(props: Props) {
   return (
     <>
       <div class="flex justify-between">
@@ -58,7 +56,7 @@ export function Home({ setPage }: Props) {
             size="xs"
             class="gap-1"
             onClick={() => {
-              setPage({ type: 'edit-controls' });
+              props.setPage({ type: 'edit-controls' });
             }}
           >
             <HiSolidCog /> settings

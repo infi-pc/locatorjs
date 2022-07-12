@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, For } from 'solid-js';
 import {
   Alert,
   AlertDescription,
@@ -6,7 +6,6 @@ import {
   AlertTitle,
   Box,
   Button,
-  CloseButton,
   Spinner,
   Text,
 } from '@hope-ui/solid';
@@ -99,6 +98,7 @@ const Popup = () => {
               ) : page().type === 'edit-controls' ? (
                 <EditControls setPage={setPage} />
               ) : page().type === 'share' ? (
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 <SharePage setPage={setPage} media={page().media} />
               ) : (
@@ -106,7 +106,7 @@ const Popup = () => {
               )
             ) : message().startsWith('loading') ? (
               <div class="flex flex-col h-80 justify-center items-center gap-2 text-center">
-                <Spinner></Spinner>
+                <Spinner />
                 <div class="text-lg">Loading...</div>
                 <span class="text-red-700">{getLoadingMessage(message())}</span>
                 <div>
@@ -132,11 +132,9 @@ const Popup = () => {
                       LocatorJS could not run on this page
                     </AlertTitle>
                     <AlertDescription display="block">
-                      {message()
-                        .split('\n')
-                        .map((m) => (
-                          <li>{m}</li>
-                        ))}
+                      <For each={message().split('\n')}>
+                        {(m) => <li>{m}</li>}
+                      </For>
                     </AlertDescription>
                   </Box>
                 </Alert>

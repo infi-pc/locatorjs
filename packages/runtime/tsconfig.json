@@ -1,10 +1,12 @@
 {
+  "include": ["src"],
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
     "noEmit": true,
-    "jsx": "react",
-    "lib": ["ESNext", "dom"],
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "lib": ["ESNext", "dom", "DOM.Iterable"],
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "strict": true,

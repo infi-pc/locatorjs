@@ -20,6 +20,10 @@ type SyncedState = {
     get: Accessor<string | null>;
     set: (target: string) => void;
   };
+  enableExperimentalFeatures: {
+    get: Accessor<boolean | null>;
+    set: (target: boolean) => void;
+  };
 };
 
 const SyncedStateContext = createContext<SyncedState>();
@@ -35,6 +39,7 @@ export function SyncedStateProvider(props: { children: any }) {
       'controls',
       'allowTracking',
       'sharedOnSocialMedia',
+      'enableExperimentalFeatures',
     ])
     .then((result) => {
       const [clicks] = createSignal(result.clickCount || 0);
@@ -50,6 +55,9 @@ export function SyncedStateProvider(props: { children: any }) {
       const [allowTracking, setAllowTracking] = createSignal<boolean | null>(
         result.allowTracking ?? null
       );
+      const [enableExperimentalFeatures, setEnableExperimentalFeatures] =
+        createSignal<boolean | null>(result.enableExperimentalFeatures || null);
+
       const controlsMap = () => getModifiersMap(controls() || 'alt');
 
       setState({
@@ -89,6 +97,13 @@ export function SyncedStateProvider(props: { children: any }) {
           set: (newValue: string) => {
             setSharedOnSocialMedia(newValue);
             browser.storage.local.set({ sharedOnSocialMedia: newValue });
+          },
+        },
+        enableExperimentalFeatures: {
+          get: enableExperimentalFeatures,
+          set: (newValue: boolean) => {
+            setEnableExperimentalFeatures(newValue);
+            browser.storage.local.set({ enableExperimentalFeatures: newValue });
           },
         },
       });

@@ -1,3 +1,4 @@
+import { For } from 'solid-js';
 import { Button, Input, Radio } from '@hope-ui/solid';
 import { allTargets } from '@locator/shared';
 import SectionHeadline from './SectionHeadline';
@@ -10,38 +11,40 @@ export function Editor() {
   return (
     <div class="mt-2">
       <SectionHeadline>Editor link:</SectionHeadline>
-      <p class="text-sm leading-5 text-gray-500"></p>
+      <p class="text-sm leading-5 text-gray-500" />
       <fieldset class="mt-2">
         <legend class="sr-only">Notification method</legend>
         <div class="flex flex-col">
-          {Object.entries(allTargets).map(([key, { label, url }]) => (
-            <div class="flex justify-between">
-              <Radio
-                checked={key === target.get()}
-                onChange={() => {
-                  target.set(key);
-                }}
-              >
-                {label}
-              </Radio>
-              {key === 'vscode' && target.get() === 'vscode' && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  onClick={() => {
-                    target.set(
-                      allTargets['vscode'].url.replace(
-                        'vscode://',
-                        'vscode-insiders://'
-                      )
-                    );
+          <For each={Object.entries(allTargets)}>
+            {([key, { label, url }]) => (
+              <div class="flex justify-between">
+                <Radio
+                  checked={key === target.get()}
+                  onChange={() => {
+                    target.set(key);
                   }}
                 >
-                  (switch to VSCode insiders)
-                </Button>
-              )}
-            </div>
-          ))}
+                  {label}
+                </Radio>
+                {key === 'vscode' && target.get() === 'vscode' && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => {
+                      target.set(
+                        allTargets['vscode'].url.replace(
+                          'vscode://',
+                          'vscode-insiders://'
+                        )
+                      );
+                    }}
+                  >
+                    (switch to VSCode insiders)
+                  </Button>
+                )}
+              </div>
+            )}
+          </For>
           <Radio
             checked={allTargets[target.get()] === undefined}
             onChange={() => {
