@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unknown-property */
 import { createSignal, For } from "solid-js";
 import { buidLink } from "./buidLink";
 import { goTo, goToSource } from "./goTo";
@@ -69,6 +68,7 @@ export function TreeNode(props: {
           "text-decoration": props.node.source ? "underline" : "",
         }}
         // From some reason onMouseOver does not work in shadow dom
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         on:mouseover={(e) => {
           e.stopPropagation();
@@ -92,6 +92,7 @@ export function TreeNode(props: {
                 background: isHighlighted() ? "rgba(0,0,0,0.1)" : "transparent",
               }}
               // From some reason onMouseOver does not work in shadow dom
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               on:mouseover={(e) => {
                 e.stopPropagation();

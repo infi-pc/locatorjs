@@ -1,5 +1,4 @@
 import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
-import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { makeFiberId } from "./adapters/react/makeFiberId";
 
 export function getIdsOnPathToRoot(element: HTMLElement): {
@@ -9,7 +8,7 @@ export function getIdsOnPathToRoot(element: HTMLElement): {
   if (!fiber) {
     return {};
   }
-  let res: {
+  const res: {
     [id: string]: true;
   } = {};
   let parent = fiber?._debugOwner;

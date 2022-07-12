@@ -1,9 +1,9 @@
 import { allTargets } from "@locator/shared";
 
-export let getLinkTypeOrTemplate = () =>
+export const getLinkTypeOrTemplate = () =>
   document.documentElement.dataset.locatorTarget || "vscode";
 
-export let linkTemplate = () => allTargets[getLinkTypeOrTemplate()];
+export const linkTemplate = () => allTargets[getLinkTypeOrTemplate()];
 
 export function linkTemplateUrl(): string {
   const l = linkTemplate();

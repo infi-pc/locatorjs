@@ -4,6 +4,7 @@ export * from "./adapters/jsx/runtimeStore";
 
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
 const initRender =
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-empty-function
   typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
 
 const isExtension =

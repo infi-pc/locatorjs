@@ -1,5 +1,4 @@
-/* eslint-disable react/no-unknown-property */
-import { Fiber, Target } from "@locator/shared";
+import { Fiber } from "@locator/shared";
 import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
 import { Adapter, HREF_TARGET } from "./consts";

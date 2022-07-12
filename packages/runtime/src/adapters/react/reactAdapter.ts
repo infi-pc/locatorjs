@@ -11,7 +11,7 @@ import { AdapterObject, FullElementInfo } from "../adapterApi";
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
-  let labels: LabelData[] = [];
+  const labels: LabelData[] = [];
 
   const fiber = findFiberByHtmlElement(found, false);
   if (fiber) {

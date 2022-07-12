@@ -1,17 +1,18 @@
 import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
 import { Source } from "./types";
+import { SourceLocation } from "@locator/shared";
 
 export function buidLink(
   filePath: string,
   projectPath: string,
-  loc: any
+  loc: SourceLocation
 ): string {
   const params = {
     filePath,
     projectPath,
-    line: loc.start.line,
-    column: loc.start.column + 1,
+    line: String(loc.start.line),
+    column: String(loc.start.column + 1),
   };
   return evalTemplate(linkTemplateUrl(), params);
 }
