@@ -15,6 +15,7 @@ import { SimpleNodeOutline } from "./SimpleNodeOutline";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import jsxAdapter from "./adapters/jsx/jsxAdapter";
 import { AdapterObject } from "./adapters/adapterApi";
+import LogoIcon from "./LogoIcon";
 
 function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   const [solidMode, setSolidMode] = createSignal<
@@ -221,12 +222,18 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
         <div
           style={{
             position: "fixed",
-            bottom: 0,
-            left: 0,
+            bottom: "10px",
+            left: "10px",
             background: "rgba(255,255,255,0.5)",
+            padding: "4px 8px",
+            "padding-top": "10px",
+            "box-shadow":
+              "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+            "border-radius": "8px",
+            border: "red 2px solid",
           }}
         >
-          LocatorJS
+          <LogoIcon />
         </div>
       ) : null}
       {holdingModKey() && currentElement() ? (
