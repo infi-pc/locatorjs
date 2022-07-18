@@ -237,7 +237,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
         <div class={bannerClasses()}>
           <div class="flex justify-between gap-2">
             <LogoIcon />
-            {isExtension() ? (
+            {!isExtension() ? (
               <OpenOptionsButton
                 onClick={() => {
                   openOptions();

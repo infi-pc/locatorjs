@@ -23,22 +23,12 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
     <div
       class={bannerClasses()}
       style={{
-        // position: "fixed",
-        bottom: showIntro() ? "12px" : "-80px",
-        // left: "10px",
-        // background: "rgba(255,255,255)",
-        // padding: "4px 8px",
-        // "padding-top": "10px",
-        // "box-shadow":
-        //   "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-        // "border-radius": "8px",
-        // border: "red 2px solid",
-        // transition: "all 0.3s ease-in-out",
+        bottom: showIntro() ? "12px" : "-90px",
       }}
     >
       <div class="flex justify-between gap-2">
         <LogoIcon />
-        {isExtension() ? (
+        {!isExtension() ? (
           <OpenOptionsButton
             onClick={() => {
               props.openOptions();
@@ -48,14 +38,6 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
       </div>
       <div class="text-xs mt-2 mb-1">
         Go to component code with{" "}
-        {/* {Object.keys(controls.getMap()).map((key, i) => {
-          return (
-            <>
-              {i === 0 ? "" : " + "}
-              <Kbd>{modifiersTitles[key as keyof typeof modifiersTitles]}</Kbd>
-            </>
-          );
-        })} */}
         <For each={Object.keys(modifiers())}>
           {(key, i) => {
             return (
