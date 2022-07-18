@@ -4,6 +4,7 @@ export default function LogoIcon(_props: { width?: number }) {
   const props = mergeProps({ width: 90 }, _props);
   return (
     <a
+      class="hover:bg-slate-50 rounded"
       href="https://www.locatorjs.com"
       target="_blank"
       onClick={(e) => {

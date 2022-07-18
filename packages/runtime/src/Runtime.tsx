@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber, Targets } from "@locator/shared";
 import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
 import { Adapter, HREF_TARGET } from "./consts";
@@ -7,7 +7,7 @@ import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
 import reactAdapter from "./adapters/react/reactAdapter";
 import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
 import { trackClickStats } from "./trackClickStats";
-import { SimpleNode, Targets } from "./types";
+import { SimpleNode, Targets as SetupTargets } from "./types";
 import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
@@ -17,10 +17,14 @@ import jsxAdapter from "./adapters/jsx/jsxAdapter";
 import { AdapterObject } from "./adapters/adapterApi";
 import LogoIcon from "./LogoIcon";
 import { IntroInfo } from "./IntroInfo";
+import { Options } from "./Options";
+import { isExtension } from "./isExtension";
+import { OpenOptionsButton } from "./OpenOptionsButton";
+import { bannerClasses } from "./bannerClasses";
 
 function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
-  const [solidMode, setSolidMode] = createSignal<
-    ["off"] | ["tree"] | ["treeFromElement", HTMLElement]
+  const [uiMode, setUiMode] = createSignal<
+    ["off"] | ["options"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -40,7 +44,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   });
 
   createEffect(() => {
-    if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
+    if (uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement") {
       document.body.classList.add("locatorjs-move-body");
     } else {
       document.body.classList.remove("locatorjs-move-body");
@@ -50,10 +54,10 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   function keyUpListener(e: KeyboardEvent) {
     if (hasExperimentalFeatures()) {
       if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-        if (solidMode()[0] === "tree") {
-          setSolidMode(["off"]);
+        if (uiMode()[0] === "tree") {
+          setUiMode(["off"]);
         } else {
-          setSolidMode(["tree"]);
+          setUiMode(["tree"]);
         }
       }
     }
@@ -152,7 +156,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   });
 
   const getAllNodes = (): SimpleNode[] => {
-    if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
+    if (uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement") {
       const foundFiberRoots: Fiber[] = [];
 
       gatherFiberRoots(document.body, foundFiberRoots);
@@ -173,15 +177,15 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   };
 
   function showTreeFromElement(element: HTMLElement) {
-    setSolidMode(["treeFromElement", element]);
+    setUiMode(["treeFromElement", element]);
   }
 
   function openOptions() {
-    alert("x");
+    setUiMode(["options"]);
   }
   return (
     <>
-      {solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement" ? (
+      {uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement" ? (
         <div
           // id="locator-solid-overlay"
           // onClick={(e) => {
@@ -202,8 +206,8 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
               <RootTreeNode
                 node={node}
                 idsToShow={
-                  solidMode()[0] === "treeFromElement"
-                    ? getIdsOnPathToRoot(solidMode()[1]!)
+                  uiMode()[0] === "treeFromElement"
+                    ? getIdsOnPathToRoot(uiMode()[1]!)
                     : {}
                 }
                 highlightedNode={{
@@ -230,24 +234,34 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
         />
       ) : null}
       {holdingModKey() ? (
-        <div class="fixed left-3 bottom-3 bg-white shadow-lg rounded-lg py-1 px-2 border-2 border-red-500 transition-all pointer-events-auto">
+        <div class={bannerClasses()}>
           <div class="flex justify-between gap-2">
             <LogoIcon />
-            {/* <button
-              onClick={() => {
-                openOptions();
-              }}
-              class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
-            >
-              Settings
-            </button> */}
+            {isExtension() ? (
+              <OpenOptionsButton
+                onClick={() => {
+                  openOptions();
+                }}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      <IntroInfo openOptions={openOptions} hide={!!holdingModKey()} />
+      <IntroInfo
+        openOptions={openOptions}
+        hide={!!holdingModKey() || uiMode()[0] !== "off"}
+      />
+      {uiMode()[0] === "options" ? (
+        <Options
+          targets={props.targets}
+          onClose={() => {
+            setUiMode(["off"]);
+          }}
+        />
+      ) : null}
       {/* {holdingModKey() &&
       currentElement() &&
       getElementInfo(currentElement()!) ? (
@@ -260,11 +274,20 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
 export function initRender(
   solidLayer: HTMLDivElement,
   adapter: Adapter,
-  targets: Targets
+  targets: SetupTargets
 ) {
   const adapterObject = adapter === "jsx" ? jsxAdapter : reactAdapter;
   render(
-    () => <Runtime adapter={adapterObject} targets={targets} />,
+    () => (
+      <Runtime
+        adapter={adapterObject}
+        targets={Object.fromEntries(
+          Object.entries(targets).map(([key, t]) => {
+            return [key, typeof t == "string" ? { url: t, label: key } : t];
+          })
+        )}
+      />
+    ),
     solidLayer
   );
 }

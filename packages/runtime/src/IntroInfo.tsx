@@ -1,7 +1,10 @@
 import { modifiersTitles } from "@locator/shared";
 import { createEffect, createSignal, For } from "solid-js";
+import { bannerClasses } from "./bannerClasses";
 import { getMouseModifiers } from "./isCombinationModifiersPressed";
+import { isExtension } from "./isExtension";
 import LogoIcon from "./LogoIcon";
+import { OpenOptionsButton } from "./OpenOptionsButton";
 
 export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
   const [showIntro, setShowIntro] = createSignal(true);
@@ -18,7 +21,7 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
   const modifiers = () => getMouseModifiers();
   return (
     <div
-      class="fixed left-3 bg-white shadow-lg rounded-lg py-1 px-2 pt-2 border-2 border-red-500 transition-all pointer-events-auto"
+      class={bannerClasses()}
       style={{
         // position: "fixed",
         bottom: showIntro() ? "12px" : "-80px",
@@ -35,14 +38,13 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
     >
       <div class="flex justify-between gap-2">
         <LogoIcon />
-        {/* <button
-          onClick={() => {
-            props.openOptions();
-          }}
-          class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-400 cursor-pointer text-xs"
-        >
-          Settings
-        </button> */}
+        {isExtension() ? (
+          <OpenOptionsButton
+            onClick={() => {
+              props.openOptions();
+            }}
+          />
+        ) : null}
       </div>
       <div class="text-xs mt-2 mb-1">
         Go to component code with{" "}

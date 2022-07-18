@@ -1,5 +1,6 @@
-import { Target } from "@locator/shared";
+import { allTargets, Target } from "@locator/shared";
 import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
+import { isExtension } from "./isExtension";
 export * from "./adapters/jsx/runtimeStore";
 import generatedStyles from "./_generated_styles";
 
@@ -8,12 +9,8 @@ const initRender =
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-empty-function
   typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
 
-const isExtension =
-  typeof document !== "undefined"
-    ? !!document.documentElement.dataset.locatorClientUrl
-    : false;
-
-if (typeof window !== "undefined" && isExtension) {
+// Init in case it is used from extension
+if (typeof window !== "undefined" && isExtension()) {
   setTimeout(init, 0);
 }
 
@@ -51,6 +48,7 @@ export function setup({
 
 function init({
   adapter,
+  targets,
 }: { adapter?: Adapter; targets?: { [k: string]: Target | string } } = {}) {
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
@@ -139,5 +137,5 @@ function init({
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  initRender(layer, adapter);
+  initRender(layer, adapter, targets || allTargets);
 }
