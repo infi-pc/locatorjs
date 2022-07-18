@@ -16,6 +16,7 @@ import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import jsxAdapter from "./adapters/jsx/jsxAdapter";
 import { AdapterObject } from "./adapters/adapterApi";
 import LogoIcon from "./LogoIcon";
+import { IntroInfo } from "./IntroInfo";
 
 function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   const [solidMode, setSolidMode] = createSignal<
@@ -224,7 +225,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
             position: "fixed",
             bottom: "10px",
             left: "10px",
-            background: "rgba(255,255,255,0.5)",
+            background: "rgba(255,255,255)",
             padding: "4px 8px",
             "padding-top": "10px",
             "box-shadow":
@@ -234,6 +235,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
           }}
         >
           <LogoIcon />
+          <div>Settings</div>
         </div>
       ) : null}
       {holdingModKey() && currentElement() ? (
@@ -246,6 +248,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
+      <IntroInfo />
       {/* {holdingModKey() &&
       currentElement() &&
       getElementInfo(currentElement()!) ? (
