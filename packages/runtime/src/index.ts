@@ -1,6 +1,7 @@
 import { Target } from "@locator/shared";
 import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
 export * from "./adapters/jsx/runtimeStore";
+import generatedStyles from "./_generated_styles";
 
 // import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
 const initRender =
@@ -94,6 +95,7 @@ function init({
       .locatorjs-tree-node:hover {
         background-color: #eee;
       }
+      ${generatedStyles}
     `;
 
   const globalStyle = document.createElement("style");
