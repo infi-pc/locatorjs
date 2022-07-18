@@ -1,4 +1,6 @@
-import { createEffect, createSignal } from "solid-js";
+import { modifiersTitles } from "@locator/shared";
+import { createEffect, createSignal, For } from "solid-js";
+import { getMouseModifiers } from "./isCombinationModifiersPressed";
 import LogoIcon from "./LogoIcon";
 
 export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
@@ -13,6 +15,7 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
     }
   });
 
+  const modifiers = () => getMouseModifiers();
   return (
     <div
       class="fixed left-3 bg-white shadow-lg rounded-lg py-1 px-2 pt-2 border-2 border-red-500 transition-all pointer-events-auto"
@@ -32,16 +35,42 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
     >
       <div class="flex justify-between gap-2">
         <LogoIcon />
-        <button
+        {/* <button
           onClick={() => {
             props.openOptions();
           }}
           class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-400 cursor-pointer text-xs"
         >
           Settings
-        </button>
+        </button> */}
       </div>
-      <div>option + click: go to component code</div>
+      <div class="text-xs mt-2 mb-1">
+        Go to component code with{" "}
+        {/* {Object.keys(controls.getMap()).map((key, i) => {
+          return (
+            <>
+              {i === 0 ? "" : " + "}
+              <Kbd>{modifiersTitles[key as keyof typeof modifiersTitles]}</Kbd>
+            </>
+          );
+        })} */}
+        <For each={Object.keys(modifiers())}>
+          {(key, i) => {
+            return (
+              <>
+                {i() === 0 ? "" : " + "}
+                <div class="inline-block px-1 py-0.5 border border-slate-200 rounded">
+                  {modifiersTitles[key as keyof typeof modifiersTitles]}
+                </div>
+              </>
+            );
+          }}
+        </For>{" "}
+        +{" "}
+        <div class="inline-block px-1 py-0.5 border border-slate-200 rounded">
+          click
+        </div>{" "}
+      </div>
     </div>
   );
 }

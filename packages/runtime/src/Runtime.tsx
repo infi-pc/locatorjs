@@ -183,7 +183,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
     <>
       {solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement" ? (
         <div
-          id="locator-solid-overlay"
+          // id="locator-solid-overlay"
           // onClick={(e) => {
           //   setSolidMode(["off"]);
           // }}
@@ -222,27 +222,27 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
           </For> */}
         </div>
       ) : null}
-      {holdingModKey() ? (
-        <div class="fixed left-3 bottom-3 bg-white shadow-lg rounded-lg py-1 px-2 pt-2 border-2 border-red-500 transition-all pointer-events-auto">
-          <div class="flex justify-between gap-2">
-            <LogoIcon />
-            <button
-              onClick={() => {
-                openOptions();
-              }}
-              class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-400 cursor-pointer text-xs"
-            >
-              Settings
-            </button>
-          </div>
-        </div>
-      ) : null}
       {holdingModKey() && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
           showTreeFromElement={showTreeFromElement}
           adapter={props.adapter}
         />
+      ) : null}
+      {holdingModKey() ? (
+        <div class="fixed left-3 bottom-3 bg-white shadow-lg rounded-lg py-1 px-2 border-2 border-red-500 transition-all pointer-events-auto">
+          <div class="flex justify-between gap-2">
+            <LogoIcon />
+            {/* <button
+              onClick={() => {
+                openOptions();
+              }}
+              class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
+            >
+              Settings
+            </button> */}
+          </div>
+        </div>
       ) : null}
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
