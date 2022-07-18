@@ -1,14 +1,21 @@
-import { createSignal } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import LogoIcon from "./LogoIcon";
 
-export function IntroInfo() {
+export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
   const [showIntro, setShowIntro] = createSignal(true);
   setTimeout(() => {
     setShowIntro(false);
   }, 5000);
+
+  createEffect(() => {
+    if (props.hide && showIntro()) {
+      setShowIntro(false);
+    }
+  });
+
   return (
     <div
-      class="fixed left-3 bg-white shadow-lg rounded-lg py-1 px-2 pt-2 border-2 border-red-500 transition-all"
+      class="fixed left-3 bg-white shadow-lg rounded-lg py-1 px-2 pt-2 border-2 border-red-500 transition-all pointer-events-auto"
       style={{
         // position: "fixed",
         bottom: showIntro() ? "12px" : "-80px",
@@ -23,9 +30,14 @@ export function IntroInfo() {
         // transition: "all 0.3s ease-in-out",
       }}
     >
-      <div class="flex justify-between">
+      <div class="flex justify-between gap-2">
         <LogoIcon />
-        <button class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-200 cursor-pointer text-xs">
+        <button
+          onClick={() => {
+            props.openOptions();
+          }}
+          class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-400 cursor-pointer text-xs"
+        >
           Settings
         </button>
       </div>

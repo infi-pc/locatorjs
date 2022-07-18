@@ -176,6 +176,9 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
     setSolidMode(["treeFromElement", element]);
   }
 
+  function openOptions() {
+    alert("x");
+  }
   return (
     <>
       {solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement" ? (
@@ -220,22 +223,18 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
         </div>
       ) : null}
       {holdingModKey() ? (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "10px",
-            left: "10px",
-            background: "rgba(255,255,255)",
-            padding: "4px 8px",
-            "padding-top": "10px",
-            "box-shadow":
-              "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-            "border-radius": "8px",
-            border: "red 2px solid",
-          }}
-        >
-          <LogoIcon />
-          <div>Settings</div>
+        <div class="fixed left-3 bottom-3 bg-white shadow-lg rounded-lg py-1 px-2 pt-2 border-2 border-red-500 transition-all pointer-events-auto">
+          <div class="flex justify-between gap-2">
+            <LogoIcon />
+            <button
+              onClick={() => {
+                openOptions();
+              }}
+              class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-400 cursor-pointer text-xs"
+            >
+              Settings
+            </button>
+          </div>
         </div>
       ) : null}
       {holdingModKey() && currentElement() ? (
@@ -248,7 +247,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      <IntroInfo />
+      <IntroInfo openOptions={openOptions} hide={!!holdingModKey()} />
       {/* {holdingModKey() &&
       currentElement() &&
       getElementInfo(currentElement()!) ? (
