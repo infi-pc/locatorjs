@@ -139,3 +139,5 @@ function init({
 
   initRender(layer, adapter, targets || allTargets);
 }
+
+export default setup;
