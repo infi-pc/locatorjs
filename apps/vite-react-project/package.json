@@ -1,11 +1,9 @@
 {
-  "name": "vite-project",
+  "name": "vite-react-project",
   "private": true,
   "version": "0.0.0",
   "scripts": {
     "dev": "vite --port=3343",
-    "//": "build is not needed now, just development:",
-    "// build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
