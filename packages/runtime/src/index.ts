@@ -1,7 +1,6 @@
 import { allTargets, Target } from "@locator/shared";
 import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
 import { isExtension } from "./isExtension";
-import { initRender } from "./Runtime";
 export * from "./adapters/jsx/runtimeStore";
 import generatedStyles from "./_generated_styles";
 
@@ -125,7 +124,20 @@ function init({
   const finalAdapter: Adapter =
     adapter === "auto" || !adapter ? detectAdapter() : adapter;
 
-  initRender(layer, finalAdapter, targets || allTargets);
+  // This weird import is needed because:
+  // SSR React (Next.js) breaks when importing any SolidJS compiled file, so the import has to be conditional
+  // Browser Extension breaks when importing with "import()"
+  // Vite breaks when importing with "require()"
+
+  if (typeof require !== "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { initRender } = require("./Runtime");
+    initRender(layer, finalAdapter, targets || allTargets);
+  } else {
+    import("./Runtime").then(({ initRender }) => {
+      initRender(layer, finalAdapter, targets || allTargets);
+    });
+  }
 }
 
 export default setup;
