@@ -42,7 +42,9 @@ function init({
   style.id = "locatorjs-style";
   style.innerHTML = `
       #locatorjs-layer {
+        all: initial;
         pointer-events: none;
+        font-family: ${fontFamily};
       }
       #locatorjs-layer * {
         box-sizing: border-box;
