@@ -19,10 +19,10 @@ function GetExtension() {
             Get browser extension
           </h3>
           <div>
-            Works <b>out of the box</b> with most React dev stacks like Vite,
-            Next.js, or Create React App.
+            Works <b>out of the box</b> with most <b>React</b> dev stacks like
+            Vite, Next.js, or Create React App.
             <br />
-            For custom config, get{" "}
+            For other frameworks or custom config get{" "}
             <a
               className="text-indigo-500 hover:underline hover:text-indigo-700"
               href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#requirements"
