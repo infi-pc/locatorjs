@@ -4,11 +4,6 @@ import { isExtension } from "./isExtension";
 export * from "./adapters/jsx/runtimeStore";
 import generatedStyles from "./_generated_styles";
 
-// import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
-const initRender =
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-empty-function
-  typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
-
 // Init in case it is used from extension
 if (typeof window !== "undefined" && isExtension()) {
   setTimeout(init, 0);
@@ -24,32 +19,16 @@ export function setup({
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
 }) {
-  if (typeof window !== "undefined") {
-    init({ adapter, targets });
-  }
-  // if (props.defaultMode) {
-  //   defaultMode = props.defaultMode;
-  // }
-  // if (props.targets) {
-  //   allTargets = Object.fromEntries(
-  //     Object.entries(props.targets).map(([key, target]) =>
-  //       typeof target === "string"
-  //         ? [key, { url: target, label: key }]
-  //         : [key, target]
-  //     )
-  //   );
-  //   const firstKey = Object.keys(allTargets)[0];
-  //   if (!firstKey) {
-  //     throw new Error("no targets found");
-  //   }
-  //   localLinkOrTemplate = firstKey;
-  // }
+  init({ adapter, targets });
 }
 
 function init({
   adapter,
   targets,
 }: { adapter?: Adapter; targets?: { [k: string]: Target | string } } = {}) {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;
@@ -137,7 +116,9 @@ function init({
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  initRender(layer, adapter, targets || allTargets);
+  import("./Runtime").then(({ initRender }) => {
+    initRender(layer, adapter || "reactDevTools", targets || allTargets);
+  });
 }
 
 export default setup;
