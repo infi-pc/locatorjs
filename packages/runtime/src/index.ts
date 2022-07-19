@@ -6,7 +6,7 @@ import generatedStyles from "./_generated_styles";
 
 // Init in case it is used from extension
 if (typeof window !== "undefined" && isExtension()) {
-  setTimeout(init, 0);
+  setTimeout(() => init({ adapter: "auto" }), 0);
 }
 
 const MAX_ZINDEX = 2147483647;
@@ -15,17 +15,20 @@ export function setup({
   adapter,
   targets,
 }: {
-  adapter: Adapter;
+  adapter?: Adapter;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
-}) {
-  init({ adapter, targets });
+} = {}) {
+  setTimeout(() => init({ adapter, targets }), 0);
 }
 
 function init({
   adapter,
   targets,
-}: { adapter?: Adapter; targets?: { [k: string]: Target | string } } = {}) {
+}: {
+  adapter?: Adapter | "auto";
+  targets?: { [k: string]: Target | string };
+} = {}) {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return;
   }
@@ -117,8 +120,18 @@ function init({
   document.head.appendChild(globalStyle);
 
   import("./Runtime").then(({ initRender }) => {
-    initRender(layer, adapter || "reactDevTools", targets || allTargets);
+    const finalAdapter: Adapter =
+      adapter === "auto" || !adapter ? detectAdapter() : adapter;
+
+    initRender(layer, finalAdapter, targets || allTargets);
   });
 }
 
 export default setup;
+
+function detectAdapter(): Adapter {
+  if (document.querySelector("[data-locatorjs-id]")) {
+    return "jsx";
+  }
+  return "reactDevTools";
+}

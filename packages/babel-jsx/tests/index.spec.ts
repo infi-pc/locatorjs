@@ -1,4 +1,5 @@
 import pluginTester from "babel-plugin-tester";
+// @ts-ignore
 import prettier from "babel-plugin-tester/dist/formatters/prettier.js";
 
 import plugin from "../src";
