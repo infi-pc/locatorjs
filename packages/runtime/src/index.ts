@@ -1,6 +1,7 @@
 import { allTargets, Target } from "@locator/shared";
 import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
 import { isExtension } from "./isExtension";
+import { initRender } from "./Runtime";
 export * from "./adapters/jsx/runtimeStore";
 import generatedStyles from "./_generated_styles";
 
@@ -121,12 +122,10 @@ function init({
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  import("./Runtime").then(({ initRender }) => {
-    const finalAdapter: Adapter =
-      adapter === "auto" || !adapter ? detectAdapter() : adapter;
+  const finalAdapter: Adapter =
+    adapter === "auto" || !adapter ? detectAdapter() : adapter;
 
-    initRender(layer, finalAdapter, targets || allTargets);
-  });
+  initRender(layer, finalAdapter, targets || allTargets);
 }
 
 export default setup;

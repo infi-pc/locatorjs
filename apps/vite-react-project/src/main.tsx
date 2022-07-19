@@ -4,9 +4,9 @@ import App from "./App";
 import "./index.css";
 import setupLocatorUI from "@locator/runtime";
 
-setupLocatorUI({
-  adapter: "jsx",
-});
+// setupLocatorUI({
+//   adapter: "jsx",
+// });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
