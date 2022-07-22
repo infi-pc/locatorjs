@@ -75,7 +75,7 @@ function Installation() {
               </p>
 
               <a
-                href="https://github.com/infi-pc/locatorjs/blob/master/readme-library.md"
+                href="https://www.locatorjs.com/install"
                 className="flex items-center w-full px-4 py-2 mt-6 text-white bg-gray-400 border-0 rounded-lg shadow-xl focus:outline-none hover:bg-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700"
               >
                 Go To Setup Instruction

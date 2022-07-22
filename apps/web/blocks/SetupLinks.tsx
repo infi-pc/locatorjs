@@ -63,17 +63,6 @@ export default function SetupLinks() {
             id="preact"
           />
         </div>
-
-        <div className="flex flex-col items-center justify-center gap-4 p-4 mt-4 sm:flex-row">
-          - React (Devtools based) - works with Next, CRA, Vite and others* - *
-          any modern stack that has react-preset-env and correctly set-up
-          development - Install Browser extension - (alternatively set it-up for
-          your team) - React (data-id based) - works with others 1. Babel Plugin
-          1. Vite 2. CRA 3. Nextjs 4. Babel config 2. Install library
-          Alternatively Install Extension - if you are not ready to show the UI
-          to your whole team. you can skip installing library, Browser extension
-          will connect to apps that have Locator Babel Plugin installed.
-        </div>
       </div>
     </section>
   );
