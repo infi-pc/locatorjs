@@ -5,12 +5,19 @@ export default defineConfig({
   plugins: [
     solidPlugin({
       babel: {
-        plugins: ["@locator/babel-jsx/dist"],
+        plugins: [
+          [
+            "@locator/babel-jsx/dist",
+            {
+              env: "development",
+            },
+          ],
+        ],
       },
     }),
   ],
   server: {
-    port: 3000,
+    port: 3345,
   },
   build: {
     target: "esnext",

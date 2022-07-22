@@ -12,12 +12,15 @@ import {
 
 export interface PluginOptions {
   opts?: {
+    env?: string;
     target?: string;
     runtime?: string;
   };
   file: {
     path: NodePath;
   };
+  filename: string;
+  cwd: string;
 }
 
 export interface Babel {
@@ -25,7 +28,7 @@ export interface Babel {
 }
 
 export default function transformLocatorJsComponents(babel: Babel): {
-  visitor: Visitor<PluginOptions>;
+  visitor?: Visitor<PluginOptions>;
 } {
   const t = babel.types;
   let fileStorage: FileStorage | null = null;
@@ -77,11 +80,17 @@ export default function transformLocatorJsComponents(babel: Babel): {
     visitor: {
       Program: {
         // TODO state is any, we should check if the state depends on webpack or what it depends on?
-        enter(path, state: any) {
+        enter(path, state) {
+          if (state.opts?.env) {
+            if (state.opts?.env !== process.env.NODE_ENV) {
+              return;
+            }
+          }
+
           lastComponentId = 0;
           lastExpressionId = 0;
           lastStyledId = 0;
-          if (!state.filename) {
+          if (!state?.filename) {
             throw new Error("No file name");
           }
           if (state.filename.includes("node_modules")) {
@@ -229,6 +238,12 @@ export default function transformLocatorJsComponents(babel: Babel): {
           });
         },
         exit(path, state) {
+          if (state.opts?.env) {
+            if (state.opts.env !== process.env.NODE_ENV) {
+              return;
+            }
+          }
+
           if (!fileStorage) {
             return;
           }

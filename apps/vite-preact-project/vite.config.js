@@ -6,7 +6,14 @@ export default defineConfig({
   plugins: [
     preact({
       babel: {
-        plugins: ["@locator/babel-jsx/dist"],
+        plugins: [
+          [
+            "@locator/babel-jsx/dist",
+            {
+              env: "development",
+            },
+          ],
+        ],
       },
     }),
   ],

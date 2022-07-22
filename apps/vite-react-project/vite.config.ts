@@ -6,7 +6,14 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: ["@locator/babel-jsx/dist"],
+        plugins: [
+          [
+            "@locator/babel-jsx/dist",
+            {
+              env: "development",
+            },
+          ],
+        ],
       },
     }),
   ],

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "",
   "scripts": {
-    "dev": "vite --port 3345"
+    "dev": "vite"
   },
   "license": "MIT",
   "devDependencies": {
