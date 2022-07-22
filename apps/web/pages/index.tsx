@@ -1,14 +1,14 @@
-import Contribute from "../components/Contribute";
-import Faq from "../components/Faq";
-import Footer from "../components/Footer";
-import GetExtension from "../components/GetExtension";
-import Header from "../components/Header";
-import Hero from "../components/Hero";
-import Installation from "../components/Installation";
-import ReadMore from "../components/ReadMore";
-import SetupLinks from "../components/SetupLinks";
-import Subscribe from "../components/Subscribe";
-import Why from "../components/Why";
+import Contribute from "../blocks/Contribute";
+import Faq from "../blocks/Faq";
+import Footer from "../blocks/Footer";
+import GetExtension from "../blocks/GetExtension";
+import Header from "../blocks/Header";
+import Hero from "../blocks/Hero";
+import Installation from "../blocks/Installation";
+import ReadMore from "../blocks/ReadMore";
+import SetupLinks from "../blocks/SetupLinks";
+import Subscribe from "../blocks/Subscribe";
+import Why from "../blocks/Why";
 
 export default function Home() {
   return (

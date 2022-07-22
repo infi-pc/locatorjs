@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { ReactNode, useState } from "react";
-import Header from "../../components/Header";
+import Header from "../../blocks/Header";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import Link from "next/link";
