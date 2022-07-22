@@ -36,7 +36,7 @@ export default function SetupLinks() {
             }
             title="React (data-id based)"
             text="For other types of React projects or if you want to use it on production-like environments."
-            id="react"
+            id="react-data-id"
           />
           <SetupLink
             icon={
@@ -101,7 +101,7 @@ function SetupLink({
             <h2 className="mb-3 text-lg font-medium text-gray-900 title-font">
               {title}
             </h2>
-            {text && <p className="mb-3 text-base leading-relaxed">{text}</p>}
+            {text && <p className="mb-3 text-sm leading-relaxed">{text}</p>}
             <a className="inline-flex items-center text-indigo-500">
               See instructions
               <svg

@@ -15,6 +15,7 @@
     "react-dom": "^17.0.2",
     "react-icons": "^4.3.1",
     "react-syntax-highlighter": "^15.5.0",
+    "tailwind-styled-components": "^2.1.8",
     "typescript": "^4.5.5"
   },
   "devDependencies": {
