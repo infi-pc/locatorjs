@@ -31,34 +31,7 @@ export default function InstallFramework({}) {
               <Step title="Add Babel plugin" no={1}>
                 You need a babel plugin to gather all the component's locations
                 in their files.
-                <Tabs
-                  items={[
-                    {
-                      title: "npm",
-                      content: (
-                        <SyntaxHighlighter language="bash" style={a11yDark}>
-                          {`npm install -D @locator/babel-jsx`}
-                        </SyntaxHighlighter>
-                      ),
-                    },
-                    {
-                      title: "Yarn",
-                      content: (
-                        <SyntaxHighlighter language="bash" style={a11yDark}>
-                          {`yarn add -D @locator/babel-jsx`}
-                        </SyntaxHighlighter>
-                      ),
-                    },
-                    {
-                      title: "pnpm",
-                      content: (
-                        <SyntaxHighlighter language="bash" style={a11yDark}>
-                          {`pnpm add -D @locator/babel-jsx`}
-                        </SyntaxHighlighter>
-                      ),
-                    },
-                  ]}
-                />
+                <InstallByAnything packageName="@locator/babel-jsx" />
                 <Tabs
                   items={[
                     {
@@ -103,12 +76,12 @@ setupLocatorUI();`}
               <Step title="Add UI library" no={2}>
                 Call this function to show the components and handle the
                 clickings.
-                <div></div>
+                <InstallByAnything packageName="@locator/runtime" />
                 <div
                   className="p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-200 dark:text-blue-800"
                   role="alert"
                 >
-                  Alternatively to 2nd step, you can install{" "}
+                  Alternatively to the 2nd step, you can install{" "}
                   <b>Browser Extension</b>. If you are not ready to show the UI
                   to your whole team, you can skip installing library. Browser
                   extension will connect to apps that have Locator Babel Plugin
@@ -181,5 +154,38 @@ function Tabs({ items }: { items: { title: string; content: ReactNode }[] }) {
       </div>
       {selectedItem.content}
     </>
+  );
+}
+
+function InstallByAnything({ packageName }: { packageName: string }) {
+  return (
+    <Tabs
+      items={[
+        {
+          title: "npm",
+          content: (
+            <SyntaxHighlighter language="bash" style={a11yDark}>
+              {`npm install -D ${packageName}`}
+            </SyntaxHighlighter>
+          ),
+        },
+        {
+          title: "Yarn",
+          content: (
+            <SyntaxHighlighter language="bash" style={a11yDark}>
+              {`yarn add -D ${packageName}`}
+            </SyntaxHighlighter>
+          ),
+        },
+        {
+          title: "pnpm",
+          content: (
+            <SyntaxHighlighter language="bash" style={a11yDark}>
+              {`pnpm add -D ${packageName}`}
+            </SyntaxHighlighter>
+          ),
+        },
+      ]}
+    />
   );
 }
