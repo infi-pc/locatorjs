@@ -7,28 +7,41 @@ export const extensionLink = {
   firefox: "https://addons.mozilla.org/en/firefox/addon/locatorjs/",
 };
 
-export const useBrowser = function () {
-  const [browser, setBrowser] = useState<
-    "firefox" | "chrome" | "edge" | "opera" | null
-  >(null);
-  useEffect(() => {
-    const name =
-      typeof window !== "undefined"
-        ? Bowser.parse(window.navigator.userAgent).browser.name
-        : null;
+type BrowserId = "firefox" | "chrome" | "edge" | "opera" | null;
 
-    if (name === "Chrome") {
-      setBrowser("chrome");
-    }
-    if (name === "Firefox") {
-      setBrowser("firefox");
-    }
-    if (name === "Microsoft Edge") {
-      setBrowser("edge");
-    }
-    if (name === "Opera") {
-      setBrowser("opera");
-    }
+function getBrowserId() {
+  const name =
+    typeof window !== "undefined"
+      ? Bowser.parse(window.navigator.userAgent).browser.name
+      : null;
+
+  if (name === "Chrome") {
+    return "chrome";
+  }
+  if (name === "Firefox") {
+    return "firefox";
+  }
+  if (name === "Microsoft Edge") {
+    return "edge";
+  }
+  if (name === "Opera") {
+    return "opera";
+  }
+  return null;
+}
+
+export function getBrowserLink() {
+  const id = getBrowserId();
+  if (id === "firefox") {
+    return extensionLink.firefox;
+  }
+  return extensionLink.chrome;
+}
+
+export const useBrowser = function () {
+  const [browser, setBrowser] = useState<BrowserId>(null);
+  useEffect(() => {
+    setBrowser(getBrowserId());
   }, []);
   return browser;
 };

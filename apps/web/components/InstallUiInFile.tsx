@@ -8,8 +8,11 @@ export function InstallUiInFile({ file }: { file: string }) {
       Add this to <InlineCode>{file}</InlineCode> (or other global file):
       <SyntaxHighlighter language="javascript" style={a11yDark}>
         {`import setupLocatorUI from "@locator/runtime";
-        
-setupLocatorUI();`}
+
+if (process.env.NODE_ENV === "development") {
+  setupLocatorUI();
+}
+`}
       </SyntaxHighlighter>
     </>
   );

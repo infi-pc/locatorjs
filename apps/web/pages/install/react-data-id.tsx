@@ -13,8 +13,9 @@ import {
   StandardLink,
   StepsBody,
 } from "../../components/Styled";
-import { InstallUiInFile } from "../../components/InstallUiInFile";
 import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
+import { getBrowserLink } from "../../blocks/shared";
+import { InstallRuntime } from "../../components/InstallRuntime";
 
 export default function InstallFramework({}) {
   return (
@@ -149,45 +150,15 @@ export default defineConfig({
               Call this function to show the components and handle the
               clickings.
               <InstallByAnything packageName="@locator/runtime" />
-              <Tabs
-                items={[
-                  {
-                    title: "Next.js",
-                    content: <InstallUiInFile file="pages/_app.jsx" />,
-                  },
-                  {
-                    title: "Create React App",
-                    content: <InstallUiInFile file="index.jsx" />,
-                  },
-                  {
-                    title: "Vite",
-                    content: <InstallUiInFile file="main.jsx" />,
-                  },
-                  {
-                    title: "Others",
-                    content: (
-                      <>
-                        Add this to some global/root file, usually :
-                        <InlineCode>index.js</InlineCode>
-                        <SyntaxHighlighter
-                          language="javascript"
-                          style={a11yDark}
-                        >
-                          {`import setupLocatorUI from "@locator/runtime";
-                        
-setupLocatorUI();`}
-                        </SyntaxHighlighter>
-                      </>
-                    ),
-                  },
-                ]}
-              />
+              <InstallRuntime />
               <Alert>
                 Alternatively to the 2nd step, you can install{" "}
-                <b>Browser Extension</b>. If you are not ready to show the UI to
-                your whole team, you can skip installing library. Browser
-                extension will connect to apps that have Locator Babel Plugin
-                installed.
+                <StandardLink href={getBrowserLink()}>
+                  Browser Extension
+                </StandardLink>
+                . If you are not ready to show the UI to your whole team, you
+                can skip installing library. Browser extension will connect to
+                apps that have Locator Babel Plugin installed.
               </Alert>
             </Step>
             <Step title="Test and enjoy Locator" no={3}>
