@@ -7,7 +7,7 @@ export function Step({
   children,
 }: {
   no: number | string;
-  title: string;
+  title: ReactNode;
   children: ReactNode;
 }) {
   return (

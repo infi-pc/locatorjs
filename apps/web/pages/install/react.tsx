@@ -17,6 +17,10 @@ import { InstallUiInFile } from "../../components/InstallUiInFile";
 import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
 import { extensionLink, getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
+import {
+  AllBrowsersLinks,
+  getAllExtensionsLinks,
+} from "../../components/AllBrowsersLinks";
 
 export default function InstallFramework({}) {
   return (
@@ -36,20 +40,69 @@ export default function InstallFramework({}) {
           </Alert>
 
           <StepsBody>
-            <Step title="Browser extension variant" no={"A"}>
+            <Step
+              title={
+                <>
+                  Browser extension{" "}
+                  <span className="text-gray-500">(option A)</span>
+                </>
+              }
+              no={"A"}
+            >
               Easiest way to start with Locator is to install a{" "}
               <StandardLink href={getBrowserLink()}>
-                Browser Extension
+                <b>Browser Extension</b>
               </StandardLink>
+              <br />
+              You can get extension for{" "}
+              {getAllExtensionsLinks().map(({ link, title }, i) => {
+                return (
+                  <span key={i}>
+                    {i !== 0 && ", "}
+                    <StandardLink href={link}>{title}</StandardLink>
+                  </span>
+                );
+              })}
             </Step>
-            <Step title="Library variant" no={"B"}>
+            <Step
+              title={
+                <>
+                  Library <span className="text-gray-500">(option B)</span>
+                </>
+              }
+              no={"B"}
+            >
               If you would like to install Locator to your project, so all team
               members can use it. You can install it as a library.
               <InstallByAnything packageName="@locator/runtime" />
               <InstallRuntime />
             </Step>
-            <Step title="Test and enjoy Locator" no={3}>
-              Go to your localhost environment.
+
+            <Step title="Troubleshooting" no={"?"}>
+              Locator should work automatically in dev mode in most modern
+              stacks. They automatically include{" "}
+              <StandardLink href="https://babeljs.io/docs/en/babel-preset-react">
+                babel-preset-react
+              </StandardLink>{" "}
+              which includes{" "}
+              <StandardLink href="https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source">
+                babel-plugin-transform-react-jsx-source
+              </StandardLink>{" "}
+              <br />
+              Non-babel stacks use similar alternatives. <br />
+              <br />
+              If you don't have{" "}
+              <StandardLink href="https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source">
+                babel-plugin-transform-react-jsx-source
+              </StandardLink>{" "}
+              you should set it up manually.
+              <br />
+              Or try alternative{" "}
+              <Link href="/install/react-data-id">
+                <StandardLink>
+                  installation based on custom Babel plugin
+                </StandardLink>
+              </Link>
             </Step>
           </StepsBody>
         </div>

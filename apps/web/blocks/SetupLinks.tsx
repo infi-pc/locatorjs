@@ -21,7 +21,7 @@ export default function SetupLinks() {
                 height={85}
               />
             }
-            title="React (devtools based)"
+            title="React - devtools based (recommended)"
             text="Works with most React dev stacks like Vite, Next.js, or Create React App. No need to install any packages."
             id="react"
           />
@@ -34,7 +34,7 @@ export default function SetupLinks() {
                 height={85}
               />
             }
-            title="React (data-id based)"
+            title="React - data-id based"
             text="For other types of React projects or if you want to use it on production-like environments."
             id="react-data-id"
           />
