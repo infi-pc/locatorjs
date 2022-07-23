@@ -16,6 +16,7 @@ export function AllBrowsersLinks() {
     <>
       {getAllExtensionsLinks().map((item) => (
         <a
+          key={item.title}
           href={item.link}
           className="inline-block px-2 hover:underline hover:text-indigo-700"
         >

@@ -13,7 +13,7 @@ function GetExtension() {
           className="flex flex-col w-full p-8 py-24 text-center bg-slate-50 rounded-3xl"
           style={{
             background:
-              "linear-gradient(90deg, rgba(206,72,56,0.15) 0%, rgba(242,193,71,0.15) 100%);",
+              "linear-gradient(90deg, rgba(206,72,56,0.15) 0%, rgba(242,193,71,0.15) 100%)",
           }}
         >
           <h3 className="mb-4 text-2xl font-medium text-gray-900 font-display sm:text-5xl title-font dark:text-white">

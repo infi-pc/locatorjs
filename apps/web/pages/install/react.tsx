@@ -30,9 +30,12 @@ export default function InstallFramework({}) {
         <div className="container flex flex-col items-center justify-center py-24 mx-auto">
           <BlockHeadline>Install React</BlockHeadline>
           <p className="text-center">
-            Install Locator on React codebase. This is data-ids variant which is
-            alternative solution for{" "}
-            <Link href="/install/react">devtools variant</Link>.{" "}
+            Install Locator on React codebase. This is DevTools variant which is
+            preffered solution. Alternative is{" "}
+            <Link href="/install/react-data-id">
+              <StandardLink>data-id solution</StandardLink>
+            </Link>
+            .{" "}
           </p>
           <Alert>
             Both browser extension and library require either working devtools
