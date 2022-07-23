@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Fiber } from "@locator/shared";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 

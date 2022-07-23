@@ -919,7 +919,7 @@ select {
   padding-right: 0.25rem;
 }
 
-.py-0\.5 {
+.py-0\\.5 {
   padding-top: 0.125rem;
   padding-bottom: 0.125rem;
 }

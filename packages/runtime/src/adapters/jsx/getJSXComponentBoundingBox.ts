@@ -19,7 +19,7 @@ export function getJSXComponentBoundingBox(
     }
     if (parent instanceof HTMLElement) {
       if (parent.dataset.locatorjsId) {
-        const [fileFullPath, id] = parseDataId(parent.dataset.locatorjsId);
+        const [fileFullPath] = parseDataId(parent.dataset.locatorjsId);
         const fileData: FileStorage | undefined = locatorData[fileFullPath];
         if (fileData) {
           const expData = getExpressionData(parent, fileData);

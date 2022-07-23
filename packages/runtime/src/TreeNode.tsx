@@ -1,6 +1,5 @@
 import { createSignal, For } from "solid-js";
-import { buidLink } from "./buidLink";
-import { goTo, goToSource } from "./goTo";
+import { goToSource } from "./goTo";
 import { HighlightedNode, SimpleNode } from "./types";
 
 export function TreeNode(props: {
@@ -23,7 +22,7 @@ export function TreeNode(props: {
   function renderChildren() {
     return (
       <For each={props.node.children}>
-        {(child, i) => (
+        {(child) => (
           <TreeNode
             node={child}
             idsToShow={props.idsToShow}

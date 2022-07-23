@@ -202,7 +202,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
           }}
         >
           <For each={getAllNodes()}>
-            {(node, i) => (
+            {(node) => (
               <RootTreeNode
                 node={node}
                 idsToShow={

@@ -8,7 +8,9 @@ async function run() {
   const content = await fs.readFile("./dist/output.css", "utf-8");
   const wrapped = `export default \`${content
     .replaceAll("`", "\\`")
-    .replaceAll("\\:", "\\\\:")}\``;
+    .replaceAll("\\:", "\\\\:")
+    .replaceAll("\\.", "\\\\.")}\``;
+
   await fs.writeFile("./src/_generated_styles.ts", wrapped);
   console.log("CSS file generated");
 }
