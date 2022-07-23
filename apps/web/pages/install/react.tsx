@@ -22,7 +22,7 @@ import {
   getAllExtensionsLinks,
 } from "../../components/AllBrowsersLinks";
 
-export default function InstallFramework({}) {
+export default function InstallReact({}) {
   return (
     <>
       <Header />

@@ -17,7 +17,7 @@ import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
 import { getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
 
-export default function InstallFramework({}) {
+export default function InstallReactDataId({}) {
   return (
     <>
       <Header />
