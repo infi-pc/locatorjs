@@ -21,7 +21,12 @@ export default function SetupLinks() {
                 height={85}
               />
             }
-            title="React - devtools based (recommended)"
+            title={
+              <>
+                React - devtools based{" "}
+                <span className="text-gray-600">(recommended)</span>
+              </>
+            }
             text="Works with most React dev stacks like Vite, Next.js, or Create React App. No need to install any packages."
             id="react"
           />

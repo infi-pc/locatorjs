@@ -28,7 +28,7 @@ export default function InstallReact({}) {
       <Header />
       <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
         <div className="container flex flex-col items-center justify-center py-24 mx-auto">
-          <BlockHeadline>Install React</BlockHeadline>
+          <BlockHeadline>Install Locator for React</BlockHeadline>
           <p className="text-center">
             Install Locator on React codebase. This is DevTools variant which is
             preffered solution. Alternative is{" "}

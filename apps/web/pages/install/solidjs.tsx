@@ -6,30 +6,20 @@ import Link from "next/link";
 import { Step } from "../../components/Step";
 import { Tabs } from "../../components/Tabs";
 import { InstallByAnything } from "../../components/InstallByAnything";
-import {
-  Alert,
-  BlockHeadline,
-  InlineCode,
-  StandardLink,
-  StepsBody,
-} from "../../components/Styled";
+import { BlockHeadline, InlineCode, StepsBody } from "../../components/Styled";
 import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
+import { InstallUiInFile } from "../../components/InstallUiInFile";
 import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 
-export default function InstallReactDataId({}) {
+export default function InstallSolidJs({}) {
   return (
     <>
       <Header />
       <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
         <div className="container flex flex-col items-center justify-center py-24 mx-auto">
-          <BlockHeadline>Install Locator for React</BlockHeadline>
-          <p className="text-center">
-            Install Locator on React codebase. This is data-ids variant which is
-            alternative solution for{" "}
-            <Link href="/install/react">devtools variant</Link>.{" "}
-          </p>
+          <BlockHeadline>Install Locator for SolidJS</BlockHeadline>
+          <p className="text-center">Install Locator on SolidJS codebase.</p>
           <StepsBody>
             <Step title="Add Babel plugin" no={1}>
               You need a babel plugin to gather all the component's locations in
@@ -37,57 +27,6 @@ export default function InstallReactDataId({}) {
               <InstallByAnything packageName="@locator/babel-jsx" />
               <Tabs
                 items={[
-                  {
-                    title: "Next.js",
-                    content: (
-                      <>
-                        Add custom babel config to your Next.js project. Create
-                        of modify
-                        <InlineCode>babel.config.js</InlineCode> file.
-                        <SyntaxHighlighter
-                          language="javascript"
-                          style={a11yDark}
-                        >
-                          {`module.exports = {
-  presets: ["next/babel"],
-  plugins: [
-    ["@locator/babel-jsx/dist", {
-      env: "development",
-    }]
-  ]
-};`}
-                        </SyntaxHighlighter>
-                        <NotUsingBabelAlert />
-                      </>
-                    ),
-                  },
-                  {
-                    title: "Create React App",
-                    content: (
-                      <>
-                        For customisation you will need to install{" "}
-                        <StandardLink href="https://github.com/gsoft-inc/craco">
-                          Craco
-                        </StandardLink>{" "}
-                        or similar tool. Then add babel plugin in{" "}
-                        <InlineCode>craco.config.js</InlineCode>
-                        <SyntaxHighlighter
-                          language="javascript"
-                          style={a11yDark}
-                        >
-                          {`module.exports = {
-  babel: {
-    plugins: [
-      ["@locator/babel-jsx/dist", {
-        env: "development"
-      }]
-    ],
-  },
-};`}
-                        </SyntaxHighlighter>
-                      </>
-                    ),
-                  },
                   {
                     title: "Vite",
                     content: (
@@ -98,15 +37,13 @@ export default function InstallReactDataId({}) {
                           style={a11yDark}
                         >
                           {`import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
   plugins: [
-    // other Vite plugins
-    react({
+    solidPlugin({
       babel: {
         plugins: [
-          // other Babel plugins
           [
             "@locator/babel-jsx/dist",
             {
@@ -140,7 +77,6 @@ export default defineConfig({
 ],
 `}
                         </SyntaxHighlighter>
-                        <NotUsingBabelAlert />
                       </>
                     ),
                   },
@@ -151,7 +87,8 @@ export default defineConfig({
               Call this function to show the components and handle the
               clickings.
               <InstallByAnything packageName="@locator/runtime" />
-              <InstallRuntime />
+              <br />
+              <InstallUiInFile file="index.jsx" />
               <AlternativelyInstallExtension />
             </Step>
             <Step title="Test and enjoy Locator" no={3}>
