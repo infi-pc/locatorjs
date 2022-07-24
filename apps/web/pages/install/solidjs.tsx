@@ -6,7 +6,12 @@ import Link from "next/link";
 import { Step } from "../../components/Step";
 import { Tabs } from "../../components/Tabs";
 import { InstallByAnything } from "../../components/InstallByAnything";
-import { BlockHeadline, InlineCode, StepsBody } from "../../components/Styled";
+import {
+  BlockHeadline,
+  InlineCode,
+  InstallContainer,
+  StepsBody,
+} from "../../components/Styled";
 import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
 import { InstallRuntime } from "../../components/InstallRuntime";
 import { InstallUiInFile } from "../../components/InstallUiInFile";
@@ -17,7 +22,7 @@ export default function InstallSolidJs({}) {
     <>
       <Header />
       <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
-        <div className="container flex flex-col items-center justify-center py-24 mx-auto">
+        <InstallContainer>
           <BlockHeadline>Install Locator for SolidJS</BlockHeadline>
           <p className="text-center">Install Locator on SolidJS codebase.</p>
           <StepsBody>
@@ -96,7 +101,7 @@ export default defineConfig({
               Go to your localhost environment.
             </Step>
           </StepsBody>
-        </div>
+        </InstallContainer>
       </section>
     </>
   );

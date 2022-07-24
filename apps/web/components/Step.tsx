@@ -13,7 +13,7 @@ export function Step({
   return (
     <div className="flex gap-4 mb-4">
       <StepIcon no={no} />
-      <div className="mt-2">
+      <div className="flex-grow-0 mt-2 overflow-hidden">
         <h2 className="mb-3 text-lg font-medium text-gray-900 title-font">
           {title}
         </h2>

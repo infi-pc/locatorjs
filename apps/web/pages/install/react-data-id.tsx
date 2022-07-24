@@ -9,11 +9,11 @@ import {
   Alert,
   BlockHeadline,
   InlineCode,
+  InstallContainer,
   StandardLink,
   StepsBody,
 } from "../../components/Styled";
 import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
 import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 
@@ -22,7 +22,7 @@ export default function InstallReactDataId({}) {
     <>
       <Header />
       <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
-        <div className="container flex flex-col items-center justify-center py-24 mx-auto">
+        <InstallContainer>
           <BlockHeadline>Install Locator for React</BlockHeadline>
           <p className="text-center">
             Install Locator on React codebase. This is data-ids variant which is
@@ -158,7 +158,7 @@ export default defineConfig({
               Go to your localhost environment.
             </Step>
           </StepsBody>
-        </div>
+        </InstallContainer>
       </section>
     </>
   );

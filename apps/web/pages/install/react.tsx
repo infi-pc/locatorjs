@@ -1,33 +1,24 @@
-import { useRouter } from "next/router";
 import Header from "../../blocks/Header";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import Link from "next/link";
 import { Step } from "../../components/Step";
-import { Tabs } from "../../components/Tabs";
 import { InstallByAnything } from "../../components/InstallByAnything";
 import {
   Alert,
   BlockHeadline,
-  InlineCode,
+  InstallContainer,
   StandardLink,
   StepsBody,
 } from "../../components/Styled";
-import { InstallUiInFile } from "../../components/InstallUiInFile";
-import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { extensionLink, getBrowserLink } from "../../blocks/shared";
+import { getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
-import {
-  AllBrowsersLinks,
-  getAllExtensionsLinks,
-} from "../../components/AllBrowsersLinks";
+import { getAllExtensionsLinks } from "../../components/AllBrowsersLinks";
 
 export default function InstallReact({}) {
   return (
     <>
       <Header />
       <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
-        <div className="container flex flex-col items-center justify-center py-24 mx-auto">
+        <InstallContainer>
           <BlockHeadline>Install Locator for React</BlockHeadline>
           <p className="text-center">
             Install Locator on React codebase. This is DevTools variant which is
@@ -108,7 +99,7 @@ export default function InstallReact({}) {
               </Link>
             </Step>
           </StepsBody>
-        </div>
+        </InstallContainer>
       </section>
     </>
   );
