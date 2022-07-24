@@ -6,7 +6,6 @@ import { getUsableName } from "../../getUsableName";
 import { getAllFiberChildren } from "../../getAllFiberChildren";
 import { SimpleNode } from "../../types";
 import { makeFiberId } from "./makeFiberId";
-import { isStyledElement } from "./isStyled";
 
 export function fiberToSimple(
   fiber: Fiber,

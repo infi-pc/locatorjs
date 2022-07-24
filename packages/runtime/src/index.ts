@@ -1,19 +1,12 @@
-import { Target } from "@locator/shared";
+import { allTargets, Target } from "@locator/shared";
 import { Adapter, baseColor, fontFamily, hoverColor } from "./consts";
+import { isExtension } from "./isExtension";
 export * from "./adapters/jsx/runtimeStore";
+import generatedStyles from "./_generated_styles";
 
-// import only in browser, because when used as SSR (Next.js), SolidJS (solid-js/web) somehow breaks the page
-const initRender =
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-empty-function
-  typeof window === "undefined" ? () => {} : require("./Runtime").initRender;
-
-const isExtension =
-  typeof document !== "undefined"
-    ? !!document.documentElement.dataset.locatorClientUrl
-    : false;
-
-if (typeof window !== "undefined" && isExtension) {
-  setTimeout(init, 0);
+// Init in case it is used from extension
+if (typeof window !== "undefined" && isExtension()) {
+  setTimeout(() => init({ adapter: "auto" }), 0);
 }
 
 const MAX_ZINDEX = 2147483647;
@@ -22,35 +15,23 @@ export function setup({
   adapter,
   targets,
 }: {
-  adapter: Adapter;
+  adapter?: Adapter;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
-}) {
-  if (typeof window !== "undefined") {
-    init({ adapter, targets });
-  }
-  // if (props.defaultMode) {
-  //   defaultMode = props.defaultMode;
-  // }
-  // if (props.targets) {
-  //   allTargets = Object.fromEntries(
-  //     Object.entries(props.targets).map(([key, target]) =>
-  //       typeof target === "string"
-  //         ? [key, { url: target, label: key }]
-  //         : [key, target]
-  //     )
-  //   );
-  //   const firstKey = Object.keys(allTargets)[0];
-  //   if (!firstKey) {
-  //     throw new Error("no targets found");
-  //   }
-  //   localLinkOrTemplate = firstKey;
-  // }
+} = {}) {
+  setTimeout(() => init({ adapter, targets }), 0);
 }
 
 function init({
   adapter,
-}: { adapter?: Adapter; targets?: { [k: string]: Target | string } } = {}) {
+  targets,
+}: {
+  adapter?: Adapter | "auto";
+  targets?: { [k: string]: Target | string };
+} = {}) {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;
@@ -61,7 +42,9 @@ function init({
   style.id = "locatorjs-style";
   style.innerHTML = `
       #locatorjs-layer {
+        all: initial;
         pointer-events: none;
+        font-family: ${fontFamily};
       }
       #locatorjs-layer * {
         box-sizing: border-box;
@@ -94,6 +77,7 @@ function init({
       .locatorjs-tree-node:hover {
         background-color: #eee;
       }
+      ${generatedStyles}
     `;
 
   const globalStyle = document.createElement("style");
@@ -137,5 +121,30 @@ function init({
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  initRender(layer, adapter);
+  const finalAdapter: Adapter =
+    adapter === "auto" || !adapter ? detectAdapter() : adapter;
+
+  // This weird import is needed because:
+  // SSR React (Next.js) breaks when importing any SolidJS compiled file, so the import has to be conditional
+  // Browser Extension breaks when importing with "import()"
+  // Vite breaks when importing with "require()"
+
+  if (typeof require !== "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { initRender } = require("./Runtime");
+    initRender(layer, finalAdapter, targets || allTargets);
+  } else {
+    import("./Runtime").then(({ initRender }) => {
+      initRender(layer, finalAdapter, targets || allTargets);
+    });
+  }
+}
+
+export default setup;
+
+function detectAdapter(): Adapter {
+  if (document.querySelector("[data-locatorjs-id]")) {
+    return "jsx";
+  }
+  return "reactDevTools";
 }

@@ -16,10 +16,6 @@ export const allTargets: Targets = {
     url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
     label: "WebStorm",
   },
-  atom: {
-    url: "atom://core/open/file?filename=${projectPath}${filePath}&line=${line}&column=${column}",
-    label: "Atom",
-  },
 };
 
 export const isMac =

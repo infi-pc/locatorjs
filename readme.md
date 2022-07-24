@@ -6,6 +6,10 @@ A Dev tool that lets you click on UI Component in the browser to open its code i
 
 ![Intro](./docs/intro.gif)
 
+## Installation
+
+[Devstack plugin / library README](https://www.locatorjs.com/install)
+
 ## Browser extension
 
 [Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi) (works for Chrome, Brave, Opera and Edge)
@@ -13,14 +17,6 @@ A Dev tool that lets you click on UI Component in the browser to open its code i
 [Install extension from Firefox Add-ons](https://addons.mozilla.org/cs/firefox/addon/locatorjs/)
 
 [Extension README](./apps/extension/README.md)
-
-## Babel plugin
-
-[Devstack plugin / library README](./readme-library.md)
-
-## Note
-
-This repo contains both [Browser Extension](./apps/extension/README.md) and [Dev stack plugin (library)](./readme-library.md). They share the same code, but serve different purposes. You don't need to use them together.
 
 ## Contributing
 

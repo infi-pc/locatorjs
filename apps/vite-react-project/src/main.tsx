@@ -1,10 +1,12 @@
-// TODO make import somehow universal for esmodule and compiled
-import "@locator/react-devtools-hook/src/autoInstallDevtoolsHook";
-import "@locator/runtime/src";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import setupLocatorUI from "@locator/runtime";
+
+if (process.env.NODE_ENV === "development") {
+  setupLocatorUI();
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

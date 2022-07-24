@@ -2,6 +2,7 @@ import React from "react";
 import { extensionLink, useBrowser } from "./shared";
 import chrome from "../public/chrome.svg";
 import Image from "next/image";
+import { AllBrowsersLinks } from "../components/AllBrowsersLinks";
 
 function GetExtension() {
   const browser = useBrowser();
@@ -12,17 +13,17 @@ function GetExtension() {
           className="flex flex-col w-full p-8 py-24 text-center bg-slate-50 rounded-3xl"
           style={{
             background:
-              "linear-gradient(90deg, rgba(206,72,56,0.15) 0%, rgba(242,193,71,0.15) 100%);",
+              "linear-gradient(90deg, rgba(206,72,56,0.15) 0%, rgba(242,193,71,0.15) 100%)",
           }}
         >
           <h3 className="mb-4 text-2xl font-medium text-gray-900 font-display sm:text-5xl title-font dark:text-white">
             Get browser extension
           </h3>
           <div>
-            Works <b>out of the box</b> with most React dev stacks like Vite,
-            Next.js, or Create React App.
+            Works <b>out of the box</b> with most <b>React</b> dev stacks like
+            Vite, Next.js, or Create React App.
             <br />
-            For custom config, get{" "}
+            For other frameworks or custom config get{" "}
             <a
               className="text-indigo-500 hover:underline hover:text-indigo-700"
               href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#requirements"
@@ -72,36 +73,7 @@ function GetExtension() {
           <div className="relative mt-8">
             All supported browsers:
             <div className="block max-w-full text-lg text-center text-indigo-500">
-              <a
-                href={extensionLink.chrome}
-                className="inline-block px-2 hover:underline hover:text-indigo-700"
-              >
-                Chrome
-              </a>
-              <a
-                href={extensionLink.chrome}
-                className="inline-block px-2 hover:underline hover:text-indigo-700"
-              >
-                Edge
-              </a>
-              <a
-                href={extensionLink.chrome}
-                className="inline-block px-2 hover:underline hover:text-indigo-700"
-              >
-                Brave
-              </a>
-              <a
-                href={extensionLink.chrome}
-                className="inline-block px-2 hover:underline hover:text-indigo-700"
-              >
-                Opera
-              </a>
-              <a
-                href={extensionLink.firefox}
-                className="inline-block px-2 hover:underline hover:text-indigo-700"
-              >
-                Firefox
-              </a>
+              <AllBrowsersLinks />
             </div>
           </div>
         </div>

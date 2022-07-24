@@ -1,0 +1,18 @@
+{
+  "name": "vite-solid-project",
+  "version": "0.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "vite"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^3.0.0",
+    "vite-plugin-solid": "^2.3.0",
+    "@locator/babel-jsx": "*"
+  },
+  "dependencies": {
+    "solid-js": "^1.4.7",
+    "@locator/runtime": "*"
+  }
+}

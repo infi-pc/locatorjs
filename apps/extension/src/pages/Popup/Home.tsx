@@ -39,12 +39,12 @@ export function Home(props: Props) {
             </b>{' '}
             go to editor
           </div>
-          <div class="py-1 text-sm">
+          {/* <div class="py-1 text-sm">
             <b>
               <Modifiers /> + <Kbd>D</Kbd>
             </b>{' '}
             toggle select mode
-          </div>
+          </div> */}
           <p class="text-xs leading-5 text-gray-800 dark:text-gray-200">
             remember to <b>focus your app</b> (click on any surface)
           </p>

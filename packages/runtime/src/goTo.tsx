@@ -1,4 +1,4 @@
-import { buidLink, buildLinkFromSource } from "./buidLink";
+import { buildLinkFromSource } from "./buidLink";
 import { HREF_TARGET } from "./consts";
 import { Source } from "./types";
 

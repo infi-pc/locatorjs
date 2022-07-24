@@ -39,6 +39,17 @@ export function insertRuntimeScript() {
     if (!locatorClientUrl) {
       return 'Locator client url not found';
     }
+
+    // JSX adapter
+    if (document.querySelector('[data-locatorjs-id]')) {
+      const inserted = insertScript(locatorClientUrl);
+      if (inserted) {
+        scriptLoaded = true;
+        return 'ok';
+      }
+    }
+
+    // React Devtools hook
     const renderersMap = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
     if (renderersMap) {
       const problematicRenderers: string[] = [];

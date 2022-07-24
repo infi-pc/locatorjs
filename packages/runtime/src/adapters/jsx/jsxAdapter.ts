@@ -20,7 +20,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       return null;
     }
 
-    const [fileFullPath, id] = parseDataId(dataId);
+    const [fileFullPath] = parseDataId(dataId);
     const [styledFileFullPath, styledId] = styledDataId
       ? parseDataId(styledDataId)
       : [null, null];
@@ -45,6 +45,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       styledFileData && styledFileData.styledDefinitions[Number(styledId)];
 
     const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const styledLink =
       styledExpData &&
       buidLink(

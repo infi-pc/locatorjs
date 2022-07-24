@@ -1,11 +1,11 @@
 import "../styles/globals.css";
-import { setup as setupLocator } from "@locator/runtime";
+import setupLocatorUI from "@locator/runtime";
 import Head from "next/head";
 import Script from "next/script";
 
 const branchName = process.env.VERCEL_GIT_COMMIT_REF || "master";
 
-setupLocator(
+setupLocatorUI(
   process.env.NODE_ENV === "production"
     ? {
         // On production we have to enable it with cookies, on stagings it is just hidden

@@ -7,7 +7,7 @@ export function RenderNode(props: {
 }) {
   const [isHovered, setIsHovered] = createSignal(false);
 
-  const offset = props.node.type === "component" ? 2 : 0;
+  const offset = () => (props.node.type === "component" ? 2 : 0);
   return (
     <div>
       {props.node.box ? (
@@ -24,10 +24,10 @@ export function RenderNode(props: {
           }
           style={{
             position: "absolute",
-            left: props.node.box.x - offset + "px",
-            top: props.node.box.y - offset + "px",
-            width: props.node.box.width + offset * 2 + "px",
-            height: props.node.box.height + offset * 2 + "px",
+            left: props.node.box.x - offset() + "px",
+            top: props.node.box.y - offset() + "px",
+            width: props.node.box.width + offset() * 2 + "px",
+            height: props.node.box.height + offset() * 2 + "px",
             border:
               isHovered() || props.parentIsHovered
                 ? props.node.type === "component"
@@ -84,7 +84,7 @@ export function RenderNode(props: {
               </For>
             ) : null} */}
       <For each={props.node.children}>
-        {(childNode, i) => {
+        {(childNode) => {
           return (
             <RenderNode
               node={childNode}

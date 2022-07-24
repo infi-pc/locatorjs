@@ -12,12 +12,15 @@ import {
 
 export interface PluginOptions {
   opts?: {
+    env?: string;
     target?: string;
     runtime?: string;
   };
   file: {
     path: NodePath;
   };
+  filename: string;
+  cwd: string;
 }
 
 export interface Babel {
@@ -25,7 +28,7 @@ export interface Babel {
 }
 
 export default function transformLocatorJsComponents(babel: Babel): {
-  visitor: Visitor<PluginOptions>;
+  visitor?: Visitor<PluginOptions>;
 } {
   const t = babel.types;
   let fileStorage: FileStorage | null = null;
@@ -77,11 +80,17 @@ export default function transformLocatorJsComponents(babel: Babel): {
     visitor: {
       Program: {
         // TODO state is any, we should check if the state depends on webpack or what it depends on?
-        enter(path, state: any) {
+        enter(path, state) {
+          if (state.opts?.env) {
+            if (state.opts?.env !== process.env.NODE_ENV) {
+              return;
+            }
+          }
+
           lastComponentId = 0;
           lastExpressionId = 0;
           lastStyledId = 0;
-          if (!state.filename) {
+          if (!state?.filename) {
             throw new Error("No file name");
           }
           if (state.filename.includes("node_modules")) {
@@ -95,8 +104,146 @@ export default function transformLocatorJsComponents(babel: Babel): {
               components: [],
             };
           }
+
+          // NEED TO RUN MANUAL TRAVERSE, SO IT MAKE EDITS BEFORE ALL OTHER PLUGINS
+          path.traverse({
+            // TODO add also for arrow function and class components
+            FunctionDeclaration: {
+              enter(path, state) {
+                if (!fileStorage) {
+                  return;
+                }
+                if (!path || !path.node || !path.node.id || !path.node.loc) {
+                  return;
+                }
+                const name = path.node.id.name;
+
+                wrappingComponent = {
+                  name,
+                  locString:
+                    path.node.loc.start.line + ":" + path.node.loc.start.column,
+                  loc: path.node.loc,
+                };
+                currentWrappingComponentId =
+                  addComponentToStorage(wrappingComponent);
+              },
+              exit(path, state) {
+                if (!fileStorage) {
+                  return;
+                }
+                if (!path || !path.node || !path.node.id || !path.node.loc) {
+                  return;
+                }
+                const name = path.node.id.name;
+
+                // Reset wrapping component
+                if (
+                  wrappingComponent &&
+                  wrappingComponent.name === name &&
+                  wrappingComponent.locString ===
+                    path.node.loc.start.line + ":" + path.node.loc.start.column
+                ) {
+                  wrappingComponent = null;
+                }
+              },
+            },
+            TaggedTemplateExpression(path) {
+              if (!fileStorage) {
+                return;
+              }
+              const tag = path.node.tag;
+              if (tag.type === "MemberExpression") {
+                const property = tag.property;
+                const object = tag.object;
+                if (
+                  object.type === "Identifier" &&
+                  object.name === "styled" &&
+                  property.type === "Identifier"
+                ) {
+                  let name = null;
+                  const parent = path.parent;
+                  if (parent.type === "VariableDeclarator") {
+                    if (parent.id.type === "Identifier") {
+                      name = parent.id.name;
+                    }
+                  }
+
+                  if (path.node.loc) {
+                    const id = addStyledToStorage({
+                      name: name,
+                      loc: path.node.loc,
+                      htmlTag: property.name,
+                    });
+                    path.node.tag = t.callExpression(
+                      t.memberExpression(tag, t.identifier("attrs")),
+                      [
+                        t.arrowFunctionExpression(
+                          [],
+                          t.objectExpression([
+                            t.objectProperty(
+                              t.stringLiteral("data-locatorjs-styled"),
+                              t.stringLiteral(createDataId(fileStorage, id))
+                            ),
+                          ])
+                        ),
+                      ]
+                    );
+                  }
+                }
+              }
+            },
+            JSXElement(path) {
+              if (!fileStorage) {
+                return;
+              }
+              function getName(
+                el:
+                  | BabelTypes.JSXIdentifier
+                  | BabelTypes.JSXMemberExpression
+                  | BabelTypes.JSXNamespacedName
+              ): string {
+                if (el.type === "JSXIdentifier") {
+                  return el.name;
+                } else if (el.type === "JSXMemberExpression") {
+                  return getName(el.object) + "." + el.property.name;
+                } else if (el.type === "JSXNamespacedName") {
+                  return el.namespace.name + "." + el.name.name;
+                }
+                return "";
+              }
+              let name = getName(path.node.openingElement.name);
+
+              if (name && !isDisallowedComponent(name)) {
+                if (path.node.loc) {
+                  const id = addExpressionToStorage({
+                    name: name,
+                    loc: path.node.loc,
+                    wrappingComponentId: currentWrappingComponentId,
+                  });
+                  const newAttr = t.jSXAttribute(
+                    t.jSXIdentifier("data-locatorjs-id"),
+                    t.jSXExpressionContainer(
+                      t.stringLiteral(
+                        // this is stored by projectPath+filePath because that's the only unique identifier
+                        createDataId(fileStorage, id)
+                      )
+                      // t.ObjectExpression([
+                      // ])
+                    )
+                  );
+                  path.node.openingElement.attributes.push(newAttr);
+                }
+              }
+            },
+          });
         },
         exit(path, state) {
+          if (state.opts?.env) {
+            if (state.opts.env !== process.env.NODE_ENV) {
+              return;
+            }
+          }
+
           if (!fileStorage) {
             return;
           }
@@ -127,133 +274,6 @@ export default function transformLocatorJsComponents(babel: Babel): {
 
           path.node.body.push(t.expressionStatement(insertAst));
         },
-      },
-      // TODO add also for arrow function and class components
-      FunctionDeclaration: {
-        enter(path, state) {
-          if (!fileStorage) {
-            return;
-          }
-          if (!path || !path.node || !path.node.id || !path.node.loc) {
-            return;
-          }
-          const name = path.node.id.name;
-
-          wrappingComponent = {
-            name,
-            locString:
-              path.node.loc.start.line + ":" + path.node.loc.start.column,
-            loc: path.node.loc,
-          };
-          currentWrappingComponentId = addComponentToStorage(wrappingComponent);
-        },
-        exit(path, state) {
-          if (!fileStorage) {
-            return;
-          }
-          if (!path || !path.node || !path.node.id || !path.node.loc) {
-            return;
-          }
-          const name = path.node.id.name;
-
-          // Reset wrapping component
-          if (
-            wrappingComponent &&
-            wrappingComponent.name === name &&
-            wrappingComponent.locString ===
-              path.node.loc.start.line + ":" + path.node.loc.start.column
-          ) {
-            wrappingComponent = null;
-          }
-        },
-      },
-      TaggedTemplateExpression(path) {
-        if (!fileStorage) {
-          return;
-        }
-        const tag = path.node.tag;
-        if (tag.type === "MemberExpression") {
-          const property = tag.property;
-          const object = tag.object;
-          if (
-            object.type === "Identifier" &&
-            object.name === "styled" &&
-            property.type === "Identifier"
-          ) {
-            let name = null;
-            const parent = path.parent;
-            if (parent.type === "VariableDeclarator") {
-              if (parent.id.type === "Identifier") {
-                name = parent.id.name;
-              }
-            }
-
-            if (path.node.loc) {
-              const id = addStyledToStorage({
-                name: name,
-                loc: path.node.loc,
-                htmlTag: property.name,
-              });
-              path.node.tag = t.callExpression(
-                t.memberExpression(tag, t.identifier("attrs")),
-                [
-                  t.arrowFunctionExpression(
-                    [],
-                    t.objectExpression([
-                      t.objectProperty(
-                        t.stringLiteral("data-locatorjs-styled"),
-                        t.stringLiteral(createDataId(fileStorage, id))
-                      ),
-                    ])
-                  ),
-                ]
-              );
-            }
-          }
-        }
-      },
-      JSXElement(path) {
-        if (!fileStorage) {
-          return;
-        }
-        function getName(
-          el:
-            | BabelTypes.JSXIdentifier
-            | BabelTypes.JSXMemberExpression
-            | BabelTypes.JSXNamespacedName
-        ): string {
-          if (el.type === "JSXIdentifier") {
-            return el.name;
-          } else if (el.type === "JSXMemberExpression") {
-            return getName(el.object) + "." + el.property.name;
-          } else if (el.type === "JSXNamespacedName") {
-            return el.namespace.name + "." + el.name.name;
-          }
-          return "";
-        }
-        let name = getName(path.node.openingElement.name);
-
-        if (name && !isDisallowedComponent(name)) {
-          if (path.node.loc) {
-            const id = addExpressionToStorage({
-              name: name,
-              loc: path.node.loc,
-              wrappingComponentId: currentWrappingComponentId,
-            });
-            const newAttr = t.jSXAttribute(
-              t.jSXIdentifier("data-locatorjs-id"),
-              t.jSXExpressionContainer(
-                t.stringLiteral(
-                  // this is stored by projectPath+filePath because that's the only unique identifier
-                  createDataId(fileStorage, id)
-                )
-                // t.ObjectExpression([
-                // ])
-              )
-            );
-            path.node.openingElement.attributes.push(newAttr);
-          }
-        }
       },
     },
   };
