@@ -1,4 +1,11 @@
 {
   "presets": ["@babel/preset-typescript", "solid"],
-  "plugins": []
+  "plugins": [
+    [
+      "@locator/babel-jsx/dist",
+      {
+        "env": "development"
+      }
+    ]
+  ]
 }
