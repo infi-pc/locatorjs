@@ -26,6 +26,7 @@ export default function InstallSolidJs({}) {
               their files.
               <InstallByAnything packageName="@locator/babel-jsx" />
               <Tabs
+                queryId="stack"
                 items={[
                   {
                     title: "Vite",

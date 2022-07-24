@@ -1,11 +1,31 @@
+import { useRouter } from "next/router";
 import { ReactNode, useState } from "react";
 
 export function Tabs({
   items,
+  queryId,
 }: {
   items: { title: string; content: ReactNode }[];
+  queryId: string;
 }) {
-  const [selected, setSelected] = useState(items[0]);
+  // const [selected, setSelected] = useState(items[0]);
+  const router = useRouter();
+  const selectedKey = router.query[queryId];
+  const selected =
+    items.filter(({ title }) => title === selectedKey)[0] || items[0];
+  function setSelected(newSelected: string) {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: {
+          ...router.query,
+          [queryId]: newSelected,
+        },
+      },
+      undefined,
+      { scroll: false }
+    );
+  }
   const selectedItem = items.filter(({ title }) => selected.title === title)[0];
   return (
     <>
@@ -20,7 +40,7 @@ export function Tabs({
                     : "inline-block p-2 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 cursor-pointer"
                 }
                 onClick={() => {
-                  setSelected(item);
+                  setSelected(item.title);
                 }}
               >
                 {item.title}

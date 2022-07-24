@@ -1,4 +1,3 @@
-import { useRouter } from "next/router";
 import Header from "../../blocks/Header";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
@@ -36,6 +35,7 @@ export default function InstallReactDataId({}) {
               their files.
               <InstallByAnything packageName="@locator/babel-jsx" />
               <Tabs
+                queryId="stack"
                 items={[
                   {
                     title: "Next.js",

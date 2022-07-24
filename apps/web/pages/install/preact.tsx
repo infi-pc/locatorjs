@@ -1,14 +1,10 @@
-import { useRouter } from "next/router";
 import Header from "../../blocks/Header";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import Link from "next/link";
 import { Step } from "../../components/Step";
 import { Tabs } from "../../components/Tabs";
 import { InstallByAnything } from "../../components/InstallByAnything";
 import { BlockHeadline, InlineCode, StepsBody } from "../../components/Styled";
-import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { InstallRuntime } from "../../components/InstallRuntime";
 import { InstallUiInFile } from "../../components/InstallUiInFile";
 import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 
@@ -26,6 +22,7 @@ export default function InstallPreact({}) {
               their files.
               <InstallByAnything packageName="@locator/babel-jsx" />
               <Tabs
+                queryId="stack"
                 items={[
                   {
                     title: "Vite",

@@ -5,6 +5,7 @@ import { Tabs } from "./Tabs";
 export function InstallByAnything({ packageName }: { packageName: string }) {
   return (
     <Tabs
+      queryId="install-tool"
       items={[
         {
           title: "npm",

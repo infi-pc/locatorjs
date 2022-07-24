@@ -7,6 +7,7 @@ import { InstallUiInFile } from "./InstallUiInFile";
 export function InstallRuntime() {
   return (
     <Tabs
+      queryId="stack"
       items={[
         {
           title: "Next.js",
