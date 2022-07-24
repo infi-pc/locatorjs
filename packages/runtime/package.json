@@ -1,7 +1,7 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
-  "version": "0.0.16",
+  "version": "0.1.0",
   "scripts": {
     "test": "jest",
     "test:update": "jest src/ -u",
@@ -18,14 +18,14 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "@locator/shared": "*",
+    "@locator/shared": "^0.1.0",
     "solid-js": "^1.4.4",
     "tailwindcss": "^3.1.6"
   },
   "devDependencies": {
     "@babel/cli": "^7.17.10",
     "@babel/core": "^7.18.5",
-    "@locator/dev-config": "*",
+    "@locator/dev-config": "^0.1.0",
     "@types/jsdom": "^16.2.14",
     "babel-preset-solid": "^1.4.4",
     "concurrently": "^7.2.2",
