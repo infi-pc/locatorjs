@@ -15,5 +15,9 @@
     "tsconfig": "^0.0.1",
     "typescript": "^4.5.3"
   },
-  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
+  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
+  "files": [
+    "dist",
+    "src"
+  ]
 }
