@@ -64,7 +64,7 @@ function GetExtension() {
                   href={extensionLink.chrome}
                   className="px-8 py-3 text-lg transition-shadow bg-white border-0 shadow-lg bg-white-500 focus:outline-none hover:bg-white-600 rounded-xl hover:shadow-xl"
                 >
-                  Get Extension on Chrome Web Store
+                  Get Extension on Web Store
                 </a>
               )}
             </div>
