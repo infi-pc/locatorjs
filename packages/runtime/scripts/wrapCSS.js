@@ -9,7 +9,8 @@ async function run() {
   const wrapped = `export default \`${content
     .replaceAll("`", "\\`")
     .replaceAll("\\:", "\\\\:")
-    .replaceAll("\\.", "\\\\.")}\``;
+    .replaceAll("\\.", "\\\\.")
+    .replaceAll("\\/", "\\\\/")}\``;
 
   await fs.writeFile("./src/_generated_styles.ts", wrapped);
   console.log("CSS file generated");

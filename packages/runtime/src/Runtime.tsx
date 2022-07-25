@@ -19,6 +19,8 @@ import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
 import { bannerClasses } from "./bannerClasses";
 import BannerHeader from "./BannerHeader";
+import { LinkThatWorksWithOption } from "./LinkThatWorksWithOption";
+import LogoIcon from "./LogoIcon";
 
 function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<
@@ -26,6 +28,10 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    null
+  );
+
+  const [dialog, setDialog] = createSignal<"no-link" | "choose-link" | null>(
     null
   );
 
@@ -105,6 +111,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   }
 
   function clickListener(e: MouseEvent) {
+    console.log("clickListener", e);
     if (!isCombinationModifiersPressed(e)) {
       return;
     }
@@ -127,6 +134,8 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
         } else {
           alert("No link found");
         }
+      } else {
+        setDialog("no-link");
       }
     }
   }
@@ -256,6 +265,16 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       getElementInfo(currentElement()!) ? (
         <Outline element={getElementInfo(currentElement()!)!} />
       ) : null} */}
+      {dialog() === "no-link" && (
+        <div
+          class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center bg-black/70 pointer-events-auto"
+          onClick={() => {
+            setDialog(null);
+          }}
+        >
+          <NoLinkDialog />
+        </div>
+      )}
     </>
   );
 }
@@ -278,5 +297,50 @@ export function initRender(
       />
     ),
     solidLayer
+  );
+}
+
+function NoLinkDialog() {
+  return (
+    <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10">
+      <LogoIcon />
+
+      <div class="mt-2 font-bold">No source info found for this element!</div>
+
+      <div class="text-gray-700">
+        <p class="font-medium text-gray-900 mt-2 mb-1">
+          You need one of these:
+        </p>
+        <ul class="pl-4 list-disc">
+          <li>
+            Working React in development mode, with{" "}
+            <LinkThatWorksWithOption href="https://babeljs.io/docs/en/babel-preset-react">
+              preset-react plugins
+            </LinkThatWorksWithOption>
+          </li>
+          <li>React, SolidJS or Preact with Locator Babel plugin</li>
+        </ul>
+        <p class="font-medium text-gray-900 mt-2 mb-1">Setup babel plugin:</p>
+        <div>
+          <ul class="pl-4 list-disc">
+            <li>
+              <LinkThatWorksWithOption href="https://www.locatorjs.com/install/react-data-id">
+                React
+              </LinkThatWorksWithOption>
+            </li>
+            <li>
+              <LinkThatWorksWithOption href="https://www.locatorjs.com/install/preact">
+                Preact
+              </LinkThatWorksWithOption>
+            </li>
+            <li>
+              <LinkThatWorksWithOption href="https://www.locatorjs.com/install/solidjs">
+                SolidJS
+              </LinkThatWorksWithOption>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
   );
 }

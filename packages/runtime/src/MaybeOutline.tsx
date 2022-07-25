@@ -1,5 +1,6 @@
-import { createMemo, JSXElement } from "solid-js";
+import { createMemo } from "solid-js";
 import { AdapterObject } from "./adapters/adapterApi";
+import { LinkThatWorksWithOption } from "./LinkThatWorksWithOption";
 import LogoIcon from "./LogoIcon";
 import { Outline } from "./Outline";
 
@@ -11,6 +12,7 @@ export function MaybeOutline(props: {
   const elInfo = createMemo(() =>
     props.adapter.getElementInfo(props.currentElement)
   );
+  const box = () => props.currentElement.getBoundingClientRect();
   return (
     <>
       {elInfo() ? (
@@ -19,69 +21,29 @@ export function MaybeOutline(props: {
           showTreeFromElement={props.showTreeFromElement}
         />
       ) : (
-        <div class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center cursor-auto pointer-events-auto">
-          <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl">
-            <LogoIcon />
-
-            <div class="mt-2 font-bold">
-              No source info found for this element!
-            </div>
-
-            <div class="text-gray-700">
-              <p class="font-medium text-gray-900 mt-2 mb-1">
-                You need one of these:
-              </p>
-              <ul class="pl-4 list-disc">
-                <li>
-                  Working React in development mode, with{" "}
-                  <LinkMaybe href="https://babeljs.io/docs/en/babel-preset-react">
-                    preset-react plugins
-                  </LinkMaybe>
-                </li>
-                <li>React, SolidJS or Preact with Locator Babel plugin</li>
-              </ul>
-              <p class="font-medium text-gray-900 mt-2 mb-1">
-                Setup babel plugin:
-              </p>
-              <div>
-                <ul class="pl-4 list-disc">
-                  <li>
-                    <LinkMaybe href="https://www.locatorjs.com/install/react-data-id">
-                      React
-                    </LinkMaybe>
-                  </li>
-                  <li>
-                    <LinkMaybe href="https://www.locatorjs.com/install/preact">
-                      Preact
-                    </LinkMaybe>
-                  </li>
-                  <li>
-                    <LinkMaybe href="https://www.locatorjs.com/install/solidjs">
-                      SolidJS
-                    </LinkMaybe>
-                  </li>
-                </ul>
-              </div>
-            </div>
+        <div class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center">
+          <div
+            class="flex items-center justify-center"
+            style={{
+              position: "absolute",
+              left: box().x + "px",
+              top: box().y + "px",
+              width: box().width + "px",
+              height: box().height + "px",
+              "background-color": "rgba(222, 0, 0, 0.3)",
+              border: "1px solid rgba(222, 0, 0, 0.5)",
+              "border-radius": "2px",
+              "font-size": "12px",
+              "font-weight": "bold",
+              "text-shadow":
+                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
+              "text-overflow": "ellipsis",
+            }}
+          >
+            No source found
           </div>
         </div>
       )}
     </>
-  );
-}
-
-function LinkMaybe(props: { href: string; children: JSXElement }) {
-  return (
-    <a
-      href={props.href}
-      target="_blank"
-      class="underline"
-      onClick={(e) => {
-        e.preventDefault();
-        window.open(props.href, "_blank");
-      }}
-    >
-      {props.children}
-    </a>
   );
 }

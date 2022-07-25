@@ -7,7 +7,7 @@ export default function Why() {
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col w-full text-center">
           <h2 className="mb-4 text-2xl font-medium text-gray-900 font-display sm:text-5xl title-font dark:text-white">
-            Speed up your development
+            Speed up your web development
           </h2>
 
           <div className="flex flex-wrap justify-center mt-2 -mx-4 -mb-10 space-y-6 sm:m-4 sm:mt-10 md:space-y-0">
