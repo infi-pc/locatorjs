@@ -1,15 +1,20 @@
 import { Fiber, Source } from "@locator/shared";
-import { buildLinkFromSource } from "../../buidLink";
 import { LabelData } from "../../LabelData";
 import { getUsableName } from "../../getUsableName";
 
 export function getFiberLabel(fiber: Fiber, source?: Source): LabelData {
   const name = getUsableName(fiber);
 
-  const link = source ? buildLinkFromSource(source) : null;
   const label: LabelData = {
     label: name,
-    link: link || "",
+    link: source
+      ? {
+          filePath: source.fileName,
+          projectPath: "",
+          line: source.lineNumber,
+          column: source.columnNumber || 0,
+        }
+      : null,
   };
   return label;
 }

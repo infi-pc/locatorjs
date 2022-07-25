@@ -1,3 +1,4 @@
+import { Targets } from "@locator/shared";
 import { createMemo } from "solid-js";
 import { AdapterObject } from "./adapters/adapterApi";
 import { LinkThatWorksWithOption } from "./LinkThatWorksWithOption";
@@ -8,6 +9,7 @@ export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
   adapter: AdapterObject;
+  targets: Targets;
 }) {
   const elInfo = createMemo(() =>
     props.adapter.getElementInfo(props.currentElement)
@@ -19,6 +21,7 @@ export function MaybeOutline(props: {
         <Outline
           element={elInfo()!}
           showTreeFromElement={props.showTreeFromElement}
+          targets={props.targets}
         />
       ) : (
         <div class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center">

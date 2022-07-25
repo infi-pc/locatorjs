@@ -1,10 +1,10 @@
 import { LabelData } from "../LabelData";
-import { SimpleDOMRect } from "../types";
+import { LinkProps, SimpleDOMRect } from "../types";
 
 export type ElementInfo = {
   box: SimpleDOMRect;
   label: string;
-  link: string | null;
+  link: LinkProps | null;
 };
 
 export type FullElementInfo = {

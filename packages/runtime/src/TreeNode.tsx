@@ -1,3 +1,4 @@
+import { Targets } from "@locator/shared";
 import { createSignal, For } from "solid-js";
 import { goToSource } from "./goTo";
 import { HighlightedNode, SimpleNode } from "./types";
@@ -11,6 +12,7 @@ export function TreeNode(props: {
     [id: string]: true;
   };
   highlightedNode: HighlightedNode;
+  targets: Targets;
 }) {
   const [manuallyExpanded, setManuallyExpanded] = createSignal(false);
   function isExpanded() {
@@ -28,6 +30,7 @@ export function TreeNode(props: {
             idsToShow={props.idsToShow}
             idsThatHaveExpandedSuccessor={props.idsThatHaveExpandedSuccessor}
             highlightedNode={props.highlightedNode}
+            targets={props.targets}
           />
         )}
       </For>
@@ -54,7 +57,7 @@ export function TreeNode(props: {
       <button
         onClick={() => {
           if (props.node.source) {
-            goToSource(props.node.source);
+            goToSource(props.node.source, props.targets);
           }
         }}
         style={{

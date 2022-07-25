@@ -1,17 +1,23 @@
-import { allTargets } from "@locator/shared";
+import { allTargets, Targets } from "@locator/shared";
 
-export function setTemplate(linkOrTemplate: string) {
+export function setLocalStorageLinkTemplate(linkOrTemplate: string) {
   localStorage.setItem("LOCATOR_CUSTOM_LINK", linkOrTemplate);
 }
 
-export const getLinkTypeOrTemplate = () =>
+export function getLocalStorageLinkTemplate() {
+  return localStorage.getItem("LOCATOR_CUSTOM_LINK");
+}
+export const getLinkTypeOrTemplate = (targets: Targets) =>
   document.documentElement.dataset.locatorTarget ||
-  localStorage.getItem("LOCATOR_CUSTOM_LINK") ||
-  "vscode";
+  getLocalStorageLinkTemplate() ||
+  Object.entries(targets)[0]![0];
 
-export const linkTemplate = () => allTargets[getLinkTypeOrTemplate()];
-
-export function linkTemplateUrl(): string {
-  const l = linkTemplate();
-  return l ? l.url : getLinkTypeOrTemplate();
+export function linkTemplateUrl(targets: Targets): string {
+  const templateOrType = getLinkTypeOrTemplate(targets);
+  console.log("targets", targets);
+  const target = targets[templateOrType];
+  if (target) {
+    return target.url;
+  }
+  return templateOrType;
 }

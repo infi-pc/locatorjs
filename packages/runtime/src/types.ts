@@ -43,3 +43,10 @@ export type SimpleDOMRect = {
 };
 
 export type Targets = { [k: string]: Target | string };
+
+export type LinkProps = {
+  filePath: string;
+  projectPath: string;
+  line: number;
+  column: number;
+};

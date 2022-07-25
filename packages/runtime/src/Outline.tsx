@@ -6,10 +6,13 @@ import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import { goTo } from "./goTo";
 import { SimpleDOMRect } from "./types";
 import { FullElementInfo } from "./adapters/adapterApi";
+import { buildLink } from "./buildLink";
+import { Targets } from "@locator/shared";
 
 export function Outline(props: {
   element: FullElementInfo;
   showTreeFromElement: (element: HTMLElement) => void;
+  targets: Targets;
 }) {
   const box = () => props.element.thisElement.box;
   return (
@@ -44,6 +47,7 @@ export function Outline(props: {
         bbox={props.element.componentBox}
         element={props.element.htmlElement}
         showTreeFromElement={props.showTreeFromElement}
+        targets={props.targets}
       />
     </>
   );
@@ -54,6 +58,7 @@ function ComponentOutline(props: {
   labels: LabelData[];
   element: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
+  targets: Targets;
 }) {
   const isInside = () => props.bbox.height >= window.innerHeight - 40;
   const isBelow = () => props.bbox.y < 30 && !isInside();
@@ -143,23 +148,26 @@ function ComponentOutline(props: {
             </a>
           ) : null}
           <For each={props.labels}>
-            {(label) =>
-              label.link ? (
+            {(label) => {
+              const link = label.link
+                ? buildLink(label.link, props.targets)
+                : null;
+              return link ? (
                 <a
                   class="locatorjs-label"
-                  href={label.link}
+                  href={link}
                   target={HREF_TARGET}
                   onClick={() => {
                     trackClickStats();
-                    goTo(label.link!);
+                    goTo(link!);
                   }}
                 >
                   {label.label}
                 </a>
               ) : (
                 <div class="locatorjs-label">{label.label}</div>
-              )
-            }
+              );
+            }}
           </For>
         </div>
       </div>
