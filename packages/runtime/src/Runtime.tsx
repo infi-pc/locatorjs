@@ -15,12 +15,10 @@ import { SimpleNodeOutline } from "./SimpleNodeOutline";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import jsxAdapter from "./adapters/jsx/jsxAdapter";
 import { AdapterObject } from "./adapters/adapterApi";
-import LogoIcon from "./LogoIcon";
 import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
-import { isExtension } from "./isExtension";
-import { OpenOptionsButton } from "./OpenOptionsButton";
 import { bannerClasses } from "./bannerClasses";
+import BannerHeader from "./BannerHeader";
 
 function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<
@@ -235,16 +233,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       ) : null}
       {holdingModKey() ? (
         <div class={bannerClasses()}>
-          <div class="flex justify-between gap-2">
-            <LogoIcon />
-            {!isExtension() ? (
-              <OpenOptionsButton
-                onClick={() => {
-                  openOptions();
-                }}
-              />
-            ) : null}
-          </div>
+          <BannerHeader openOptions={openOptions} />
         </div>
       ) : null}
       {highlightedNode() ? (
