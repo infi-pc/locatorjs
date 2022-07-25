@@ -849,6 +849,14 @@ select {
   width: 1.5rem;
 }
 
+.max-w-md {
+  max-width: 28rem;
+}
+
+.max-w-2xl {
+  max-width: 42rem;
+}
+
 .flex-shrink {
   flex-shrink: 1;
 }
@@ -903,6 +911,18 @@ select {
 
 .gap-1 {
   gap: 0.25rem;
+}
+
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
 }
 
 .rounded {

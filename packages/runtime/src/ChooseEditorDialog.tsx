@@ -14,9 +14,11 @@ export function ChooseEditorDialog(props: {
     // eslint-disable-next-line solid/reactivity
     Object.entries(props.targets)[0]![0]
   );
-  const originalLink = () => buildLink(props.originalLinkProps, props.targets);
+  const currentLink = () =>
+    buildLink(props.originalLinkProps, props.targets, selectedTarget());
+
   return (
-    <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10">
+    <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-2xl">
       <h1>Choose an editor</h1>
       <EditorLinkForm
         targets={props.targets}
@@ -27,8 +29,8 @@ export function ChooseEditorDialog(props: {
         <label for="email" class="block text-sm font-medium text-slate-700">
           Link preview:
         </label>
-        <code class="flex first-letter:text-sm mt-1 bg-green-100 text-green-600 py-1 px-2 rounded">
-          {originalLink()}
+        <code class="flex first-letter:text-sm mt-1 bg-green-100 text-green-600 py-1 px-2 rounded whitespace-pre-wrap break-all">
+          {currentLink()}
         </code>
       </div>
       <div class="mt-4 flex justify-between items-center">

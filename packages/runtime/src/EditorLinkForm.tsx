@@ -73,7 +73,7 @@ export function EditorLinkForm(props: {
               selectCustom();
             }
           }}
-          onChange={(e) => {
+          onInput={(e) => {
             props.selectTarget(e.currentTarget.value);
           }}
           type="text"
