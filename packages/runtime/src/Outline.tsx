@@ -143,7 +143,7 @@ function ComponentOutline(props: {
             </a>
           ) : null}
           <For each={props.labels}>
-            {(label, i) =>
+            {(label) =>
               label.link ? (
                 <a
                   class="locatorjs-label"

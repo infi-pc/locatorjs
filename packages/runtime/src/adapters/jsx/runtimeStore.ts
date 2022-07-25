@@ -1,5 +1,4 @@
 import { buidLink } from "../../buidLink";
-import { LabelData } from "../../LabelData";
 import { parseDataId } from "../../parseDataId";
 
 export function getDataForDataId(dataId: string) {
