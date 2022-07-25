@@ -85,9 +85,19 @@ export default defineConfig({
                 ]}
               />
             </Step>
-            <Step title="Add UI library" no={2}>
-              Call this function to show the components and handle the
-              clickings.
+            <Step
+              title={
+                <>
+                  Add UI library{" "}
+                  <span className="font-normal text-gray-500">
+                    (optional for Browser Extension users)
+                  </span>
+                </>
+              }
+              no={2}
+            >
+              Import and call setup function to show the components and handle
+              the clickings.
               <InstallByAnything packageName="@locator/runtime" />
               <br />
               <InstallUiInFile file="index.jsx" />

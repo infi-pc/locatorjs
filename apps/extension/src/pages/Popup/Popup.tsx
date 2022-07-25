@@ -139,24 +139,53 @@ const Popup = () => {
                   </Box>
                 </Alert>
 
-                <div class="mt-2">
-                  <SectionHeadline>Requirements to check:</SectionHeadline>
-                  <p>Make sure that the page:</p>
+                <div class="">
+                  <p class="font-medium mt-2">You need one of these:</p>
                   <ul class="pl-4">
-                    <li>is running React</li>
-                    <li>is running in development mode</li>
                     <li>
-                      has{' '}
+                      Working React in development mode, with{' '}
                       <a
                         class="underline"
-                        href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#requirements"
+                        href="https://babeljs.io/docs/en/babel-preset-react"
                         target="_blank"
                       >
-                        sources plugin
-                      </a>{' '}
-                      (CRA, Next.js and others have it automatically)
+                        preset-react plugins
+                      </a>
                     </li>
+                    <li>React, SolidJS or Preact with Locator Babel plugin</li>
                   </ul>
+                  <p class="font-medium mt-2">Setup babel plugin:</p>
+                  <div>
+                    <ul class="pl-4">
+                      <li>
+                        <a
+                          class="underline"
+                          href="https://www.locatorjs.com/install/react-data-id"
+                          target="_blank"
+                        >
+                          React
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="underline"
+                          href="https://www.locatorjs.com/install/preact"
+                          target="_blank"
+                        >
+                          Preact
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="underline"
+                          href="https://www.locatorjs.com/install/solidjs"
+                          target="_blank"
+                        >
+                          SolidJS
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
 
                 <div class="mt-2 pb-4">
