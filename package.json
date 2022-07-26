@@ -15,37 +15,9 @@
     "publishPackages": "lerna publish"
   },
   "devDependencies": {
-    "lerna": "^4.0.0",
-    "prettier": "^2.5.1",
-    "turbo": "^1.2.8"
-  },
-  "turbo": {
-    "pipeline": {
-      "build": {
-        "dependsOn": [
-          "^build"
-        ],
-        "outputs": [
-          "dist/**",
-          ".next/**"
-        ]
-      },
-      "lint": {
-        "dependsOn": [
-          "^build"
-        ],
-        "outputs": []
-      },
-      "test": {
-        "dependsOn": [
-          "build"
-        ],
-        "outputs": []
-      },
-      "dev": {
-        "cache": false
-      }
-    }
+    "lerna": "^5.2.0",
+    "prettier": "^2.7.1",
+    "turbo": "^1.3.4"
   },
   "engines": {
     "npm": ">=7.0.0",

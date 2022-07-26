@@ -1,8 +1,6 @@
 import { Targets } from "@locator/shared";
 import { createMemo } from "solid-js";
 import { AdapterObject } from "./adapters/adapterApi";
-import { LinkThatWorksWithOption } from "./LinkThatWorksWithOption";
-import LogoIcon from "./LogoIcon";
 import { Outline } from "./Outline";
 
 export function MaybeOutline(props: {

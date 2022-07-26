@@ -1,6 +1,6 @@
 {
   "name": "@locator/shared",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "./dist/index.js",
   "license": "MIT",
   "scripts": {
@@ -10,8 +10,8 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.18.9",
-    "@types/react": "^17.0.37",
-    "@types/react-dom": "^17.0.11",
+    "@types/react": "^18.0.15",
+    "@types/react-dom": "^18.0.6",
     "tsconfig": "^0.0.1",
     "typescript": "^4.5.3"
   },
