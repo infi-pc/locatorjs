@@ -3,6 +3,7 @@ export * from "./types";
 export type Target = {
   url: string;
   label: string;
+  // target?: "_blank" | "_self" | "_parent" | "_top" | string;
 };
 
 export type Targets = { [k: string]: Target };

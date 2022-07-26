@@ -34,7 +34,10 @@ export function ChooseEditorDialog(props: {
         </code>
       </div>
       <div class="mt-4 flex justify-between items-center">
-        <div>{/* TODO: "use this editor next times"  */}</div>
+        <div class="text-sm text-gray-600">
+          Locator will remember your choice, you can change it later in
+          settings.
+        </div>
         <div>
           <button
             onClick={() => {
