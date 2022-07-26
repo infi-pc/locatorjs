@@ -83,20 +83,24 @@ export function insertRuntimeScript() {
 
 function insertScript(locatorClientUrl: string) {
   const script = document.createElement('script');
+  script.className = 'locatorjs-extension-script';
   script.src = locatorClientUrl;
 
   if (document.head) {
     document.head.appendChild(script);
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-      // TODO maybe add back
-      // delete document.documentElement.dataset.locatorClientUrl;
-    }
+    // TODO: cleanup would be nice, but cuttently we need to keep the script to check it it was loaded from extension
+    // if (script.parentNode) {
+    //   script.parentNode.removeChild(script);
+    //   // TODO maybe add back
+    //   // delete document.documentElement.dataset.locatorClientUrl;
+    // }
     const foundIFrames = document.getElementsByTagName('iframe');
+
     for (const iframe of foundIFrames) {
       try {
         const script = document.createElement('script');
         script.src = locatorClientUrl;
+        script.className = 'locatorjs-extension-script';
         iframe.contentWindow?.document.head.appendChild(script);
       } catch (e) {
         // Fail silently, in most cases it will be cross-origin, and we don't need Locator there.
