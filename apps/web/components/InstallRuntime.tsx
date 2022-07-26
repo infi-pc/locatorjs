@@ -2,7 +2,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Tabs } from "./Tabs";
 import { InlineCode } from "./Styled";
-import { InstallUiInFile } from "./InstallUiInFile";
+import { InstallUiInFile, minimalImportScript } from "./InstallUiInFile";
 
 export function InstallRuntime() {
   return (
@@ -22,18 +22,24 @@ export function InstallRuntime() {
           content: <InstallUiInFile file="main.jsx" />,
         },
         {
+          title: "Storybook",
+          content: (
+            <>
+              Add this to <InlineCode>.storybook/preview.js</InlineCode>
+              <SyntaxHighlighter language="javascript" style={a11yDark}>
+                {minimalImportScript}
+              </SyntaxHighlighter>
+            </>
+          ),
+        },
+        {
           title: "Others",
           content: (
             <>
-              Add this to some global/root file, usually :
+              Add this to some global/root file, usually:
               <InlineCode>index.js</InlineCode>
               <SyntaxHighlighter language="javascript" style={a11yDark}>
-                {`import setupLocatorUI from "@locator/runtime";
-          
-if (process.env.NODE_ENV === "development") {
-  setupLocatorUI();
-}
-`}
+                {minimalImportScript}
               </SyntaxHighlighter>
             </>
           ),

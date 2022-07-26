@@ -17,6 +17,19 @@ import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
 import { InstallRuntime } from "../../components/InstallRuntime";
 import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 
+export const babelPluginMinimalConfig = `
+{
+  "plugins": [
+    [
+      "@locator/babel-jsx/dist",
+      {
+        "env": "development"
+      }
+    ]
+  ]
+}
+`;
+
 export default function InstallReactDataId({}) {
   return (
     <>
@@ -27,7 +40,10 @@ export default function InstallReactDataId({}) {
           <p className="text-center">
             Install Locator on React codebase. This is data-ids variant which is
             alternative solution for{" "}
-            <Link href="/install/react">devtools variant</Link>.{" "}
+            <Link href="/install/react">
+              <StandardLink>devtools variant</StandardLink>
+            </Link>
+            .{" "}
           </p>
           <StepsBody>
             <Step title="Add Babel plugin" no={1}>
@@ -124,6 +140,22 @@ export default defineConfig({
                     ),
                   },
                   {
+                    title: "Storybook",
+                    content: (
+                      <>
+                        Add this to <InlineCode>.storybook/.babelrc</InlineCode>
+                        :
+                        <SyntaxHighlighter
+                          language="javascript"
+                          style={a11yDark}
+                        >
+                          {babelPluginMinimalConfig}
+                        </SyntaxHighlighter>
+                        <NotUsingBabelAlert />
+                      </>
+                    ),
+                  },
+                  {
                     title: "Others",
                     content: (
                       <>
@@ -132,13 +164,7 @@ export default defineConfig({
                           language="javascript"
                           style={a11yDark}
                         >
-                          {`[
-  "@locator/babel-jsx/dist",
-  {
-    env: "development",
-  },
-],
-`}
+                          {babelPluginMinimalConfig}
                         </SyntaxHighlighter>
                         <NotUsingBabelAlert />
                       </>

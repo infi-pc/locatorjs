@@ -1,3 +1,9 @@
+import setupLocatorUI from "@locator/runtime";
+
+if (process.env.NODE_ENV === "development") {
+  setupLocatorUI();
+}
+
 export const parameters = {
   actions: { argTypesRegex: "^on[A-Z].*" },
   controls: {
@@ -6,4 +12,4 @@ export const parameters = {
       date: /Date$/,
     },
   },
-}
+};

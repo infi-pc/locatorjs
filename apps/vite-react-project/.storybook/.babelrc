@@ -1,7 +1,11 @@
 {
   "presets": ["@babel/preset-react"],
   "plugins": [
-    "@babel/plugin-transform-react-jsx-self",
-    "@babel/plugin-transform-react-jsx-source"
+    [
+      "@locator/babel-jsx/dist",
+      {
+        "env": "development"
+      }
+    ]
   ]
 }

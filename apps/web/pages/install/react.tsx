@@ -5,6 +5,7 @@ import { InstallByAnything } from "../../components/InstallByAnything";
 import {
   Alert,
   BlockHeadline,
+  InlineCode,
   InstallContainer,
   StandardLink,
   StepsBody,
@@ -12,6 +13,21 @@ import {
 import { getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
 import { getAllExtensionsLinks } from "../../components/AllBrowsersLinks";
+import { babelPluginMinimalConfig } from "./react-data-id";
+import { useState } from "react";
+import { MdArrowDropDown, MdArrowDropUp } from "react-icons/md";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { minimalImportScript } from "../../components/InstallUiInFile";
+
+export const babelPluginMinimalDevtoolsConfig = `{
+  "presets": ["@babel/preset-react"],
+  "plugins": [
+    "@babel/plugin-transform-react-jsx-self",
+    "@babel/plugin-transform-react-jsx-source"
+  ]
+}
+`;
 
 export default function InstallReact({}) {
   return (
@@ -57,6 +73,14 @@ export default function InstallReact({}) {
                   </span>
                 );
               })}
+              <Expandable title="storybook">
+                <>
+                  Add this to <InlineCode>.storybook/.babelrc</InlineCode>:
+                  <SyntaxHighlighter language="json" style={a11yDark}>
+                    {babelPluginMinimalDevtoolsConfig}
+                  </SyntaxHighlighter>
+                </>
+              </Expandable>
             </Step>
             <Step
               title={
@@ -70,6 +94,14 @@ export default function InstallReact({}) {
               members can use it. You can install it as a library.
               <InstallByAnything packageName="@locator/runtime" />
               <InstallRuntime />
+              <Expandable title="storybook">
+                <>
+                  Add this to <InlineCode>.storybook/preview.js</InlineCode>
+                  <SyntaxHighlighter language="javascript" style={a11yDark}>
+                    {minimalImportScript}
+                  </SyntaxHighlighter>
+                </>
+              </Expandable>
             </Step>
 
             <Step title="Troubleshooting" no={"?"}>
@@ -90,8 +122,14 @@ export default function InstallReact({}) {
                 babel-plugin-transform-react-jsx-source
               </StandardLink>{" "}
               you should set it up manually.
+              <div className="mt-1">
+                <b>tl;dr</b> Adding this to your Babel config might help:
+                <SyntaxHighlighter language="json" style={a11yDark}>
+                  {babelPluginMinimalDevtoolsConfig}
+                </SyntaxHighlighter>
+              </div>
               <br />
-              Or try alternative{" "}
+              <b>Or try alternative:</b>{" "}
               <Link href="/install/react-data-id">
                 <StandardLink>
                   installation based on custom Babel plugin
@@ -102,5 +140,31 @@ export default function InstallReact({}) {
         </InstallContainer>
       </section>
     </>
+  );
+}
+
+function Expandable({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center text-sm font-medium"
+      >
+        <div className="text-blue-600 hover:text-blue-800">{title}</div>
+        {isOpen ? (
+          <MdArrowDropUp size={20}></MdArrowDropUp>
+        ) : (
+          <MdArrowDropDown size={20}></MdArrowDropDown>
+        )}
+      </button>
+      {isOpen && <div>{children}</div>}
+    </div>
   );
 }
