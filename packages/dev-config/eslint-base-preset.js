@@ -8,5 +8,6 @@ module.exports = {
   rules: {
     "no-console": ["error", { allow: ["error", "info"] }],
     "@typescript-eslint/no-unused-vars": ["warn"],
+    "@typescript-eslint/no-explicit-any": ["off"],
   },
 };

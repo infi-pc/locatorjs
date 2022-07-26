@@ -28,7 +28,8 @@
     "semver": "^7.3.7",
     "solid-icons": "^0.4.12",
     "solid-js": "^1.3.2",
-    "solid-transition-group": "^0.0.10"
+    "solid-transition-group": "^0.0.10",
+    "@locator/shared": "*"
   },
   "devDependencies": {
     "@babel/core": "^7.15.8",

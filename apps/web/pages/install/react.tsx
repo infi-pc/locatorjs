@@ -13,7 +13,6 @@ import {
 import { getBrowserLink } from "../../blocks/shared";
 import { InstallRuntime } from "../../components/InstallRuntime";
 import { getAllExtensionsLinks } from "../../components/AllBrowsersLinks";
-import { babelPluginMinimalConfig } from "./react-data-id";
 import { useState } from "react";
 import { MdArrowDropDown, MdArrowDropUp } from "react-icons/md";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -29,7 +28,7 @@ export const babelPluginMinimalDevtoolsConfig = `{
 }
 `;
 
-export default function InstallReact({}) {
+export default function InstallReact() {
   return (
     <>
       <Header />
@@ -46,7 +45,7 @@ export default function InstallReact({}) {
           </p>
           <Alert>
             Both browser extension and library require either working devtools
-            with sources or Locator's Babel plugin.
+            with sources or Locator{"'"}s Babel plugin.
           </Alert>
 
           <StepsBody>
@@ -117,7 +116,7 @@ export default function InstallReact({}) {
               <br />
               Non-babel stacks use similar alternatives. <br />
               <br />
-              If you don't have{" "}
+              If you don{"'"}t have{" "}
               <StandardLink href="https://babeljs.io/docs/en/babel-plugin-transform-react-jsx-source">
                 babel-plugin-transform-react-jsx-source
               </StandardLink>{" "}

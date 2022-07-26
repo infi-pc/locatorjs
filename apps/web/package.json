@@ -8,11 +8,12 @@
   },
   "dependencies": {
     "@locator/runtime": "*",
+    "@types/react-syntax-highlighter": "^15.5.3",
     "bowser": "^2.11.0",
     "next": "^12.1.0",
     "next-transpile-modules": "^9.0.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-icons": "^4.3.1",
     "react-syntax-highlighter": "^15.5.0",
     "tailwind-styled-components": "^2.1.8",
@@ -20,7 +21,7 @@
   },
   "devDependencies": {
     "@locator/babel-jsx": "*",
-    "@types/react": "^17.0.37",
+    "@types/react": "^18.0.15",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.4",
     "tailwindcss": "^3.0.0"

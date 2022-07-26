@@ -1,7 +1,7 @@
 import { Fiber, Targets } from "@locator/shared";
 import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
-import { Adapter, HREF_TARGET } from "./consts";
+import { Adapter } from "./consts";
 import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
 import reactAdapter from "./adapters/react/reactAdapter";
@@ -21,7 +21,6 @@ import { bannerClasses } from "./bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { isExtension } from "./isExtension";
 import { getLocalStorageLinkTemplate } from "./linkTemplateUrl";
-import { buildLink } from "./buildLink";
 import { NoLinkDialog } from "./NoLinkDialog";
 import { ChooseEditorDialog } from "./ChooseEditorDialog";
 import { isLocatorsOwnElement } from "./isLocatorsOwnElement";

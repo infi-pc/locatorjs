@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 
 export function Tabs({
   items,

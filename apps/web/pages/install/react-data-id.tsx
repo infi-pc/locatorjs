@@ -6,7 +6,6 @@ import { Step } from "../../components/Step";
 import { Tabs } from "../../components/Tabs";
 import { InstallByAnything } from "../../components/InstallByAnything";
 import {
-  Alert,
   BlockHeadline,
   InlineCode,
   InstallContainer,
@@ -30,7 +29,7 @@ export const babelPluginMinimalConfig = `
 }
 `;
 
-export default function InstallReactDataId({}) {
+export default function InstallReactDataId() {
   return (
     <>
       <Header />
@@ -47,8 +46,8 @@ export default function InstallReactDataId({}) {
           </p>
           <StepsBody>
             <Step title="Add Babel plugin" no={1}>
-              You need a babel plugin to gather all the component's locations in
-              their files.
+              You need a babel plugin to gather all the component{"'"}s
+              locations in their files.
               <InstallByAnything packageName="@locator/babel-jsx" />
               <Tabs
                 queryId="stack"

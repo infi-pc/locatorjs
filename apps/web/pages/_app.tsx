@@ -1,7 +1,6 @@
 import "../styles/globals.css";
 import setupLocatorUI from "@locator/runtime";
 import Head from "next/head";
-import Script from "next/script";
 
 const branchName = process.env.VERCEL_GIT_COMMIT_REF || "master";
 

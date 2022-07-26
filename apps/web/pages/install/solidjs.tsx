@@ -1,8 +1,6 @@
-import { useRouter } from "next/router";
 import Header from "../../blocks/Header";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import Link from "next/link";
 import { Step } from "../../components/Step";
 import { Tabs } from "../../components/Tabs";
 import { InstallByAnything } from "../../components/InstallByAnything";
@@ -12,12 +10,10 @@ import {
   InstallContainer,
   StepsBody,
 } from "../../components/Styled";
-import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { InstallRuntime } from "../../components/InstallRuntime";
 import { InstallUiInFile } from "../../components/InstallUiInFile";
 import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 
-export default function InstallSolidJs({}) {
+export default function InstallSolidJs() {
   return (
     <>
       <Header />
@@ -27,8 +23,8 @@ export default function InstallSolidJs({}) {
           <p className="text-center">Install Locator on SolidJS codebase.</p>
           <StepsBody>
             <Step title="Add Babel plugin" no={1}>
-              You need a babel plugin to gather all the component's locations in
-              their files.
+              You need a babel plugin to gather all the component{"'"}s
+              locations in their files.
               <InstallByAnything packageName="@locator/babel-jsx" />
               <Tabs
                 queryId="stack"
