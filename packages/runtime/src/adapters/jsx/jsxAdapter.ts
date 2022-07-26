@@ -1,6 +1,5 @@
 import { AdapterObject, FullElementInfo } from "../adapterApi";
 import { parseDataId } from "../../parseDataId";
-import { buidLink } from "../../buidLink";
 import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
@@ -44,15 +43,13 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const styledExpData =
       styledFileData && styledFileData.styledDefinitions[Number(styledId)];
 
-    const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const styledLink =
-      styledExpData &&
-      buidLink(
-        styledFileData.filePath,
-        styledFileData.projectPath,
-        styledExpData.loc
-      );
+    const styledLink = styledExpData && {
+      filePath: styledFileData.filePath,
+      projectPath: styledFileData.projectPath,
+      column: styledExpData.loc?.start.column || 0,
+      line: styledExpData.loc?.start.line || 0,
+    };
 
     // TODO move styled to separate data
     // const styled = found.dataset.locatorjsStyled
@@ -68,7 +65,12 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       thisElement: {
         box: found.getBoundingClientRect(),
         label: expData.name,
-        link: link,
+        link: {
+          filePath: fileData.filePath,
+          projectPath: fileData.projectPath,
+          column: expData.loc.start.column || 0,
+          line: expData.loc.start.line || 0,
+        },
       },
       htmlElement: found,
       parentElements: [],
@@ -82,13 +84,12 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
         ? [
             {
               label: wrappingComponent.name || "component",
-              link: wrappingComponent.loc
-                ? buidLink(
-                    fileData.filePath,
-                    fileData.projectPath,
-                    wrappingComponent.loc
-                  )
-                : null,
+              link: {
+                filePath: fileData.filePath,
+                projectPath: fileData.projectPath,
+                column: wrappingComponent.loc?.start.column || 0,
+                line: wrappingComponent.loc?.start.line || 0,
+              },
             },
           ]
         : [],

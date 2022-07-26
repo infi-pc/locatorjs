@@ -8,12 +8,18 @@ const branchName = process.env.VERCEL_GIT_COMMIT_REF || "master";
 setupLocatorUI(
   process.env.NODE_ENV === "production"
     ? {
-        // On production we have to enable it with cookies, on stagings it is just hidden
-        // defaultMode: process.env.VERCEL_ENV === "production" ? "disabled" : "hidden",
         adapter: "jsx",
         targets: {
-          GitHub: `https://www.github.com/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
-          Editor: `https://github.dev/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
+          github: {
+            label: "GitHub",
+            url: `https://www.github.com/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
+            // target: "_blank",
+          },
+          githubDevEditor: {
+            label: "GitHub.dev Editor",
+            url: `https://github.dev/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
+            // target: "_blank",
+          },
         },
       }
     : {

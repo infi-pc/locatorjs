@@ -2,6 +2,7 @@ import { HighlightedNode, SimpleNode } from "./types";
 import { TreeNode } from "./TreeNode";
 import { createMemo, createSignal } from "solid-js";
 import { getIdsThatHaveExpandedSuccessor } from "./getIdsThatHaveExpandedSuccessor";
+import { Targets } from "@locator/shared";
 
 export type IdsMap = { [id: string]: true };
 
@@ -9,6 +10,7 @@ export function RootTreeNode(props: {
   node: SimpleNode;
   idsToShow: IdsMap;
   highlightedNode: HighlightedNode;
+  targets: Targets;
 }) {
   const idsThatHaveExpandedSuccessor = createMemo(() => {
     return getIdsThatHaveExpandedSuccessor(props.node, props.idsToShow);
@@ -42,6 +44,7 @@ export function RootTreeNode(props: {
             idsToShow={props.idsToShow}
             idsThatHaveExpandedSuccessor={idsThatHaveExpandedSuccessor()}
             highlightedNode={props.highlightedNode}
+            targets={props.targets}
           />
         </>
       ) : (
@@ -58,6 +61,7 @@ export function RootTreeNode(props: {
             idsToShow={props.idsToShow}
             idsThatHaveExpandedSuccessor={idsThatHaveExpandedSuccessor()}
             highlightedNode={props.highlightedNode}
+            targets={props.targets}
           />
         </>
       )}

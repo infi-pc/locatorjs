@@ -1,4 +1,3 @@
-import { buidLink } from "../../buidLink";
 import { parseDataId } from "../../parseDataId";
 
 export function getDataForDataId(dataId: string) {
@@ -18,7 +17,12 @@ export function getDataForDataId(dataId: string) {
     return null;
   }
 
-  const link = buidLink(fileData.filePath, fileData.projectPath, expData.loc);
+  const link = {
+    filePath: fileData.filePath,
+    projectPath: fileData.projectPath,
+    column: expData.loc.start.column || 0,
+    line: expData.loc.start.line || 0,
+  };
 
   // let label;
   // if (expData.type === "jsx") {
