@@ -40,6 +40,17 @@ export function insertRuntimeScript() {
       return 'Locator client url not found';
     }
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    if (window.__SVELTE_HMR) {
+      // __SVELTE_HMR is so far the only way to detect svelte I found
+      const inserted = insertScript(locatorClientUrl);
+      if (inserted) {
+        scriptLoaded = true;
+        return 'ok';
+      }
+    }
+
     // JSX adapter
     if (document.querySelector('[data-locatorjs-id]')) {
       const inserted = insertScript(locatorClientUrl);

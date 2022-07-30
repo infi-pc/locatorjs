@@ -1,5 +1,5 @@
 import { Fiber } from "@locator/shared";
-import { getAllFiberChildren } from "../../getAllFiberChildren";
+import { getAllFiberChildren } from "./getAllFiberChildren";
 
 export function getAllWrappingParents(fiber: Fiber): Fiber[] {
   const parents: Fiber[] = [fiber];

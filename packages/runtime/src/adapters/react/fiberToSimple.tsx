@@ -3,7 +3,7 @@ import { getBoundingRect } from "../../getBoundingRect";
 import { getComposedBoundingBox } from "../../getComposedBoundingBox";
 import { getUsableName } from "../../getUsableName";
 
-import { getAllFiberChildren } from "../../getAllFiberChildren";
+import { getAllFiberChildren } from "./getAllFiberChildren";
 import { SimpleNode } from "../../types";
 import { makeFiberId } from "./makeFiberId";
 
