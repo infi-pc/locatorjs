@@ -26,8 +26,13 @@ import { ChooseEditorDialog } from "./ChooseEditorDialog";
 import { isLocatorsOwnElement } from "./isLocatorsOwnElement";
 import { goToLinkProps } from "./goTo";
 import svelteAdapter from "./adapters/svelte/svelteAdapter";
+import { getLocalStorageProjectPath } from "./buildLink";
 
-function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
+function Runtime(props: {
+  adapter: AdapterObject;
+  adapterId: AdapterId;
+  targets: Targets;
+}) {
   const [uiMode, setUiMode] = createSignal<
     ["off"] | ["options"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
@@ -125,7 +130,12 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
           e.preventDefault();
           e.stopPropagation();
           trackClickStats();
-          if (!isExtension() && !getLocalStorageLinkTemplate()) {
+          if (
+            (!isExtension() && !getLocalStorageLinkTemplate()) ||
+            (props.adapterId === "svelte" &&
+              !linkProps.projectPath &&
+              !getLocalStorageProjectPath())
+          ) {
             setDialog(["choose-editor", linkProps]);
           } else {
             // const link = buidLink(linkProps, props.targets);
@@ -244,7 +254,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       ) : null}
       {holdingModKey() ? (
         <div class={bannerClasses()}>
-          <BannerHeader openOptions={openOptions} />
+          <BannerHeader openOptions={openOptions} adapter={props.adapterId} />
         </div>
       ) : null}
       {highlightedNode() ? (
@@ -253,9 +263,11 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       <IntroInfo
         openOptions={openOptions}
         hide={!!holdingModKey() || uiMode()[0] !== "off"}
+        adapter={props.adapterId}
       />
       {uiMode()[0] === "options" ? (
         <Options
+          adapterId={props.adapterId}
           targets={props.targets}
           onClose={() => {
             setUiMode(["off"]);
@@ -281,6 +293,9 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
             <ChooseEditorDialog
               targets={props.targets}
               originalLinkProps={dialog()![1]!}
+              onClose={() => {
+                setDialog(null);
+              }}
             />
           )}
         </div>
@@ -310,6 +325,7 @@ export function initRender(
             return [key, typeof t == "string" ? { url: t, label: key } : t];
           })
         )}
+        adapterId={adapter}
       />
     ),
     solidLayer

@@ -13,9 +13,10 @@ export function EditorLinkForm(props: {
         : props.selectedTarget) || ""
     );
   }
+  const isCustom = () => !props.targets[props.selectedTarget];
   return (
     <div class="mt-2">
-      <label for="email" class="block text-sm font-medium text-slate-700">
+      <label for="email" class="block text-sm  text-slate-700 font-bold">
         Editor link:
       </label>
       <div class="flex flex-col gap-1 py-1">
@@ -24,7 +25,6 @@ export function EditorLinkForm(props: {
             <div class="flex items-center">
               <input
                 id={key}
-                name="notification-method"
                 type="radio"
                 checked={key === props.selectedTarget}
                 class="focus:ring-indigo-200 h-4 w-4 text-indigo-600 border-slate-300 hover:border-slate-400"
@@ -44,9 +44,8 @@ export function EditorLinkForm(props: {
         <div class="flex items-center">
           <input
             id="custom"
-            name="notification-method"
             type="radio"
-            checked={!props.targets[props.selectedTarget]}
+            checked={isCustom()}
             onClick={() => {
               selectCustom();
             }}
@@ -61,31 +60,33 @@ export function EditorLinkForm(props: {
         </div>
       </div>
 
-      <div class="mt-1">
-        <input
-          value={
-            props.targets[props.selectedTarget]
-              ? props.targets[props.selectedTarget]?.url
-              : props.selectedTarget
-          }
-          onClick={() => {
-            if (props.targets[props.selectedTarget]) {
-              selectCustom();
+      {isCustom() && (
+        <div class="mt-1">
+          <input
+            value={
+              props.targets[props.selectedTarget]
+                ? props.targets[props.selectedTarget]?.url
+                : props.selectedTarget
             }
-          }}
-          onInput={(e) => {
-            props.selectTarget(e.currentTarget.value);
-          }}
-          type="text"
-          name="text"
-          class={
-            "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-slate-300 rounded-md " +
-            (props.targets[props.selectedTarget]
-              ? "text-slate-400"
-              : "text-slate-800")
-          }
-        />
-      </div>
+            onClick={() => {
+              if (props.targets[props.selectedTarget]) {
+                selectCustom();
+              }
+            }}
+            onInput={(e) => {
+              props.selectTarget(e.currentTarget.value);
+            }}
+            type="text"
+            name="text"
+            class={
+              "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-slate-300 rounded-md " +
+              (props.targets[props.selectedTarget]
+                ? "text-slate-400"
+                : "text-slate-800")
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
