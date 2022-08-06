@@ -1,5 +1,6 @@
 import React from "react";
 import { extensionLink } from "../blocks/shared";
+import { StandardLink } from "./Styled";
 
 export function getAllExtensionsLinks(): { link: string; title: string }[] {
   return [
@@ -23,6 +24,21 @@ export function AllBrowsersLinks() {
           {item.title}
         </a>
       ))}
+    </>
+  );
+}
+
+export function AllBrowsersLinksInline() {
+  return (
+    <>
+      {getAllExtensionsLinks().map(({ link, title }, i) => {
+        return (
+          <span key={i}>
+            {i !== 0 && ", "}
+            <StandardLink href={link}>{title}</StandardLink>
+          </span>
+        );
+      })}
     </>
   );
 }

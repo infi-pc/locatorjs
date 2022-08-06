@@ -14,12 +14,14 @@ export const MAX_ZINDEX = 2147483647;
 export function setup({
   adapter,
   targets,
+  projectPath,
 }: {
   adapter?: AdapterId;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
+  projectPath?: string;
 } = {}) {
-  setTimeout(() => initRuntime({ adapter, targets }), 0);
+  setTimeout(() => initRuntime({ adapter, targets, projectPath }), 0);
 }
 
 export default setup;

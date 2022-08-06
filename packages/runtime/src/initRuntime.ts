@@ -3,13 +3,16 @@ import { AdapterId, baseColor, fontFamily, hoverColor } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
 import { detectAdapter } from "./detectAdapter";
+import { setInternalProjectPath } from "./buildLink";
 
 export function initRuntime({
   adapter,
   targets,
+  projectPath,
 }: {
   adapter?: AdapterId | "auto";
   targets?: { [k: string]: Target | string };
+  projectPath?: string;
 } = {}) {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return;
@@ -17,6 +20,10 @@ export function initRuntime({
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;
+  }
+
+  if (projectPath) {
+    setInternalProjectPath(projectPath);
   }
 
   // add style tag to head

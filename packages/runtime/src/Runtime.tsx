@@ -26,7 +26,7 @@ import { ChooseEditorDialog } from "./ChooseEditorDialog";
 import { isLocatorsOwnElement } from "./isLocatorsOwnElement";
 import { goToLinkProps } from "./goTo";
 import svelteAdapter from "./adapters/svelte/svelteAdapter";
-import { getLocalStorageProjectPath } from "./buildLink";
+import { getSavedProjectPath } from "./buildLink";
 
 function Runtime(props: {
   adapter: AdapterObject;
@@ -134,7 +134,7 @@ function Runtime(props: {
             (!isExtension() && !getLocalStorageLinkTemplate()) ||
             (props.adapterId === "svelte" &&
               !linkProps.projectPath &&
-              !getLocalStorageProjectPath())
+              !getSavedProjectPath())
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {

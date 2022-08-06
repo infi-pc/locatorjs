@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 import { bannerClasses } from "./bannerClasses";
 import {
   cleanLocalStorageProjectPath,
-  getLocalStorageProjectPath,
+  getSavedProjectPath,
   setLocalStorageProjectPath,
 } from "./buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
@@ -34,7 +34,7 @@ export function Options(props: {
 
   const [projectPath, setProjectPath] = createSignal<string>(
     // eslint-disable-next-line solid/reactivity
-    getLocalStorageProjectPath() || ""
+    getSavedProjectPath() || ""
   );
 
   function saveProjectPath(newPath: string) {

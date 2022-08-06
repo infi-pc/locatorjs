@@ -1,7 +1,7 @@
 import { LinkProps } from "./types";
 import {
   buildLink,
-  getLocalStorageProjectPath,
+  getSavedProjectPath,
   setLocalStorageProjectPath,
 } from "./buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
@@ -22,7 +22,7 @@ export function ChooseEditorDialog(props: {
   );
   const [projectPath, setProjectPath] = createSignal<string>(
     // eslint-disable-next-line solid/reactivity
-    getLocalStorageProjectPath() || props.originalLinkProps.projectPath
+    getSavedProjectPath() || props.originalLinkProps.projectPath
   );
 
   const correctedProjectPath = (): string => {
