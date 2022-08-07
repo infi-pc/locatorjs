@@ -11,8 +11,8 @@ import {
   StepsBody,
 } from "../../components/Styled";
 import { getBrowserLink } from "../../blocks/shared";
-import { InstallRuntime } from "../../components/InstallRuntime";
-import { getAllExtensionsLinks } from "../../components/AllBrowsersLinks";
+import { InstallReactRuntime } from "../../components/InstallReactRuntime";
+import { AllBrowsersLinksInline } from "../../components/AllBrowsersLinks";
 import { useState } from "react";
 import { MdArrowDropDown, MdArrowDropUp } from "react-icons/md";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -63,15 +63,7 @@ export default function InstallReact() {
                 <b>Browser Extension</b>
               </StandardLink>
               <br />
-              You can get extension for{" "}
-              {getAllExtensionsLinks().map(({ link, title }, i) => {
-                return (
-                  <span key={i}>
-                    {i !== 0 && ", "}
-                    <StandardLink href={link}>{title}</StandardLink>
-                  </span>
-                );
-              })}
+              You can get extension for <AllBrowsersLinksInline />
               <Expandable title="storybook">
                 <>
                   Add this to <InlineCode>.storybook/.babelrc</InlineCode>:
@@ -92,7 +84,7 @@ export default function InstallReact() {
               If you would like to install Locator to your project, so all team
               members can use it. You can install it as a library.
               <InstallByAnything packageName="@locator/runtime" />
-              <InstallRuntime />
+              <InstallReactRuntime />
               <Expandable title="storybook">
                 <>
                   Add this to <InlineCode>.storybook/preview.js</InlineCode>

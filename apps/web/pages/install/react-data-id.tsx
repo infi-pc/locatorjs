@@ -13,7 +13,7 @@ import {
   StepsBody,
 } from "../../components/Styled";
 import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { InstallRuntime } from "../../components/InstallRuntime";
+import { InstallReactRuntime } from "../../components/InstallReactRuntime";
 import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 
 export const babelPluginMinimalConfig = `
@@ -186,7 +186,7 @@ export default defineConfig({
               Import and call setup function to show the components and handle
               the clickings.
               <InstallByAnything packageName="@locator/runtime" />
-              <InstallRuntime />
+              <InstallReactRuntime />
               <AlternativelyInstallExtension />
             </Step>
             <Step title="Test and enjoy Locator" no={3}>

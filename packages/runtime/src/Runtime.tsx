@@ -1,7 +1,7 @@
 import { Fiber, Targets } from "@locator/shared";
 import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
-import { Adapter } from "./consts";
+import { AdapterId } from "./consts";
 import { fiberToSimple } from "./adapters/react/fiberToSimple";
 import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
 import reactAdapter from "./adapters/react/reactAdapter";
@@ -25,23 +25,26 @@ import { NoLinkDialog } from "./NoLinkDialog";
 import { ChooseEditorDialog } from "./ChooseEditorDialog";
 import { isLocatorsOwnElement } from "./isLocatorsOwnElement";
 import { goToLinkProps } from "./goTo";
+import svelteAdapter from "./adapters/svelte/svelteAdapter";
+import { getSavedProjectPath } from "./buildLink";
 
-function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
+function Runtime(props: {
+  adapter: AdapterObject;
+  adapterId: AdapterId;
+  targets: Targets;
+}) {
   const [uiMode, setUiMode] = createSignal<
     ["off"] | ["options"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
-  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
-    null
-  );
+  const [currentElement, setCurrentElement] =
+    createSignal<HTMLElement | null>(null);
 
-  const [dialog, setDialog] = createSignal<
-    ["no-link"] | ["choose-editor", LinkProps] | null
-  >(null);
+  const [dialog, setDialog] =
+    createSignal<["no-link"] | ["choose-editor", LinkProps] | null>(null);
 
-  const [highlightedNode, setHighlightedNode] = createSignal<null | SimpleNode>(
-    null
-  );
+  const [highlightedNode, setHighlightedNode] =
+    createSignal<null | SimpleNode>(null);
 
   createEffect(() => {
     if (holdingModKey() && currentElement()) {
@@ -127,7 +130,12 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
           e.preventDefault();
           e.stopPropagation();
           trackClickStats();
-          if (!isExtension() && !getLocalStorageLinkTemplate()) {
+          if (
+            (!isExtension() && !getLocalStorageLinkTemplate()) ||
+            (props.adapterId === "svelte" &&
+              !linkProps.projectPath &&
+              !getSavedProjectPath())
+          ) {
             setDialog(["choose-editor", linkProps]);
           } else {
             // const link = buidLink(linkProps, props.targets);
@@ -246,7 +254,7 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       ) : null}
       {holdingModKey() ? (
         <div class={bannerClasses()}>
-          <BannerHeader openOptions={openOptions} />
+          <BannerHeader openOptions={openOptions} adapter={props.adapterId} />
         </div>
       ) : null}
       {highlightedNode() ? (
@@ -255,9 +263,11 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
       <IntroInfo
         openOptions={openOptions}
         hide={!!holdingModKey() || uiMode()[0] !== "off"}
+        adapter={props.adapterId}
       />
       {uiMode()[0] === "options" ? (
         <Options
+          adapterId={props.adapterId}
           targets={props.targets}
           onClose={() => {
             setUiMode(["off"]);
@@ -283,6 +293,9 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
             <ChooseEditorDialog
               targets={props.targets}
               originalLinkProps={dialog()![1]!}
+              onClose={() => {
+                setDialog(null);
+              }}
             />
           )}
         </div>
@@ -293,10 +306,16 @@ function Runtime(props: { adapter: AdapterObject; targets: Targets }) {
 
 export function initRender(
   solidLayer: HTMLDivElement,
-  adapter: Adapter,
+  adapter: AdapterId,
   targets: SetupTargets
 ) {
-  const adapterObject = adapter === "jsx" ? jsxAdapter : reactAdapter;
+  const adapterObject =
+    adapter === "jsx"
+      ? jsxAdapter
+      : adapter === "svelte"
+      ? svelteAdapter
+      : reactAdapter;
+
   render(
     () => (
       <Runtime
@@ -306,6 +325,7 @@ export function initRender(
             return [key, typeof t == "string" ? { url: t, label: key } : t];
           })
         )}
+        adapterId={adapter}
       />
     ),
     solidLayer

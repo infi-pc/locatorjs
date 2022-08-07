@@ -4,7 +4,7 @@ import { Tabs } from "./Tabs";
 import { InlineCode } from "./Styled";
 import { InstallUiInFile, minimalImportScript } from "./InstallUiInFile";
 
-export function InstallRuntime() {
+export function InstallReactRuntime() {
   return (
     <Tabs
       queryId="stack"

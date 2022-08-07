@@ -2,9 +2,14 @@ import { modifiersTitles } from "@locator/shared";
 import { createEffect, createSignal, For } from "solid-js";
 import { bannerClasses } from "./bannerClasses";
 import BannerHeader from "./BannerHeader";
+import { AdapterId } from "./consts";
 import { getMouseModifiers } from "./isCombinationModifiersPressed";
 
-export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
+export function IntroInfo(props: {
+  openOptions: () => void;
+  hide: boolean;
+  adapter: AdapterId;
+}) {
   const [showIntro, setShowIntro] = createSignal(true);
   setTimeout(() => {
     setShowIntro(false);
@@ -24,7 +29,7 @@ export function IntroInfo(props: { openOptions: () => void; hide: boolean }) {
         bottom: showIntro() ? "12px" : "-90px",
       }}
     >
-      <BannerHeader openOptions={props.openOptions} />
+      <BannerHeader openOptions={props.openOptions} adapter={props.adapter} />
       <div class="text-xs mt-2 mb-1">
         Go to component code with{" "}
         <For each={Object.keys(modifiers())}>

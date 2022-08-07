@@ -67,6 +67,18 @@ export default function SetupLinks() {
             title="Preact"
             id="preact"
           />
+          <SetupLink
+            icon={
+              <Image
+                src="/logos/svelte.png"
+                alt="Svelte"
+                width={85}
+                height={100}
+              />
+            }
+            title="Svelte"
+            id="svelte"
+          />
         </div>
       </div>
     </section>

@@ -4,6 +4,23 @@ import { evalTemplate } from "./evalTemplate";
 import { LinkProps, Source } from "./types";
 import { Targets } from "@locator/shared";
 
+let internalProjectPath: string | null = null;
+export function setInternalProjectPath(projectPath: string) {
+  internalProjectPath = projectPath;
+}
+
+export function setLocalStorageProjectPath(projectPath: string) {
+  localStorage.setItem("LOCATOR_PROJECT_PATH", projectPath);
+}
+
+export function cleanLocalStorageProjectPath() {
+  localStorage.removeItem("LOCATOR_PROJECT_PATH");
+}
+
+export function getSavedProjectPath() {
+  return localStorage.getItem("LOCATOR_PROJECT_PATH") || internalProjectPath;
+}
+
 export function buildLink(
   linkProps: LinkProps,
   targets: Targets,
@@ -11,7 +28,7 @@ export function buildLink(
 ): string {
   const params = {
     filePath: linkProps.filePath,
-    projectPath: linkProps.projectPath,
+    projectPath: getSavedProjectPath() || linkProps.projectPath,
     line: String(linkProps.line),
     column: String(linkProps.column),
   };
