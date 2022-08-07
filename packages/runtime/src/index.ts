@@ -6,7 +6,7 @@ export * from "./adapters/jsx/runtimeStore";
 
 // Init in case it is used from extension
 if (typeof window !== "undefined" && isExtension()) {
-  setTimeout(() => initRuntime({ adapter: "auto" }), 0);
+  setTimeout(() => initRuntime({}), 0);
 }
 
 export const MAX_ZINDEX = 2147483647;

@@ -8,7 +8,7 @@ import { getMouseModifiers } from "./isCombinationModifiersPressed";
 export function IntroInfo(props: {
   openOptions: () => void;
   hide: boolean;
-  adapter: AdapterId;
+  adapter?: AdapterId;
 }) {
   const [showIntro, setShowIntro] = createSignal(true);
   setTimeout(() => {

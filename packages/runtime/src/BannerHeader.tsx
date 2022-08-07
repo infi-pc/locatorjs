@@ -5,7 +5,7 @@ import { AdapterId } from "./consts";
 
 export default function BannerHeader(props: {
   openOptions?: () => void;
-  adapter: AdapterId;
+  adapter?: AdapterId;
 }) {
   const isProjectSettings = () => isExtension() && props.adapter === "svelte";
   return (

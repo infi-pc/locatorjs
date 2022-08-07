@@ -20,7 +20,7 @@ import { ProjectLinkForm } from "./ProjectLinkForm";
 export function Options(props: {
   targets: Targets;
   onClose: () => void;
-  adapterId: string;
+  adapterId?: string;
 }) {
   const [selectedTarget, setSelectedTarget] = createSignal(
     // eslint-disable-next-line solid/reactivity

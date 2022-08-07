@@ -1,16 +1,16 @@
 import { Targets } from "@locator/shared";
 import { createMemo } from "solid-js";
-import { AdapterObject } from "./adapters/adapterApi";
+import { getElementInfo } from "./getElementInfo";
 import { Outline } from "./Outline";
 
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  adapter: AdapterObject;
+  adapterId?: string;
   targets: Targets;
 }) {
   const elInfo = createMemo(() =>
-    props.adapter.getElementInfo(props.currentElement)
+    getElementInfo(props.currentElement, props.adapterId)
   );
   const box = () => props.currentElement.getBoundingClientRect();
   return (
