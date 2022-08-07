@@ -37,14 +37,17 @@ function Runtime(props: {
     ["off"] | ["options"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
-  const [currentElement, setCurrentElement] =
-    createSignal<HTMLElement | null>(null);
+  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    null
+  );
 
-  const [dialog, setDialog] =
-    createSignal<["no-link"] | ["choose-editor", LinkProps] | null>(null);
+  const [dialog, setDialog] = createSignal<
+    ["no-link"] | ["choose-editor", LinkProps] | null
+  >(null);
 
-  const [highlightedNode, setHighlightedNode] =
-    createSignal<null | SimpleNode>(null);
+  const [highlightedNode, setHighlightedNode] = createSignal<null | SimpleNode>(
+    null
+  );
 
   createEffect(() => {
     if (holdingModKey() && currentElement()) {
@@ -142,9 +145,17 @@ function Runtime(props: {
             goToLinkProps(linkProps, props.targets);
           }
         } else {
+          console.error(
+            "[LocatorJS]: Could not find link: Element info: ",
+            elInfo
+          );
           setDialog(["no-link"]);
         }
       } else {
+        console.error(
+          "[LocatorJS]: Could not find element info. Element: ",
+          target
+        );
         setDialog(["no-link"]);
       }
     }
