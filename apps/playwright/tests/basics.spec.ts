@@ -31,12 +31,45 @@ test("web", async ({ page }) => {
   await expect(initialButton).toBeVisible();
 });
 
-test("react", async ({ page }) => {
+test("react - jsx", async ({ page }) => {
   await page.goto(projects.react);
   const getStarted = page.locator("text=Go to component code with");
   await expect(getStarted).toBeVisible();
 
   await locateElement(page, "text=Hello Vite + React!");
+
+  const initialButton = page.locator("button >> text=Go to code");
+  await expect(initialButton).toBeVisible();
+});
+
+test("preact", async ({ page }) => {
+  await page.goto(projects.preact);
+  const getStarted = page.locator("text=Go to component code with");
+  await expect(getStarted).toBeVisible();
+
+  await locateElement(page, "text=Vite + Preact");
+
+  const initialButton = page.locator("button >> text=Go to code");
+  await expect(initialButton).toBeVisible();
+});
+
+test("solid", async ({ page }) => {
+  await page.goto(projects.solid);
+  const getStarted = page.locator("text=Go to component code with");
+  await expect(getStarted).toBeVisible();
+
+  await locateElement(page, "text=save to reload");
+
+  const initialButton = page.locator("button >> text=Go to code");
+  await expect(initialButton).toBeVisible();
+});
+
+test("svelte", async ({ page }) => {
+  await page.goto(projects.svelte);
+  const getStarted = page.locator("text=Go to component code with");
+  await expect(getStarted).toBeVisible();
+
+  await locateElement(page, "text=Vite + Svelte");
 
   const initialButton = page.locator("button >> text=Go to code");
   await expect(initialButton).toBeVisible();
