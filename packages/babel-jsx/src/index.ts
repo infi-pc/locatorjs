@@ -25,11 +25,16 @@ export interface PluginOptions {
 
 export interface Babel {
   types: typeof BabelTypes;
+  env: () => string;
 }
 
 export default function transformLocatorJsComponents(babel: Babel): {
   visitor?: Visitor<PluginOptions>;
 } {
+  // there was some weir caching error when using babel.env() on Vite
+  // Vite has NODE_ENV undefined when doing first dev build
+  const env = process.env.BABEL_ENV || process.env.NODE_ENV || "development";
+
   const t = babel.types;
   let fileStorage: FileStorage | null = null;
   let wrappingComponent: {
@@ -82,7 +87,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
         // TODO state is any, we should check if the state depends on webpack or what it depends on?
         enter(path, state) {
           if (state.opts?.env) {
-            if (state.opts?.env !== process.env.NODE_ENV) {
+            if (state.opts?.env !== env) {
               return;
             }
           }
@@ -239,7 +244,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
         },
         exit(path, state) {
           if (state.opts?.env) {
-            if (state.opts.env !== process.env.NODE_ENV) {
+            if (state.opts.env !== env) {
               return;
             }
           }
