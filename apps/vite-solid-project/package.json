@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "description": "",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "license": "MIT",
   "devDependencies": {

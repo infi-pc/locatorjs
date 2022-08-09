@@ -3,5 +3,8 @@ import { App } from "./app";
 import "./index.css";
 import setupLocatorUI from "@locator/runtime";
 
-setupLocatorUI();
+if (process.env.NODE_ENV === "development") {
+  setupLocatorUI();
+}
+
 render(<App />, document.getElementById("app"));

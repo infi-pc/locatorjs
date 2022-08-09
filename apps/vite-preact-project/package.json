@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3346"
+    "dev": "vite --port 3346",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "preact": "^10.9.0",
