@@ -30,8 +30,9 @@ function Hero() {
             Click on a component to go to its code
           </h1>
           <p className="text-lg leading-relaxed">
-            A React dev tool that lets you click on any component in the browser
-            to open its code in your IDE.
+            Click on any component in the browser to open its code in your IDE.
+            <br />
+            For React, Preact, Solid and Svelte.
           </p>
           <div className="flex-col hidden md:flex ">
             <div className="mt-4 text-xl font-bold">Try it here and now:</div>
@@ -41,7 +42,7 @@ function Hero() {
                 <span className="px-2 py-1 mx-1 border border-gray-300 rounded-md">
                   <AltTitle />
                 </span>{" "}
-                and move with cursor around this page.
+                and move with the cursor around this page.
               </div>
             </div>
             {browser && (
