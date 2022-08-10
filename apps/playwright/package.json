@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "test-e2e": "playwright test ./tests/libs",
-    "test-e2e-headed": "playwright test --headed --project=chromium ./tests/libs",
-    "test-e2e-extension": "playwright test --headed --project=chromium ./tests/extensions"
+    "e2e": "playwright test ./tests/libs",
+    "e2e-headed": "playwright test --headed --project=chromium ./tests/libs",
+    "e2e-extension": "playwright test --headed --project=chromium ./tests/extensions"
   },
   "devDependencies": {
     "@playwright/test": "^1.24.2"

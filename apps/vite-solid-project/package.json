@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "description": "",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3345",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --port 3345"
   },
   "license": "MIT",
   "devDependencies": {

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --port 3347",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --port 3347"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^1.0.1",

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite --port=3343",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --port=3343",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"
   },

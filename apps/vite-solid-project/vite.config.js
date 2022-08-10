@@ -16,9 +16,6 @@ export default defineConfig({
       },
     }),
   ],
-  server: {
-    port: 3345,
-  },
   build: {
     target: "esnext",
   },
