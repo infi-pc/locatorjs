@@ -1,18 +1,18 @@
 import { Targets } from "@locator/shared";
 import { createSignal } from "solid-js";
-import { bannerClasses } from "./bannerClasses";
+import { bannerClasses } from "../functions/bannerClasses";
 import {
   cleanLocalStorageProjectPath,
   getSavedProjectPath,
   setLocalStorageProjectPath,
-} from "./buildLink";
+} from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
-import { isExtension } from "./isExtension";
+import { isExtension } from "../functions/isExtension";
 import {
   cleanLocalStorageLinkTemplate,
   getLinkTypeOrTemplate,
   setLocalStorageLinkTemplate,
-} from "./linkTemplateUrl";
+} from "../functions/linkTemplateUrl";
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { ProjectLinkForm } from "./ProjectLinkForm";

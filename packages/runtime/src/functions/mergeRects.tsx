@@ -1,4 +1,4 @@
-import { SimpleDOMRect } from "./types";
+import { SimpleDOMRect } from "../types/types";
 
 export function mergeRects(a: SimpleDOMRect, b: SimpleDOMRect): SimpleDOMRect {
   const x = Math.min(a.x, b.x);

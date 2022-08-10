@@ -1,6 +1,6 @@
 import { Fiber, Source } from "@locator/shared";
-import { LabelData } from "../../LabelData";
-import { getUsableName } from "../../getUsableName";
+import { LabelData } from "../../types/LabelData";
+import { getUsableName } from "../../functions/getUsableName";
 
 export function getFiberLabel(fiber: Fiber, source?: Source): LabelData {
   const name = getUsableName(fiber);

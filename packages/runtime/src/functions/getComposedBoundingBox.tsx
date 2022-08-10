@@ -1,5 +1,5 @@
 import { mergeRects } from "./mergeRects";
-import { SimpleDOMRect, SimpleNode } from "./types";
+import { SimpleDOMRect, SimpleNode } from "./../types/types";
 
 export function getComposedBoundingBox(
   children: SimpleNode[]

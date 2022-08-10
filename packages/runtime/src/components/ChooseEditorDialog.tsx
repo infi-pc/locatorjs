@@ -1,14 +1,14 @@
-import { LinkProps } from "./types";
+import { LinkProps } from "../types/types";
 import {
   buildLink,
   getSavedProjectPath,
   setLocalStorageProjectPath,
-} from "./buildLink";
+} from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { createSignal } from "solid-js";
 import { Targets } from "@locator/shared";
-import { goToLinkProps } from "./goTo";
-import { setLocalStorageLinkTemplate } from "./linkTemplateUrl";
+import { goToLinkProps } from "../functions/goTo";
+import { setLocalStorageLinkTemplate } from "../functions/linkTemplateUrl";
 import { ProjectLinkForm } from "./ProjectLinkForm";
 
 export function ChooseEditorDialog(props: {

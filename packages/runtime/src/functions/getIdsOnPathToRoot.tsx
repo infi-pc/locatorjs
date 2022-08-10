@@ -1,5 +1,5 @@
-import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
-import { makeFiberId } from "./adapters/react/makeFiberId";
+import { findFiberByHtmlElement } from "./../adapters/react/findFiberByHtmlElement";
+import { makeFiberId } from "./../adapters/react/makeFiberId";
 
 export function getIdsOnPathToRoot(element: HTMLElement): {
   [id: string]: true;

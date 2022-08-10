@@ -1,32 +1,29 @@
 import { Fiber, Targets } from "@locator/shared";
 import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
-import { AdapterId } from "./consts";
-import { fiberToSimple } from "./adapters/react/fiberToSimple";
-import { gatherFiberRoots } from "./adapters/react/gatherFiberRoots";
-import reactAdapter from "./adapters/react/reactAdapter";
-import { isCombinationModifiersPressed } from "./isCombinationModifiersPressed";
-import { trackClickStats } from "./trackClickStats";
-import { LinkProps, SimpleNode, Targets as SetupTargets } from "./types";
-import { getIdsOnPathToRoot } from "./getIdsOnPathToRoot";
+import { AdapterId } from "../consts";
+import { fiberToSimple } from "../adapters/react/fiberToSimple";
+import { gatherFiberRoots } from "../adapters/react/gatherFiberRoots";
+import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
+import { trackClickStats } from "../functions/trackClickStats";
+import { LinkProps, SimpleNode, Targets as SetupTargets } from "../types/types";
+import { getIdsOnPathToRoot } from "../functions/getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
-import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
-import jsxAdapter from "./adapters/jsx/jsxAdapter";
+import { hasExperimentalFeatures } from "../functions/hasExperimentalFeatures";
 import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
-import { bannerClasses } from "./bannerClasses";
+import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
-import { isExtension } from "./isExtension";
-import { getLocalStorageLinkTemplate } from "./linkTemplateUrl";
+import { isExtension } from "../functions/isExtension";
+import { getLocalStorageLinkTemplate } from "../functions/linkTemplateUrl";
 import { NoLinkDialog } from "./NoLinkDialog";
 import { ChooseEditorDialog } from "./ChooseEditorDialog";
-import { isLocatorsOwnElement } from "./isLocatorsOwnElement";
-import { goToLinkProps } from "./goTo";
-import svelteAdapter from "./adapters/svelte/svelteAdapter";
-import { getSavedProjectPath } from "./buildLink";
-import { getElementInfo } from "./getElementInfo";
+import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
+import { goToLinkProps } from "../functions/goTo";
+import { getSavedProjectPath } from "../functions/buildLink";
+import { getElementInfo } from "../functions/getElementInfo";
 
 function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<

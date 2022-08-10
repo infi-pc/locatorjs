@@ -1,4 +1,4 @@
-import { parseDataId } from "../../parseDataId";
+import { parseDataId } from "../../functions/parseDataId";
 
 export function getDataForDataId(dataId: string) {
   const [fileFullPath, id] = parseDataId(dataId);

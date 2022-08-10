@@ -1,5 +1,5 @@
-import { SimpleNode } from "./types";
-import { IdsMap } from "./RootTreeNode";
+import { SimpleNode } from "../types/types";
+import { IdsMap } from "../components/RootTreeNode";
 
 export function getIdsThatHaveExpandedSuccessor(
   node: SimpleNode,

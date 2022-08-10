@@ -1,7 +1,7 @@
 import { Targets } from "@locator/shared";
 import { buildLinkFromSource, buildLink } from "./buildLink";
-import { HREF_TARGET } from "./consts";
-import { LinkProps, Source } from "./types";
+import { HREF_TARGET } from "../consts";
+import { LinkProps, Source } from "../types/types";
 
 export function goTo(link: string) {
   window.open(link, HREF_TARGET);

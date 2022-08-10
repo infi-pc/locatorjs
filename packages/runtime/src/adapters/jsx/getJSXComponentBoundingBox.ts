@@ -1,7 +1,7 @@
-import { parseDataId } from "../../parseDataId";
+import { parseDataId } from "../../functions/parseDataId";
 import { FileStorage } from "@locator/shared";
-import { SimpleDOMRect } from "../../types";
-import { mergeRects } from "../../mergeRects";
+import { SimpleDOMRect } from "../../types/types";
+import { mergeRects } from "../../functions/mergeRects";
 import { getExpressionData } from "./getExpressionData";
 
 export function getJSXComponentBoundingBox(

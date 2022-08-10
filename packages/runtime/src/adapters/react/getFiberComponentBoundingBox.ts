@@ -1,8 +1,8 @@
 import { getFiberOwnBoundingBox } from "./getFiberOwnBoundingBox";
 import { Fiber } from "@locator/shared";
 import { getAllFiberChildren } from "./getAllFiberChildren";
-import { mergeRects } from "../../mergeRects";
-import { SimpleDOMRect } from "../../types";
+import { mergeRects } from "../../functions/mergeRects";
+import { SimpleDOMRect } from "../../types/types";
 
 const MAX_LEVEL = 6;
 export function getFiberComponentBoundingBox(fiber: Fiber, level = 0) {

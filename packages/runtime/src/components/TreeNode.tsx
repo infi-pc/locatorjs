@@ -1,7 +1,7 @@
 import { Targets } from "@locator/shared";
 import { createSignal, For } from "solid-js";
-import { goToSource } from "./goTo";
-import { HighlightedNode, SimpleNode } from "./types";
+import { goToSource } from "../functions/goTo";
+import { HighlightedNode, SimpleNode } from "../types/types";
 
 export function TreeNode(props: {
   node: SimpleNode;
