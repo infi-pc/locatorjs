@@ -4,5 +4,8 @@ import setupLocatorUI from "@locator/runtime";
 import "./index.css";
 import App from "./App";
 
-setupLocatorUI();
+if (process.env.NODE_ENV === "development") {
+  setupLocatorUI();
+}
+
 render(() => <App />, document.getElementById("root"));

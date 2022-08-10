@@ -14,7 +14,6 @@ import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
 import jsxAdapter from "./adapters/jsx/jsxAdapter";
-import { AdapterObject } from "./adapters/adapterApi";
 import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
 import { bannerClasses } from "./bannerClasses";
@@ -27,24 +26,24 @@ import { isLocatorsOwnElement } from "./isLocatorsOwnElement";
 import { goToLinkProps } from "./goTo";
 import svelteAdapter from "./adapters/svelte/svelteAdapter";
 import { getSavedProjectPath } from "./buildLink";
+import { getElementInfo } from "./getElementInfo";
 
-function Runtime(props: {
-  adapter: AdapterObject;
-  adapterId: AdapterId;
-  targets: Targets;
-}) {
+function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<
     ["off"] | ["options"] | ["tree"] | ["treeFromElement", HTMLElement]
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
-  const [currentElement, setCurrentElement] =
-    createSignal<HTMLElement | null>(null);
+  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    null
+  );
 
-  const [dialog, setDialog] =
-    createSignal<["no-link"] | ["choose-editor", LinkProps] | null>(null);
+  const [dialog, setDialog] = createSignal<
+    ["no-link"] | ["choose-editor", LinkProps] | null
+  >(null);
 
-  const [highlightedNode, setHighlightedNode] =
-    createSignal<null | SimpleNode>(null);
+  const [highlightedNode, setHighlightedNode] = createSignal<null | SimpleNode>(
+    null
+  );
 
   createEffect(() => {
     if (holdingModKey() && currentElement()) {
@@ -122,7 +121,7 @@ function Runtime(props: {
         return;
       }
 
-      const elInfo = props.adapter.getElementInfo(target);
+      const elInfo = getElementInfo(target, props.adapterId);
 
       if (elInfo) {
         const linkProps = elInfo.thisElement.link;
@@ -142,9 +141,17 @@ function Runtime(props: {
             goToLinkProps(linkProps, props.targets);
           }
         } else {
+          console.error(
+            "[LocatorJS]: Could not find link: Element info: ",
+            elInfo
+          );
           setDialog(["no-link"]);
         }
       } else {
+        console.error(
+          "[LocatorJS]: Could not find element info. Element: ",
+          target
+        );
         setDialog(["no-link"]);
       }
     }
@@ -248,7 +255,7 @@ function Runtime(props: {
         <MaybeOutline
           currentElement={currentElement()!}
           showTreeFromElement={showTreeFromElement}
-          adapter={props.adapter}
+          adapterId={props.adapterId}
           targets={props.targets}
         />
       ) : null}
@@ -306,20 +313,12 @@ function Runtime(props: {
 
 export function initRender(
   solidLayer: HTMLDivElement,
-  adapter: AdapterId,
+  adapter: AdapterId | undefined,
   targets: SetupTargets
 ) {
-  const adapterObject =
-    adapter === "jsx"
-      ? jsxAdapter
-      : adapter === "svelte"
-      ? svelteAdapter
-      : reactAdapter;
-
   render(
     () => (
       <Runtime
-        adapter={adapterObject}
         targets={Object.fromEntries(
           Object.entries(targets).map(([key, t]) => {
             return [key, typeof t == "string" ? { url: t, label: key } : t];

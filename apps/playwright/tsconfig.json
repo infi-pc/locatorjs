@@ -1,0 +1,8 @@
+{
+  "include": ["."],
+  "exclude": ["dist", "build", "node_modules"],
+  "compilerOptions": {
+    "moduleResolution": "Node",
+    "target": "ESNext"
+  }
+}

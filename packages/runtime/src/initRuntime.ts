@@ -2,7 +2,6 @@ import { allTargets, Target } from "@locator/shared";
 import { AdapterId, baseColor, fontFamily, hoverColor } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
-import { detectAdapter } from "./detectAdapter";
 import { setInternalProjectPath } from "./buildLink";
 
 export function initRuntime({
@@ -10,7 +9,7 @@ export function initRuntime({
   targets,
   projectPath,
 }: {
-  adapter?: AdapterId | "auto";
+  adapter?: AdapterId;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
 } = {}) {
@@ -110,9 +109,6 @@ export function initRuntime({
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  const finalAdapter: AdapterId =
-    adapter === "auto" || !adapter ? detectAdapter() : adapter;
-
   // This weird import is needed because:
   // SSR React (Next.js) breaks when importing any SolidJS compiled file, so the import has to be conditional
   // Browser Extension breaks when importing with "import()"
@@ -120,10 +116,10 @@ export function initRuntime({
   if (typeof require !== "undefined") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { initRender } = require("./Runtime");
-    initRender(layer, finalAdapter, targets || allTargets);
+    initRender(layer, adapter, targets || allTargets);
   } else {
     import("./Runtime").then(({ initRender }) => {
-      initRender(layer, finalAdapter, targets || allTargets);
+      initRender(layer, adapter, targets || allTargets);
     });
   }
 }
