@@ -1,4 +1,4 @@
-import { Fiber, Targets } from "@locator/shared";
+import { detectSvelte, Fiber, Targets } from "@locator/shared";
 import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
@@ -128,9 +128,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
           trackClickStats();
           if (
             (!isExtension() && !getLocalStorageLinkTemplate()) ||
-            (props.adapterId === "svelte" &&
-              !linkProps.projectPath &&
-              !getSavedProjectPath())
+            (detectSvelte() && !linkProps.projectPath && !getSavedProjectPath())
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {

@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets, detectSvelte } from "@locator/shared";
 import { createSignal } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import {
@@ -48,7 +48,7 @@ export function Options(props: {
         <LogoIcon />
         <OptionsCloseButton onClick={() => props.onClose()} />
       </div>
-      {props.adapterId === "svelte" ? (
+      {detectSvelte() ? (
         <ProjectLinkForm
           value={projectPath()}
           onChange={function (newValue) {
