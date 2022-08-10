@@ -115,7 +115,7 @@ export function initRuntime({
   // Vite breaks when importing with "require()"
   if (typeof require !== "undefined") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { initRender } = require("./Runtime");
+    const { initRender } = require("./components/Runtime");
     initRender(layer, adapter, targets || allTargets);
   } else {
     import("./components/Runtime").then(({ initRender }) => {
