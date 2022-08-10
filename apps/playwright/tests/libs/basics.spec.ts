@@ -1,24 +1,6 @@
-import { test, expect, Page } from "@playwright/test";
-
-const projects = {
-  web: "http://localhost:3342/",
-  react: "http://localhost:3343/",
-  solid: "http://localhost:3345/",
-  preact: "http://localhost:3346/",
-  svelte: "http://localhost:3347/",
-};
-
-async function locateElement(page: Page, selector: string) {
-  await page.keyboard.down("Alt");
-
-  // await page.mouse.move(100, 100);
-
-  const headline = page.locator(selector);
-
-  await headline.hover();
-
-  await headline.click();
-}
+import { test, expect } from "@playwright/test";
+import { projects } from "../consts";
+import { locateElement } from "../locateElement";
 
 test("web", async ({ page }) => {
   await page.goto(projects.web);
@@ -73,4 +55,15 @@ test("svelte", async ({ page }) => {
 
   const initialButton = page.locator("button >> text=Go to code");
   await expect(initialButton).toBeVisible();
+});
+
+test("react - clean: should now have Locator", async ({ page }) => {
+  await page.goto(projects.reactClean);
+  const getStarted = page.locator("text=Go to component code with");
+  expect(await getStarted.count()).toBe(0);
+
+  await locateElement(page, "text=Vite + React");
+
+  const initialButton = page.locator("button >> text=Go to code");
+  expect(await initialButton.count()).toBe(0);
 });
