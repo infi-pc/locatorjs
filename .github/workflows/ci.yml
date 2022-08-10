@@ -66,31 +66,31 @@ jobs:
       - name: Lint
         run: yarn lint
 
-  test-devs:
-    name: Test devs
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
+  # test-devs:
+  #   name: Test devs
+  #   timeout-minutes: 15
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
+  #   steps:
+  #     - name: Check out code
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16
-          cache: "yarn"
+  #     - name: Setup Node.js environment
+  #       uses: actions/setup-node@v2
+  #       with:
+  #         node-version: 16
+  #         cache: "yarn"
 
-      - name: Install dependencies
-        run: yarn
+  #     - name: Install dependencies
+  #       run: yarn
 
-      - name: Run dev
-        run: yarn dev &
+  #     - name: Run dev
+  #       run: yarn dev &
 
-      - name: Install browsers
-        run: yarn workspace e2e-tests install-browsers
+  #     - name: Install browsers
+  #       run: yarn workspace e2e-tests install-browsers
 
-      - name: E2E
-        run: yarn e2e
+  #     - name: E2E
+  #       run: yarn e2e
