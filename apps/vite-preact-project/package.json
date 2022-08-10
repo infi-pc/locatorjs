@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --port 3346",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --port 3346"
   },
   "dependencies": {
     "preact": "^10.9.0",

@@ -928,12 +928,12 @@ select {
   border-radius: 0.5rem;
 }
 
-.border-2 {
-  border-width: 2px;
-}
-
 .border {
   border-width: 1px;
+}
+
+.border-2 {
+  border-width: 2px;
 }
 
 .border-red-500 {
@@ -971,10 +971,6 @@ select {
   background-color: rgb(241 245 249 / var(--tw-bg-opacity));
 }
 
-.bg-black\\/70 {
-  background-color: rgb(0 0 0 / 0.7);
-}
-
 .bg-black {
   --tw-bg-opacity: 1;
   background-color: rgb(0 0 0 / var(--tw-bg-opacity));
@@ -988,6 +984,10 @@ select {
 .bg-slate-300 {
   --tw-bg-opacity: 1;
   background-color: rgb(203 213 225 / var(--tw-bg-opacity));
+}
+
+.bg-black\\/70 {
+  background-color: rgb(0 0 0 / 0.7);
 }
 
 .p-4 {
@@ -1031,11 +1031,6 @@ select {
   padding-right: 0.25rem;
 }
 
-.py-0\\.5 {
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-}
-
 .py-0 {
   padding-top: 0px;
   padding-bottom: 0px;
@@ -1056,12 +1051,13 @@ select {
   padding-bottom: 1rem;
 }
 
-.pl-4 {
-  padding-left: 1rem;
+.py-0\\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
 }
 
-.pb-0\\.5 {
-  padding-bottom: 0.125rem;
+.pl-4 {
+  padding-left: 1rem;
 }
 
 .pb-0 {
@@ -1070,6 +1066,10 @@ select {
 
 .pt-2 {
   padding-top: 0.5rem;
+}
+
+.pb-0\\.5 {
+  padding-bottom: 0.125rem;
 }
 
 .text-sm {
