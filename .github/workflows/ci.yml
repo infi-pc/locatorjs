@@ -89,5 +89,8 @@ jobs:
       - name: Run dev
         run: yarn dev &
 
+      - name: Install browsers
+        run: yarn workspace e2e-tests install-browsers
+
       - name: E2E
         run: yarn e2e
