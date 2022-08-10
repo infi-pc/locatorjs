@@ -1,4 +1,4 @@
-import { LabelData } from "./LabelData";
+import { LabelData } from "../types/LabelData";
 import nonNullable from "./nonNullable";
 
 export function deduplicateLabels(labels: LabelData[]): LabelData[] {

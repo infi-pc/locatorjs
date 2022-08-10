@@ -1,5 +1,5 @@
 import { ReactDevtoolsHook } from "@locator/shared";
-import { FileStorage } from "./types";
+import { FileStorage } from "./types/types";
 
 declare global {
   interface Window {

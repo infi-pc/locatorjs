@@ -1,5 +1,5 @@
-import { findFiberByHtmlElement } from "./adapters/react/findFiberByHtmlElement";
-import { fiberToSimple } from "./adapters/react/fiberToSimple";
+import { findFiberByHtmlElement } from "../adapters/react/findFiberByHtmlElement";
+import { fiberToSimple } from "../adapters/react/fiberToSimple";
 
 export function getPathToParent(element: HTMLElement) {
   const fiber = findFiberByHtmlElement(element, false);

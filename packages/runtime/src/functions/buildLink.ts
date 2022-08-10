@@ -1,7 +1,7 @@
 /* eslint-disable solid/reactivity */
 import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
-import { LinkProps, Source } from "./types";
+import { LinkProps, Source } from "../types/types";
 import { Targets } from "@locator/shared";
 
 let internalProjectPath: string | null = null;

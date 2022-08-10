@@ -1,10 +1,10 @@
 import { Fiber } from "@locator/shared";
-import { getBoundingRect } from "../../getBoundingRect";
-import { getComposedBoundingBox } from "../../getComposedBoundingBox";
-import { getUsableName } from "../../getUsableName";
+import { getBoundingRect } from "../../functions/getBoundingRect";
+import { getComposedBoundingBox } from "../../functions/getComposedBoundingBox";
+import { getUsableName } from "../../functions/getUsableName";
 
 import { getAllFiberChildren } from "./getAllFiberChildren";
-import { SimpleNode } from "../../types";
+import { SimpleNode } from "../../types/types";
 import { makeFiberId } from "./makeFiberId";
 
 export function fiberToSimple(

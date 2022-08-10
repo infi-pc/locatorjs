@@ -1,12 +1,12 @@
 import { For } from "solid-js";
-import { baseColor, HREF_TARGET, PADDING } from "./consts";
-import { LabelData } from "./LabelData";
-import { trackClickStats } from "./trackClickStats";
-import { hasExperimentalFeatures } from "./hasExperimentalFeatures";
-import { goTo } from "./goTo";
-import { SimpleDOMRect } from "./types";
-import { FullElementInfo } from "./adapters/adapterApi";
-import { buildLink } from "./buildLink";
+import { baseColor, HREF_TARGET, PADDING } from "../consts";
+import { LabelData } from "../types/LabelData";
+import { trackClickStats } from "../functions/trackClickStats";
+import { hasExperimentalFeatures } from "../functions/hasExperimentalFeatures";
+import { goTo } from "../functions/goTo";
+import { SimpleDOMRect } from "../types/types";
+import { FullElementInfo } from "../adapters/adapterApi";
+import { buildLink } from "../functions/buildLink";
 import { Targets } from "@locator/shared";
 
 export function Outline(props: {

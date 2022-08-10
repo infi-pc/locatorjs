@@ -2,7 +2,7 @@ import { allTargets, Target } from "@locator/shared";
 import { AdapterId, baseColor, fontFamily, hoverColor } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
-import { setInternalProjectPath } from "./buildLink";
+import { setInternalProjectPath } from "./functions/buildLink";
 
 export function initRuntime({
   adapter,
@@ -115,10 +115,10 @@ export function initRuntime({
   // Vite breaks when importing with "require()"
   if (typeof require !== "undefined") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { initRender } = require("./Runtime");
+    const { initRender } = require("./components/Runtime");
     initRender(layer, adapter, targets || allTargets);
   } else {
-    import("./Runtime").then(({ initRender }) => {
+    import("./components/Runtime").then(({ initRender }) => {
       initRender(layer, adapter, targets || allTargets);
     });
   }

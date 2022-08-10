@@ -1,5 +1,5 @@
 import { AdapterObject, FullElementInfo } from "../adapterApi";
-import { parseDataId } from "../../parseDataId";
+import { parseDataId } from "../../functions/parseDataId";
 import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";

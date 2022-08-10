@@ -1,7 +1,7 @@
 import { Fiber } from "@locator/shared";
-import { getUsableName } from "../../getUsableName";
-import { mergeRects } from "../../mergeRects";
-import { SimpleDOMRect } from "../../types";
+import { getUsableName } from "../../functions/getUsableName";
+import { mergeRects } from "../../functions/mergeRects";
+import { SimpleDOMRect } from "../../types/types";
 import { ElementInfo } from "../adapterApi";
 import { getFiberComponentBoundingBox } from "./getFiberComponentBoundingBox";
 import { isStyledElement } from "./isStyled";

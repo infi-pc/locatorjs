@@ -1,5 +1,5 @@
 import { createSignal, For } from "solid-js";
-import { SimpleNode } from "./types";
+import { SimpleNode } from "../types/types";
 
 export function RenderNode(props: {
   node: SimpleNode;

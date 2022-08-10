@@ -1,7 +1,7 @@
 import LogoIcon from "./LogoIcon";
-import { isExtension } from "./isExtension";
+import { isExtension } from "../functions/isExtension";
 import { OpenSettingsButton } from "./OpenSettingsButton";
-import { AdapterId } from "./consts";
+import { AdapterId } from "../consts";
 
 export default function BannerHeader(props: {
   openOptions?: () => void;

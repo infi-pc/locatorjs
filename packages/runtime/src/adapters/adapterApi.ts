@@ -1,5 +1,5 @@
-import { LabelData } from "../LabelData";
-import { LinkProps, SimpleDOMRect } from "../types";
+import { LabelData } from "../types/LabelData";
+import { LinkProps, SimpleDOMRect } from "../types/types";
 
 export type ElementInfo = {
   box: SimpleDOMRect;

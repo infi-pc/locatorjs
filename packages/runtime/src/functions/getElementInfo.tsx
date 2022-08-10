@@ -1,6 +1,6 @@
-import reactAdapter from "./adapters/react/reactAdapter";
-import jsxAdapter from "./adapters/jsx/jsxAdapter";
-import svelteAdapter from "./adapters/svelte/svelteAdapter";
+import reactAdapter from "./../adapters/react/reactAdapter";
+import jsxAdapter from "./../adapters/jsx/jsxAdapter";
+import svelteAdapter from "./../adapters/svelte/svelteAdapter";
 
 export function getElementInfo(target: HTMLElement, adapterId?: string) {
   if (adapterId === "react") {

@@ -1,9 +1,9 @@
 import { modifiersTitles } from "@locator/shared";
 import { createEffect, createSignal, For } from "solid-js";
-import { bannerClasses } from "./bannerClasses";
+import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
-import { AdapterId } from "./consts";
-import { getMouseModifiers } from "./isCombinationModifiersPressed";
+import { AdapterId } from "../consts";
+import { getMouseModifiers } from "../functions/isCombinationModifiersPressed";
 
 export function IntroInfo(props: {
   openOptions: () => void;

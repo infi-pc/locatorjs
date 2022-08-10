@@ -1,4 +1,4 @@
-import { parseDataId } from "../../parseDataId";
+import { parseDataId } from "../../functions/parseDataId";
 import { ExpressionInfo, FileStorage } from "@locator/shared";
 
 export function getExpressionData(

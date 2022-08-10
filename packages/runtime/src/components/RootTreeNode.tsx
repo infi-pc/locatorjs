@@ -1,7 +1,7 @@
-import { HighlightedNode, SimpleNode } from "./types";
+import { HighlightedNode, SimpleNode } from "../types/types";
 import { TreeNode } from "./TreeNode";
 import { createMemo, createSignal } from "solid-js";
-import { getIdsThatHaveExpandedSuccessor } from "./getIdsThatHaveExpandedSuccessor";
+import { getIdsThatHaveExpandedSuccessor } from "../functions/getIdsThatHaveExpandedSuccessor";
 import { Targets } from "@locator/shared";
 
 export type IdsMap = { [id: string]: true };
