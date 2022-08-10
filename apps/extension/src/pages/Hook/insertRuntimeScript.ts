@@ -1,4 +1,5 @@
 import { isValidRenderer } from '@locator/react-devtools-hook';
+import { detectSvelte } from '@locator/shared';
 
 type Renderer = any;
 
@@ -40,10 +41,7 @@ export function insertRuntimeScript() {
       return 'Locator client url not found';
     }
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    if (window.__SVELTE_HMR) {
-      // __SVELTE_HMR is so far the only way to detect svelte I found
+    if (detectSvelte()) {
       const inserted = insertScript(locatorClientUrl);
       if (inserted) {
         scriptLoaded = true;

@@ -51,6 +51,15 @@ export function getModifiersString(modifiersMap: { [key: string]: true }) {
   return modifiersArray.join("+");
 }
 
+export function detectSvelte() {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  if (window.__SVELTE_HMR) {
+    // __SVELTE_HMR is so far the only way to detect svelte I found
+    return true;
+  }
+  return false;
+}
 export type SourceLocation = {
   start: {
     line: number;
