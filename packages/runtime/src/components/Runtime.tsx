@@ -262,11 +262,13 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      <IntroInfo
-        openOptions={openOptions}
-        hide={!!holdingModKey() || uiMode()[0] !== "off"}
-        adapter={props.adapterId}
-      />
+      {!isExtension() ? (
+        <IntroInfo
+          openOptions={openOptions}
+          hide={!!holdingModKey() || uiMode()[0] !== "off"}
+          adapter={props.adapterId}
+        />
+      ) : null}
       {uiMode()[0] === "options" ? (
         <Options
           adapterId={props.adapterId}
