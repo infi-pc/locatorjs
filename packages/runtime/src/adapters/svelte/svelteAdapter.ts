@@ -17,8 +17,8 @@ export function getElementInfo(
         box: found.getBoundingClientRect(),
         label: found.nodeName.toLowerCase(),
         link: {
-          column: loc.column,
-          line: loc.line,
+          column: loc.column + 1,
+          line: loc.line + 1,
           filePath: loc.file,
           projectPath: "",
         },

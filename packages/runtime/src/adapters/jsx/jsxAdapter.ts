@@ -47,7 +47,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const styledLink = styledExpData && {
       filePath: styledFileData.filePath,
       projectPath: styledFileData.projectPath,
-      column: styledExpData.loc?.start.column || 0,
+      column: (styledExpData.loc?.start.column || 0) + 1,
       line: styledExpData.loc?.start.line || 0,
     };
 
@@ -68,7 +68,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
         link: {
           filePath: fileData.filePath,
           projectPath: fileData.projectPath,
-          column: expData.loc.start.column || 0,
+          column: (expData.loc.start.column || 0) + 1,
           line: expData.loc.start.line || 0,
         },
       },
@@ -87,7 +87,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
               link: {
                 filePath: fileData.filePath,
                 projectPath: fileData.projectPath,
-                column: wrappingComponent.loc?.start.column || 0,
+                column: (wrappingComponent.loc?.start.column || 0) + 1,
                 line: wrappingComponent.loc?.start.line || 0,
               },
             },
