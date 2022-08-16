@@ -1,6 +1,7 @@
 import reactAdapter from "./../adapters/react/reactAdapter";
 import jsxAdapter from "./../adapters/jsx/jsxAdapter";
 import svelteAdapter from "./../adapters/svelte/svelteAdapter";
+import vueAdapter from "../adapters/vue/vueAdapter";
 
 export function getElementInfo(target: HTMLElement, adapterId?: string) {
   if (adapterId === "react") {
@@ -12,10 +13,14 @@ export function getElementInfo(target: HTMLElement, adapterId?: string) {
   if (adapterId === "jsx") {
     return jsxAdapter.getElementInfo(target);
   }
+  if (adapterId === "vue") {
+    return vueAdapter.getElementInfo(target);
+  }
 
   return (
     reactAdapter.getElementInfo(target) ||
     svelteAdapter.getElementInfo(target) ||
-    jsxAdapter.getElementInfo(target)
+    jsxAdapter.getElementInfo(target) ||
+    vueAdapter.getElementInfo(target)
   );
 }

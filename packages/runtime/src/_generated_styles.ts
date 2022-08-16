@@ -760,6 +760,10 @@ select {
   z-index: 10;
 }
 
+.m-4 {
+  margin: 1rem;
+}
+
 .mt-2 {
   margin-top: 0.5rem;
 }
@@ -928,6 +932,14 @@ select {
   border-radius: 0.5rem;
 }
 
+.rounded-sm {
+  border-radius: 0.125rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
 .border {
   border-width: 1px;
 }
@@ -984,6 +996,11 @@ select {
 .bg-slate-300 {
   --tw-bg-opacity: 1;
   background-color: rgb(203 213 225 / var(--tw-bg-opacity));
+}
+
+.bg-red-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(239 68 68 / var(--tw-bg-opacity));
 }
 
 .bg-black\\/70 {

@@ -60,6 +60,16 @@ export function detectSvelte() {
   }
   return false;
 }
+
+export function detectVue() {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  if (window.__VUE__) {
+    return true;
+  }
+  return false;
+}
+
 export type SourceLocation = {
   start: {
     line: number;
