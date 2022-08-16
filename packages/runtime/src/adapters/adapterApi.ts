@@ -1,5 +1,5 @@
 import { LabelData } from "../types/LabelData";
-import { LinkProps, SimpleDOMRect } from "../types/types";
+import { LinkProps, SimpleDOMRect, SimpleNode } from "../types/types";
 
 export type ElementInfo = {
   box: SimpleDOMRect;
@@ -17,4 +17,5 @@ export type FullElementInfo = {
 
 export interface AdapterObject {
   getElementInfo(element: HTMLElement): FullElementInfo | null;
+  getTree(includeElement: HTMLElement): SimpleNode[];
 }

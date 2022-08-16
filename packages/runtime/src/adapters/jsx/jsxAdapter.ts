@@ -101,8 +101,13 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   return null;
 }
 
+function getTree() {
+  return [];
+}
+
 const reactAdapter: AdapterObject = {
   getElementInfo,
+  getTree,
 };
 
 export default reactAdapter;

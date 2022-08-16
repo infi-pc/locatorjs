@@ -11,7 +11,7 @@ import { getIdsOnPathToRoot } from "../functions/getIdsOnPathToRoot";
 import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
-import { hasExperimentalFeatures } from "../functions/hasExperimentalFeatures";
+
 import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
 import { bannerClasses } from "../functions/bannerClasses";
@@ -23,7 +23,7 @@ import { ChooseEditorDialog } from "./ChooseEditorDialog";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
 import { goToLinkProps } from "../functions/goTo";
 import { getSavedProjectPath } from "../functions/buildLink";
-import { getElementInfo } from "../functions/getElementInfo";
+import { getElementInfo } from "../adapters/getElementInfo";
 
 function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<
@@ -50,22 +50,12 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     }
   });
 
-  createEffect(() => {
-    if (uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement") {
-      document.body.classList.add("locatorjs-move-body");
-    } else {
-      document.body.classList.remove("locatorjs-move-body");
-    }
-  });
-
   function keyUpListener(e: KeyboardEvent) {
-    if (hasExperimentalFeatures()) {
-      if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-        if (uiMode()[0] === "tree") {
-          setUiMode(["off"]);
-        } else {
-          setUiMode(["tree"]);
-        }
+    if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+      if (uiMode()[0] === "tree") {
+        setUiMode(["off"]);
+      } else {
+        setUiMode(["tree"]);
       }
     }
 
@@ -175,10 +165,13 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   });
 
   const getAllNodes = (): SimpleNode[] => {
+    console.log("[LocatorJS]: Getting all nodes", uiMode());
     if (uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement") {
       const foundFiberRoots: Fiber[] = [];
 
       gatherFiberRoots(document.body, foundFiberRoots);
+
+      console.log("[LocatorJS]: Found fiber roots", foundFiberRoots);
 
       const simpleRoots = foundFiberRoots.map((fiber) => {
         return fiberToSimple(fiber);
@@ -220,25 +213,28 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
             "pointer-events": "auto",
           }}
         >
-          <For each={getAllNodes()}>
-            {(node) => (
-              <RootTreeNode
-                node={node}
-                idsToShow={
-                  uiMode()[0] === "treeFromElement"
-                    ? getIdsOnPathToRoot(uiMode()[1]!)
-                    : {}
-                }
-                highlightedNode={{
-                  getNode: highlightedNode,
-                  setNode: (newId) => {
-                    setHighlightedNode(newId);
-                  },
-                }}
-                targets={props.targets}
-              />
-            )}
-          </For>
+          <div class="m-4  bg-white rounded-md p-4 shadow-xl">
+            <For each={getAllNodes()}>
+              {(node) => (
+                <RootTreeNode
+                  node={node}
+                  idsToShow={
+                    uiMode()[0] === "treeFromElement"
+                      ? getIdsOnPathToRoot(uiMode()[1]!)
+                      : {}
+                  }
+                  highlightedNode={{
+                    getNode: highlightedNode,
+                    setNode: (newId) => {
+                      setHighlightedNode(newId);
+                    },
+                  }}
+                  targets={props.targets}
+                />
+              )}
+            </For>
+          </div>
+
           {/* <For each={getAllNodes()}>
             {(node, i) => (
               <RenderXrayNode node={node} parentIsHovered={false} />

@@ -1,6 +1,6 @@
 import { Targets } from "@locator/shared";
 import { createMemo } from "solid-js";
-import { getElementInfo } from "../functions/getElementInfo";
+import { getElementInfo } from "../adapters/getElementInfo";
 import { Outline } from "./Outline";
 
 export function MaybeOutline(props: {

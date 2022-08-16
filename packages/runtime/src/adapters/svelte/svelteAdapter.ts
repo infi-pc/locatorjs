@@ -32,8 +32,13 @@ export function getElementInfo(
   return null;
 }
 
+function getTree() {
+  return [];
+}
+
 const svelteAdapter: AdapterObject = {
   getElementInfo,
+  getTree,
 };
 
 export default svelteAdapter;

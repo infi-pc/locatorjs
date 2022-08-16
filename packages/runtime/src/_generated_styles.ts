@@ -760,6 +760,10 @@ select {
   z-index: 10;
 }
 
+.m-4 {
+  margin: 1rem;
+}
+
 .mt-2 {
   margin-top: 0.5rem;
 }
@@ -928,6 +932,14 @@ select {
   border-radius: 0.5rem;
 }
 
+.rounded-sm {
+  border-radius: 0.125rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
 .border {
   border-width: 1px;
 }
@@ -988,6 +1000,11 @@ select {
 
 .bg-black\\/70 {
   background-color: rgb(0 0 0 / 0.7);
+}
+
+.bg-red-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(239 68 68 / var(--tw-bg-opacity));
 }
 
 .p-4 {
@@ -1234,6 +1251,11 @@ select {
 .hover\\:bg-slate-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(241 245 249 / var(--tw-bg-opacity));
+}
+
+.hover\\:bg-red-800:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(153 27 27 / var(--tw-bg-opacity));
 }
 
 .hover\\:text-slate-800:hover {
