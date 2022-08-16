@@ -1,5 +1,5 @@
 import { isValidRenderer } from '@locator/react-devtools-hook';
-import { detectSvelte } from '@locator/shared';
+import { detectSvelte, detectVue } from '@locator/shared';
 
 type Renderer = any;
 
@@ -41,7 +41,7 @@ export function insertRuntimeScript() {
       return 'Locator client url not found';
     }
 
-    if (detectSvelte()) {
+    if (detectSvelte() || detectVue()) {
       const inserted = insertScript(locatorClientUrl);
       if (inserted) {
         scriptLoaded = true;
