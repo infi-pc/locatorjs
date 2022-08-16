@@ -2,8 +2,9 @@ import reactAdapter from "./../adapters/react/reactAdapter";
 import jsxAdapter from "./../adapters/jsx/jsxAdapter";
 import svelteAdapter from "./../adapters/svelte/svelteAdapter";
 import vueAdapter from "../adapters/vue/vueAdapter";
+import { AdapterId } from "../consts";
 
-export function getElementInfo(target: HTMLElement, adapterId?: string) {
+export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
   if (adapterId === "react") {
     return reactAdapter.getElementInfo(target);
   }

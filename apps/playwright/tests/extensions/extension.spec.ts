@@ -11,7 +11,7 @@ import { locateElement } from "../locateElement";
 
 export const test = base.extend<{
   context: BrowserContext;
-  extensionId: string;
+  // extensionId: string;
 }>({
   context: async ({}, use) => {
     const pathToExtension = path.join(
@@ -29,32 +29,30 @@ export const test = base.extend<{
     await use(context);
     await context.close();
   },
-  extensionId: async ({ context }, use) => {
-    // for manifest v2:
-    // let [background] = context.backgroundPages();
-    // if (!background) background = await context.waitForEvent("backgroundpage");
+  // extensionId: async ({ context }, use) => {
+  //   // for manifest v2:
+  //   // let [background] = context.backgroundPages();
+  //   // if (!background) background = await context.waitForEvent("backgroundpage");
 
-    // for manifest v3:
-    let [background] = context.serviceWorkers();
-    if (!background) background = await context.waitForEvent("serviceworker");
+  //   // for manifest v3:
+  //   let [background] = context.serviceWorkers();
+  //   if (!background) background = await context.waitForEvent("serviceworker");
 
-    const extensionId = background.url().split("/")[2];
-    await use(extensionId);
-  },
+  //   const extensionId = background.url().split("/")[2];
+  //   await use(extensionId);
+  // },
 });
 
 test("react", async ({ page }) => {
-  await page.goto(projects.react);
-  const getStarted = page.locator("text=Go to component code with");
-  await expect(getStarted).toBeVisible();
+  await page.goto(projects.reactClean);
 
-  //   let wentToLink = false;
-  //   await page.route("vscode://*", (route) => {
-  //     route.abort();
-  //     wentToLink = true;
-  //   });
+  await page.keyboard.down("Alt");
+  await page.mouse.move(100, 100);
+  const headline = page.locator("text=Vite + React");
+  await headline.hover();
 
-  //   await locateElement(page, "text=Hello Vite + React!");
+  const locatorLogo = page.locator("a[title=LocatorJS]");
+  await expect(locatorLogo).toBeVisible();
 
   //   expect(wentToLink).toBe(true);
   //   const initialButton = page.locator("button >> text=Go to code");
@@ -62,16 +60,18 @@ test("react", async ({ page }) => {
 });
 
 test("svelte", async ({ page }) => {
-  await page.goto(projects.svelte);
-  const getStarted = page.locator("text=Go to component code with");
-  await expect(getStarted).toBeVisible();
+  await page.goto(projects.svelteClean);
+
+  await page.keyboard.down("Alt");
+  const headline = page.locator("text=Vite + Svelte");
+  await headline.hover();
+
+  const locatorLogo = page.locator("a[title=LocatorJS]");
+  await expect(locatorLogo).toBeVisible();
 
   await locateElement(page, "text=Vite + Svelte");
-
   const initialButton = page.locator("button >> text=Go to code");
   await expect(initialButton).toBeVisible();
-
-  //   await page.pause();
 });
 
 // test("popup page", async ({ page, extensionId }) => {
