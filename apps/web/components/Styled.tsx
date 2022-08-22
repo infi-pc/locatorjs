@@ -9,5 +9,6 @@ export const InlineCode = tw.span`px-2 py-1 rounded bg-slate-100`;
 export const StandardLink = tw.a`text-blue-600 hover:text-blue-700 underline cursor-pointer`;
 
 export const Alert = tw.div`p-4 mt-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-200 dark:text-blue-800`;
+export const AlertWarning = tw.div`p-4 mt-4 mb-4 text-sm text-orange-700 bg-orange-100 rounded-lg dark:bg-orange-200 dark:text-orange-800`;
 
 export const InstallContainer = tw.h3`container flex flex-col items-center justify-center px-4 py-24 mx-auto`;
