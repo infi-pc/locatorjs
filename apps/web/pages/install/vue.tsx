@@ -2,6 +2,7 @@ import Header from "../../blocks/Header";
 import { Step } from "../../components/Step";
 import { InstallByAnything } from "../../components/InstallByAnything";
 import {
+  Alert,
   AlertWarning,
   BlockHeadline,
   InlineCode,
@@ -15,33 +16,32 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Tabs } from "../../components/Tabs";
 
-const svelteImportScript = (
-  projectPath: string
-) => `import setupLocatorUI from "@locator/runtime";
+const vueImportScript = () => `import setupLocatorUI from "@locator/runtime";
 
 if (process.env.NODE_ENV === "development") {
   setupLocatorUI({
-    adapter: "svelte",
-    projectPath: ${projectPath},
+    adapter: "vue"
   });
 }
 `;
 
-export default function InstallSvelte() {
+export default function InstallVue() {
   return (
     <>
       <Header />
       <section className="overflow-hidden text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900">
         <InstallContainer>
-          <BlockHeadline>Install Locator for Svelte</BlockHeadline>
-          <p className="text-center">Install Locator on Svelte codebase.</p>
+          <BlockHeadline>Install Locator for Vue</BlockHeadline>
+          <p className="text-center">Install Locator on Vue codebase.</p>
 
           <AlertWarning>
             <div className="mb-1">
-              <strong>Svelte support is experimental:</strong>
+              <strong>Vue support is experimental:</strong>
             </div>
             <ul className="ml-4 list-disc">
-              <li>It does not show component{"'"}s name and bounding box.</li>
+              <li>Works only with Vue 3</li>
+              <li>Goes only to file, not to precise line and number</li>
+              <li>SSR rendered component may not be recognized</li>
             </ul>
           </AlertWarning>
 
@@ -74,52 +74,35 @@ export default function InstallSvelte() {
               members can use it. You can install it as a library.
               <InstallByAnything packageName="@locator/runtime" />
               <Tabs
-                queryId="svelte-stack"
+                queryId="vue-stack"
                 items={[
                   {
                     title: "Vite",
                     content: (
                       <>
-                        Add this to some global/root file, usually:
-                        <InlineCode>index.js</InlineCode> or{" "}
-                        <InlineCode>App.svelte</InlineCode>
+                        Add this to <InlineCode>main.js</InlineCode>:
                         <SyntaxHighlighter
                           language="javascript"
                           style={a11yDark}
                         >
-                          {svelteImportScript("__PROJECT_PATH__")}
-                        </SyntaxHighlighter>
-                        and add this to your{" "}
-                        <InlineCode>vite.config.js</InlineCode>
-                        <SyntaxHighlighter
-                          language="javascript"
-                          style={a11yDark}
-                        >
-                          {`export default defineConfig({
-  ...
-  define: {
-    __PROJECT_PATH__: \`"\${process.cwd()}"\`,
-  },
-  ...
-});`}
+                          {vueImportScript()}
                         </SyntaxHighlighter>
                       </>
                     ),
                   },
                   {
-                    title: "other stacks",
+                    title: "Nuxt 3",
                     content: (
                       <>
+                        {/* {TODO find out which file we need to edit} */}
                         Add this to some global/root file, usually:
-                        <InlineCode>index.js</InlineCode> or{" "}
-                        <InlineCode>App.svelte</InlineCode>
+                        <InlineCode>index.js</InlineCode>
                         <SyntaxHighlighter
                           language="javascript"
                           style={a11yDark}
                         >
-                          {svelteImportScript("process.cwd()")}
+                          {vueImportScript()}
                         </SyntaxHighlighter>
-                        there might be differences in other frameworks.
                       </>
                     ),
                   },

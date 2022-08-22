@@ -58,6 +58,12 @@ export function detectSvelte() {
     // __SVELTE_HMR is so far the only way to detect svelte I found
     return true;
   }
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  if (window.__SAPPER__) {
+    return true;
+  }
   return false;
 }
 
