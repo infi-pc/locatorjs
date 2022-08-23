@@ -5,6 +5,7 @@ export default function LogoIcon(_props: { width?: number }) {
   return (
     <a
       class="hover:bg-slate-50 rounded"
+      title="LocatorJS"
       href="https://www.locatorjs.com"
       target="_blank"
       onClick={(e) => {

@@ -32,7 +32,9 @@ function Hero() {
           <p className="text-lg leading-relaxed">
             Click on any component in the browser to open its code in your IDE.
             <br />
-            For React, Preact, Solid and Svelte.
+            You can use it as a browser extension <b>or</b> as a library.
+            <br />
+            For React, Preact, Solid, Vue and Svelte.
           </p>
           <div className="flex-col hidden md:flex ">
             <div className="mt-4 text-xl font-bold">Try it here and now:</div>

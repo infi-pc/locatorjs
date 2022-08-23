@@ -1,0 +1,19 @@
+{
+  "name": "vite-vue-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3350",
+    "build": "vite build",
+    "preview": "vite preview --port 3350"
+  },
+  "dependencies": {
+    "vue": "^3.2.37"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^3.0.3",
+    "vite": "^3.0.7",
+    "@locator/runtime": "*"
+  }
+}

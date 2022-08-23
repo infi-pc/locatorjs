@@ -78,6 +78,15 @@ export default function SetupLinks() {
             }
             title="Svelte"
             id="svelte"
+            experimental
+          />
+          <SetupLink
+            icon={
+              <Image src="/logos/vue.svg" alt="Vue" width={85} height={100} />
+            }
+            title="Vue"
+            id="vue"
+            experimental
           />
         </div>
       </div>
@@ -90,11 +99,13 @@ function SetupLink({
   title,
   text,
   id,
+  experimental,
 }: {
   icon: ReactNode;
   title: ReactNode;
   text?: ReactNode;
   id: string;
+  experimental?: boolean;
 }) {
   return (
     <div className="p-4">
@@ -104,8 +115,13 @@ function SetupLink({
             {icon}
           </div>
           <div className="flex-grow">
-            <h2 className="mb-3 text-lg font-medium text-gray-900 title-font">
+            <h2 className="flex items-center mb-3 text-lg font-medium text-gray-900 title-font">
               {title}
+              {experimental ? (
+                <div className="text-sm inline-block px-2 py-0.5 ml-2 text-gray-600 rounded-full bg-slate-100">
+                  experimental
+                </div>
+              ) : null}
             </h2>
             {text && <p className="mb-3 text-sm leading-relaxed">{text}</p>}
             <a className="inline-flex items-center text-indigo-500">

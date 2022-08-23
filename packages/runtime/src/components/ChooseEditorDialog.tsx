@@ -6,7 +6,7 @@ import {
 } from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { createSignal } from "solid-js";
-import { Targets } from "@locator/shared";
+import { detectSvelte, Targets } from "@locator/shared";
 import { goToLinkProps } from "../functions/goTo";
 import { setLocalStorageLinkTemplate } from "../functions/linkTemplateUrl";
 import { ProjectLinkForm } from "./ProjectLinkForm";
@@ -46,13 +46,15 @@ export function ChooseEditorDialog(props: {
 
   return (
     <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-2xl">
-      <ProjectLinkForm
-        value={projectPath()}
-        onChange={(val) => {
-          setNeedToFillLinkError(false);
-          setProjectPath(val);
-        }}
-      />
+      {detectSvelte() ? (
+        <ProjectLinkForm
+          value={projectPath()}
+          onChange={(val) => {
+            setNeedToFillLinkError(false);
+            setProjectPath(val);
+          }}
+        />
+      ) : null}
       {needToFillLinkError() ? (
         <div class="text-red-500 text-sm">Project path is required</div>
       ) : (
@@ -80,7 +82,7 @@ export function ChooseEditorDialog(props: {
         <div>
           <button
             onClick={() => {
-              if (!projectPath()) {
+              if (!projectPath() && detectSvelte()) {
                 setNeedToFillLinkError(true);
                 return;
               }

@@ -67,3 +67,14 @@ test("react - clean: should now have Locator", async ({ page }) => {
   const initialButton = page.locator("button >> text=Go to code");
   expect(await initialButton.count()).toBe(0);
 });
+
+test("vue", async ({ page }) => {
+  await page.goto(projects.vue);
+  const getStarted = page.locator("text=Go to component code with");
+  await expect(getStarted).toBeVisible();
+
+  await locateElement(page, "text=Vite + Vue");
+
+  const initialButton = page.locator("button >> text=Go to code");
+  await expect(initialButton).toBeVisible();
+});
