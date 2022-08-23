@@ -94,14 +94,12 @@ export default function InstallVue() {
                     title: "Nuxt 3",
                     content: (
                       <>
-                        {/* {TODO find out which file we need to edit} */}
-                        Add this to some global/root file, usually:
-                        <InlineCode>index.js</InlineCode>
+                        Add this to <InlineCode>app.vue</InlineCode>:
                         <SyntaxHighlighter
                           language="javascript"
                           style={a11yDark}
                         >
-                          {vueImportScript()}
+                          {"<script>\n" + vueImportScript() + "</script>"}
                         </SyntaxHighlighter>
                       </>
                     ),

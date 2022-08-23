@@ -82,7 +82,7 @@ export default function SetupLinks() {
           />
           <SetupLink
             icon={
-              <Image src="/logos/vue.png" alt="Vue" width={85} height={100} />
+              <Image src="/logos/vue.svg" alt="Vue" width={85} height={100} />
             }
             title="Vue"
             id="vue"
