@@ -1,7 +1,7 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "scripts": {
     "test": "jest",
     "test:update": "jest src/ -u",
