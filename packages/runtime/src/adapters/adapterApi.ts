@@ -17,5 +17,5 @@ export type FullElementInfo = {
 
 export interface AdapterObject {
   getElementInfo(element: HTMLElement): FullElementInfo | null;
-  getTree(includeElement: HTMLElement): SimpleNode[];
+  getTree?(includeElement: HTMLElement): SimpleNode[];
 }
