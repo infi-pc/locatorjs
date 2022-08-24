@@ -59,13 +59,8 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-function getTree() {
-  return [];
-}
-
 const reactAdapter: AdapterObject = {
   getElementInfo,
-  getTree,
 };
 
 export default reactAdapter;

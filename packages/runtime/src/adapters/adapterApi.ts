@@ -1,4 +1,5 @@
 import { LabelData } from "../types/LabelData";
+import { TreeNode } from "../types/TreeNode";
 import { LinkProps, SimpleDOMRect, SimpleNode } from "../types/types";
 
 export type ElementInfo = {
@@ -15,7 +16,12 @@ export type FullElementInfo = {
   componentsLabels: LabelData[];
 };
 
+export type GetTreeResult = {
+  root: TreeNode;
+  selectedIds: Set<string>;
+};
+
 export interface AdapterObject {
   getElementInfo(element: HTMLElement): FullElementInfo | null;
-  getTree?(includeElement: HTMLElement): SimpleNode[];
+  getTree?(includeElement: HTMLElement): GetTreeResult | null;
 }

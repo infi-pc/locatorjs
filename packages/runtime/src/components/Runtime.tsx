@@ -24,6 +24,8 @@ import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
 import { goToLinkProps } from "../functions/goTo";
 import { getSavedProjectPath } from "../functions/buildLink";
 import { getElementInfo } from "../adapters/getElementInfo";
+import { getTree } from "../adapters/getTree";
+import { TreeNode } from "../types/TreeNode";
 
 function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<
@@ -164,20 +166,13 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     document.removeEventListener("scroll", scrollListener);
   });
 
-  const getAllNodes = (): SimpleNode[] => {
+  const getAllNodes = (): TreeNode | null => {
     console.log("[LocatorJS]: Getting all nodes", uiMode());
     if (uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement") {
-      const foundFiberRoots: Fiber[] = [];
-
-      gatherFiberRoots(document.body, foundFiberRoots);
-
-      console.log("[LocatorJS]: Found fiber roots", foundFiberRoots);
-
-      const simpleRoots = foundFiberRoots.map((fiber) => {
-        return fiberToSimple(fiber);
-      });
-
-      return simpleRoots;
+      if (uiMode()[0] === "treeFromElement") {
+        const root = getTree(uiMode()[1] as HTMLElement) || null;
+        return root;
+      }
     }
     //  else if () {
     //   const pathToParentTree = getIdsOnPathToRoot(solidMode()[1]!);
@@ -185,7 +180,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     //     return [pathToParentTree];
     //   }
     // }
-    return [];
+    return null;
   };
 
   function showTreeFromElement(element: HTMLElement) {

@@ -1,4 +1,9 @@
-import { AdapterObject, FullElementInfo } from "../adapterApi";
+import { Source } from "@locator/shared";
+import { getReferenceId } from "../../functions/getReferenceId";
+import nonNullable from "../../functions/nonNullable";
+import { TreeNode } from "../../types/TreeNode";
+import { SimpleDOMRect } from "../../types/types";
+import { AdapterObject, FullElementInfo, GetTreeResult } from "../adapterApi";
 
 type SvelteLoc = {
   char: number;
@@ -7,9 +12,9 @@ type SvelteLoc = {
   line: number;
 };
 
-export function getElementInfo(
-  found: HTMLElement & { __svelte_meta?: { loc: SvelteLoc } }
-): FullElementInfo | null {
+type SvelteElement = HTMLElement & { __svelte_meta?: { loc: SvelteLoc } };
+
+export function getElementInfo(found: SvelteElement): FullElementInfo | null {
   if (found.__svelte_meta) {
     const { loc } = found.__svelte_meta;
     return {
@@ -32,8 +37,73 @@ export function getElementInfo(
   return null;
 }
 
-function getTree() {
-  return [];
+export class JSXTreeNodeElement implements TreeNode {
+  element: SvelteElement;
+  name: string;
+  uniqueId: string;
+  constructor(element: HTMLElement) {
+    this.element = element;
+    this.name = element.nodeName.toLowerCase();
+    this.uniqueId = String(getReferenceId(element));
+  }
+  getBox(): SimpleDOMRect | null {
+    return this.element.getBoundingClientRect();
+  }
+  getElement(): Element | Text {
+    return this.element;
+  }
+  getChildren(): TreeNode[] {
+    const children = Array.from(this.element.children);
+    return children
+      .map((child) => {
+        if (child instanceof HTMLElement) {
+          return new JSXTreeNodeElement(child);
+        } else {
+          return null;
+        }
+      })
+      .filter(nonNullable);
+  }
+  getParent(): TreeNode | null {
+    if (this.element.parentElement) {
+      return new JSXTreeNodeElement(this.element.parentElement);
+    } else {
+      return null;
+    }
+  }
+  getSource(): Source | null {
+    if (this.element.__svelte_meta) {
+      const { loc } = this.element.__svelte_meta;
+      return {
+        fileName: loc.file,
+        lineNumber: loc.line + 1,
+        columnNumber: loc.column + 1,
+      };
+    }
+    return null;
+  }
+}
+
+function getTree(element: HTMLElement): GetTreeResult | null {
+  let root: TreeNode = new JSXTreeNodeElement(element);
+
+  const allIds = new Set<string>();
+  let current: TreeNode | null = root;
+
+  let limit = 3;
+  while (current && limit > 0) {
+    allIds.add(current.uniqueId);
+    limit--;
+    current = current.getParent();
+    if (current) {
+      root = current;
+    }
+  }
+
+  return {
+    root: root,
+    selectedIds: allIds,
+  };
 }
 
 const svelteAdapter: AdapterObject = {

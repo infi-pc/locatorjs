@@ -1,8 +1,10 @@
-import { AdapterObject, FullElementInfo } from "../adapterApi";
+import { AdapterObject, FullElementInfo, GetTreeResult } from "../adapterApi";
 import { parseDataId } from "../../functions/parseDataId";
-import { FileStorage } from "@locator/shared";
+import { FileStorage, Source } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
+import { TreeNode } from "../../types/TreeNode";
+import { SimpleDOMRect } from "../../types/types";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
@@ -101,8 +103,53 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-function getTree() {
-  return [];
+export class JSXTreeNodeComponent implements TreeNode {
+  name: string;
+  uniqueId: string;
+  constructor(name: string, uniqueId: string) {
+    this.name = name;
+    this.uniqueId = uniqueId;
+  }
+  getBox(): SimpleDOMRect | null {
+    return null;
+  }
+  getChildren(): TreeNode[] {
+    return [];
+  }
+  getParent(): TreeNode {
+    throw new Error("Method not implemented.");
+  }
+  getSource(): Source | null {
+    throw new Error("Method not implemented.");
+  }
+}
+
+export class JSXTreeNodeElement implements TreeNode {
+  name: string;
+  uniqueId: string;
+  constructor(name: string, uniqueId: string) {
+    this.name = name;
+    this.uniqueId = uniqueId;
+  }
+  getBox(): SimpleDOMRect | null {
+    return null;
+  }
+  getElement(): Element | Text {
+    throw new Error("Method not implemented.");
+  }
+  getChildren(): TreeNode[] {
+    return [];
+  }
+  getParent(): TreeNode {
+    throw new Error("Method not implemented.");
+  }
+  getSource(): Source | null {
+    throw new Error("Method not implemented.");
+  }
+}
+
+function getTree(element: HTMLElement): GetTreeResult | null {
+  return null;
 }
 
 const reactAdapter: AdapterObject = {
