@@ -29,7 +29,11 @@ export function TreeNodeElementView(props: {
         (props.highlightedId === props.node.uniqueId ? "bg-yellow-100" : "")
       }
     >
-      <div>{props.node.name}</div>
+      <div class="font-mono">
+        {"<"}
+        {props.node.name}
+        {">"}
+      </div>
       <div>
         {props.expandedIds.has(props.node.uniqueId) ? (
           renderChildren()

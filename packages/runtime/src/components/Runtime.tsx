@@ -197,20 +197,41 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
         >
           <div class={"m-4 bg-white rounded-md p-4 shadow-xl"}>
             {uiMode()[1] ? (
-              <TreeNodeElementView
-                node={uiMode()[1]!.root as TreeNodeElement}
-                expandedIds={uiMode()[1]!.expandedIds}
-                highlightedId={uiMode()[1]!.highlightedId}
-                expandId={(id: string) => {
-                  if (uiMode()[0] === "tree") {
-                    const state = uiMode()[1];
-                    if (state) {
-                      state.expandedIds.add(id);
-                      setUiMode(["tree", state]);
+              <div>
+                {uiMode()[1]?.root.getParent() ? (
+                  <button
+                    class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2"
+                    onClick={() => {
+                      if (uiMode()[0] === "tree") {
+                        const state = uiMode()[1];
+                        if (state) {
+                          const parent = state.root.getParent();
+                          if (parent) {
+                            state.expandedIds.add(parent.uniqueId);
+                            setUiMode(["tree", { ...state, root: parent }]);
+                          }
+                        }
+                      }
+                    }}
+                  >
+                    ...
+                  </button>
+                ) : null}
+                <TreeNodeElementView
+                  node={uiMode()[1]!.root as TreeNodeElement}
+                  expandedIds={uiMode()[1]!.expandedIds}
+                  highlightedId={uiMode()[1]!.highlightedId}
+                  expandId={(id: string) => {
+                    if (uiMode()[0] === "tree") {
+                      const state = uiMode()[1];
+                      if (state) {
+                        state.expandedIds.add(id);
+                        setUiMode(["tree", state]);
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             ) : (
               <>no tree</>
             )}

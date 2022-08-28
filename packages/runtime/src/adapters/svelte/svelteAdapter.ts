@@ -92,7 +92,7 @@ function getTree(element: HTMLElement): TreeState | null {
 
   const highlightedId = root.uniqueId;
   allIds.add(current.uniqueId);
-  let limit = 3;
+  let limit = 2;
   while (current && limit > 0) {
     limit--;
     current = current.getParent();

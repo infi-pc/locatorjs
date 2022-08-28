@@ -1117,6 +1117,10 @@ select {
   padding-bottom: 0.125rem;
 }
 
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .text-sm {
   font-size: 0.875rem;
   line-height: 1.25rem;
