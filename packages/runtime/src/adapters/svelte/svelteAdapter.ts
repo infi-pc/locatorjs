@@ -3,7 +3,7 @@ import { getReferenceId } from "../../functions/getReferenceId";
 import nonNullable from "../../functions/nonNullable";
 import { TreeNode } from "../../types/TreeNode";
 import { SimpleDOMRect } from "../../types/types";
-import { AdapterObject, FullElementInfo, GetTreeResult } from "../adapterApi";
+import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 
 type SvelteLoc = {
   char: number;
@@ -84,25 +84,28 @@ export class JSXTreeNodeElement implements TreeNode {
   }
 }
 
-function getTree(element: HTMLElement): GetTreeResult | null {
+function getTree(element: HTMLElement): TreeState | null {
   let root: TreeNode = new JSXTreeNodeElement(element);
 
   const allIds = new Set<string>();
   let current: TreeNode | null = root;
 
+  const highlightedId = root.uniqueId;
+  allIds.add(current.uniqueId);
   let limit = 3;
   while (current && limit > 0) {
-    allIds.add(current.uniqueId);
     limit--;
     current = current.getParent();
     if (current) {
+      allIds.add(current.uniqueId);
       root = current;
     }
   }
 
   return {
     root: root,
-    selectedIds: allIds,
+    expandedIds: allIds,
+    highlightedId: highlightedId,
   };
 }
 

@@ -40,7 +40,7 @@ export function Outline(props: {
               cursor: "pointer",
             }}
             onClick={() => {
-              // TODO
+              props.showTreeFromElement(props.element.htmlElement);
             }}
           >
             tree

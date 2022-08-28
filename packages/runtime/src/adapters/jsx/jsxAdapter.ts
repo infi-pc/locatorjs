@@ -1,4 +1,4 @@
-import { AdapterObject, FullElementInfo, GetTreeResult } from "../adapterApi";
+import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 import { parseDataId } from "../../functions/parseDataId";
 import { FileStorage, Source } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
@@ -148,7 +148,7 @@ export class JSXTreeNodeElement implements TreeNode {
   }
 }
 
-function getTree(element: HTMLElement): GetTreeResult | null {
+function getTree(element: HTMLElement): TreeState | null {
   return null;
 }
 

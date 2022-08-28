@@ -8,7 +8,6 @@ import { isCombinationModifiersPressed } from "../functions/isCombinationModifie
 import { trackClickStats } from "../functions/trackClickStats";
 import { LinkProps, SimpleNode, Targets as SetupTargets } from "../types/types";
 import { getIdsOnPathToRoot } from "../functions/getIdsOnPathToRoot";
-import { RootTreeNode } from "./RootTreeNode";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 
@@ -25,11 +24,13 @@ import { goToLinkProps } from "../functions/goTo";
 import { getSavedProjectPath } from "../functions/buildLink";
 import { getElementInfo } from "../adapters/getElementInfo";
 import { getTree } from "../adapters/getTree";
-import { TreeNode } from "../types/TreeNode";
+import { TreeNode, TreeNodeElement } from "../types/TreeNode";
+import { TreeState } from "../adapters/adapterApi";
+import { TreeNodeElementView } from "./TreeNodeElementView";
 
 function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   const [uiMode, setUiMode] = createSignal<
-    ["off"] | ["options"] | ["tree"] | ["treeFromElement", HTMLElement]
+    ["off"] | ["options"] | ["tree", TreeState]
   >(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -52,17 +53,17 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     }
   });
 
-  function keyUpListener(e: KeyboardEvent) {
-    if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-      if (uiMode()[0] === "tree") {
-        setUiMode(["off"]);
-      } else {
-        setUiMode(["tree"]);
-      }
-    }
+  // function keyUpListener(e: KeyboardEvent) {
+  //   if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+  //     if (uiMode()[0] === "tree") {
+  //       setUiMode(["off"]);
+  //     } else {
+  //       setUiMode(["tree"]);
+  //     }
+  //   }
 
-    setHoldingModKey(isCombinationModifiersPressed(e));
-  }
+  //   setHoldingModKey(isCombinationModifiersPressed(e));
+  // }
 
   function keyDownListener(e: KeyboardEvent) {
     setHoldingModKey(isCombinationModifiersPressed(e));
@@ -152,12 +153,12 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     capture: true,
   });
   document.addEventListener("keydown", keyDownListener);
-  document.addEventListener("keyup", keyUpListener);
+  // document.addEventListener("keyup", keyUpListener);
   document.addEventListener("click", clickListener, { capture: true });
   document.addEventListener("scroll", scrollListener);
 
   onCleanup(() => {
-    document.removeEventListener("keyup", keyUpListener);
+    // document.removeEventListener("keyup", keyUpListener);
     document.removeEventListener("keydown", keyDownListener);
     document.removeEventListener("mouseover", mouseOverListener, {
       capture: true,
@@ -166,25 +167,11 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     document.removeEventListener("scroll", scrollListener);
   });
 
-  const getAllNodes = (): TreeNode | null => {
-    console.log("[LocatorJS]: Getting all nodes", uiMode());
-    if (uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement") {
-      if (uiMode()[0] === "treeFromElement") {
-        const root = getTree(uiMode()[1] as HTMLElement) || null;
-        return root;
-      }
-    }
-    //  else if () {
-    //   const pathToParentTree = getIdsOnPathToRoot(solidMode()[1]!);
-    //   if (pathToParentTree) {
-    //     return [pathToParentTree];
-    //   }
-    // }
-    return null;
-  };
-
   function showTreeFromElement(element: HTMLElement) {
-    setUiMode(["treeFromElement", element]);
+    const newState = getTree(element);
+    if (newState) {
+      setUiMode(["tree", newState]);
+    }
   }
 
   function openOptions() {
@@ -192,7 +179,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   }
   return (
     <>
-      {uiMode()[0] === "tree" || uiMode()[0] === "treeFromElement" ? (
+      {uiMode()[0] === "tree" ? (
         <div
           // id="locator-solid-overlay"
           // onClick={(e) => {
@@ -208,26 +195,25 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
             "pointer-events": "auto",
           }}
         >
-          <div class="m-4  bg-white rounded-md p-4 shadow-xl">
-            <For each={getAllNodes()}>
-              {(node) => (
-                <RootTreeNode
-                  node={node}
-                  idsToShow={
-                    uiMode()[0] === "treeFromElement"
-                      ? getIdsOnPathToRoot(uiMode()[1]!)
-                      : {}
+          <div class={"m-4 bg-white rounded-md p-4 shadow-xl"}>
+            {uiMode()[1] ? (
+              <TreeNodeElementView
+                node={uiMode()[1]!.root as TreeNodeElement}
+                expandedIds={uiMode()[1]!.expandedIds}
+                highlightedId={uiMode()[1]!.highlightedId}
+                expandId={(id: string) => {
+                  if (uiMode()[0] === "tree") {
+                    const state = uiMode()[1];
+                    if (state) {
+                      state.expandedIds.add(id);
+                      setUiMode(["tree", state]);
+                    }
                   }
-                  highlightedNode={{
-                    getNode: highlightedNode,
-                    setNode: (newId) => {
-                      setHighlightedNode(newId);
-                    },
-                  }}
-                  targets={props.targets}
-                />
-              )}
-            </For>
+                }}
+              />
+            ) : (
+              <>no tree</>
+            )}
           </div>
 
           {/* <For each={getAllNodes()}>
