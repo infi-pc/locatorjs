@@ -38,6 +38,7 @@ export function getElementInfo(found: SvelteElement): FullElementInfo | null {
 }
 
 export class JSXTreeNodeElement implements TreeNode {
+  type: "element" = "element";
   element: SvelteElement;
   name: string;
   uniqueId: string;

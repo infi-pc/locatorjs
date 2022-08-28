@@ -10,6 +10,7 @@ export function TreeNodeElementView(props: {
   expandId: (id: string) => void;
   parentFilePath?: string;
   targets: Targets;
+  setHighlightedBoundingBox: (node: TreeNodeElement | null) => void;
 }) {
   function renderChildren() {
     return (
@@ -22,6 +23,7 @@ export function TreeNodeElementView(props: {
             expandId={props.expandId}
             parentFilePath={props.node.getSource()?.fileName}
             targets={props.targets}
+            setHighlightedBoundingBox={props.setHighlightedBoundingBox}
           />
         )}
       </For>
@@ -39,6 +41,9 @@ export function TreeNodeElementView(props: {
         (isDifferentFilePath() ? "border border-gray-300 py-2 pr-2 " : " ") +
         (props.node.getSource() ? "text-black " : "text-gray-500 ")
       }
+      onMouseEnter={() => {
+        props.setHighlightedBoundingBox(props.node);
+      }}
     >
       <div
         class={

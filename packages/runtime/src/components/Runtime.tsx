@@ -41,7 +41,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     ["no-link"] | ["choose-editor", LinkProps] | null
   >(null);
 
-  const [highlightedNode, setHighlightedNode] = createSignal<null | SimpleNode>(
+  const [highlightedNode, setHighlightedNode] = createSignal<null | TreeNode>(
     null
   );
 
@@ -231,6 +231,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
                     }
                   }}
                   targets={props.targets}
+                  setHighlightedBoundingBox={setHighlightedNode}
                 />
               </div>
             ) : (

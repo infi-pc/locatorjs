@@ -1,6 +1,7 @@
 import { SimpleDOMRect, Source } from "./types";
 
 export interface TreeNode {
+  type: "component" | "element";
   name: string;
   uniqueId: string;
   getBox(): SimpleDOMRect | null;

@@ -1,17 +1,19 @@
+import { TreeNode } from "../types/TreeNode";
 import { SimpleNode } from "../types/types";
 
-export function SimpleNodeOutline(props: { node: SimpleNode }) {
+export function SimpleNodeOutline(props: { node: TreeNode }) {
   const offset = () => (props.node.type === "component" ? 2 : 0);
+  const box = () => props.node.getBox();
   return (
     <div>
-      {props.node.box ? (
+      {box() ? (
         <div
           style={{
-            position: "absolute",
-            left: props.node.box.x - offset() + "px",
-            top: props.node.box.y - offset() + "px",
-            width: props.node.box.width + offset() * 2 + "px",
-            height: props.node.box.height + offset() * 2 + "px",
+            position: "fixed",
+            left: box()!.x - offset() + "px",
+            top: box()!.y - offset() + "px",
+            width: box()!.width + offset() * 2 + "px",
+            height: box()!.height + offset() * 2 + "px",
             border:
               props.node.type === "component"
                 ? "2px solid rgba(200,0,0,1)"
