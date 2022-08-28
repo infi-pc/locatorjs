@@ -1,10 +1,10 @@
 import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 import { parseDataId } from "../../functions/parseDataId";
-import { FileStorage, Source } from "@locator/shared";
+import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 import { TreeNode } from "../../types/TreeNode";
-import { SimpleDOMRect } from "../../types/types";
+import { SimpleDOMRect, Source } from "../../types/types";
 import { getReferenceId } from "../../functions/getReferenceId";
 import nonNullable from "../../functions/nonNullable";
 
@@ -151,6 +151,7 @@ export class JSXTreeNodeElement implements TreeNode {
         if (expData) {
           return {
             fileName: fileData.filePath,
+            projectPath: fileData.projectPath,
             columnNumber: (expData.loc.start.column || 0) + 1,
             lineNumber: expData.loc.start.line || 0,
           };
@@ -186,9 +187,9 @@ function getTree(element: HTMLElement): TreeState | null {
   };
 }
 
-const reactAdapter: AdapterObject = {
+const jsxAdapter: AdapterObject = {
   getElementInfo,
   getTree,
 };
 
-export default reactAdapter;
+export default jsxAdapter;
