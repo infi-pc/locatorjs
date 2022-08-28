@@ -5,6 +5,8 @@ import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 import { TreeNode } from "../../types/TreeNode";
 import { SimpleDOMRect } from "../../types/types";
+import { getReferenceId } from "../../functions/getReferenceId";
+import nonNullable from "../../functions/nonNullable";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
@@ -103,53 +105,85 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-export class JSXTreeNodeComponent implements TreeNode {
-  name: string;
-  uniqueId: string;
-  constructor(name: string, uniqueId: string) {
-    this.name = name;
-    this.uniqueId = uniqueId;
-  }
-  getBox(): SimpleDOMRect | null {
-    return null;
-  }
-  getChildren(): TreeNode[] {
-    return [];
-  }
-  getParent(): TreeNode {
-    throw new Error("Method not implemented.");
-  }
-  getSource(): Source | null {
-    throw new Error("Method not implemented.");
-  }
-}
-
 export class JSXTreeNodeElement implements TreeNode {
+  type: "element" = "element";
+  element: HTMLElement;
   name: string;
   uniqueId: string;
-  constructor(name: string, uniqueId: string) {
-    this.name = name;
-    this.uniqueId = uniqueId;
+  constructor(element: HTMLElement) {
+    this.element = element;
+    this.name = element.nodeName.toLowerCase();
+    this.uniqueId = String(getReferenceId(element));
   }
   getBox(): SimpleDOMRect | null {
-    return null;
+    return this.element.getBoundingClientRect();
   }
   getElement(): Element | Text {
-    throw new Error("Method not implemented.");
+    return this.element;
   }
   getChildren(): TreeNode[] {
-    return [];
+    const children = Array.from(this.element.children);
+    return children
+      .map((child) => {
+        if (child instanceof HTMLElement) {
+          return new JSXTreeNodeElement(child);
+        } else {
+          return null;
+        }
+      })
+      .filter(nonNullable);
   }
-  getParent(): TreeNode {
-    throw new Error("Method not implemented.");
+  getParent(): TreeNode | null {
+    if (this.element.parentElement) {
+      return new JSXTreeNodeElement(this.element.parentElement);
+    } else {
+      return null;
+    }
   }
   getSource(): Source | null {
-    throw new Error("Method not implemented.");
+    const dataId = this.element.dataset.locatorjsId;
+    const locatorData = window.__LOCATOR_DATA__;
+    if (dataId && locatorData) {
+      const [fileFullPath] = parseDataId(dataId);
+      const fileData: FileStorage | undefined = locatorData[fileFullPath];
+      if (fileData) {
+        const expData = getExpressionData(this.element, fileData);
+        if (expData) {
+          return {
+            fileName: fileData.filePath,
+            columnNumber: (expData.loc.start.column || 0) + 1,
+            lineNumber: expData.loc.start.line || 0,
+          };
+        }
+      }
+    }
+    return null;
   }
 }
 
 function getTree(element: HTMLElement): TreeState | null {
-  return null;
+  let root: TreeNode = new JSXTreeNodeElement(element);
+
+  const allIds = new Set<string>();
+  let current: TreeNode | null = root;
+
+  const highlightedId = root.uniqueId;
+  allIds.add(current.uniqueId);
+  let limit = 2;
+  while (current && limit > 0) {
+    limit--;
+    current = current.getParent();
+    if (current) {
+      allIds.add(current.uniqueId);
+      root = current;
+    }
+  }
+
+  return {
+    root: root,
+    expandedIds: allIds,
+    highlightedId: highlightedId,
+  };
 }
 
 const reactAdapter: AdapterObject = {

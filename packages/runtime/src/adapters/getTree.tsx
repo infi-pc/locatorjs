@@ -1,6 +1,7 @@
 import reactAdapter from "./react/reactAdapter";
 import jsxAdapter from "./jsx/jsxAdapter";
 import svelteAdapter from "./svelte/svelteAdapter";
+import { detectJSX, detectReact, detectSvelte } from "@locator/shared";
 
 export function getTree(target: HTMLElement, adapterId?: string) {
   if (adapterId === "react" && reactAdapter.getTree) {
@@ -13,9 +14,17 @@ export function getTree(target: HTMLElement, adapterId?: string) {
     return jsxAdapter.getTree(target);
   }
 
-  return (
-    (reactAdapter.getTree && reactAdapter.getTree(target)) ||
-    (svelteAdapter.getTree && svelteAdapter.getTree(target)) ||
-    (jsxAdapter.getTree && jsxAdapter.getTree(target))
-  );
+  if (detectSvelte() && svelteAdapter.getTree) {
+    return svelteAdapter.getTree(target);
+  }
+
+  if (detectJSX() && jsxAdapter.getTree) {
+    return jsxAdapter.getTree(target);
+  }
+
+  if (detectReact() && reactAdapter.getTree) {
+    return reactAdapter.getTree(target);
+  }
+
+  return null;
 }

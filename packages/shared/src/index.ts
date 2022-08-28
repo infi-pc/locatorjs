@@ -76,6 +76,24 @@ export function detectVue() {
   return false;
 }
 
+export function detectJSX() {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  if (window.__LOCATOR_DATA__) {
+    return true;
+  }
+  return false;
+}
+
+export function detectReact() {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    return true;
+  }
+  return false;
+}
+
 export type SourceLocation = {
   start: {
     line: number;
