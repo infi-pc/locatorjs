@@ -230,6 +230,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
                       }
                     }
                   }}
+                  targets={props.targets}
                 />
               </div>
             ) : (

@@ -1,4 +1,6 @@
+import { Targets } from "@locator/shared";
 import { createSignal, For } from "solid-js";
+import { goToSource } from "../functions/goTo";
 import { TreeNodeElement } from "../types/TreeNode";
 
 export function TreeNodeElementView(props: {
@@ -7,6 +9,7 @@ export function TreeNodeElementView(props: {
   highlightedId: string;
   expandId: (id: string) => void;
   parentFilePath?: string;
+  targets: Targets;
 }) {
   function renderChildren() {
     return (
@@ -18,6 +21,7 @@ export function TreeNodeElementView(props: {
             highlightedId={props.highlightedId}
             expandId={props.expandId}
             parentFilePath={props.node.getSource()?.fileName}
+            targets={props.targets}
           />
         )}
       </For>
@@ -36,7 +40,18 @@ export function TreeNodeElementView(props: {
         (props.node.getSource() ? "text-black " : "text-gray-500 ")
       }
     >
-      <div class="flex justify-between items-center">
+      <div
+        class={
+          "flex justify-between items-center " +
+          (props.node.getSource() ? " cursor-pointer hover:bg-sky-100" : "")
+        }
+        onClick={() => {
+          const source = props.node.getSource();
+          if (source) {
+            goToSource(source, props.targets);
+          }
+        }}
+      >
         <div class="font-mono">
           {"<"}
           {props.node.name}
