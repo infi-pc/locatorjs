@@ -1146,6 +1146,16 @@ select {
   padding-bottom: 0.125rem;
 }
 
+.px-0\\.5 {
+  padding-left: 0.125rem;
+  padding-right: 0.125rem;
+}
+
+.px-0 {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
 .pl-4 {
   padding-left: 1rem;
 }
@@ -1172,6 +1182,10 @@ select {
 
 .pb-1 {
   padding-bottom: 0.25rem;
+}
+
+.text-center {
+  text-align: center;
 }
 
 .text-right {
@@ -1374,6 +1388,11 @@ select {
 .hover\\:bg-sky-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(224 242 254 / var(--tw-bg-opacity));
+}
+
+.hover\\:bg-red-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(220 38 38 / var(--tw-bg-opacity));
 }
 
 .hover\\:text-slate-800:hover {

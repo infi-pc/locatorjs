@@ -83,7 +83,7 @@ export function ComponentOutline(props: {
             padding: isBelow() ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
           }}
         >
-          <a
+          {/* <a
             class="locatorjs-label"
             target={HREF_TARGET}
             onClick={() => {
@@ -96,16 +96,23 @@ export function ComponentOutline(props: {
                 d="M3,3H9V7H3V3M15,10H21V14H15V10M15,17H21V21H15V17M13,13H7V18H13V20H7L5,20V9H7V11H13V13Z"
               />
             </svg>
-          </a>
+          </a> */}
 
           <For each={props.labels}>
             {(label) => {
               const link = label.link
                 ? buildLink(label.link, props.targets)
                 : null;
+              const labelClass =
+                "cursor-pointer bg-red-500 block text-white text-xs font-bold text-center px-1 py-0.5 rounded whitespace-nowrap pointer-events-auto hover:bg-red-600";
+              const labelStyles = {
+                "line-height": "18px",
+              };
+
               return link ? (
                 <a
-                  class="locatorjs-label"
+                  class={labelClass}
+                  style={labelStyles}
                   href={link}
                   target={HREF_TARGET}
                   onClick={() => {
@@ -116,7 +123,9 @@ export function ComponentOutline(props: {
                   {label.label}
                 </a>
               ) : (
-                <div class="locatorjs-label">{label.label}</div>
+                <div class={labelClass} style={labelStyles}>
+                  {label.label}
+                </div>
               );
             }}
           </For>

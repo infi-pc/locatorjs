@@ -37,27 +37,6 @@ export function initRuntime({
       #locatorjs-layer * {
         box-sizing: border-box;
       }
-      .locatorjs-label {
-        cursor: pointer;
-        background-color: ${baseColor};
-        display: block;
-        color: #fff;
-        font-size: 12px;
-        font-weight: bold;
-        text-align: center;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-family: ${fontFamily};
-        white-space: nowrap;
-        text-decoration: none !important;
-        line-height: 18px;
-        pointer-events: auto;
-      }
-      .locatorjs-label:hover {
-        background-color: ${hoverColor};
-        color: #fff;
-        text-decoration: none;
-      }
       #locatorjs-labels-wrapper {
         display: flex;
         gap: 8px;
