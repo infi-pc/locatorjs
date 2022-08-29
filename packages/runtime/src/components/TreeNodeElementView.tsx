@@ -55,11 +55,18 @@ export function TreeNodeElementView(props: {
       onMouseEnter={() => {
         props.setHighlightedBoundingBox(props.node);
       }}
+      onMouseLeave={() => {
+        props.setHighlightedBoundingBox(null);
+      }}
     >
       {showComponentWrapper() && (
-        <div class="flex justify-between">
+        <div class="flex justify-between pb-1">
           <div class="font-bold">{props.node.getComponent()?.label}</div>
-          <div>{props.node.getComponent()?.definitionLink?.fileName}</div>
+          <div class="whitespace-nowrap text-ellipsis overflow-hidden">
+            {cropPath(
+              props.node.getComponent()?.definitionLink?.fileName || ""
+            )}
+          </div>
         </div>
       )}
       <div class={showComponentWrapper() ? "pl-2" : ""}>

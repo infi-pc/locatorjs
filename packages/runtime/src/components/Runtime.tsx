@@ -195,7 +195,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
             "pointer-events": "auto",
           }}
         >
-          <div class={"m-4 bg-white rounded-md p-4 shadow-xl"}>
+          <div class={"m-4 bg-white rounded-md p-4 shadow-xl text-xs"}>
             {uiMode()[1] ? (
               <div>
                 {uiMode()[1]?.root.getParent() ? (

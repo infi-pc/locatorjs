@@ -9,7 +9,7 @@ import { getAllParentsElementsAndRootComponent } from "./getAllParentsElementsAn
 import { isStyledElement } from "./isStyled";
 import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 import { Source } from "@locator/shared";
-import { TreeNode } from "../../types/TreeNode";
+import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 
@@ -72,6 +72,31 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
         fileName: fiber._debugSource.fileName,
         lineNumber: fiber._debugSource.lineNumber,
         columnNumber: fiber._debugSource.columnNumber,
+      };
+    }
+    return null;
+  }
+  getComponent(): TreeNodeComponent | null {
+    const fiber = findFiberByHtmlElement(this.element, false);
+    const componentFiber = fiber?._debugOwner;
+
+    if (componentFiber) {
+      const fiberLabel = getFiberLabel(
+        componentFiber,
+        findDebugSource(componentFiber)?.source
+      );
+
+      return {
+        label: fiberLabel.label,
+
+        definitionLink:
+          (fiberLabel.link && {
+            fileName: fiberLabel.link.filePath,
+            lineNumber: fiberLabel.link.line,
+            columnNumber: fiberLabel.link.column,
+            projectPath: fiberLabel.link.projectPath,
+          }) ||
+          undefined,
       };
     }
     return null;

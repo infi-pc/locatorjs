@@ -1,5 +1,5 @@
 import { Source } from "@locator/shared";
-import { TreeNode } from "../../types/TreeNode";
+import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
@@ -47,6 +47,9 @@ export class SvelteTreeNodeElement extends HtmlElementTreeNode {
         columnNumber: loc.column + 1,
       };
     }
+    return null;
+  }
+  getComponent(): TreeNodeComponent | null {
     return null;
   }
 }

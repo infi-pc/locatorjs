@@ -1162,6 +1162,10 @@ select {
   padding-bottom: 0.125rem;
 }
 
+.pb-1 {
+  padding-bottom: 0.25rem;
+}
+
 .text-right {
   text-align: right;
 }
