@@ -1,5 +1,6 @@
 import { Targets } from "@locator/shared";
-import { createSignal, For } from "solid-js";
+import { For } from "solid-js";
+import cropPath from "../functions/cropPath";
 import { goToSource } from "../functions/goTo";
 import { TreeNodeElement } from "../types/TreeNode";
 
@@ -47,7 +48,7 @@ export function TreeNodeElementView(props: {
     >
       <div
         class={
-          "flex justify-between items-center " +
+          "flex justify-between items-center gap-4 " +
           (props.node.getSource() ? " cursor-pointer hover:bg-sky-100" : "")
         }
         onClick={() => {
@@ -62,8 +63,10 @@ export function TreeNodeElementView(props: {
           {props.node.name}
           {">"}
         </div>
-        <div>
-          {isDifferentFilePath() ? props.node.getSource()?.fileName : null}
+        <div class="whitespace-nowrap text-ellipsis overflow-hidden">
+          {isDifferentFilePath()
+            ? cropPath(props.node.getSource()?.fileName || "")
+            : null}
         </div>
       </div>
 

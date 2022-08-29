@@ -916,8 +916,20 @@ select {
   gap: 0.25rem;
 }
 
+.gap-4 {
+  gap: 1rem;
+}
+
 .overflow-hidden {
   overflow: hidden;
+}
+
+.text-ellipsis {
+  text-overflow: ellipsis;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
 }
 
 .whitespace-pre-wrap {
@@ -1148,6 +1160,10 @@ select {
 
 .pb-0\\.5 {
   padding-bottom: 0.125rem;
+}
+
+.text-right {
+  text-align: right;
 }
 
 .font-mono {
