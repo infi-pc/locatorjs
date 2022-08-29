@@ -1080,12 +1080,12 @@ select {
   padding: 0.5rem;
 }
 
-.p-0\\.5 {
-  padding: 0.125rem;
-}
-
 .p-0 {
   padding: 0px;
+}
+
+.p-0\\.5 {
+  padding: 0.125rem;
 }
 
 .py-1 {

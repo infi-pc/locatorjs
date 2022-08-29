@@ -1,4 +1,4 @@
-import { isValidRenderer } from '@locator/react-devtools-hook';
+import { isValidRenderer } from '@locator/shared/dist/isValidRenderer';
 import { detectSvelte, detectVue } from '@locator/shared';
 
 type Renderer = any;
