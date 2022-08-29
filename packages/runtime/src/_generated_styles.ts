@@ -756,6 +756,14 @@ select {
   bottom: 0.75rem;
 }
 
+.top-1 {
+  top: 0.25rem;
+}
+
+.left-1 {
+  left: 0.25rem;
+}
+
 .z-10 {
   z-index: 10;
 }
@@ -908,6 +916,10 @@ select {
   gap: 0.25rem;
 }
 
+.overflow-hidden {
+  overflow: hidden;
+}
+
 .whitespace-pre-wrap {
   white-space: pre-wrap;
 }
@@ -1054,6 +1066,14 @@ select {
 
 .p-2 {
   padding: 0.5rem;
+}
+
+.p-0\\.5 {
+  padding: 0.125rem;
+}
+
+.p-0 {
+  padding: 0px;
 }
 
 .py-1 {

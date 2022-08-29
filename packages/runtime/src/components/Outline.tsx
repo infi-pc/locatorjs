@@ -12,28 +12,20 @@ export function Outline(props: {
     <>
       <div>
         <div
+          class="fixed flex text-xs font-bold items-center justify-center text-red-500 rounded border-red-500"
           style={{
-            position: "fixed",
             left: box().x + "px",
             top: box().y + "px",
             width: box().width + "px",
             height: box().height + "px",
             "background-color": "rgba(222, 0, 0, 0.3)",
-            border: "1px solid rgba(222, 0, 0, 0.5)",
-            "border-radius": "2px",
-            color: "rgba(222, 0, 0, 1)",
-            overflow: "hidden",
-            "padding-left": "4px",
-            "padding-top": box().height > 20 ? "4px" : "0px",
-            "font-size": "12px",
-            "font-weight": "bold",
             "text-shadow":
               "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
             "text-overflow": "ellipsis",
           }}
         >
           <button
-            class="bg-red-500 text-white font-bold px-2 py-1 rounded-full hover:bg-red-800"
+            class="absolute top-1 left-1 bg-red-500 text-white font-bold p-0.5 rounded hover:bg-red-800"
             style={{
               "text-shadow": "none",
               "pointer-events": "auto",
@@ -43,7 +35,12 @@ export function Outline(props: {
               props.showTreeFromElement(props.element.htmlElement);
             }}
           >
-            tree
+            <svg style={{ width: "16px", height: "16éx" }} viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12.89,3L14.85,3.4L11.11,21L9.15,20.6L12.89,3M19.59,12L16,8.41V5.58L22.42,12L16,18.41V15.58L19.59,12M1.58,12L8,5.58V8.41L4.41,12L8,15.58V18.41L1.58,12Z"
+              />
+            </svg>
           </button>
           {props.element.thisElement.label}
         </div>
