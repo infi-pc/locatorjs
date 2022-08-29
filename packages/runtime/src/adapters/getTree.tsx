@@ -18,12 +18,14 @@ export function getTree(target: HTMLElement, adapterId?: string) {
     return svelteAdapter.getTree(target);
   }
 
-  if (detectJSX() && jsxAdapter.getTree) {
-    return jsxAdapter.getTree(target);
-  }
-
   if (detectReact() && reactAdapter.getTree) {
     return reactAdapter.getTree(target);
+  }
+
+  // Must be last, because its global data leaks from Locator extension.
+  // Because the extension is in SolidJS and it uses JSX plugin in dev mode.
+  if (detectJSX() && jsxAdapter.getTree) {
+    return jsxAdapter.getTree(target);
   }
 
   return null;

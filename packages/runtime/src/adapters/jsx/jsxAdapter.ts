@@ -4,9 +4,9 @@ import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 import { TreeNode } from "../../types/TreeNode";
-import { SimpleDOMRect, Source } from "../../types/types";
-import { getReferenceId } from "../../functions/getReferenceId";
-import nonNullable from "../../functions/nonNullable";
+import { Source } from "../../types/types";
+import { goUpByTheTree } from "../goUpByTheTree";
+import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
@@ -105,41 +105,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-export class JSXTreeNodeElement implements TreeNode {
-  type: "element" = "element";
-  element: HTMLElement;
-  name: string;
-  uniqueId: string;
-  constructor(element: HTMLElement) {
-    this.element = element;
-    this.name = element.nodeName.toLowerCase();
-    this.uniqueId = String(getReferenceId(element));
-  }
-  getBox(): SimpleDOMRect | null {
-    return this.element.getBoundingClientRect();
-  }
-  getElement(): Element | Text {
-    return this.element;
-  }
-  getChildren(): TreeNode[] {
-    const children = Array.from(this.element.children);
-    return children
-      .map((child) => {
-        if (child instanceof HTMLElement) {
-          return new JSXTreeNodeElement(child);
-        } else {
-          return null;
-        }
-      })
-      .filter(nonNullable);
-  }
-  getParent(): TreeNode | null {
-    if (this.element.parentElement) {
-      return new JSXTreeNodeElement(this.element.parentElement);
-    } else {
-      return null;
-    }
-  }
+export class JSXTreeNodeElement extends HtmlElementTreeNode {
   getSource(): Source | null {
     const dataId = this.element.dataset.locatorjsId;
     const locatorData = window.__LOCATOR_DATA__;
@@ -163,28 +129,9 @@ export class JSXTreeNodeElement implements TreeNode {
 }
 
 function getTree(element: HTMLElement): TreeState | null {
-  let root: TreeNode = new JSXTreeNodeElement(element);
+  const originalRoot: TreeNode = new JSXTreeNodeElement(element);
 
-  const allIds = new Set<string>();
-  let current: TreeNode | null = root;
-
-  const highlightedId = root.uniqueId;
-  allIds.add(current.uniqueId);
-  let limit = 2;
-  while (current && limit > 0) {
-    limit--;
-    current = current.getParent();
-    if (current) {
-      allIds.add(current.uniqueId);
-      root = current;
-    }
-  }
-
-  return {
-    root: root,
-    expandedIds: allIds,
-    highlightedId: highlightedId,
-  };
+  return goUpByTheTree(originalRoot);
 }
 
 const jsxAdapter: AdapterObject = {
