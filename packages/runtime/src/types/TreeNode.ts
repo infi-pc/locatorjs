@@ -8,9 +8,14 @@ export interface TreeNode {
   getParent(): TreeNode | null;
   getChildren(): TreeNode[];
   getSource(): Source | null;
+  getComponent(): TreeNodeComponent | null;
 }
 
-export type TreeNodeComponent = TreeNode;
+export type TreeNodeComponent = {
+  label: string;
+  callLink?: Source;
+  definitionLink?: Source;
+};
 
 export interface TreeNodeElement extends TreeNode {
   getElement(): Element | Text;

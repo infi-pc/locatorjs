@@ -232,6 +232,7 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
                   }}
                   targets={props.targets}
                   setHighlightedBoundingBox={setHighlightedNode}
+                  parentComponent={null}
                 />
               </div>
             ) : (

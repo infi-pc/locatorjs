@@ -3,7 +3,7 @@ import { parseDataId } from "../../functions/parseDataId";
 import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
-import { TreeNode } from "../../types/TreeNode";
+import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { Source } from "../../types/types";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
@@ -121,6 +121,32 @@ export class JSXTreeNodeElement extends HtmlElementTreeNode {
             columnNumber: (expData.loc.start.column || 0) + 1,
             lineNumber: expData.loc.start.line || 0,
           };
+        }
+      }
+    }
+    return null;
+  }
+  getComponent(): TreeNodeComponent | null {
+    const dataId = this.element.dataset.locatorjsId;
+    const locatorData = window.__LOCATOR_DATA__;
+    if (dataId && locatorData) {
+      const [fileFullPath] = parseDataId(dataId);
+      const fileData: FileStorage | undefined = locatorData[fileFullPath];
+      if (fileData) {
+        const expData = getExpressionData(this.element, fileData);
+        if (expData && expData.wrappingComponentId !== null) {
+          const component = fileData.components[expData.wrappingComponentId];
+          if (component) {
+            return {
+              label: component.name || "component",
+              definitionLink: {
+                fileName: fileData.filePath,
+                projectPath: fileData.projectPath,
+                columnNumber: (component.loc?.start.column || 0) + 1,
+                lineNumber: component.loc?.start.line || 0,
+              },
+            };
+          }
         }
       }
     }

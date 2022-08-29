@@ -2,7 +2,7 @@
 import { Source } from "@locator/shared";
 import { getReferenceId } from "../functions/getReferenceId";
 import nonNullable from "../functions/nonNullable";
-import { TreeNode } from "../types/TreeNode";
+import { TreeNode, TreeNodeComponent } from "../types/TreeNode";
 import { SimpleDOMRect } from "../types/types";
 
 export class HtmlElementTreeNode implements TreeNode {
@@ -43,6 +43,9 @@ export class HtmlElementTreeNode implements TreeNode {
     }
   }
   getSource(): Source | null {
+    throw new Error("Method not implemented.");
+  }
+  getComponent(): TreeNodeComponent | null {
     throw new Error("Method not implemented.");
   }
 }

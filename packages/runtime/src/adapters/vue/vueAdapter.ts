@@ -1,6 +1,6 @@
 import { Source } from "@locator/shared";
 import type { ComponentInternalInstance } from "vue";
-import { TreeNode } from "../../types/TreeNode";
+import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
@@ -63,6 +63,20 @@ export class VueTreeNodeElement extends HtmlElementTreeNode {
           fileName: __file,
           lineNumber: 1,
           columnNumber: 1,
+        };
+      }
+    }
+    return null;
+  }
+  getComponent(): TreeNodeComponent | null {
+    const element = this.element as VueElement;
+    const parentComponent = element.__vueParentComponent;
+    if (parentComponent && parentComponent.type) {
+      const { __name } = parentComponent.type;
+      if (__name) {
+        return {
+          label: __name,
+          definitionLink: this.getSource() || undefined,
         };
       }
     }
