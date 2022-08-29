@@ -53,17 +53,17 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     }
   });
 
-  // function keyUpListener(e: KeyboardEvent) {
-  //   if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-  //     if (uiMode()[0] === "tree") {
-  //       setUiMode(["off"]);
-  //     } else {
-  //       setUiMode(["tree"]);
-  //     }
-  //   }
+  function keyUpListener(e: KeyboardEvent) {
+    // if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
+    //   if (uiMode()[0] === "tree") {
+    //     setUiMode(["off"]);
+    //   } else {
+    //     setUiMode(["tree"]);
+    //   }
+    // }
 
-  //   setHoldingModKey(isCombinationModifiersPressed(e));
-  // }
+    setHoldingModKey(isCombinationModifiersPressed(e));
+  }
 
   function keyDownListener(e: KeyboardEvent) {
     setHoldingModKey(isCombinationModifiersPressed(e));
@@ -153,12 +153,12 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
     capture: true,
   });
   document.addEventListener("keydown", keyDownListener);
-  // document.addEventListener("keyup", keyUpListener);
+  document.addEventListener("keyup", keyUpListener);
   document.addEventListener("click", clickListener, { capture: true });
   document.addEventListener("scroll", scrollListener);
 
   onCleanup(() => {
-    // document.removeEventListener("keyup", keyUpListener);
+    document.removeEventListener("keyup", keyUpListener);
     document.removeEventListener("keydown", keyDownListener);
     document.removeEventListener("mouseover", mouseOverListener, {
       capture: true,
@@ -189,57 +189,71 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
             position: "fixed",
             top: "0",
             left: "0",
-            width: "50vw",
+            width: "100vw",
             height: "100vh",
-            overflow: "auto",
             "pointer-events": "auto",
+            "background-color": "rgba(0,0,0,0.1)",
+            "z-index": 1001,
+          }}
+          onClick={(e) => {
+            if (e.currentTarget === e.target) {
+              setUiMode(["off"]);
+            }
           }}
         >
-          <div class={"m-4 bg-white rounded-md p-4 shadow-xl text-xs"}>
-            {uiMode()[1] ? (
-              <div>
-                {uiMode()[1]?.root.getParent() ? (
-                  <button
-                    class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2"
-                    onClick={() => {
+          <div
+            style={{
+              position: "absolute",
+              top: `${(uiMode()[1]?.originalNode.getBox()?.y || 0) + 24}px`,
+            }}
+          >
+            <div class={"m-2 bg-white rounded-md p-4 shadow-xl text-xs"}>
+              {uiMode()[1] ? (
+                <div>
+                  {uiMode()[1]?.root.getParent() ? (
+                    <div class="mb-2">
+                      <button
+                        class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2 "
+                        onClick={() => {
+                          if (uiMode()[0] === "tree") {
+                            const state = uiMode()[1];
+                            if (state) {
+                              const parent = state.root.getParent();
+                              if (parent) {
+                                state.expandedIds.add(parent.uniqueId);
+                                setUiMode(["tree", { ...state, root: parent }]);
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        ...
+                      </button>
+                    </div>
+                  ) : null}
+                  <TreeNodeElementView
+                    node={uiMode()[1]!.root as TreeNodeElement}
+                    expandedIds={uiMode()[1]!.expandedIds}
+                    highlightedId={uiMode()[1]!.highlightedId}
+                    expandId={(id: string) => {
                       if (uiMode()[0] === "tree") {
                         const state = uiMode()[1];
                         if (state) {
-                          const parent = state.root.getParent();
-                          if (parent) {
-                            state.expandedIds.add(parent.uniqueId);
-                            setUiMode(["tree", { ...state, root: parent }]);
-                          }
+                          state.expandedIds.add(id);
+                          setUiMode(["tree", state]);
                         }
                       }
                     }}
-                  >
-                    ...
-                  </button>
-                ) : null}
-                <TreeNodeElementView
-                  node={uiMode()[1]!.root as TreeNodeElement}
-                  expandedIds={uiMode()[1]!.expandedIds}
-                  highlightedId={uiMode()[1]!.highlightedId}
-                  expandId={(id: string) => {
-                    if (uiMode()[0] === "tree") {
-                      const state = uiMode()[1];
-                      if (state) {
-                        state.expandedIds.add(id);
-                        setUiMode(["tree", state]);
-                      }
-                    }
-                  }}
-                  targets={props.targets}
-                  setHighlightedBoundingBox={setHighlightedNode}
-                  parentComponent={null}
-                />
-              </div>
-            ) : (
-              <>no tree</>
-            )}
+                    targets={props.targets}
+                    setHighlightedBoundingBox={setHighlightedNode}
+                    parentComponent={null}
+                  />
+                </div>
+              ) : (
+                <>no tree</>
+              )}
+            </div>
           </div>
-
           {/* <For each={getAllNodes()}>
             {(node, i) => (
               <RenderXrayNode node={node} parentIsHovered={false} />

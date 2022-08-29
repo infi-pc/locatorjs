@@ -60,7 +60,7 @@ export function TreeNodeElementView(props: {
       }}
     >
       {showComponentWrapper() && (
-        <div class="flex justify-between pb-1">
+        <div class="flex gap-2 justify-between pb-1">
           <div class="font-bold">{props.node.getComponent()?.label}</div>
           <div class="whitespace-nowrap text-ellipsis overflow-hidden">
             {cropPath(

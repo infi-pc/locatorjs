@@ -18,6 +18,7 @@ export type FullElementInfo = {
 
 export type TreeState = {
   root: TreeNode;
+  originalNode: TreeNode;
   expandedIds: Set<string>;
   highlightedId: string;
 };

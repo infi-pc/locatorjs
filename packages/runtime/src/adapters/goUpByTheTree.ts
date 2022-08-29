@@ -1,6 +1,7 @@
 import { TreeNode } from "../types/TreeNode";
 
-export function goUpByTheTree(root: TreeNode) {
+export function goUpByTheTree(originalNode: TreeNode) {
+  let root = originalNode;
   const expandedIds = new Set<string>();
   let current: TreeNode | null = root;
 
@@ -15,5 +16,5 @@ export function goUpByTheTree(root: TreeNode) {
       root = current;
     }
   }
-  return { expandedIds, highlightedId, root };
+  return { expandedIds, highlightedId, root, originalNode };
 }
