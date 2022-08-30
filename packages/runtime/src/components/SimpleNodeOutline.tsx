@@ -1,5 +1,4 @@
 import { TreeNode } from "../types/TreeNode";
-import { SimpleNode } from "../types/types";
 
 export function SimpleNodeOutline(props: { node: TreeNode }) {
   const offset = () => (props.node.type === "component" ? 2 : 0);

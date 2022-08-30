@@ -7,8 +7,6 @@ import { createEffect, createSignal } from "solid-js";
 import { computePosition, flip, shift, offset } from "@floating-ui/dom";
 
 export function TreeView(props: {
-  // setUiMode: (mode: UiMode) => void;
-  // uiMode: UiMode;
   treeState: TreeState;
   setTreeState: (state: TreeState) => void;
   close: () => void;
@@ -22,8 +20,6 @@ export function TreeView(props: {
   createEffect(() => {
     if (contentRef) {
       const originalBox = props.treeState.originalNode.getBox();
-      const content = contentRef.getBoundingClientRect();
-      console.log({ originalBox, content });
       computePosition(
         {
           getBoundingClientRect: () => {
@@ -41,12 +37,7 @@ export function TreeView(props: {
           middleware: [offset(10), shift(), flip()],
         }
       ).then(({ x, y }) => {
-        console.log({ x, y });
         setPos({ x, y });
-        // Object.assign(tooltip.style, {
-        //   left: `${x}px`,
-        //   top: `${y}px`,
-        // });
       });
     }
   });

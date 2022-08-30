@@ -1,13 +1,10 @@
-import { detectSvelte, Fiber, Targets } from "@locator/shared";
-import { batch, createEffect, createSignal, For, onCleanup } from "solid-js";
+import { detectSvelte, Targets } from "@locator/shared";
+import { batch, createEffect, createSignal, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
-import { fiberToSimple } from "../adapters/react/fiberToSimple";
-import { gatherFiberRoots } from "../adapters/react/gatherFiberRoots";
 import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
 import { trackClickStats } from "../functions/trackClickStats";
-import { LinkProps, SimpleNode, Targets as SetupTargets } from "../types/types";
-import { getIdsOnPathToRoot } from "../functions/getIdsOnPathToRoot";
+import { LinkProps, Targets as SetupTargets } from "../types/types";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 

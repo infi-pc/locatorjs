@@ -1,5 +1,5 @@
 import { allTargets, Target } from "@locator/shared";
-import { AdapterId, baseColor, fontFamily, hoverColor } from "./consts";
+import { AdapterId, fontFamily } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
 import { setInternalProjectPath } from "./functions/buildLink";

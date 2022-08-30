@@ -2,7 +2,6 @@ import Header from "../../blocks/Header";
 import { Step } from "../../components/Step";
 import { InstallByAnything } from "../../components/InstallByAnything";
 import {
-  Alert,
   AlertWarning,
   BlockHeadline,
   InlineCode,
