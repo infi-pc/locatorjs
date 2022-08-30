@@ -928,8 +928,16 @@ select {
   gap: 1rem;
 }
 
+.overflow-auto {
+  overflow: auto;
+}
+
 .overflow-hidden {
   overflow: hidden;
+}
+
+.overflow-scroll {
+  overflow: scroll;
 }
 
 .text-ellipsis {
@@ -1141,19 +1149,14 @@ select {
   padding-bottom: 1rem;
 }
 
-.py-0\\.5 {
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-}
-
-.px-0\\.5 {
-  padding-left: 0.125rem;
-  padding-right: 0.125rem;
-}
-
 .px-0 {
   padding-left: 0px;
   padding-right: 0px;
+}
+
+.py-0\\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
 }
 
 .pl-4 {
@@ -1176,12 +1179,12 @@ select {
   padding-right: 0.5rem;
 }
 
-.pb-0\\.5 {
-  padding-bottom: 0.125rem;
-}
-
 .pb-1 {
   padding-bottom: 0.25rem;
+}
+
+.pb-0\\.5 {
+  padding-bottom: 0.125rem;
 }
 
 .text-center {
@@ -1360,6 +1363,11 @@ select {
   background-color: rgb(29 78 216 / var(--tw-bg-opacity));
 }
 
+.hover\\:bg-red-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(220 38 38 / var(--tw-bg-opacity));
+}
+
 .hover\\:bg-slate-50:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(248 250 252 / var(--tw-bg-opacity));
@@ -1388,11 +1396,6 @@ select {
 .hover\\:bg-sky-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(224 242 254 / var(--tw-bg-opacity));
-}
-
-.hover\\:bg-red-600:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(220 38 38 / var(--tw-bg-opacity));
 }
 
 .hover\\:text-slate-800:hover {

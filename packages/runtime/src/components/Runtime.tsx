@@ -24,14 +24,14 @@ import { goToLinkProps } from "../functions/goTo";
 import { getSavedProjectPath } from "../functions/buildLink";
 import { getElementInfo } from "../adapters/getElementInfo";
 import { getTree } from "../adapters/getTree";
-import { TreeNode, TreeNodeElement } from "../types/TreeNode";
+import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
-import { TreeNodeElementView } from "./TreeNodeElementView";
+import { TreeView } from "./TreeView";
+
+type UiMode = ["off"] | ["options"] | ["tree", TreeState];
 
 function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
-  const [uiMode, setUiMode] = createSignal<
-    ["off"] | ["options"] | ["tree", TreeState]
-  >(["off"]);
+  const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
@@ -180,86 +180,14 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   return (
     <>
       {uiMode()[0] === "tree" ? (
-        <div
-          // id="locator-solid-overlay"
-          // onClick={(e) => {
-          //   setSolidMode(["off"]);
-          // }}
-          style={{
-            position: "fixed",
-            top: "0",
-            left: "0",
-            width: "100vw",
-            height: "100vh",
-            "pointer-events": "auto",
-            "background-color": "rgba(0,0,0,0.1)",
-            "z-index": 1001,
-          }}
-          onClick={(e) => {
-            if (e.currentTarget === e.target) {
-              setUiMode(["off"]);
-            }
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: `${(uiMode()[1]?.originalNode.getBox()?.y || 0) + 24}px`,
-            }}
-          >
-            <div class={"m-2 bg-white rounded-md p-4 shadow-xl text-xs"}>
-              {uiMode()[1] ? (
-                <div>
-                  {uiMode()[1]?.root.getParent() ? (
-                    <div class="mb-2">
-                      <button
-                        class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2 "
-                        onClick={() => {
-                          if (uiMode()[0] === "tree") {
-                            const state = uiMode()[1];
-                            if (state) {
-                              const parent = state.root.getParent();
-                              if (parent) {
-                                state.expandedIds.add(parent.uniqueId);
-                                setUiMode(["tree", { ...state, root: parent }]);
-                              }
-                            }
-                          }
-                        }}
-                      >
-                        ...
-                      </button>
-                    </div>
-                  ) : null}
-                  <TreeNodeElementView
-                    node={uiMode()[1]!.root as TreeNodeElement}
-                    expandedIds={uiMode()[1]!.expandedIds}
-                    highlightedId={uiMode()[1]!.highlightedId}
-                    expandId={(id: string) => {
-                      if (uiMode()[0] === "tree") {
-                        const state = uiMode()[1];
-                        if (state) {
-                          state.expandedIds.add(id);
-                          setUiMode(["tree", state]);
-                        }
-                      }
-                    }}
-                    targets={props.targets}
-                    setHighlightedBoundingBox={setHighlightedNode}
-                    parentComponent={null}
-                  />
-                </div>
-              ) : (
-                <>no tree</>
-              )}
-            </div>
-          </div>
-          {/* <For each={getAllNodes()}>
-            {(node, i) => (
-              <RenderXrayNode node={node} parentIsHovered={false} />
-            )}
-          </For> */}
-        </div>
+        <TreeView
+          treeState={uiMode()[1]!}
+          close={() => setUiMode(["off"])}
+          setTreeState={(newState) => setUiMode(["tree", newState])}
+          adapterId={props.adapterId}
+          targets={props.targets}
+          setHighlightedNode={setHighlightedNode}
+        />
       ) : null}
       {holdingModKey() && currentElement() ? (
         <MaybeOutline

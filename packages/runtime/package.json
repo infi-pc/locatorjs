@@ -18,6 +18,7 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.0.1",
     "@locator/shared": "^0.1.4",
     "solid-js": "^1.4.4",
     "tailwindcss": "^3.1.6"
