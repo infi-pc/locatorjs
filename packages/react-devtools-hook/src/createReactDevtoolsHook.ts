@@ -3,7 +3,7 @@ import {
   ReactInternals,
   ReactDevtoolsHook,
 } from "@locator/shared/src/types";
-import { isValidRenderer } from "./isValidRenderer";
+import { isValidRenderer } from "@locator/shared/dist/isValidRenderer";
 
 declare global {
   interface Window {

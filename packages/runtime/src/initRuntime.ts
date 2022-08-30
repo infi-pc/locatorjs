@@ -1,5 +1,5 @@
 import { allTargets, Target } from "@locator/shared";
-import { AdapterId, baseColor, fontFamily, hoverColor } from "./consts";
+import { AdapterId, fontFamily } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
 import { setInternalProjectPath } from "./functions/buildLink";
@@ -37,27 +37,6 @@ export function initRuntime({
       #locatorjs-layer * {
         box-sizing: border-box;
       }
-      .locatorjs-label {
-        cursor: pointer;
-        background-color: ${baseColor};
-        display: block;
-        color: #fff;
-        font-size: 12px;
-        font-weight: bold;
-        text-align: center;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-family: ${fontFamily};
-        white-space: nowrap;
-        text-decoration: none !important;
-        line-height: 18px;
-        pointer-events: auto;
-      }
-      .locatorjs-label:hover {
-        background-color: ${hoverColor};
-        color: #fff;
-        text-decoration: none;
-      }
       #locatorjs-labels-wrapper {
         display: flex;
         gap: 8px;
@@ -78,19 +57,6 @@ export function initRuntime({
       }
       .locatorjs-active-pointer * {
         cursor: pointer !important;
-      }
-      body.locatorjs-move-body > * {
-        transition: transform 0.2s ease-in-out;
-        transform: scale(0.5) translate(50%, -50%);
-      }
-      body.locatorjs-move-body > * { 
-        box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-      }
-      body.locatorjs-move-body > #locatorjs-wrapper { 
-        transform: scale(1);
-        position: fixed;
-        top: 0;
-        left: 0;
       }
     `;
 

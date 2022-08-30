@@ -42,7 +42,7 @@ export function buildLinkFromSource(source: Source, targets: Targets): string {
   return buildLink(
     {
       filePath: source.fileName,
-      projectPath: "",
+      projectPath: source.projectPath || "",
       line: source.lineNumber,
       column: source.columnNumber || 0,
     },

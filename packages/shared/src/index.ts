@@ -1,3 +1,6 @@
+import { isValidRenderer } from "./isValidRenderer";
+import { Renderer } from "./types";
+
 export * from "./types";
 
 export type Target = {
@@ -52,14 +55,12 @@ export function getModifiersString(modifiersMap: { [key: string]: true }) {
 }
 
 export function detectSvelte() {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   if (window.__SVELTE_HMR) {
     // __SVELTE_HMR is so far the only way to detect svelte I found
     return true;
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   if (window.__SAPPER__) {
     return true;
@@ -68,10 +69,39 @@ export function detectSvelte() {
 }
 
 export function detectVue() {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   if (window.__VUE__) {
     return true;
+  }
+  return false;
+}
+
+export function detectJSX() {
+  // @ts-ignore
+  if (window.__LOCATOR_DATA__) {
+    return true;
+  }
+  return false;
+}
+
+export function detectReact() {
+  // @ts-ignore
+  if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    // @ts-ignore
+    const renderersMap = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
+    if (renderersMap) {
+      const problematicRenderers: string[] = [];
+      const renderers = Array.from(renderersMap.values()).filter(
+        (renderer: Renderer) => {
+          return isValidRenderer(renderer, (msg) => {
+            problematicRenderers.push(msg);
+          });
+        }
+      );
+      if (renderers.length) {
+        return true;
+      }
+    }
   }
   return false;
 }

@@ -1,8 +1,12 @@
-import { AdapterObject, FullElementInfo } from "../adapterApi";
+import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
 import { parseDataId } from "../../functions/parseDataId";
 import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
+import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
+import { Source } from "../../types/types";
+import { goUpByTheTree } from "../goUpByTheTree";
+import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
@@ -101,8 +105,64 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-const reactAdapter: AdapterObject = {
+export class JSXTreeNodeElement extends HtmlElementTreeNode {
+  getSource(): Source | null {
+    const dataId = this.element.dataset.locatorjsId;
+    const locatorData = window.__LOCATOR_DATA__;
+    if (dataId && locatorData) {
+      const [fileFullPath] = parseDataId(dataId);
+      const fileData: FileStorage | undefined = locatorData[fileFullPath];
+      if (fileData) {
+        const expData = getExpressionData(this.element, fileData);
+        if (expData) {
+          return {
+            fileName: fileData.filePath,
+            projectPath: fileData.projectPath,
+            columnNumber: (expData.loc.start.column || 0) + 1,
+            lineNumber: expData.loc.start.line || 0,
+          };
+        }
+      }
+    }
+    return null;
+  }
+  getComponent(): TreeNodeComponent | null {
+    const dataId = this.element.dataset.locatorjsId;
+    const locatorData = window.__LOCATOR_DATA__;
+    if (dataId && locatorData) {
+      const [fileFullPath] = parseDataId(dataId);
+      const fileData: FileStorage | undefined = locatorData[fileFullPath];
+      if (fileData) {
+        const expData = getExpressionData(this.element, fileData);
+        if (expData && expData.wrappingComponentId !== null) {
+          const component = fileData.components[expData.wrappingComponentId];
+          if (component) {
+            return {
+              label: component.name || "component",
+              definitionLink: {
+                fileName: fileData.filePath,
+                projectPath: fileData.projectPath,
+                columnNumber: (component.loc?.start.column || 0) + 1,
+                lineNumber: component.loc?.start.line || 0,
+              },
+            };
+          }
+        }
+      }
+    }
+    return null;
+  }
+}
+
+function getTree(element: HTMLElement): TreeState | null {
+  const originalRoot: TreeNode = new JSXTreeNodeElement(element);
+
+  return goUpByTheTree(originalRoot);
+}
+
+const jsxAdapter: AdapterObject = {
   getElementInfo,
+  getTree,
 };
 
-export default reactAdapter;
+export default jsxAdapter;

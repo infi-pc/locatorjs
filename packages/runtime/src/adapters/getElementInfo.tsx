@@ -1,7 +1,7 @@
-import reactAdapter from "./../adapters/react/reactAdapter";
-import jsxAdapter from "./../adapters/jsx/jsxAdapter";
-import svelteAdapter from "./../adapters/svelte/svelteAdapter";
-import vueAdapter from "../adapters/vue/vueAdapter";
+import reactAdapter from "./react/reactAdapter";
+import jsxAdapter from "./jsx/jsxAdapter";
+import svelteAdapter from "./svelte/svelteAdapter";
+import vueAdapter from "./vue/vueAdapter";
 import { AdapterId } from "../consts";
 
 export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
