@@ -152,6 +152,7 @@ const Popup = () => {
                         preset-react plugins
                       </a>
                     </li>
+                    <li>Vue3 or Svelte in development mode</li>
                     <li>React, SolidJS or Preact with Locator Babel plugin</li>
                   </ul>
                   <p class="font-medium mt-2">Setup babel plugin:</p>
@@ -182,6 +183,24 @@ const Popup = () => {
                           target="_blank"
                         >
                           SolidJS
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="underline"
+                          href="https://www.locatorjs.com/install/svelte"
+                          target="_blank"
+                        >
+                          Svelte
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="underline"
+                          href="https://www.locatorjs.com/install/vue"
+                          target="_blank"
+                        >
+                          Vue
                         </a>
                       </li>
                     </ul>
