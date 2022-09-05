@@ -88,8 +88,7 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
 
       return {
         label: fiberLabel.label,
-
-        definitionLink:
+        callLink:
           (fiberLabel.link && {
             fileName: fiberLabel.link.filePath,
             lineNumber: fiberLabel.link.line,

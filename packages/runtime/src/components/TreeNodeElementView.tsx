@@ -61,7 +61,22 @@ export function TreeNodeElementView(props: {
     >
       {showComponentWrapper() && (
         <div class="flex gap-2 justify-between pb-1">
-          <div class="font-bold">{props.node.getComponent()?.label}</div>
+          {props.node.getComponent()?.callLink ? (
+            <div
+              class="font-bold cursor-pointer text-black hover:bg-gray-100 rounded"
+              onClick={() => {
+                const callLink = props.node.getComponent()?.callLink;
+                if (callLink) {
+                  goToSource(callLink, props.targets);
+                }
+              }}
+            >
+              {props.node.getComponent()?.label}
+            </div>
+          ) : (
+            <div class="font-bold">{props.node.getComponent()?.label}</div>
+          )}
+
           <div class="whitespace-nowrap text-ellipsis overflow-hidden">
             {cropPath(
               props.node.getComponent()?.definitionLink?.fileName || ""
