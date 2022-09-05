@@ -2,7 +2,7 @@
 
 # LocatorJS
 
-A Dev tool that lets you click on UI Component in the browser to open its code in your IDE.
+Click on UI Component in the browser to open its code in your IDE.
 
 ![Intro](./docs/intro.gif)
 
