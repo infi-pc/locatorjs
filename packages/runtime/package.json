@@ -1,7 +1,7 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "scripts": {
     "test": "jest",
     "test:update": "jest src/ -u",
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.0.1",
-    "@locator/shared": "^0.1.4",
+    "@locator/shared": "^0.1.5",
     "solid-js": "^1.4.4",
     "tailwindcss": "^3.1.6"
   },

@@ -1,6 +1,6 @@
 {
   "name": "@locator/react-devtools-hook",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
@@ -11,7 +11,7 @@
     "ts": "tsc src/*.ts --noEmit --outDir dist"
   },
   "devDependencies": {
-    "@locator/shared": "^0.1.4",
+    "@locator/shared": "^0.1.5",
     "tsconfig": "^0.0.1",
     "typescript": "^4.5.3"
   },
