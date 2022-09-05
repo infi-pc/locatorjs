@@ -37,11 +37,40 @@ export function TreeNodeElementView(props: {
     return props.node.getSource()?.fileName !== props.parentFilePath;
   }
 
-  function showComponentWrapper() {
+  function isDifferentComponent() {
     return (
       props.node.getComponent &&
       JSON.stringify(props.node.getComponent()) !==
         JSON.stringify(props.parentComponent)
+    );
+  }
+
+  // Assume that library components does not have a source, so show them inlined
+  const preferInlineComponent = () => !props.node.getSource();
+
+  function showComponentWrapper() {
+    return isDifferentComponent() && !preferInlineComponent();
+  }
+
+  function showBorder() {
+    return showComponentWrapper();
+  }
+
+  function componentLink() {
+    return props.node.getComponent()?.callLink ? (
+      <div
+        class="font-bold cursor-pointer text-black hover:bg-gray-100 rounded"
+        onClick={() => {
+          const callLink = props.node.getComponent()?.callLink;
+          if (callLink) {
+            goToSource(callLink, props.targets);
+          }
+        }}
+      >
+        {props.node.getComponent()?.label}
+      </div>
+    ) : (
+      <div class="font-bold">{props.node.getComponent()?.label}</div>
     );
   }
   return (
@@ -49,7 +78,7 @@ export function TreeNodeElementView(props: {
       class={
         "text-xs pl-2 " +
         (props.highlightedId === props.node.uniqueId ? "bg-yellow-100 " : " ") +
-        (isDifferentFilePath() ? "border border-gray-300 py-2 pr-2 " : " ") +
+        (showBorder() ? "border border-gray-300 py-2 pr-2 " : " ") +
         (props.node.getSource() ? "text-black " : "text-gray-500 ")
       }
       onMouseEnter={() => {
@@ -61,22 +90,7 @@ export function TreeNodeElementView(props: {
     >
       {showComponentWrapper() && (
         <div class="flex gap-2 justify-between pb-1">
-          {props.node.getComponent()?.callLink ? (
-            <div
-              class="font-bold cursor-pointer text-black hover:bg-gray-100 rounded"
-              onClick={() => {
-                const callLink = props.node.getComponent()?.callLink;
-                if (callLink) {
-                  goToSource(callLink, props.targets);
-                }
-              }}
-            >
-              {props.node.getComponent()?.label}
-            </div>
-          ) : (
-            <div class="font-bold">{props.node.getComponent()?.label}</div>
-          )}
-
+          {componentLink()}
           <div class="whitespace-nowrap text-ellipsis overflow-hidden">
             {cropPath(
               props.node.getComponent()?.definitionLink?.fileName || ""
@@ -97,10 +111,12 @@ export function TreeNodeElementView(props: {
             }
           }}
         >
-          <div class="font-mono">
+          <div class="font-mono flex gap-1">
             {"<"}
             {props.node.name}
             {">"}
+
+            {preferInlineComponent() && componentLink()}
           </div>
           <div class="whitespace-nowrap text-ellipsis overflow-hidden">
             {isDifferentFilePath() && !showComponentWrapper()
