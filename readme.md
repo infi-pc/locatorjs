@@ -6,6 +6,8 @@ A Dev tool that lets you click on UI Component in the browser to open its code i
 
 ![Intro](./docs/intro.gif)
 
+go to [www.locatorjs.com](https://www.locatorjs.com) for more info
+
 ## Install Browser extension
 
 [Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi) (works for Chrome, Brave, Opera and Edge)
