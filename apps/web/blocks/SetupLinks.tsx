@@ -1,6 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
-import { ReactNode } from "react";
+import { SetupLink } from "./SetupLink";
 
 export default function SetupLinks() {
   return (
@@ -22,13 +21,19 @@ export default function SetupLinks() {
               />
             }
             title={
-              <>
-                React - devtools based{" "}
-                <span className="text-gray-600">(recommended)</span>
-              </>
+              <span>
+                React <span className="text-gray-600"> (data-id approach)</span>
+              </span>
             }
-            text="Works with most React dev stacks like Vite, Next.js, or Create React App. No need to install any packages."
-            id="react"
+            text={
+              <span className="text-xs">
+                <b>Compared to devtools approach:</b> <br />
+                Works with all React projects that use Babel. <br />
+                It can be used also in production-like environments. <br />
+                Contains additional support for styled-components.
+              </span>
+            }
+            id="react-data-id"
           />
           <SetupLink
             icon={
@@ -39,9 +44,24 @@ export default function SetupLinks() {
                 height={85}
               />
             }
-            title="React - data-id based"
-            text="For other types of React projects or if you want to use it on production-like environments."
-            id="react-data-id"
+            title={
+              <span>
+                React{" "}
+                <span className="text-gray-600"> (devtools approach)</span>
+              </span>
+            }
+            text={
+              <span className="text-xs">
+                <b>Compared to data-id approach:</b> <br />
+                Works with modern React dev stacks like Vite, Next.js, or Create
+                React App. <br />
+                If you use the Browser extension, you don{"'"}t need to install
+                any packages. <br />
+                You might need to have React DevTools to make it working
+                properly.
+              </span>
+            }
+            id="react"
           />
           <SetupLink
             icon={
@@ -91,56 +111,5 @@ export default function SetupLinks() {
         </div>
       </div>
     </section>
-  );
-}
-
-function SetupLink({
-  icon,
-  title,
-  text,
-  id,
-  experimental,
-}: {
-  icon: ReactNode;
-  title: ReactNode;
-  text?: ReactNode;
-  id: string;
-  experimental?: boolean;
-}) {
-  return (
-    <div className="p-4">
-      <Link href={`/install/${id}`}>
-        <div className="flex flex-col p-8 border-2 border-gray-200 border-opacity-50 rounded-lg cursor-pointer sm:flex-row hover:bg-slate-50">
-          <div className="inline-flex items-center justify-center flex-shrink-0 w-16 h-16 mb-4 rounded-full sm:mr-8 sm:mb-0">
-            {icon}
-          </div>
-          <div className="flex-grow">
-            <h2 className="flex items-center mb-3 text-lg font-medium text-gray-900 title-font">
-              {title}
-              {experimental ? (
-                <div className="text-sm inline-block px-2 py-0.5 ml-2 text-gray-600 rounded-full bg-slate-100">
-                  experimental
-                </div>
-              ) : null}
-            </h2>
-            {text && <p className="mb-3 text-sm leading-relaxed">{text}</p>}
-            <a className="inline-flex items-center text-indigo-500">
-              See instructions
-              <svg
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="w-4 h-4 ml-2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7"></path>
-              </svg>
-            </a>
-          </div>
-        </div>
-      </Link>
-    </div>
   );
 }
