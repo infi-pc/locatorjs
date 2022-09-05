@@ -8,10 +8,12 @@ export function initRuntime({
   adapter,
   targets,
   projectPath,
+  transformUrlTemplate,
 }: {
   adapter?: AdapterId;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
+  transformUrlTemplate?: (url: string) => string;
 } = {}) {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return;

@@ -32,10 +32,8 @@ export function buildLink(
     line: String(linkProps.line),
     column: String(linkProps.column),
   };
-  return evalTemplate(
-    linkTemplateUrl(targets, localLinkTypeOrTemplate),
-    params
-  );
+  const template = linkTemplateUrl(targets, localLinkTypeOrTemplate);
+  return evalTemplate(template, params);
 }
 
 export function buildLinkFromSource(source: Source, targets: Targets): string {

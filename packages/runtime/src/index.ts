@@ -15,13 +15,18 @@ export function setup({
   adapter,
   targets,
   projectPath,
+  transformUrlTemplate,
 }: {
   adapter?: AdapterId;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
+  transformUrlTemplate?: (url: string) => string;
 } = {}) {
-  setTimeout(() => initRuntime({ adapter, targets, projectPath }), 0);
+  setTimeout(
+    () => initRuntime({ adapter, targets, projectPath, transformUrlTemplate }),
+    0
+  );
 }
 
 export default setup;
