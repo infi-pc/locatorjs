@@ -46,15 +46,14 @@ export function ChooseEditorDialog(props: {
 
   return (
     <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-2xl">
-      {detectSvelte() ? (
-        <ProjectLinkForm
-          value={projectPath()}
-          onChange={(val) => {
-            setNeedToFillLinkError(false);
-            setProjectPath(val);
-          }}
-        />
-      ) : null}
+      <ProjectLinkForm
+        value={projectPath()}
+        onChange={(val) => {
+          setNeedToFillLinkError(false);
+          setProjectPath(val);
+        }}
+      />
+
       {needToFillLinkError() ? (
         <div class="text-red-500 text-sm">Project path is required</div>
       ) : (
@@ -82,11 +81,6 @@ export function ChooseEditorDialog(props: {
         <div>
           <button
             onClick={() => {
-              if (!projectPath() && detectSvelte()) {
-                setNeedToFillLinkError(true);
-                return;
-              }
-
               setLocalStorageLinkTemplate(selectedTarget());
               const newProjectPath = correctedProjectPath();
               if (newProjectPath) {

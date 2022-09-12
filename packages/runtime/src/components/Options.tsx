@@ -48,14 +48,13 @@ export function Options(props: {
         <LogoIcon />
         <OptionsCloseButton onClick={() => props.onClose()} />
       </div>
-      {detectSvelte() ? (
-        <ProjectLinkForm
-          value={projectPath()}
-          onChange={function (newValue) {
-            saveProjectPath(newValue);
-          }}
-        />
-      ) : null}
+
+      <ProjectLinkForm
+        value={projectPath()}
+        onChange={function (newValue) {
+          saveProjectPath(newValue);
+        }}
+      />
 
       {!isExtension() ? (
         <EditorLinkForm
