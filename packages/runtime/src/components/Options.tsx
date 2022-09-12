@@ -1,25 +1,25 @@
-import { Targets, detectSvelte } from "@locator/shared";
+import { Targets } from "@locator/shared";
 import { createSignal } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import {
-  cleanLocalStorageProjectPath,
   getSavedProjectPath,
   setLocalStorageProjectPath,
 } from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { isExtension } from "../functions/isExtension";
 import {
-  cleanLocalStorageLinkTemplate,
   getLinkTypeOrTemplate,
   setLocalStorageLinkTemplate,
 } from "../functions/linkTemplateUrl";
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { ProjectLinkForm } from "./ProjectLinkForm";
+import { cleanOptions, setOptions } from "../functions/optionsStore";
 
 export function Options(props: {
   targets: Targets;
   onClose: () => void;
+  showDisableDialog: () => void;
   adapterId?: string;
 }) {
   const [selectedTarget, setSelectedTarget] = createSignal(
@@ -64,16 +64,30 @@ export function Options(props: {
         />
       ) : null}
 
-      <button
-        class="text-slate-500 hover:text-slate-600 text-xs underline cursor-pointer"
-        onClick={() => {
-          cleanLocalStorageLinkTemplate();
-          cleanLocalStorageProjectPath();
-          props.onClose();
-        }}
-      >
-        Reset all settings
-      </button>
+      <div class="flex gap-2">
+        <button
+          class="text-slate-500 hover:text-slate-600 text-xs underline cursor-pointer"
+          onClick={() => {
+            cleanOptions();
+            props.onClose();
+          }}
+        >
+          Reset all settings
+        </button>
+        <button
+          class="text-slate-500 hover:text-slate-600 text-xs underline cursor-pointer"
+          onClick={() => {
+            if (isExtension()) {
+              setOptions({ disabled: true });
+              props.onClose();
+            } else {
+              props.showDisableDialog();
+            }
+          }}
+        >
+          Disable Locator {isExtension() ? "on this project" : ""}
+        </button>
+      </div>
     </div>
   );
 }

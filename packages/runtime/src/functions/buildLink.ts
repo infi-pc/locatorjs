@@ -1,8 +1,8 @@
-/* eslint-disable solid/reactivity */
 import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
 import { LinkProps, Source } from "../types/types";
 import { Targets } from "@locator/shared";
+import { getOptions, setOptions } from "./optionsStore";
 
 let internalProjectPath: string | null = null;
 export function setInternalProjectPath(projectPath: string) {
@@ -10,15 +10,11 @@ export function setInternalProjectPath(projectPath: string) {
 }
 
 export function setLocalStorageProjectPath(projectPath: string) {
-  localStorage.setItem("LOCATOR_PROJECT_PATH", projectPath);
-}
-
-export function cleanLocalStorageProjectPath() {
-  localStorage.removeItem("LOCATOR_PROJECT_PATH");
+  setOptions({ projectPath });
 }
 
 export function getSavedProjectPath() {
-  return localStorage.getItem("LOCATOR_PROJECT_PATH") || internalProjectPath;
+  return getOptions().projectPath || internalProjectPath;
 }
 
 export function buildLink(

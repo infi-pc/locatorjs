@@ -1,16 +1,14 @@
 import { Targets } from "@locator/shared";
+import { getOptions, setOptions } from "./optionsStore";
 
 export function setLocalStorageLinkTemplate(linkOrTemplate: string) {
-  localStorage.setItem("LOCATOR_CUSTOM_LINK", linkOrTemplate);
-}
-
-export function cleanLocalStorageLinkTemplate() {
-  localStorage.removeItem("LOCATOR_CUSTOM_LINK");
+  setOptions({ templateOrTemplateId: linkOrTemplate });
 }
 
 export function getLocalStorageLinkTemplate() {
-  return localStorage.getItem("LOCATOR_CUSTOM_LINK");
+  return getOptions().templateOrTemplateId;
 }
+
 export const getLinkTypeOrTemplate = (
   targets: Targets,
   localLinkTypeOrTemplate?: string

@@ -1,5 +1,5 @@
 import { detectSvelte, Targets } from "@locator/shared";
-import { batch, createEffect, createSignal, onCleanup } from "solid-js";
+import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
 import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
@@ -24,10 +24,18 @@ import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
+import { getOptions } from "../functions/optionsStore";
+import { DisableConfirmation } from "./DisableConfirmation";
 
-type UiMode = ["off"] | ["options"] | ["tree", TreeState];
+type UiMode =
+  | ["off"]
+  | ["options"]
+  | ["tree", TreeState]
+  | ["disable-confirmation"];
 
-function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
+type RuntimeProps = { adapterId?: AdapterId; targets: Targets };
+
+function Runtime(props: RuntimeProps) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -216,6 +224,16 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
           onClose={() => {
             setUiMode(["off"]);
           }}
+          showDisableDialog={() => {
+            setUiMode(["disable-confirmation"]);
+          }}
+        />
+      ) : null}
+      {uiMode()[0] === "disable-confirmation" ? (
+        <DisableConfirmation
+          onClose={() => {
+            setUiMode(["off"]);
+          }}
         />
       ) : null}
       {/* {holdingModKey() &&
@@ -248,6 +266,15 @@ function Runtime(props: { adapterId?: AdapterId; targets: Targets }) {
   );
 }
 
+function RuntimeWrapper(props: RuntimeProps) {
+  const isDisabled = () => getOptions().disabled || false;
+  return (
+    <Show when={!isDisabled()}>
+      <Runtime {...props} />
+    </Show>
+  );
+}
+
 export function initRender(
   solidLayer: HTMLDivElement,
   adapter: AdapterId | undefined,
@@ -255,7 +282,7 @@ export function initRender(
 ) {
   render(
     () => (
-      <Runtime
+      <RuntimeWrapper
         targets={Object.fromEntries(
           Object.entries(targets).map(([key, t]) => {
             return [key, typeof t == "string" ? { url: t, label: key } : t];
