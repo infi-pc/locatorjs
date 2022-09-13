@@ -68,6 +68,8 @@ switch (document.contentType) {
 
 function getHookStatusMessage() {
   return (
+    // we combine the two messages to make it easier to handle in popup
+    document.head.dataset.locatorDisabled ||
     document.head.dataset.locatorHookStatusMessage ||
     `loading: waiting for hook`
   );

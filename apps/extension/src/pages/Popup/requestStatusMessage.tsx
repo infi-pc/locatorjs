@@ -1,19 +1,24 @@
 import browser from '../../browser';
+import { StatusMessageFromClient } from './types';
 
 export function requestStatusMessage(
   tabId: number,
-  setMessage: (msg: string) => void
+  setMessage: (msg: StatusMessageFromClient) => void
 ) {
   browser.tabs.sendMessage(
     tabId,
     { from: 'popup', subject: 'requestStatusMessage' },
-    function onStatusMessage(status) {
+    function onStatusMessage(status: string) {
       if (chrome.runtime.lastError && !status) {
-        setMessage("Couldn't connect to the page");
+        setMessage('couldNotConnect');
         return;
       }
 
-      setMessage(status || 'loading');
+      setMessage(
+        (status === 'ok' || status === 'disabled'
+          ? status
+          : `error: ${status}`) || 'loading'
+      );
     }
   );
 }

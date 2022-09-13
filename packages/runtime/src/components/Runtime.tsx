@@ -268,6 +268,15 @@ function Runtime(props: RuntimeProps) {
 
 function RuntimeWrapper(props: RuntimeProps) {
   const isDisabled = () => getOptions().disabled || false;
+
+  createEffect(() => {
+    if (isDisabled() && isExtension()) {
+      document.head.dataset.locatorDisabled = "disabled";
+    } else {
+      delete document.head.dataset.locatorDisabled;
+    }
+  });
+
   return (
     <Show when={!isDisabled()}>
       <Runtime {...props} />
