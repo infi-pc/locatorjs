@@ -271,7 +271,12 @@ function RuntimeWrapper(props: RuntimeProps) {
 
   createEffect(() => {
     if (isDisabled() && isExtension()) {
-      document.head.dataset.locatorDisabled = "disabled";
+      // document.head.dataset.locatorDisabled = "disabled";
+      // setTimeout(pollOnEnable, 1000);
+      // function pollOnEnable() {
+      //   console.log(localStorage.getItem("BOOO"));
+      //   setTimeout(pollOnEnable, 1000);
+      // }
     } else {
       delete document.head.dataset.locatorDisabled;
     }

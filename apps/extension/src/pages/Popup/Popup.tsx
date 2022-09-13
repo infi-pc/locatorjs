@@ -20,6 +20,7 @@ import { SharePage } from './SharePage';
 import SectionHeadline from './SectionHeadline';
 import { BsGithub } from 'solid-icons/bs';
 import posthog from 'posthog-js';
+import { requestEnable } from './requestEnable';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -91,7 +92,21 @@ const Popup = () => {
           </div>
         ) : (
           <div>
-            {message() === 'ok' ? (
+            {message() === 'disabled' ? (
+              <div>
+                <SectionHeadline>Disabled</SectionHeadline>
+                <div>You have disabled Locator on this page.</div>
+                <div class="flex justify-end">
+                  <Button
+                    onClick={() => {
+                      requestEnable();
+                    }}
+                  >
+                    Enable
+                  </Button>
+                </div>
+              </div>
+            ) : message() === 'ok' ? (
               page().type === 'home' ? (
                 <Home setPage={setPage} />
               ) : page().type === 'edit-controls' ? (

@@ -81,6 +81,12 @@ browser.runtime.onMessage.addListener((msg, sender, response) => {
   }
 });
 
+// browser.runtime.onMessage.addListener((msg, sender, response) => {
+//   if (msg.from === 'popup' && msg.subject === 'requestEnable') {
+//     localStorage.setItem('BOOO', 'hoho');
+//   }
+// });
+
 // Collect click counts and remove them from the DOM.
 setInterval(() => {
   const newClicks = Number(document.head.dataset.locatorClickCount) || 0;
