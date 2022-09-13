@@ -15,7 +15,6 @@ import { EditControls } from './EditControls';
 import { requestStatus } from './requestStatus';
 import { useSyncedState } from './syncedState';
 import TrackingInit from './TrackingInit';
-import SocialShare from './SocialShare';
 import { Page } from './Page';
 import { SharePage } from './SharePage';
 import SectionHeadline from './SectionHeadline';
@@ -243,9 +242,6 @@ const Popup = () => {
           Learn Solid-JS!
         </a> */}
       </div>
-      {clicks() > 2 && message() === 'ok' && page().type === 'home' && (
-        <SocialShare setPage={setPage} />
-      )}
     </>
   );
 };
