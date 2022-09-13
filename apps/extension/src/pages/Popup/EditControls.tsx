@@ -10,13 +10,8 @@ type Props = {
 };
 
 export function EditControls(props: Props) {
-  const {
-    clicks,
-    controls,
-    allowTracking,
-    sharedOnSocialMedia,
-    enableExperimentalFeatures,
-  } = useSyncedState();
+  const { clicks, controls, sharedOnSocialMedia, enableExperimentalFeatures } =
+    useSyncedState();
   return (
     <div class="flex justify-between">
       <div>
@@ -54,6 +49,8 @@ export function EditControls(props: Props) {
 
         <SectionHeadline>Others: </SectionHeadline>
         <div class="flex flex-col gap-1 mb-2 items-start">
+          {/* 
+          // NOTE: we don't need tracking now
           <Switch
             size={'sm'}
             labelPlacement="end"
@@ -63,7 +60,7 @@ export function EditControls(props: Props) {
             checked={!!allowTracking.get()}
           >
             Allow anonymous tracking
-          </Switch>
+          </Switch> */}
           <Switch
             size={'sm'}
             labelPlacement="end"

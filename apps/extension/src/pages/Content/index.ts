@@ -86,17 +86,3 @@ browser.runtime.onMessage.addListener((msg, sender, response) => {
 //     localStorage.setItem('BOOO', 'hoho');
 //   }
 // });
-
-// Collect click counts and remove them from the DOM.
-setInterval(() => {
-  const newClicks = Number(document.head.dataset.locatorClickCount) || 0;
-  if (newClicks) {
-    browser.storage.local.get(['clickCount'], function (res) {
-      const oldClicks = typeof res.clickCount === 'number' ? res.clickCount : 0;
-      browser.storage.local.set({
-        clickCount: oldClicks + newClicks,
-      });
-      delete document.head.dataset.locatorClickCount;
-    });
-  }
-}, 1000);

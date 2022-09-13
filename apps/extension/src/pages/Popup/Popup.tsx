@@ -14,12 +14,11 @@ import { Home } from './Home';
 import { EditControls } from './EditControls';
 import { requestStatus } from './requestStatus';
 import { useSyncedState } from './syncedState';
-import TrackingInit from './TrackingInit';
 import { Page } from './Page';
 import { SharePage } from './SharePage';
 import SectionHeadline from './SectionHeadline';
 import { BsGithub } from 'solid-icons/bs';
-import posthog from 'posthog-js';
+// import posthog from 'posthog-js';
 import { requestEnable } from './requestEnable';
 
 const isMac =
@@ -50,15 +49,21 @@ const Popup = () => {
       return;
     }
 
-    posthog.capture('Hook error', {
-      message: newMsg,
-    });
+    // posthog.capture('Hook error', {
+    //   message: newMsg,
+    // });
   });
+
+  function showTrackingPrompt() {
+    // NOTE: we don't need tracting now
+    // return allowTracking.get() === null
+    return false;
+  }
 
   return (
     <>
       <div class="p-4">
-        {allowTracking.get() === null ? (
+        {showTrackingPrompt() ? (
           <div class="p-2 flex flex-col justify-center items-center text-center h-60">
             <Text size="2xl" class=" mb-2">
               Allow anonymous tracking?
@@ -244,18 +249,8 @@ const Popup = () => {
           </div>
         )}
 
-        {allowTracking.get() === true && <TrackingInit />}
-        {/* <p>
-          Edit <code>src/pages/Popup/Popup.jsx</code> and save cool reload.
-        </p>
-        <a
-          class="App-link"
-          href="https://solidjs.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn Solid-JS!
-        </a> */}
+        {/* // NOTE: we don't need tracking now */}
+        {/* {allowTracking.get() === true && <TrackingInit />} */}
       </div>
     </>
   );
