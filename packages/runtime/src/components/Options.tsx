@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { cleanOptions, Targets } from "@locator/shared";
 import { createSignal } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import {
@@ -14,7 +14,7 @@ import {
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { ProjectLinkForm } from "./ProjectLinkForm";
-import { cleanOptions, setOptions } from "../functions/optionsStore";
+import { setOptions } from "../functions/optionsStore";
 
 export function Options(props: {
   targets: Targets;

@@ -210,7 +210,7 @@ function Runtime(props: RuntimeProps) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      {!isExtension() ? (
+      {!isExtension() && getOptions().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
           hide={!!holdingModKey() || uiMode()[0] !== "off"}

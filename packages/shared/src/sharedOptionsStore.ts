@@ -7,6 +7,7 @@ export type ProjectOptions = {
     to: string;
   };
   disabled?: boolean;
+  showIntro?: boolean;
 };
 
 export function getStoredOptions() {
@@ -26,6 +27,9 @@ export function getStoredOptions() {
     // FIXME add replacePath
     if (typeof parsedOptions.disabled === "boolean") {
       options.disabled = parsedOptions.disabled;
+    }
+    if (typeof parsedOptions.showIntro === "boolean") {
+      options.showIntro = parsedOptions.showIntro;
     }
   }
 
