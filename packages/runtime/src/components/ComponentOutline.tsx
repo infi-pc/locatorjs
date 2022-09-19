@@ -7,6 +7,7 @@ import { goTo } from "../functions/goTo";
 import { SimpleDOMRect } from "../types/types";
 import { buildLink } from "../functions/buildLink";
 import { Targets } from "@locator/shared";
+import { useOptions } from "../functions/optionsStore";
 
 export function ComponentOutline(props: {
   bbox: SimpleDOMRect;
@@ -15,6 +16,8 @@ export function ComponentOutline(props: {
   showTreeFromElement: (element: HTMLElement) => void;
   targets: Targets;
 }) {
+  const options = useOptions();
+
   const isInside = () => props.bbox.height >= window.innerHeight - 40;
   const isBelow = () => props.bbox.y < 30 && !isInside();
 
@@ -101,7 +104,7 @@ export function ComponentOutline(props: {
           <For each={props.labels}>
             {(label) => {
               const link = label.link
-                ? buildLink(label.link, props.targets)
+                ? buildLink(label.link, props.targets, options)
                 : null;
               const labelClass =
                 "cursor-pointer bg-red-500 block text-white text-xs font-bold text-center px-1 py-0.5 rounded whitespace-nowrap pointer-events-auto hover:bg-red-600";

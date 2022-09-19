@@ -4,13 +4,15 @@ import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
 import { getMouseModifiers } from "../functions/isCombinationModifiersPressed";
-import { setOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsStore";
 
 export function IntroInfo(props: {
   openOptions: () => void;
   hide: boolean;
   adapter?: AdapterId;
 }) {
+  const options = useOptions();
+
   const [showIntro, setShowIntro] = createSignal(true);
   setTimeout(() => {
     setShowIntro(false);
@@ -61,7 +63,7 @@ export function IntroInfo(props: {
         <a
           class="underline cursor-pointer"
           onClick={() => {
-            setOptions({ showIntro: false });
+            options.setOptions({ showIntro: false });
           }}
         >
           Stop showing this popup

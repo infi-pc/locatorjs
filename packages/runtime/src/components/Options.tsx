@@ -1,20 +1,14 @@
 import { cleanOptions, Targets } from "@locator/shared";
 import { createSignal } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
-import {
-  getSavedProjectPath,
-  setLocalStorageProjectPath,
-} from "../functions/buildLink";
+import { getSavedProjectPath } from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { isExtension } from "../functions/isExtension";
-import {
-  getLinkTypeOrTemplate,
-  setLocalStorageLinkTemplate,
-} from "../functions/linkTemplateUrl";
+import { getLinkTypeOrTemplate } from "../functions/linkTemplateUrl";
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { ProjectLinkForm } from "./ProjectLinkForm";
-import { setOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsStore";
 
 export function Options(props: {
   targets: Targets;
@@ -22,24 +16,26 @@ export function Options(props: {
   showDisableDialog: () => void;
   adapterId?: string;
 }) {
+  const options = useOptions();
+
   const [selectedTarget, setSelectedTarget] = createSignal(
     // eslint-disable-next-line solid/reactivity
-    getLinkTypeOrTemplate(props.targets)
+    getLinkTypeOrTemplate(props.targets, options)
   );
 
   function selectTarget(val: string) {
     setSelectedTarget(val);
-    setLocalStorageLinkTemplate(val);
+    options.setOptions({ templateOrTemplateId: val });
   }
 
   const [projectPath, setProjectPath] = createSignal<string>(
     // eslint-disable-next-line solid/reactivity
-    getSavedProjectPath() || ""
+    getSavedProjectPath(options) || ""
   );
 
   function saveProjectPath(newPath: string) {
     setProjectPath(newPath);
-    setLocalStorageProjectPath(newPath);
+    options.setOptions({ projectPath: newPath });
   }
 
   return (
@@ -78,7 +74,7 @@ export function Options(props: {
           class="text-slate-500 hover:text-slate-600 text-xs underline cursor-pointer"
           onClick={() => {
             if (isExtension()) {
-              setOptions({ disabled: true });
+              options.setOptions({ disabled: true });
               props.onClose();
             } else {
               props.showDisableDialog();

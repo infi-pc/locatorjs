@@ -1,28 +1,26 @@
 import { LinkProps } from "../types/types";
-import {
-  buildLink,
-  getSavedProjectPath,
-  setLocalStorageProjectPath,
-} from "../functions/buildLink";
+import { buildLink, getSavedProjectPath } from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { createSignal } from "solid-js";
-import { detectSvelte, Targets } from "@locator/shared";
+import { Targets } from "@locator/shared";
 import { goToLinkProps } from "../functions/goTo";
-import { setLocalStorageLinkTemplate } from "../functions/linkTemplateUrl";
 import { ProjectLinkForm } from "./ProjectLinkForm";
+import { useOptions } from "../functions/optionsStore";
 
 export function ChooseEditorDialog(props: {
   originalLinkProps: LinkProps;
   targets: Targets;
   onClose: () => void;
 }) {
+  const options = useOptions();
+
   const [selectedTarget, setSelectedTarget] = createSignal<string>(
     // eslint-disable-next-line solid/reactivity
     Object.entries(props.targets)[0]![0]
   );
   const [projectPath, setProjectPath] = createSignal<string>(
     // eslint-disable-next-line solid/reactivity
-    getSavedProjectPath() || props.originalLinkProps.projectPath
+    getSavedProjectPath(options) || props.originalLinkProps.projectPath
   );
 
   const correctedProjectPath = (): string => {
@@ -42,7 +40,7 @@ export function ChooseEditorDialog(props: {
   });
 
   const currentLink = () =>
-    buildLink(currentLinkProps(), props.targets, selectedTarget());
+    buildLink(currentLinkProps(), props.targets, options, selectedTarget());
 
   return (
     <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-2xl">
@@ -81,12 +79,12 @@ export function ChooseEditorDialog(props: {
         <div>
           <button
             onClick={() => {
-              setLocalStorageLinkTemplate(selectedTarget());
+              options.setOptions({ templateOrTemplateId: selectedTarget() });
               const newProjectPath = correctedProjectPath();
               if (newProjectPath) {
-                setLocalStorageProjectPath(newProjectPath);
+                options.setOptions({ projectPath: newProjectPath });
               }
-              goToLinkProps(currentLinkProps(), props.targets);
+              goToLinkProps(currentLinkProps(), props.targets, options);
               props.onClose();
             }}
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"

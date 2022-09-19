@@ -13,7 +13,6 @@ import { Options } from "./Options";
 import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { isExtension } from "../functions/isExtension";
-import { getLocalStorageLinkTemplate } from "../functions/linkTemplateUrl";
 import { NoLinkDialog } from "./NoLinkDialog";
 import { ChooseEditorDialog } from "./ChooseEditorDialog";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
@@ -24,7 +23,7 @@ import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
-import { getOptions } from "../functions/optionsStore";
+import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 
 type UiMode =
@@ -33,7 +32,10 @@ type UiMode =
   | ["tree", TreeState]
   | ["disable-confirmation"];
 
-type RuntimeProps = { adapterId?: AdapterId; targets: Targets };
+type RuntimeProps = {
+  adapterId?: AdapterId;
+  targets: Targets;
+};
 
 function Runtime(props: RuntimeProps) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
@@ -49,6 +51,8 @@ function Runtime(props: RuntimeProps) {
   const [highlightedNode, setHighlightedNode] = createSignal<null | TreeNode>(
     null
   );
+
+  const options = useOptions();
 
   createEffect(() => {
     if (holdingModKey() && currentElement()) {
@@ -125,13 +129,15 @@ function Runtime(props: RuntimeProps) {
           e.stopPropagation();
           trackClickStats();
           if (
-            (!isExtension() && !getLocalStorageLinkTemplate()) ||
-            (detectSvelte() && !linkProps.projectPath && !getSavedProjectPath())
+            (!isExtension() && !options.getOptions().templateOrTemplateId) ||
+            (detectSvelte() &&
+              !linkProps.projectPath &&
+              !getSavedProjectPath(options))
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {
             // const link = buidLink(linkProps, props.targets);
-            goToLinkProps(linkProps, props.targets);
+            goToLinkProps(linkProps, props.targets, options);
           }
         } else {
           console.error(
@@ -210,7 +216,7 @@ function Runtime(props: RuntimeProps) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      {!isExtension() && getOptions().showIntro !== false ? (
+      {!isExtension() && options.getOptions().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
           hide={!!holdingModKey() || uiMode()[0] !== "off"}
@@ -267,7 +273,9 @@ function Runtime(props: RuntimeProps) {
 }
 
 function RuntimeWrapper(props: RuntimeProps) {
-  const isDisabled = () => getOptions().disabled || false;
+  const options = useOptions();
+
+  const isDisabled = () => options.getOptions().disabled || false;
 
   createEffect(() => {
     if (isDisabled() && isExtension()) {
@@ -291,14 +299,16 @@ export function initRender(
 ) {
   render(
     () => (
-      <RuntimeWrapper
-        targets={Object.fromEntries(
-          Object.entries(targets).map(([key, t]) => {
-            return [key, typeof t == "string" ? { url: t, label: key } : t];
-          })
-        )}
-        adapterId={adapter}
-      />
+      <OptionsProvider>
+        <RuntimeWrapper
+          targets={Object.fromEntries(
+            Object.entries(targets).map(([key, t]) => {
+              return [key, typeof t == "string" ? { url: t, label: key } : t];
+            })
+          )}
+          adapterId={adapter}
+        />
+      </OptionsProvider>
     ),
     solidLayer
   );
