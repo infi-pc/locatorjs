@@ -1,3 +1,4 @@
+import { getStoredOptions, setStoredOptions } from '@locator/shared';
 import browser from '../../browser';
 
 browser.storage.local.get(['target'], function (result) {
@@ -81,8 +82,13 @@ browser.runtime.onMessage.addListener((msg, sender, response) => {
   }
 });
 
-// browser.runtime.onMessage.addListener((msg, sender, response) => {
-//   if (msg.from === 'popup' && msg.subject === 'requestEnable') {
-//     localStorage.setItem('BOOO', 'hoho');
-//   }
-// });
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg.from === 'popup' && msg.subject === 'requestEnable') {
+    const savedOptions = getStoredOptions();
+    const optionsToSave = { ...savedOptions, disabled: false };
+
+    setStoredOptions(optionsToSave);
+
+    postMessage({ type: 'LOCATOR_EXTENSION_UPDATED_OPTIONS' }, '*');
+  }
+});

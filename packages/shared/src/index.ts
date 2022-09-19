@@ -141,3 +141,5 @@ export type FileStorage = {
   styledDefinitions: StyledDefinitionInfo[];
   components: ComponentInfo[];
 };
+
+export * from "./sharedOptionsStore";
