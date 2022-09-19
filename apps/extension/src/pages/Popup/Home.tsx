@@ -5,6 +5,7 @@ import { modifiersTitles } from '@locator/shared';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 import SectionHeadline from './SectionHeadline';
+import { requestEnable } from './requestEnable';
 
 type Props = {
   setPage: (page: Page) => void;
@@ -64,6 +65,17 @@ export function Home(props: Props) {
         </div>
       </div>
       <Editor />
+
+      <div class="mt-2 w-full text-right">
+        <a
+          class="underline cursor-pointer"
+          onClick={() => {
+            requestEnable(false);
+          }}
+        >
+          Disable locator on this page
+        </a>
+      </div>
     </>
   );
 }

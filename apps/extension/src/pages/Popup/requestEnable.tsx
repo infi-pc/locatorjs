@@ -1,6 +1,6 @@
 import browser from '../../browser';
 
-export function requestEnable() {
+export function requestEnable(value: boolean) {
   browser.tabs.query(
     {
       active: true,
@@ -11,7 +11,7 @@ export function requestEnable() {
       if (currentTab.id) {
         browser.tabs.sendMessage(
           currentTab.id,
-          { from: 'popup', subject: 'requestEnable' },
+          { from: 'popup', subject: 'requestEnable', value },
           function onStatusMessage() {
             // Nothing here yet
           }

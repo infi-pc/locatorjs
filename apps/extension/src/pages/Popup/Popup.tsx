@@ -104,7 +104,7 @@ const Popup = () => {
                 <div class="flex justify-end">
                   <Button
                     onClick={() => {
-                      requestEnable();
+                      requestEnable(true);
                     }}
                   >
                     Enable

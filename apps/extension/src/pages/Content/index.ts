@@ -85,7 +85,10 @@ browser.runtime.onMessage.addListener((msg, sender, response) => {
 browser.runtime.onMessage.addListener((msg) => {
   if (msg.from === 'popup' && msg.subject === 'requestEnable') {
     const savedOptions = getStoredOptions();
-    const optionsToSave = { ...savedOptions, disabled: false };
+    const optionsToSave = {
+      ...savedOptions,
+      disabled: typeof msg.value === 'boolean' ? !msg.value : false,
+    };
 
     setStoredOptions(optionsToSave);
 
