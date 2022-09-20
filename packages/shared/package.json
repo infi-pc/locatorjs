@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsc --watch --declaration --outDir dist",
     "build": "tsc --declaration --outDir dist",
+    "//build-cjs": "tsc --module commonjs --outDir dist/cjs",
     "ts": "tsc --noEmit --outDir dist"
   },
   "devDependencies": {
