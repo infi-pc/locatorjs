@@ -9,6 +9,7 @@ import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { ProjectLinkForm } from "./ProjectLinkForm";
 import { useOptions } from "../functions/optionsStore";
+import { TransformLinkForm } from "./TransformLinkForm";
 
 export function Options(props: {
   targets: Targets;
@@ -51,6 +52,8 @@ export function Options(props: {
           saveProjectPath(newValue);
         }}
       />
+
+      <TransformLinkForm />
 
       {!isExtension() ? (
         <EditorLinkForm
