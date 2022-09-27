@@ -3,6 +3,7 @@ import { evalTemplate } from "./evalTemplate";
 import { LinkProps, Source } from "../types/types";
 import { Targets } from "@locator/shared";
 import { OptionsStore } from "./optionsStore";
+import { transformPath } from "./transformPath";
 
 let internalProjectPath: string | null = null;
 export function setInternalProjectPath(projectPath: string) {
@@ -25,10 +26,19 @@ export function buildLink(
     line: String(linkProps.line),
     column: String(linkProps.column),
   };
-  return evalTemplate(
-    linkTemplateUrl(targets, options, localLinkTypeOrTemplate),
-    params
-  );
+
+  const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
+  const replacePathObj = options.getOptions().replacePath;
+  let evaluated = evalTemplate(template, params);
+
+  if (replacePathObj) {
+    evaluated = transformPath(
+      evaluated,
+      replacePathObj.from,
+      replacePathObj.to
+    );
+  }
+  return evaluated;
 }
 
 export function buildLinkFromSource(

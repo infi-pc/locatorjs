@@ -8,6 +8,7 @@ export type ProjectOptions = {
   };
   disabled?: boolean;
   showIntro?: boolean;
+  welcomeScreenDismissed?: boolean;
 };
 
 export function getStoredOptions() {
@@ -24,7 +25,17 @@ export function getStoredOptions() {
     if (typeof parsedOptions.adapterId === "string") {
       options.adapterId = parsedOptions.adapterId;
     }
-    // FIXME add replacePath
+    if (typeof parsedOptions.replacePath === "object") {
+      if (
+        typeof parsedOptions.replacePath.from === "string" &&
+        typeof parsedOptions.replacePath.to === "string"
+      ) {
+        options.replacePath = {
+          from: parsedOptions.replacePath.from,
+          to: parsedOptions.replacePath.to,
+        };
+      }
+    }
     if (typeof parsedOptions.disabled === "boolean") {
       options.disabled = parsedOptions.disabled;
     }

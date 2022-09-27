@@ -10,7 +10,9 @@ export function Editor() {
 
   return (
     <div class="mt-2">
-      <SectionHeadline>Editor link:</SectionHeadline>
+      <SectionHeadline>
+        Editor link: <span class="text-gray-500">(for all projects)</span>
+      </SectionHeadline>
       <p class="text-sm leading-5 text-gray-500" />
       <fieldset class="mt-2">
         <legend class="sr-only">Notification method</legend>

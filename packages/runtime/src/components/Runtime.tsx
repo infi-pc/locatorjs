@@ -14,7 +14,7 @@ import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { isExtension } from "../functions/isExtension";
 import { NoLinkDialog } from "./NoLinkDialog";
-import { ChooseEditorDialog } from "./ChooseEditorDialog";
+import { WelcomeScreen } from "./WelcomeScreen";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
 import { goToLinkProps } from "../functions/goTo";
 import { getSavedProjectPath } from "../functions/buildLink";
@@ -40,17 +40,14 @@ type RuntimeProps = {
 function Runtime(props: RuntimeProps) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
-  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
-    null
-  );
+  const [currentElement, setCurrentElement] =
+    createSignal<HTMLElement | null>(null);
 
-  const [dialog, setDialog] = createSignal<
-    ["no-link"] | ["choose-editor", LinkProps] | null
-  >(null);
+  const [dialog, setDialog] =
+    createSignal<["no-link"] | ["choose-editor", LinkProps] | null>(null);
 
-  const [highlightedNode, setHighlightedNode] = createSignal<null | TreeNode>(
-    null
-  );
+  const [highlightedNode, setHighlightedNode] =
+    createSignal<null | TreeNode>(null);
 
   const options = useOptions();
 
@@ -128,8 +125,9 @@ function Runtime(props: RuntimeProps) {
           e.preventDefault();
           e.stopPropagation();
           trackClickStats();
+
           if (
-            (!isExtension() && !options.getOptions().templateOrTemplateId) ||
+            (!isExtension() && !options.getOptions().welcomeScreenDismissed) ||
             (detectSvelte() &&
               !linkProps.projectPath &&
               !getSavedProjectPath(options))
@@ -200,7 +198,7 @@ function Runtime(props: RuntimeProps) {
           setHighlightedNode={setHighlightedNode}
         />
       ) : null}
-      {holdingModKey() && currentElement() ? (
+      {(holdingModKey() || uiMode()[0] === "options") && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
           showTreeFromElement={showTreeFromElement}
@@ -233,6 +231,7 @@ function Runtime(props: RuntimeProps) {
           showDisableDialog={() => {
             setUiMode(["disable-confirmation"]);
           }}
+          currentElement={currentElement()}
         />
       ) : null}
       {uiMode()[0] === "disable-confirmation" ? (
@@ -258,7 +257,7 @@ function Runtime(props: RuntimeProps) {
         >
           {dialog()![0] === "no-link" && <NoLinkDialog />}
           {dialog()![0] === "choose-editor" && (
-            <ChooseEditorDialog
+            <WelcomeScreen
               targets={props.targets}
               originalLinkProps={dialog()![1]!}
               onClose={() => {
