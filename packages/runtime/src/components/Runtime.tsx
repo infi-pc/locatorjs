@@ -107,7 +107,7 @@ function Runtime(props: RuntimeProps) {
   }
 
   function clickListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(e)) {
+    if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
       return;
     }
 

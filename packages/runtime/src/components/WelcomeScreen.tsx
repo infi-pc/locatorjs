@@ -13,7 +13,14 @@ export function WelcomeScreen(props: {
   const options = useOptions();
 
   return (
-    <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-2xl">
+    <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-xl">
+      <div class="mt-2 mb-4">
+        <h1 class="text-2xl font-bold">Welcome to Locator!</h1>
+        <span class="text-sm">
+          Before using Locator, let's try links in your project and fix them if
+          needed.
+        </span>
+      </div>
       <LinkOptions
         linkProps={props.originalLinkProps}
         adapterId={props.adapterId}
