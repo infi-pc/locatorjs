@@ -55,7 +55,7 @@ test("react", async ({ page }) => {
   await expect(locatorLogo).toBeVisible();
 
   //   expect(wentToLink).toBe(true);
-  //   const initialButton = page.locator("button >> text=Go to code");
+  //   const initialButton = page.locator("button >> text=Confirm");
   //   await expect(initialButton).toBeVisible();
 });
 
@@ -70,7 +70,7 @@ test("svelte", async ({ page }) => {
   await expect(locatorLogo).toBeVisible();
 
   await locateElement(page, "text=Vite + Svelte");
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });
 

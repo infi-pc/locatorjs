@@ -3,7 +3,8 @@
   "main": "dist/index.js",
   "version": "0.1.8",
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run",
+    "test:dev": "vitest watch",
     "dev": "concurrently yarn:dev:*",
     "dev:babel": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx",
     "//dev:babel-cjs": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",

@@ -13,8 +13,8 @@ browser.storage.local.get(['enableExperimentalFeatures'], function (result) {
   }
 });
 
-browser.storage.onChanged.addListener(function (changes, namespace) {
-  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+browser.storage.onChanged.addListener(function (changes) {
+  for (const [key, { newValue }] of Object.entries(changes)) {
     if (key === 'target') {
       document.documentElement.dataset.locatorTarget = newValue;
     }
@@ -27,8 +27,8 @@ browser.storage.local.get(['controls'], function (result) {
   }
 });
 
-browser.storage.onChanged.addListener(function (changes, namespace) {
-  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+browser.storage.onChanged.addListener(function (changes) {
+  for (const [key, { newValue }] of Object.entries(changes)) {
     if (key === 'controls') {
       document.documentElement.dataset.locatorMouseModifiers = newValue;
     }

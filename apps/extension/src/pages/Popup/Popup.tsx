@@ -33,7 +33,7 @@ const Popup = () => {
 
   const [page, setPage] = createSignal<Page>({ type: 'home' });
 
-  const { allowTracking, clicks } = useSyncedState();
+  const { allowTracking } = useSyncedState();
 
   requestStatus(setMessage);
 

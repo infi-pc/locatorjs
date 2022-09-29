@@ -1,3 +1,4 @@
+/* eslint-disable solid/reactivity */
 import { getModifiersMap, getModifiersString } from '@locator/shared';
 import { createSignal, createContext, useContext, Accessor } from 'solid-js';
 import browser from '../../browser';

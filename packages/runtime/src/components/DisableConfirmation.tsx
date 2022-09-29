@@ -1,5 +1,5 @@
 import { bannerClasses } from "../functions/bannerClasses";
-import { OptionsStore, useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsStore";
 
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";

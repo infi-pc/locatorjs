@@ -18,7 +18,7 @@ export function Editor() {
         <legend class="sr-only">Notification method</legend>
         <div class="flex flex-col">
           <For each={Object.entries(allTargets)}>
-            {([key, { label, url }]) => (
+            {([key, { label }]) => (
               <div class="flex justify-between">
                 <Radio
                   checked={key === target.get()}

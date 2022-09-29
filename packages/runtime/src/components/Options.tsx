@@ -1,9 +1,7 @@
 import { cleanOptions, Targets } from "@locator/shared";
-import { createMemo, createSignal } from "solid-js";
+import { createMemo } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
-import { getSavedProjectPath } from "../functions/buildLink";
 import { isExtension } from "../functions/isExtension";
-import { getLinkTypeOrTemplate } from "../functions/linkTemplateUrl";
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { useOptions } from "../functions/optionsStore";
