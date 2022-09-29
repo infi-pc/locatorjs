@@ -98,7 +98,7 @@ export default function InstallSvelte() {
                           {`export default defineConfig({
   ...
   define: {
-    __PROJECT_PATH__: \`"\${process.cwd()}"\`,
+    __PROJECT_PATH__: \`"\${process.cwd()}/"\`,
   },
   ...
 });`}

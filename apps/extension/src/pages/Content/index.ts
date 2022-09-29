@@ -1,3 +1,4 @@
+import { getStoredOptions, setStoredOptions } from '@locator/shared';
 import browser from '../../browser';
 
 browser.storage.local.get(['target'], function (result) {
@@ -12,8 +13,8 @@ browser.storage.local.get(['enableExperimentalFeatures'], function (result) {
   }
 });
 
-browser.storage.onChanged.addListener(function (changes, namespace) {
-  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+browser.storage.onChanged.addListener(function (changes) {
+  for (const [key, { newValue }] of Object.entries(changes)) {
     if (key === 'target') {
       document.documentElement.dataset.locatorTarget = newValue;
     }
@@ -26,8 +27,8 @@ browser.storage.local.get(['controls'], function (result) {
   }
 });
 
-browser.storage.onChanged.addListener(function (changes, namespace) {
-  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+browser.storage.onChanged.addListener(function (changes) {
+  for (const [key, { newValue }] of Object.entries(changes)) {
     if (key === 'controls') {
       document.documentElement.dataset.locatorMouseModifiers = newValue;
     }
@@ -68,6 +69,8 @@ switch (document.contentType) {
 
 function getHookStatusMessage() {
   return (
+    // we combine the two messages to make it easier to handle in popup
+    document.head.dataset.locatorDisabled ||
     document.head.dataset.locatorHookStatusMessage ||
     `loading: waiting for hook`
   );
@@ -79,16 +82,16 @@ browser.runtime.onMessage.addListener((msg, sender, response) => {
   }
 });
 
-// Collect click counts and remove them from the DOM.
-setInterval(() => {
-  const newClicks = Number(document.head.dataset.locatorClickCount) || 0;
-  if (newClicks) {
-    browser.storage.local.get(['clickCount'], function (res) {
-      const oldClicks = typeof res.clickCount === 'number' ? res.clickCount : 0;
-      browser.storage.local.set({
-        clickCount: oldClicks + newClicks,
-      });
-      delete document.head.dataset.locatorClickCount;
-    });
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg.from === 'popup' && msg.subject === 'requestEnable') {
+    const savedOptions = getStoredOptions();
+    const optionsToSave = {
+      ...savedOptions,
+      disabled: typeof msg.value === 'boolean' ? !msg.value : false,
+    };
+
+    setStoredOptions(optionsToSave);
+
+    postMessage({ type: 'LOCATOR_EXTENSION_UPDATED_OPTIONS' }, '*');
   }
-}, 1000);
+});

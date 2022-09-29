@@ -2,6 +2,7 @@ import { Targets } from "@locator/shared";
 import { For } from "solid-js";
 import cropPath from "../functions/cropPath";
 import { goToSource } from "../functions/goTo";
+import { useOptions } from "../functions/optionsStore";
 import { TreeNodeComponent, TreeNodeElement } from "../types/TreeNode";
 
 export function TreeNodeElementView(props: {
@@ -14,6 +15,8 @@ export function TreeNodeElementView(props: {
   targets: Targets;
   setHighlightedBoundingBox: (node: TreeNodeElement | null) => void;
 }) {
+  const options = useOptions();
+
   function renderChildren() {
     return (
       <For each={props.node.getChildren()}>
@@ -63,7 +66,7 @@ export function TreeNodeElementView(props: {
         onClick={() => {
           const callLink = props.node.getComponent()?.callLink;
           if (callLink) {
-            goToSource(callLink, props.targets);
+            goToSource(callLink, props.targets, options);
           }
         }}
       >
@@ -107,7 +110,7 @@ export function TreeNodeElementView(props: {
           onClick={() => {
             const source = props.node.getSource();
             if (source) {
-              goToSource(source, props.targets);
+              goToSource(source, props.targets, options);
             }
           }}
         >

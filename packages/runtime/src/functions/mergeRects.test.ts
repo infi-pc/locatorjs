@@ -1,5 +1,7 @@
 import { mergeRects } from "./mergeRects";
 import { SimpleDOMRect } from "../types/types";
+import { describe, expect, test } from "vitest";
+
 describe("mergeRects", () => {
   test("basic", () => {
     const a: SimpleDOMRect = { x: 0, y: 0, width: 10, height: 10 };

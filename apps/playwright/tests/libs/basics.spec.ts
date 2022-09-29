@@ -9,7 +9,7 @@ test("web", async ({ page }) => {
 
   await locateElement(page, "text=Click on a component to go to its code");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });
 
@@ -20,7 +20,7 @@ test("react - jsx", async ({ page }) => {
 
   await locateElement(page, "text=Hello Vite + React!");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });
 
@@ -31,7 +31,7 @@ test("preact", async ({ page }) => {
 
   await locateElement(page, "text=Vite + Preact");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });
 
@@ -42,7 +42,7 @@ test("solid", async ({ page }) => {
 
   await locateElement(page, "text=save to reload");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });
 
@@ -53,7 +53,7 @@ test("svelte", async ({ page }) => {
 
   await locateElement(page, "text=Vite + Svelte");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });
 
@@ -64,7 +64,7 @@ test("react - clean: should now have Locator", async ({ page }) => {
 
   await locateElement(page, "text=Vite + React");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   expect(await initialButton.count()).toBe(0);
 });
 
@@ -75,6 +75,6 @@ test("vue", async ({ page }) => {
 
   await locateElement(page, "text=Vite + Vue");
 
-  const initialButton = page.locator("button >> text=Go to code");
+  const initialButton = page.locator("button >> text=Confirm");
   await expect(initialButton).toBeVisible();
 });

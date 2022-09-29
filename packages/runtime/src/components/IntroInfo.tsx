@@ -4,12 +4,15 @@ import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
 import { getMouseModifiers } from "../functions/isCombinationModifiersPressed";
+import { useOptions } from "../functions/optionsStore";
 
 export function IntroInfo(props: {
   openOptions: () => void;
   hide: boolean;
   adapter?: AdapterId;
 }) {
+  const options = useOptions();
+
   const [showIntro, setShowIntro] = createSignal(true);
   setTimeout(() => {
     setShowIntro(false);
@@ -26,11 +29,11 @@ export function IntroInfo(props: {
     <div
       class={bannerClasses()}
       style={{
-        bottom: showIntro() ? "12px" : "-90px",
+        bottom: showIntro() ? "12px" : "-120px",
       }}
     >
       <BannerHeader openOptions={props.openOptions} adapter={props.adapter} />
-      <div class="text-xs mt-2 mb-1">
+      <div class="text-sm mt-2 mb-1">
         Go to component code with{" "}
         <For each={Object.keys(modifiers())}>
           {(key, i) => {
@@ -48,6 +51,23 @@ export function IntroInfo(props: {
         <div class="inline-block px-1 py-0.5 border border-slate-200 rounded">
           click
         </div>{" "}
+      </div>
+      <div class="text-xs mt-2 mb-1 text-gray-600 flex gap-1">
+        <a
+          class="underline cursor-pointer"
+          href="https://www.locatorjs.com"
+          target="_blank"
+        >
+          What is Locator?
+        </a>
+        <a
+          class="underline cursor-pointer"
+          onClick={() => {
+            options.setOptions({ showIntro: false });
+          }}
+        >
+          Stop showing this popup
+        </a>
       </div>
     </div>
   );

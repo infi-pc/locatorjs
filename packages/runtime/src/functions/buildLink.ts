@@ -1,44 +1,51 @@
-/* eslint-disable solid/reactivity */
 import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
 import { LinkProps, Source } from "../types/types";
 import { Targets } from "@locator/shared";
+import { OptionsStore } from "./optionsStore";
+import { transformPath } from "./transformPath";
 
 let internalProjectPath: string | null = null;
 export function setInternalProjectPath(projectPath: string) {
   internalProjectPath = projectPath;
 }
 
-export function setLocalStorageProjectPath(projectPath: string) {
-  localStorage.setItem("LOCATOR_PROJECT_PATH", projectPath);
-}
-
-export function cleanLocalStorageProjectPath() {
-  localStorage.removeItem("LOCATOR_PROJECT_PATH");
-}
-
-export function getSavedProjectPath() {
-  return localStorage.getItem("LOCATOR_PROJECT_PATH") || internalProjectPath;
+export function getSavedProjectPath(options: OptionsStore) {
+  return options.getOptions().projectPath || internalProjectPath;
 }
 
 export function buildLink(
   linkProps: LinkProps,
   targets: Targets,
+  options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): string {
   const params = {
     filePath: linkProps.filePath,
-    projectPath: getSavedProjectPath() || linkProps.projectPath,
+    projectPath: getSavedProjectPath(options) || linkProps.projectPath,
     line: String(linkProps.line),
     column: String(linkProps.column),
   };
-  return evalTemplate(
-    linkTemplateUrl(targets, localLinkTypeOrTemplate),
-    params
-  );
+
+  const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
+  const replacePathObj = options.getOptions().replacePath;
+  let evaluated = evalTemplate(template, params);
+
+  if (replacePathObj) {
+    evaluated = transformPath(
+      evaluated,
+      replacePathObj.from,
+      replacePathObj.to
+    );
+  }
+  return evaluated;
 }
 
-export function buildLinkFromSource(source: Source, targets: Targets): string {
+export function buildLinkFromSource(
+  source: Source,
+  targets: Targets,
+  options: OptionsStore
+): string {
   return buildLink(
     {
       filePath: source.fileName,
@@ -46,6 +53,7 @@ export function buildLinkFromSource(source: Source, targets: Targets): string {
       line: source.lineNumber,
       column: source.columnNumber || 0,
     },
-    targets
+    targets,
+    options
   );
 }

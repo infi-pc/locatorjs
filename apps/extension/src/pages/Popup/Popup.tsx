@@ -14,13 +14,12 @@ import { Home } from './Home';
 import { EditControls } from './EditControls';
 import { requestStatus } from './requestStatus';
 import { useSyncedState } from './syncedState';
-import TrackingInit from './TrackingInit';
-import SocialShare from './SocialShare';
 import { Page } from './Page';
 import { SharePage } from './SharePage';
 import SectionHeadline from './SectionHeadline';
 import { BsGithub } from 'solid-icons/bs';
-import posthog from 'posthog-js';
+// import posthog from 'posthog-js';
+import { requestEnable } from './requestEnable';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -34,7 +33,7 @@ const Popup = () => {
 
   const [page, setPage] = createSignal<Page>({ type: 'home' });
 
-  const { allowTracking, clicks } = useSyncedState();
+  const { allowTracking } = useSyncedState();
 
   requestStatus(setMessage);
 
@@ -50,15 +49,21 @@ const Popup = () => {
       return;
     }
 
-    posthog.capture('Hook error', {
-      message: newMsg,
-    });
+    // posthog.capture('Hook error', {
+    //   message: newMsg,
+    // });
   });
+
+  function showTrackingPrompt() {
+    // NOTE: we don't need tracting now
+    // return allowTracking.get() === null
+    return false;
+  }
 
   return (
     <>
       <div class="p-4">
-        {allowTracking.get() === null ? (
+        {showTrackingPrompt() ? (
           <div class="p-2 flex flex-col justify-center items-center text-center h-60">
             <Text size="2xl" class=" mb-2">
               Allow anonymous tracking?
@@ -92,7 +97,21 @@ const Popup = () => {
           </div>
         ) : (
           <div>
-            {message() === 'ok' ? (
+            {message() === 'disabled' ? (
+              <div>
+                <SectionHeadline>Disabled</SectionHeadline>
+                <div>You have disabled Locator on this page.</div>
+                <div class="flex justify-end">
+                  <Button
+                    onClick={() => {
+                      requestEnable(true);
+                    }}
+                  >
+                    Enable
+                  </Button>
+                </div>
+              </div>
+            ) : message() === 'ok' ? (
               page().type === 'home' ? (
                 <Home setPage={setPage} />
               ) : page().type === 'edit-controls' ? (
@@ -230,22 +249,9 @@ const Popup = () => {
           </div>
         )}
 
-        {allowTracking.get() === true && <TrackingInit />}
-        {/* <p>
-          Edit <code>src/pages/Popup/Popup.jsx</code> and save cool reload.
-        </p>
-        <a
-          class="App-link"
-          href="https://solidjs.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn Solid-JS!
-        </a> */}
+        {/* // NOTE: we don't need tracking now */}
+        {/* {allowTracking.get() === true && <TrackingInit />} */}
       </div>
-      {clicks() > 2 && message() === 'ok' && page().type === 'home' && (
-        <SocialShare setPage={setPage} />
-      )}
     </>
   );
 };

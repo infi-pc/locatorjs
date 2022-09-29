@@ -9,6 +9,8 @@ async function run() {
   const wrapped = `export default \`${content
     .replaceAll("`", "\\`")
     .replaceAll("\\:", "\\\\:")
+    .replaceAll("\\[", "\\\\[")
+    .replaceAll("\\]", "\\\\]")
     .replaceAll("\\.", "\\\\.")
     .replaceAll("\\/", "\\\\/")}\``;
 

@@ -1,4 +1,5 @@
 import { evalTemplate } from "./evalTemplate";
+import { describe, expect, test } from "vitest";
 
 describe("evalTemplate", () => {
   test("basic", () => {
