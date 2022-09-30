@@ -127,10 +127,8 @@ function Runtime(props: RuntimeProps) {
           trackClickStats();
 
           if (
-            (!isExtension() && !options.getOptions().welcomeScreenDismissed) ||
-            (detectSvelte() &&
-              !linkProps.projectPath &&
-              !getSavedProjectPath(options))
+            (!isExtension() || detectSvelte()) &&
+            !options.getOptions().welcomeScreenDismissed
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {

@@ -1,10 +1,10 @@
-import { detectSvelte, Targets } from "@locator/shared";
+import { Targets } from "@locator/shared";
 import { buildLink } from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { ProjectLinkForm } from "./ProjectLinkForm";
 import { useOptions } from "../functions/optionsStore";
 import { TransformLinkForm } from "./TransformLinkForm";
-import { AdapterId } from "../consts";
+import { AdapterId, HREF_TARGET } from "../consts";
 import { LinkProps } from "../types/types";
 
 export function LinkOptions(props: {
@@ -29,9 +29,7 @@ export function LinkOptions(props: {
   return (
     <div>
       <ProjectLinkForm
-        value={
-          options.getOptions().projectPath || (detectSvelte() ? "" : undefined) // for svelte we always show this field
-        }
+        value={options.getOptions().projectPath}
         onChange={function (newValue) {
           options.setOptions({ projectPath: newValue });
         }}
@@ -56,7 +54,11 @@ export function LinkOptions(props: {
             Link preview:
           </label>
           {currentLink() ? (
-            <a href={currentLink()} target="_blank" class="hover:underline">
+            <a
+              href={currentLink()}
+              target={HREF_TARGET}
+              class="hover:underline"
+            >
               {currentLink()}
             </a>
           ) : (

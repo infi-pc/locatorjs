@@ -9,7 +9,7 @@ export function TransformLinkForm(props: {
   return (
     <div class="mt-2 border border-gray-200 rounded p-4 flex flex-col  gap-1">
       <div class="flex justify-between self-stretch text-sm">
-        <div>Editor / Link template</div>
+        <div>Transform final link</div>
         <a
           class="underline cursor-pointer"
           onClick={() => {
@@ -30,7 +30,7 @@ export function TransformLinkForm(props: {
       {props.value !== undefined ? (
         <div class="py-2">
           <div class="flex gap-2">
-            <div>
+            <div class="grow">
               <label
                 for="project-path"
                 class="block text-sm text-slate-700 pb-0.5 font-bold"
@@ -54,7 +54,7 @@ export function TransformLinkForm(props: {
                 }
               />
             </div>
-            <div>
+            <div class="grow">
               <label
                 for="project-path"
                 class="block text-sm text-slate-700 pb-0.5 font-bold"

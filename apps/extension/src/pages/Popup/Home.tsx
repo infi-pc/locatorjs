@@ -66,15 +66,21 @@ export function Home(props: Props) {
       </div>
       <Editor />
 
-      <div class="mt-2 w-full text-right">
-        <a
-          class="underline cursor-pointer"
+      <div class="mt-2 w-full flex justify-end">
+        <button
+          class="bg-gray-50 text-gray-800 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs hover:text-red-800 flex gap-1"
           onClick={() => {
             requestEnable(false);
           }}
         >
-          Disable locator on this page
-        </a>
+          <svg style={{ width: '16px', height: '16px' }} viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"
+            />
+          </svg>{' '}
+          Disable on this page
+        </button>
       </div>
     </>
   );
