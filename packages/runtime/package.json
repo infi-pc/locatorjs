@@ -1,7 +1,7 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "scripts": {
     "test": "vitest run",
     "test:dev": "vitest watch",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.0.1",
-    "@locator/shared": "^0.2.0",
+    "@locator/shared": "^0.2.1",
     "solid-js": "^1.4.4",
     "tailwindcss": "^3.1.6"
   },
