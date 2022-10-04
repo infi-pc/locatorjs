@@ -42,6 +42,9 @@ export function getStoredOptions() {
     if (typeof parsedOptions.showIntro === "boolean") {
       options.showIntro = parsedOptions.showIntro;
     }
+    if (typeof parsedOptions.welcomeScreenDismissed === "boolean") {
+      options.welcomeScreenDismissed = parsedOptions.welcomeScreenDismissed;
+    }
   }
 
   return options;
