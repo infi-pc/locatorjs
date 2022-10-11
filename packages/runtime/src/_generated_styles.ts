@@ -902,14 +902,6 @@ select {
   width: 2.75rem;
 }
 
-.w-\\[480px\\] {
-  width: 480px;
-}
-
-.w-\\[600px\\] {
-  width: 600px;
-}
-
 .w-\\[560px\\] {
   width: 560px;
 }
@@ -1556,14 +1548,14 @@ select {
   background-color: rgb(229 231 235 / var(--tw-bg-opacity));
 }
 
-.hover\\:bg-blue-700:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(29 78 216 / var(--tw-bg-opacity));
-}
-
 .hover\\:bg-green-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(21 128 61 / var(--tw-bg-opacity));
+}
+
+.hover\\:bg-blue-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(29 78 216 / var(--tw-bg-opacity));
 }
 
 .hover\\:text-slate-800:hover {

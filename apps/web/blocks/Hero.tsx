@@ -1,6 +1,8 @@
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import demo from "../public/demo3.gif";
+// import demo from "../public/demo3.gif";
+// import demoVideo from "../public/demo.mp4";
+
 import background from "../public/bg.svg";
 import { extensionLink, useBrowser } from "./shared";
 
@@ -78,7 +80,25 @@ function Hero() {
           </div>
         </div>
         <div className="z-10 flex object-cover object-center w-full overflow-hidden rounded-lg shadow-2xl md:w-1/2 bg-slate-100">
-          <Image className="w-full" src={demo}></Image>
+          <video
+            className="w-full"
+            src="demo.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+
+          {/* autoPlay: true,
+        controls: true,
+        loop: true,
+        muted: true,
+        playsInline: true,
+        type: "video/mp4",
+        src: "/api/files/8fa1b7fe-c562-465f-9efb-94cfd91ccf5d/bdcb09f1-af69-4c99-8706-8999b2462ab7.mp4",
+        style: styles, */}
+
+          {/* <Image className="w-full" src={demo}></Image> */}
         </div>
       </div>
     </section>
