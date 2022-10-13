@@ -31,7 +31,7 @@ export interface Babel {
 export default function transformLocatorJsComponents(babel: Babel): {
   visitor?: Visitor<PluginOptions>;
 } {
-  // there was some weir caching error when using babel.env() on Vite
+  // there was some weird caching error when using babel.env() on Vite
   // Vite has NODE_ENV undefined when doing first dev build
   const env = process.env.BABEL_ENV || process.env.NODE_ENV || "development";
 
