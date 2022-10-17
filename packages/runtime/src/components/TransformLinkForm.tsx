@@ -6,6 +6,18 @@ export function TransformLinkForm(props: {
   value: TransformLink | undefined;
   onChange: (val: TransformLink | undefined) => void;
 }) {
+  const isInvalid = () => {
+    if (!props.value || !props.value.from) {
+      return false;
+    }
+    try {
+      new RegExp(`${props.value.from}`);
+    } catch (x) {
+      return true;
+    }
+    return false;
+  };
+
   return (
     <div class="mt-2 border border-gray-200 rounded p-4 flex flex-col  gap-1">
       <div class="flex justify-between self-stretch text-sm">
@@ -79,6 +91,9 @@ export function TransformLinkForm(props: {
               />
             </div>
           </div>
+          {isInvalid() ? (
+            <div class="text-red-600 mt-1 text-sm">Regex is not valid!</div>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -19,4 +19,10 @@ describe("transformPath", () => {
       "/myPath/src/myFile.js"
     );
   });
+
+  test("invalid regex should keep original", () => {
+    expect(transformPath("/app/src/myFile.js", "[", "C://myPath/")).toBe(
+      "/app/src/myFile.js"
+    );
+  });
 });
