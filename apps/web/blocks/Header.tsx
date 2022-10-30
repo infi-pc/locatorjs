@@ -41,6 +41,21 @@ function Header() {
           >
             <FaGithub></FaGithub> GitHub
           </a>
+          <a
+            href="https://www.producthunt.com/posts/locatorjs-devtool?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-locatorjs&#0045;devtool"
+            target="_blank"
+            rel="noreferrer"
+            className="ml-2"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=365290&theme=light"
+              alt="LocatorJS&#0032;DevTool - Click&#0032;on&#0032;a&#0032;component&#0032;in&#0032;browser&#0032;to&#0032;go&#0032;to&#0032;code&#0032;in&#0032;your&#0032;editor | Product Hunt"
+              style={{ width: "200px", height: "43px" }}
+              width="250"
+              height="54"
+            />
+          </a>
         </nav>
       </div>
     </header>
