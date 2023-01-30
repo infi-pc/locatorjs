@@ -7,8 +7,8 @@ export const getLinkTypeOrTemplate = (
   localLinkTypeOrTemplate?: string
 ) =>
   localLinkTypeOrTemplate ||
-  document.documentElement.dataset.locatorTarget ||
   options.getOptions().templateOrTemplateId ||
+  document.documentElement.dataset.locatorTarget ||
   Object.entries(targets)[0]![0];
 
 export function linkTemplateUrl(
