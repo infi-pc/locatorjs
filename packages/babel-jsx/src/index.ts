@@ -15,6 +15,7 @@ export interface PluginOptions {
     env?: string;
     target?: string;
     runtime?: string;
+    ignoreComponentNames?: string[];
   };
   file: {
     path: NodePath;
@@ -86,6 +87,11 @@ export default function transformLocatorJsComponents(babel: Babel): {
       Program: {
         // TODO state is any, we should check if the state depends on webpack or what it depends on?
         enter(path, state) {
+          function isLocallyDisallowedComponent(name: string) {
+            const opts = state?.opts?.ignoreComponentNames || [];
+            return opts.includes(name);
+          }
+
           if (state.opts?.env) {
             if (state.opts?.env !== env) {
               return;
@@ -218,7 +224,11 @@ export default function transformLocatorJsComponents(babel: Babel): {
               }
               let name = getName(path.node.openingElement.name);
 
-              if (name && !isDisallowedComponent(name)) {
+              if (
+                name &&
+                !isDisallowedComponent(name) &&
+                !isLocallyDisallowedComponent(name)
+              ) {
                 if (path.node.loc) {
                   const id = addExpressionToStorage({
                     name: name,

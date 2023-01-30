@@ -1,0 +1,4 @@
+{
+  "presets": [],
+  "plugins": ["@babel/plugin-syntax-jsx"]
+}
