@@ -6,6 +6,7 @@ import { useOptions } from "../functions/optionsStore";
 import { TransformLinkForm } from "./TransformLinkForm";
 import { AdapterId, HREF_TARGET } from "../consts";
 import { LinkProps } from "../types/types";
+import { LinkHrefTarget } from "./LinkHrefTarget";
 
 export function LinkOptions(props: {
   linkProps: LinkProps | null;
@@ -48,6 +49,13 @@ export function LinkOptions(props: {
         selectTarget={selectTarget}
       />
 
+      <LinkHrefTarget
+        value={options.getOptions().hrefTarget}
+        onChange={(newValue) => {
+          options.setOptions({ hrefTarget: newValue });
+        }}
+      />
+
       <div class="mt-4">
         <div class="text-sm flex flex-col bg-green-50 text-green-800 p-4 -mx-4 rounded whitespace-pre-wrap break-all">
           <label for="email" class="block text-xs  text-green-700">
@@ -56,7 +64,7 @@ export function LinkOptions(props: {
           {currentLink() ? (
             <a
               href={currentLink()}
-              target={HREF_TARGET}
+              target={options.getOptions().hrefTarget || HREF_TARGET}
               class="hover:underline"
             >
               {currentLink()}

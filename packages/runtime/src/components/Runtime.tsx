@@ -17,7 +17,6 @@ import { NoLinkDialog } from "./NoLinkDialog";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
 import { goToLinkProps } from "../functions/goTo";
-import { getSavedProjectPath } from "../functions/buildLink";
 import { getElementInfo } from "../adapters/getElementInfo";
 import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
@@ -40,14 +39,17 @@ type RuntimeProps = {
 function Runtime(props: RuntimeProps) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
-  const [currentElement, setCurrentElement] =
-    createSignal<HTMLElement | null>(null);
+  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    null
+  );
 
-  const [dialog, setDialog] =
-    createSignal<["no-link"] | ["choose-editor", LinkProps] | null>(null);
+  const [dialog, setDialog] = createSignal<
+    ["no-link"] | ["choose-editor", LinkProps] | null
+  >(null);
 
-  const [highlightedNode, setHighlightedNode] =
-    createSignal<null | TreeNode>(null);
+  const [highlightedNode, setHighlightedNode] = createSignal<null | TreeNode>(
+    null
+  );
 
   const options = useOptions();
 

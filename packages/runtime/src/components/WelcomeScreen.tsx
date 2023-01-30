@@ -43,7 +43,7 @@ export function WelcomeScreen(props: {
         <div class="flex gap-2">
           <a
             href={currentLink()}
-            target={HREF_TARGET}
+            target={options.getOptions().hrefTarget || HREF_TARGET}
             class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
             Test link
