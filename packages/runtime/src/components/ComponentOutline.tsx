@@ -117,10 +117,10 @@ export function ComponentOutline(props: {
                   class={labelClass}
                   style={labelStyles}
                   href={link}
-                  target={HREF_TARGET}
+                  target={options.getOptions().hrefTarget || HREF_TARGET}
                   onClick={() => {
                     trackClickStats();
-                    goTo(link!);
+                    goTo(link!, options);
                   }}
                 >
                   {label.label}

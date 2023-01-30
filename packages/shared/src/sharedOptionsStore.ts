@@ -9,6 +9,7 @@ export type ProjectOptions = {
   disabled?: boolean;
   showIntro?: boolean;
   welcomeScreenDismissed?: boolean;
+  hrefTarget?: "_blank" | "_self";
 };
 
 export function getStoredOptions() {
@@ -41,6 +42,9 @@ export function getStoredOptions() {
     }
     if (typeof parsedOptions.showIntro === "boolean") {
       options.showIntro = parsedOptions.showIntro;
+    }
+    if (typeof parsedOptions.hrefTarget === "string") {
+      options.hrefTarget = parsedOptions.hrefTarget;
     }
     if (typeof parsedOptions.welcomeScreenDismissed === "boolean") {
       options.welcomeScreenDismissed = parsedOptions.welcomeScreenDismissed;
