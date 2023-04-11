@@ -273,7 +273,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
               window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};
               window.__LOCATOR_DATA__["${createFullPath(
                 fileStorage
-              )}"] = ${dataCode};
+              )}"] ??= ${dataCode};
             }
           })()`;
 
