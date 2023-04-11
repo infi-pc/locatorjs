@@ -19,9 +19,9 @@ export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
   }
 
   return (
+    jsxAdapter.getElementInfo(target) ||
     reactAdapter.getElementInfo(target) ||
     svelteAdapter.getElementInfo(target) ||
-    jsxAdapter.getElementInfo(target) ||
     vueAdapter.getElementInfo(target)
   );
 }
