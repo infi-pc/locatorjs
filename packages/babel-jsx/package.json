@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@babel/plugin-syntax-jsx": "^7.16.0",
-    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-env": "^7.22.0",
     "@babel/preset-react": "^7.16.0",
     "@babel/preset-typescript": "^7.16.0",
     "@babel/traverse": "^7.16.3",
