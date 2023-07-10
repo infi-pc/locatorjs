@@ -5,26 +5,28 @@
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
-    "dev": "tsc src/*.ts --watch --outDir dist",
+    "dev": "tsc src/*.ts --watch --outDir dist --preserveWatchOutput",
     "build": "tsc src/*.ts --outDir dist",
     "ts": "tsc src/*.ts --outDir dist"
   },
   "dependencies": {
+    "@babel/parser": "^7.22.5",
     "@babel/plugin-syntax-jsx": "^7.16.0",
-    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-env": "^7.22.5",
     "@babel/preset-react": "^7.16.0",
-    "@babel/preset-typescript": "^7.16.0",
+    "@babel/preset-typescript": "^7.22.5",
     "@babel/traverse": "^7.16.3",
+    "@babel/types": "^7.21.5",
     "@locator/runtime": "^0.2.4",
     "@locator/shared": "^0.2.2"
   },
   "devDependencies": {
-    "@babel/preset-typescript": "^7.16.7",
+    "@babel/preset-typescript": "^7.22.5",
     "@types/babel__traverse": "^7.14.2",
     "@types/jest": "^27.4.0",
     "babel-plugin-tester": "^10.1.0",
-    "jest": "^27.5.1",
-    "typescript": "^4.5.2"
+    "jest": "^28.1.2",
+    "typescript": "^4.7.4"
   },
   "author": "Michael Musil",
   "repository": {

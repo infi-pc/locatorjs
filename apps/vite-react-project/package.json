@@ -1,5 +1,5 @@
 {
-  "name": "vite-react-project",
+  "name": "@locator/vite-react-project",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -15,7 +15,7 @@
     "@locator/runtime": "*"
   },
   "devDependencies": {
-    "@babel/core": "^7.18.9",
+    "@babel/core": "^7.22.5",
     "@storybook/addon-actions": "^6.5.9",
     "@storybook/addon-essentials": "^6.5.9",
     "@storybook/addon-interactions": "^6.5.9",
@@ -23,12 +23,12 @@
     "@storybook/builder-vite": "^0.2.1",
     "@storybook/react": "^6.5.9",
     "@storybook/testing-library": "^0.0.13",
-    "@types/react": "^18.0.0",
+    "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
-    "@vitejs/plugin-react": "^1.3.0",
-    "babel-loader": "^8.2.5",
-    "typescript": "^4.6.3",
-    "vite": "^3.0.4",
+    "@vitejs/plugin-react": "^2.0.0",
+    "babel-loader": "^9.1.2",
+    "typescript": "^4.7.4",
+    "vite": "^3.0.7",
     "@locator/babel-jsx": "*"
   }
 }
