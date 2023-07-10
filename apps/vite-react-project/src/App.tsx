@@ -7,36 +7,248 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>Hello Vite + React!</p>
-        <p>
-          <button type="button" onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
-        </p>
-        <p>
-          Edit <code>App.tsx</code> and save to test HMR updates.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          {" | "}
-          <a
-            className="App-link"
-            href="https://vitejs.dev/guide/features.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Vite Docs
-          </a>
-        </p>
+      <header
+        className="App-header"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+        }}
+      >
+        <div
+          className=""
+          style={{
+            padding: "20px",
+            margin: "20px",
+            display: "flex",
+            gap: "10px",
+            width: "400px",
+            height: "400px",
+            border: "1px solid blue",
+            flexDirection: "row",
+          }}
+        >
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: "red",
+              margin: "auto",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+        </div>
+
+        <div
+          className=""
+          style={{
+            padding: "20px",
+            margin: "20px",
+            display: "flex",
+            gap: "10px",
+            width: "400px",
+            height: "400px",
+            border: "1px solid blue",
+            flexDirection: "row",
+          }}
+        >
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+        </div>
+
+        <div
+          className=""
+          style={{
+            padding: "20px",
+            margin: "20px",
+            display: "flex",
+            gap: "10px",
+            width: "400px",
+            height: "400px",
+            border: "1px solid blue",
+            flexDirection: "row",
+            justifyContent: "flex-end",
+          }}
+        >
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+        </div>
+
+        <div
+          className=""
+          style={{
+            padding: "20px",
+            margin: "20px",
+            display: "flex",
+            gap: "10px",
+            width: "400px",
+            height: "400px",
+            border: "1px solid blue",
+            flexDirection: "row-reverse",
+          }}
+        >
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+        </div>
+
+        <div
+          className=""
+          style={{
+            padding: "20px",
+            margin: "20px",
+            display: "flex",
+            gap: "10px",
+            width: "400px",
+            height: "400px",
+            border: "1px solid blue",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+        </div>
+        <div
+          className=""
+          style={{
+            padding: "20px",
+            margin: "20px",
+            display: "flex",
+            gap: "10px",
+            width: "400px",
+            height: "400px",
+            border: "1px solid blue",
+            flexDirection: "column-reverse",
+          }}
+        >
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "50px",
+              height: "50px",
+              backgroundColor: "red",
+            }}
+          ></div>
+          <div
+            className=""
+            style={{
+              width: "100px",
+              height: "100px",
+              backgroundColor: "red",
+            }}
+          ></div>
+        </div>
       </header>
     </div>
   );
