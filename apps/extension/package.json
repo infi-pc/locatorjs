@@ -1,6 +1,6 @@
 {
   "name": "locatorjs-extension",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "LocatorJS Chrome Extension - option-click to code (ReactJS)",
   "license": "MIT",
   "repository": {
@@ -15,6 +15,7 @@
     "dev:firefox": "TARGET_BROWSER=firefox node utils/webserver.js",
     "start:firefox": "web-ext run --source-dir ./build/production_firefox",
     "pack:firefox": "web-ext build --source-dir ./build/production_firefox --artifacts-dir ./build/artifacts_firefox",
+    "pack:chrome": "cd ./build/production_chrome && zip -r ../../build/chrome.zip .",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {
