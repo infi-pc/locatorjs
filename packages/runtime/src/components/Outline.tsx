@@ -147,6 +147,9 @@ export function Outline(props: {
               "text-shadow": "none",
               "pointer-events": "auto",
               cursor: "pointer",
+              ...(box().width < 50 || box().height < 50
+                ? { top: "-8px", left: "-8px" }
+                : {}),
             }}
             onClick={() => {
               props.showTreeFromElement(props.element.htmlElement);
