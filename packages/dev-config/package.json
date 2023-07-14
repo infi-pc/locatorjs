@@ -1,6 +1,6 @@
 {
   "name": "@locator/dev-config",
-  "version": "0.1.2",
+  "version": "0.3.1",
   "main": "index.js",
   "license": "MIT",
   "files": [
