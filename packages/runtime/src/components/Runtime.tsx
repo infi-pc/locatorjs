@@ -122,6 +122,10 @@ function Runtime(props: RuntimeProps) {
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
+      if (target.shadowRoot) {
+        return;
+      }
+
       if (isLocatorsOwnElement(target)) {
         return;
       }
@@ -165,34 +169,64 @@ function Runtime(props: RuntimeProps) {
     setCurrentElement(null);
   }
 
-  document.addEventListener("mouseover", mouseOverListener, {
-    capture: true,
+  const roots: (Document | ShadowRoot)[] = [document];
+  document.querySelectorAll("*").forEach((node) => {
+    if (node.id === "locatorjs-wrapper") {
+      return;
+    }
+    if (node.shadowRoot) {
+      roots.push(node.shadowRoot);
+    }
   });
-  document.addEventListener("keydown", keyDownListener);
-  document.addEventListener("keyup", keyUpListener);
-  document.addEventListener("click", clickListener, { capture: true });
-  document.addEventListener("mousedown", mouseDownUpListener, {
-    capture: true,
-  });
-  document.addEventListener("mouseup", mouseDownUpListener, {
-    capture: true,
-  });
-  document.addEventListener("scroll", scrollListener);
+
+  for (const root of roots) {
+    root.addEventListener("mouseover", mouseOverListener as EventListener, {
+      capture: true,
+    });
+    root.addEventListener("keydown", keyDownListener as EventListener);
+    root.addEventListener("keyup", keyUpListener as EventListener);
+    root.addEventListener("click", clickListener as EventListener, {
+      capture: true,
+    });
+    root.addEventListener("mousedown", mouseDownUpListener as EventListener, {
+      capture: true,
+    });
+    root.addEventListener("mouseup", mouseDownUpListener as EventListener, {
+      capture: true,
+    });
+    root.addEventListener("scroll", scrollListener);
+  }
 
   onCleanup(() => {
-    document.removeEventListener("keyup", keyUpListener);
-    document.removeEventListener("keydown", keyDownListener);
-    document.removeEventListener("mouseover", mouseOverListener, {
-      capture: true,
-    });
-    document.removeEventListener("click", clickListener, { capture: true });
-    document.removeEventListener("mousedown", mouseDownUpListener, {
-      capture: true,
-    });
-    document.removeEventListener("mouseup", mouseDownUpListener, {
-      capture: true,
-    });
-    document.removeEventListener("scroll", scrollListener);
+    for (const root of roots) {
+      root.removeEventListener("keyup", keyUpListener as EventListener);
+      root.removeEventListener("keydown", keyDownListener as EventListener);
+      root.removeEventListener(
+        "mouseover",
+        mouseOverListener as EventListener,
+        {
+          capture: true,
+        }
+      );
+      root.removeEventListener("click", clickListener as EventListener, {
+        capture: true,
+      });
+      root.removeEventListener(
+        "mousedown",
+        mouseDownUpListener as EventListener,
+        {
+          capture: true,
+        }
+      );
+      root.removeEventListener(
+        "mouseup",
+        mouseDownUpListener as EventListener,
+        {
+          capture: true,
+        }
+      );
+      root.removeEventListener("scroll", scrollListener);
+    }
   });
 
   function showTreeFromElement(element: HTMLElement) {
