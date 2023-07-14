@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@locator/runtime": "*"
+    "@locator/runtime": "workspace:^"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",
@@ -29,6 +29,6 @@
     "babel-loader": "^9.1.2",
     "typescript": "^4.7.4",
     "vite": "^3.0.7",
-    "@locator/babel-jsx": "*"
+    "@locator/babel-jsx": "workspace:^"
   }
 }

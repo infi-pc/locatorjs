@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "preact": "^10.9.0",
-    "@locator/runtime": "*"
+    "@locator/runtime": "workspace:^"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.3.0",
     "vite": "^3.0.7",
-    "@locator/babel-jsx": "*"
+    "@locator/babel-jsx": "workspace:^"
   }
 }

@@ -22,6 +22,6 @@
     "src"
   ],
   "dependencies": {
-    "semver": "^7.3.7"
+    "semver": "^7.5.4"
   }
 }

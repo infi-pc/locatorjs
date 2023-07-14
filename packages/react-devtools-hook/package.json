@@ -11,12 +11,14 @@
     "ts": "tsc src/*.ts --noEmit --outDir dist"
   },
   "devDependencies": {
-    "@locator/shared": "^0.2.2",
+    "@locator/dev-config": "workspace:^",
+    "@locator/shared": "workspace:^",
+    "@types/node": "^20.4.2",
     "tsconfig": "^0.0.1",
     "typescript": "^4.7.4"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "dependencies": {
-    "semver": "^7.3.7"
+    "semver": "^7.5.4"
   }
 }
