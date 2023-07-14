@@ -108,6 +108,13 @@ function Runtime(props: RuntimeProps) {
     }
   }
 
+  function mouseDownUpListener(e: MouseEvent) {
+    if (isCombinationModifiersPressed(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
   function clickListener(e: MouseEvent) {
     if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
       return;
@@ -164,6 +171,12 @@ function Runtime(props: RuntimeProps) {
   document.addEventListener("keydown", keyDownListener);
   document.addEventListener("keyup", keyUpListener);
   document.addEventListener("click", clickListener, { capture: true });
+  document.addEventListener("mousedown", mouseDownUpListener, {
+    capture: true,
+  });
+  document.addEventListener("mouseup", mouseDownUpListener, {
+    capture: true,
+  });
   document.addEventListener("scroll", scrollListener);
 
   onCleanup(() => {
@@ -173,6 +186,12 @@ function Runtime(props: RuntimeProps) {
       capture: true,
     });
     document.removeEventListener("click", clickListener, { capture: true });
+    document.removeEventListener("mousedown", mouseDownUpListener, {
+      capture: true,
+    });
+    document.removeEventListener("mouseup", mouseDownUpListener, {
+      capture: true,
+    });
     document.removeEventListener("scroll", scrollListener);
   });
 

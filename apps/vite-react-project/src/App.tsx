@@ -7,6 +7,27 @@ function App() {
 
   return (
     <div className="App">
+      <div
+        style={{
+          width: "100px",
+          height: "100px",
+          backgroundColor: "red",
+        }}
+      >
+        <a
+          href="https://google.com"
+          target="_blank"
+          onMouseDown={() => {
+            alert("boo");
+          }}
+          onMouseUp={() => {
+            alert("boo");
+          }}
+        >
+          Click catch
+        </a>
+      </div>
+
       <header
         className="App-header"
         style={{
