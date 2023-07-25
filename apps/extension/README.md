@@ -35,4 +35,5 @@ run `yarn build` to build the extension.
 
 # Contributing
 
-To develop of contribute to this project [continue here](./../../contributig.md)
+To develop of contribute to this project [continue here](./../../contributing.md)
+
