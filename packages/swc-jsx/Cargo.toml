@@ -1,0 +1,23 @@
+[package]
+name = "swc-jsx"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+
+[dependencies]
+serde = "1"
+swc_common = "0.31.18"
+swc_core = { version = "0.79.*", features = ["ecma_plugin_transform"] }
+swc_ecma_parser = "0.137.4"
+swc_ecma_transforms_base = "0.130.6"
+swc_ecma_utils = "0.120.5"
+swc_ecma_visit = "0.93.2"
+
+# .cargo/config defines few alias to build plugin.
+# cargo build-wasi generates wasm-wasi32 binary
+# cargo build-wasm32 generates wasm32-unknown-unknown binary.
