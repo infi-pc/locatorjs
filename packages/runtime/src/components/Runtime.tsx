@@ -74,11 +74,11 @@ function Runtime(props: RuntimeProps) {
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e));
+    setHoldingModKey(isCombinationModifiersPressed(e, true));
   }
 
   function mouseOverListener(e: MouseEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e));
+    setHoldingModKey(isCombinationModifiersPressed(e, true));
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
@@ -115,6 +115,41 @@ function Runtime(props: RuntimeProps) {
     }
   }
 
+  function rightClickListener(e: MouseEvent) {
+    if (!isCombinationModifiersPressed(e, true)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // show context menu
+    const target = e.target;
+    if (target && target instanceof HTMLElement) {
+      const elInfo = getElementInfo(target, props.adapterId);
+      if (elInfo) {
+        const link = elInfo.thisElement.link;
+        if (link) {
+          const newState = getTree(target);
+          if (newState) {
+            setUiMode(["tree", newState]);
+          }
+        } else {
+          console.error(
+            "[LocatorJS]: Could not find link: Element info: ",
+            elInfo
+          );
+          setDialog(["no-link"]);
+        }
+      } else {
+        console.error(
+          "[LocatorJS]: Could not find element info. Element: ",
+          target
+        );
+        setDialog(["no-link"]);
+      }
+    }
+  }
   function clickListener(e: MouseEvent) {
     if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
       return;
@@ -188,6 +223,10 @@ function Runtime(props: RuntimeProps) {
     root.addEventListener("click", clickListener as EventListener, {
       capture: true,
     });
+    root.addEventListener("contextmenu", rightClickListener as EventListener, {
+      capture: true,
+    });
+
     root.addEventListener("mousedown", mouseDownUpListener as EventListener, {
       capture: true,
     });
@@ -211,6 +250,13 @@ function Runtime(props: RuntimeProps) {
       root.removeEventListener("click", clickListener as EventListener, {
         capture: true,
       });
+      root.removeEventListener(
+        "contextmenu",
+        rightClickListener as EventListener,
+        {
+          capture: true,
+        }
+      );
       root.removeEventListener(
         "mousedown",
         mouseDownUpListener as EventListener,
