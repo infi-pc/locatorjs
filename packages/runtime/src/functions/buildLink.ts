@@ -25,6 +25,10 @@ export function buildLink(
     projectPath: getSavedProjectPath(options) || linkProps.projectPath,
     line: String(linkProps.line),
     column: String(linkProps.column),
+    linePlusOne: String(linkProps.line + 1),
+    columnPlusOne: String(linkProps.column + 1),
+    lineMinusOne: String(linkProps.line - 1),
+    columnMinusOne: String(linkProps.column - 1),
   };
 
   const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
