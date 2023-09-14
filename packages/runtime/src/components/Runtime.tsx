@@ -24,11 +24,13 @@ import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
 import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
+import { ContextView } from "./ContextView";
 
 type UiMode =
   | ["off"]
   | ["options"]
   | ["tree", TreeState]
+  | ["context", HTMLElement]
   | ["disable-confirmation"];
 
 type RuntimeProps = {
@@ -126,28 +128,7 @@ function Runtime(props: RuntimeProps) {
     // show context menu
     const target = e.target;
     if (target && target instanceof HTMLElement) {
-      const elInfo = getElementInfo(target, props.adapterId);
-      if (elInfo) {
-        const link = elInfo.thisElement.link;
-        if (link) {
-          const newState = getTree(target);
-          if (newState) {
-            setUiMode(["tree", newState]);
-          }
-        } else {
-          console.error(
-            "[LocatorJS]: Could not find link: Element info: ",
-            elInfo
-          );
-          setDialog(["no-link"]);
-        }
-      } else {
-        console.error(
-          "[LocatorJS]: Could not find element info. Element: ",
-          target
-        );
-        setDialog(["no-link"]);
-      }
+      setUiMode(["context", target]);
     }
   }
   function clickListener(e: MouseEvent) {
@@ -289,9 +270,18 @@ function Runtime(props: RuntimeProps) {
     <>
       {uiMode()[0] === "tree" ? (
         <TreeView
-          treeState={uiMode()[1]!}
+          treeState={uiMode()[1]! as TreeState}
           close={() => setUiMode(["off"])}
           setTreeState={(newState) => setUiMode(["tree", newState])}
+          adapterId={props.adapterId}
+          targets={props.targets}
+          setHighlightedNode={setHighlightedNode}
+        />
+      ) : null}
+      {uiMode()[0] === "context" ? (
+        <ContextView
+          element={uiMode()[1]! as HTMLElement}
+          close={() => setUiMode(["off"])}
           adapterId={props.adapterId}
           targets={props.targets}
           setHighlightedNode={setHighlightedNode}

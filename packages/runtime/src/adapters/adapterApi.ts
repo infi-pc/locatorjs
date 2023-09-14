@@ -26,4 +26,5 @@ export type TreeState = {
 export interface AdapterObject {
   getElementInfo(element: HTMLElement): FullElementInfo | null;
   getTree?(includeElement: HTMLElement): TreeState | null;
+  getParentsPaths(element: HTMLElement): any;
 }

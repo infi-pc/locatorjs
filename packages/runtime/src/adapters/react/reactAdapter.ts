@@ -108,9 +108,26 @@ function getTree(element: HTMLElement): TreeState | null {
   return goUpByTheTree(originalRoot);
 }
 
+function getParentsPaths(element: HTMLElement) {
+  const fiber = findFiberByHtmlElement(element, false);
+  if (fiber) {
+    const path = [];
+    let currentFiber = fiber;
+    path.push(currentFiber);
+
+    while (currentFiber._debugOwner) {
+      currentFiber = currentFiber._debugOwner;
+      path.push(currentFiber);
+    }
+
+    console.log("PATH!!!", path);
+  }
+}
+
 const reactAdapter: AdapterObject = {
   getElementInfo,
   getTree,
+  getParentsPaths,
 };
 
 export default reactAdapter;
