@@ -51,3 +51,5 @@ export type LinkProps = {
   line: number;
   column: number;
 };
+
+export type ContextMenuState = { target: HTMLElement; x: number; y: number };

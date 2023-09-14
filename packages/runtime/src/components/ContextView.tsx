@@ -5,9 +5,10 @@ import { TreeState } from "../adapters/adapterApi";
 import { TreeNodeElementView } from "./TreeNodeElementView";
 import { createEffect, createSignal } from "solid-js";
 import { computePosition, flip, shift, offset } from "@floating-ui/dom";
+import { ContextMenuState } from "../types/types";
 
 export function ContextView(props: {
-  element: HTMLElement;
+  contextMenuState: ContextMenuState;
   close: () => void;
   adapterId?: AdapterId | undefined;
   targets: Targets;
@@ -15,23 +16,6 @@ export function ContextView(props: {
 }) {
   let contentRef: HTMLDivElement | undefined;
 
-  const [pos, setPos] = createSignal<{ x: number; y: number }>();
-  createEffect(() => {
-    if (contentRef) {
-      computePosition(
-        {
-          getBoundingClientRect: () => props.element.getBoundingClientRect(),
-        },
-        contentRef,
-        {
-          placement: "bottom-start",
-          middleware: [offset(10), shift(), flip()],
-        }
-      ).then(({ x, y }) => {
-        setPos({ x, y });
-      });
-    }
-  });
   return (
     <div
       style={{
@@ -54,8 +38,8 @@ export function ContextView(props: {
         style={{
           position: "absolute",
           // top: `${(props.treeState?.originalNode.getBox()?.y || 0) + 24}px`,
-          top: `${pos()?.y || 0}px`,
-          left: `${pos()?.x || 0}px`,
+          top: `${props.contextMenuState.y || 0}px`,
+          left: `${props.contextMenuState.x || 0}px`,
         }}
         ref={contentRef}
       >

@@ -4,7 +4,11 @@ import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
 import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
 import { trackClickStats } from "../functions/trackClickStats";
-import { LinkProps, Targets as SetupTargets } from "../types/types";
+import {
+  ContextMenuState,
+  LinkProps,
+  Targets as SetupTargets,
+} from "../types/types";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 
@@ -30,7 +34,7 @@ type UiMode =
   | ["off"]
   | ["options"]
   | ["tree", TreeState]
-  | ["context", HTMLElement]
+  | ["context", ContextMenuState]
   | ["disable-confirmation"];
 
 type RuntimeProps = {
@@ -125,10 +129,20 @@ function Runtime(props: RuntimeProps) {
     e.preventDefault();
     e.stopPropagation();
 
+    const x = e.clientX;
+    const y = e.clientY;
+
     // show context menu
     const target = e.target;
     if (target && target instanceof HTMLElement) {
-      setUiMode(["context", target]);
+      setUiMode([
+        "context",
+        {
+          target,
+          x,
+          y,
+        },
+      ]);
     }
   }
   function clickListener(e: MouseEvent) {
@@ -280,7 +294,7 @@ function Runtime(props: RuntimeProps) {
       ) : null}
       {uiMode()[0] === "context" ? (
         <ContextView
-          element={uiMode()[1]! as HTMLElement}
+          contextMenuState={uiMode()[1]! as ContextMenuState}
           close={() => setUiMode(["off"])}
           adapterId={props.adapterId}
           targets={props.targets}
