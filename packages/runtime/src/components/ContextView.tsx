@@ -49,7 +49,7 @@ export function ContextView(props: {
       >
         <div
           class={
-            "bg-white rounded-md p-2 shadow-xl text-xs overflow-auto flex flex-col"
+            "bg-white rounded-md py-2 shadow-xl text-xs overflow-auto flex flex-col"
           }
           style={{
             "max-height": "calc(100vh - 16px)",
@@ -59,7 +59,7 @@ export function ContextView(props: {
             {(path) => {
               return (
                 <a
-                  class="px-2 py-1 w-60 hover:bg-slate-100 text-left text-sm font-medium"
+                  class="px-4 py-2 w-60 hover:bg-slate-100 text-left text-sm font-medium"
                   href={buildLink(path.link!, props.targets, options)}
                   onClick={() => {
                     props.close();

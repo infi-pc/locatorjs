@@ -1,4 +1,9 @@
-import { AdapterObject, FullElementInfo, TreeState } from "../adapterApi";
+import {
+  AdapterObject,
+  FullElementInfo,
+  ParentPathItem,
+  TreeState,
+} from "../adapterApi";
 import { parseDataId } from "../../functions/parseDataId";
 import { FileStorage } from "@locator/shared";
 import { getExpressionData } from "./getExpressionData";
@@ -160,9 +165,40 @@ function getTree(element: HTMLElement): TreeState | null {
   return goUpByTheTree(originalRoot);
 }
 
+function getParentsPaths(element: HTMLElement): ParentPathItem[] {
+  const path: ParentPathItem[] = [];
+  let currentElement: HTMLElement | null = element;
+  let previousComponentKey: string | null = null;
+
+  do {
+    if (currentElement) {
+      const info = getElementInfo(currentElement);
+      const currentComponentKey = JSON.stringify(info?.componentsLabels);
+      if (info && currentComponentKey !== previousComponentKey) {
+        previousComponentKey = currentComponentKey;
+
+        const link = info.thisElement.link;
+        const label = info.thisElement.label;
+
+        if (link) {
+          path.push({
+            title: label,
+            link: link,
+          });
+        }
+      }
+    }
+
+    currentElement = currentElement.parentElement;
+  } while (currentElement);
+
+  return path;
+}
+
 const jsxAdapter: AdapterObject = {
   getElementInfo,
   getTree,
+  getParentsPaths,
 };
 
 export default jsxAdapter;

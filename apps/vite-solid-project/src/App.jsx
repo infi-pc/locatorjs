@@ -1,6 +1,19 @@
 import logo from "./logo.svg";
 import styles from "./App.module.css";
+import { Inner2 } from "./Inner2";
 
+function Inner() {
+  return (
+    <div
+      style={{
+        "background-color": "red",
+        padding: "10px",
+      }}
+    >
+      <Inner2 />
+    </div>
+  );
+}
 function App() {
   return (
     <div class={styles.App}>
@@ -9,6 +22,7 @@ function App() {
         <p>
           Edit <code>src/App.jsx</code> and save to reload.
         </p>
+        <Inner />
         <a
           class={styles.link}
           href="https://github.com/solidjs/solid"
