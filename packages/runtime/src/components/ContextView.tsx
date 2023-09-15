@@ -1,11 +1,9 @@
 import { Targets } from "@locator/shared";
 import { AdapterId } from "../consts";
-import { TreeNode, TreeNodeElement } from "../types/TreeNode";
-import { TreeState } from "../adapters/adapterApi";
-import { TreeNodeElementView } from "./TreeNodeElementView";
-import { createEffect, createSignal } from "solid-js";
-import { computePosition, flip, shift, offset } from "@floating-ui/dom";
+import { TreeNode } from "../types/TreeNode";
+import { For } from "solid-js";
 import { ContextMenuState } from "../types/types";
+import { getParentsPaths } from "../adapters/getParentsPath";
 
 export function ContextView(props: {
   contextMenuState: ContextMenuState;
@@ -15,6 +13,9 @@ export function ContextView(props: {
   setHighlightedNode: (node: null | TreeNode) => void;
 }) {
   let contentRef: HTMLDivElement | undefined;
+
+  const paths = () =>
+    getParentsPaths(props.contextMenuState.target, props.adapterId);
 
   return (
     <div
@@ -37,7 +38,6 @@ export function ContextView(props: {
       <div
         style={{
           position: "absolute",
-          // top: `${(props.treeState?.originalNode.getBox()?.y || 0) + 24}px`,
           top: `${props.contextMenuState.y || 0}px`,
           left: `${props.contextMenuState.x || 0}px`,
         }}
@@ -49,7 +49,12 @@ export function ContextView(props: {
             "max-height": "calc(100vh - 16px)",
           }}
         >
-          hello
+          <For each={paths()}>
+            {(path) => {
+              return <div>{path.title}</div>;
+            }}
+          </For>
+          oh hello
         </div>
       </div>
     </div>

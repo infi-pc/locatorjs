@@ -1,16 +1,12 @@
 import reactAdapter from "./react/reactAdapter";
-import jsxAdapter from "./jsx/jsxAdapter";
-import svelteAdapter from "./svelte/svelteAdapter";
-import {
-  detectJSX,
-  detectReact,
-  detectSvelte,
-  detectVue,
-} from "@locator/shared";
-import vueAdapter from "./vue/vueAdapter";
+import { detectReact } from "@locator/shared";
+import { ParentPathItem } from "./adapterApi";
 
-export function getParentsPaths(target: HTMLElement, adapterId?: string) {
-  if (adapterId === "react" && reactAdapter.getTree) {
+export function getParentsPaths(
+  target: HTMLElement,
+  adapterId?: string
+): ParentPathItem[] {
+  if (adapterId === "react" && reactAdapter.getParentsPaths) {
     return reactAdapter.getParentsPaths(target);
   }
   // if (adapterId === "svelte" && svelteAdapter.getTree) {
@@ -31,15 +27,15 @@ export function getParentsPaths(target: HTMLElement, adapterId?: string) {
   //   return vueAdapter.getTree(target);
   // }
 
-  if (detectReact() && reactAdapter.getTree) {
-    return reactAdapter.getTree(target);
+  if (detectReact() && reactAdapter.getParentsPaths) {
+    return reactAdapter.getParentsPaths(target);
   }
 
-  // Must be last, because its global data leaks from Locator extension.
-  // Because the extension is in SolidJS and it uses JSX plugin in dev mode.
-  if (detectJSX() && jsxAdapter.getTree) {
-    return jsxAdapter.getTree(target);
-  }
+  // // Must be last, because its global data leaks from Locator extension.
+  // // Because the extension is in SolidJS and it uses JSX plugin in dev mode.
+  // if (detectJSX() && jsxAdapter.getTree) {
+  //   return jsxAdapter.getTree(target);
+  // }
 
-  return null;
+  return [];
 }
