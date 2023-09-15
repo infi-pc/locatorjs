@@ -4,6 +4,9 @@ import { TreeNode } from "../types/TreeNode";
 import { For } from "solid-js";
 import { ContextMenuState } from "../types/types";
 import { getParentsPaths } from "../adapters/getParentsPath";
+import getUsableFileName from "../functions/getUsableFileName";
+import { buildLink } from "../functions/buildLink";
+import { useOptions } from "../functions/optionsStore";
 
 export function ContextView(props: {
   contextMenuState: ContextMenuState;
@@ -12,6 +15,7 @@ export function ContextView(props: {
   targets: Targets;
   setHighlightedNode: (node: null | TreeNode) => void;
 }) {
+  const options = useOptions();
   let contentRef: HTMLDivElement | undefined;
 
   const paths = () =>
@@ -44,17 +48,31 @@ export function ContextView(props: {
         ref={contentRef}
       >
         <div
-          class={"m-2 bg-white rounded-md p-4 shadow-xl text-xs overflow-auto"}
+          class={
+            "bg-white rounded-md p-2 shadow-xl text-xs overflow-auto flex flex-col"
+          }
           style={{
             "max-height": "calc(100vh - 16px)",
           }}
         >
           <For each={paths()}>
             {(path) => {
-              return <div>{path.title}</div>;
+              return (
+                <a
+                  class="px-2 py-1 w-60 hover:bg-slate-100 text-left text-sm font-medium"
+                  href={buildLink(path.link!, props.targets, options)}
+                  onClick={() => {
+                    props.close();
+                  }}
+                >
+                  {path.title}
+                  <div class="text-xs text-gray-500">
+                    {getUsableFileName(path.link?.filePath || "")}
+                  </div>
+                </a>
+              );
             }}
           </For>
-          oh hello
         </div>
       </div>
     </div>
