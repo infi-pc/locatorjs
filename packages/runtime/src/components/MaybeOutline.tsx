@@ -7,6 +7,8 @@ import { Outline } from "./Outline";
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
+  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
+  copyToClipboard: (element: HTMLElement) => void;
   adapterId?: AdapterId;
   targets: Targets;
 }) {
@@ -20,6 +22,8 @@ export function MaybeOutline(props: {
         <Outline
           element={elInfo()!}
           showTreeFromElement={props.showTreeFromElement}
+          showParentsPath={props.showParentsPath}
+          copyToClipboard={props.copyToClipboard}
           targets={props.targets}
         />
       ) : (

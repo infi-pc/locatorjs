@@ -29,6 +29,7 @@ import { TreeView } from "./TreeView";
 import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
+import { buildLink } from "../functions/buildLink";
 
 type UiMode =
   | ["off"]
@@ -121,6 +122,29 @@ function Runtime(props: RuntimeProps) {
     }
   }
 
+  function showContextMenu(target: HTMLElement, x: number, y: number) {
+    setUiMode([
+      "context",
+      {
+        target,
+        x,
+        y,
+      },
+    ]);
+  }
+
+  function copyToClipboard(target: HTMLElement) {
+    const elInfo = getElementInfo(target, props.adapterId);
+
+    if (elInfo) {
+      const linkProps = elInfo.thisElement.link;
+      if (linkProps) {
+        const link = buildLink(linkProps, props.targets, options);
+        navigator.clipboard.writeText(link);
+      }
+    }
+  }
+
   function rightClickListener(e: MouseEvent) {
     if (!isCombinationModifiersPressed(e, true)) {
       return;
@@ -135,16 +159,10 @@ function Runtime(props: RuntimeProps) {
     // show context menu
     const target = e.target;
     if (target && target instanceof HTMLElement) {
-      setUiMode([
-        "context",
-        {
-          target,
-          x,
-          y,
-        },
-      ]);
+      showContextMenu(target, x, y);
     }
   }
+
   function clickListener(e: MouseEvent) {
     if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
       return;
@@ -304,9 +322,11 @@ function Runtime(props: RuntimeProps) {
       {(holdingModKey() || uiMode()[0] === "options") && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
-          showTreeFromElement={showTreeFromElement}
           adapterId={props.adapterId}
           targets={props.targets}
+          showTreeFromElement={showTreeFromElement}
+          showParentsPath={showContextMenu}
+          copyToClipboard={copyToClipboard}
         />
       ) : null}
       {holdingModKey() ? (

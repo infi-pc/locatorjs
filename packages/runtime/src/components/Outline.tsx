@@ -26,6 +26,8 @@ type AllBoxes = {
 export function Outline(props: {
   element: FullElementInfo;
   showTreeFromElement: (element: HTMLElement) => void;
+  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
+  copyToClipboard: (element: HTMLElement) => void;
   targets: Targets;
 }) {
   const box = () => props.element.thisElement.box;
@@ -172,7 +174,11 @@ export function Outline(props: {
             <button
               class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
               onClick={() => {
-                props.showParentsPath(props.element.htmlElement);
+                props.showParentsPath(
+                  props.element.htmlElement,
+                  box().x + 2,
+                  box().y + 20
+                );
               }}
             >
               <svg
