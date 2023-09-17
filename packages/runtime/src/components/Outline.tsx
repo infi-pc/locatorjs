@@ -141,27 +141,70 @@ export function Outline(props: {
             "text-overflow": "ellipsis",
           }}
         >
-          <button
-            class="absolute top-1 left-1 bg-red-500 text-white font-bold p-0.5 rounded hover:bg-red-800"
+          <div
+            class="absolute -top-4 left-0 bg-black/60 text-white font-bold rounded-md px-1 py-1 flex"
             style={{
               "text-shadow": "none",
               "pointer-events": "auto",
-              cursor: "pointer",
               ...(box().width < 50 || box().height < 50
                 ? { top: "-8px", left: "-8px" }
                 : {}),
             }}
-            onClick={() => {
-              props.showTreeFromElement(props.element.htmlElement);
-            }}
           >
-            <svg style={{ width: "16px", height: "16éx" }} viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12.89,3L14.85,3.4L11.11,21L9.15,20.6L12.89,3M19.59,12L16,8.41V5.58L22.42,12L16,18.41V15.58L19.59,12M1.58,12L8,5.58V8.41L4.41,12L8,15.58V18.41L1.58,12Z"
-              />
-            </svg>
-          </button>
+            <button
+              class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+              onClick={() => {
+                props.showTreeFromElement(props.element.htmlElement);
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ width: "16px", height: "16px" }}
+                viewBox="0 0 24 24"
+              >
+                <title>sitemap</title>
+                <path
+                  fill="currentColor"
+                  d="M9,2V8H11V11H5C3.89,11 3,11.89 3,13V16H1V22H7V16H5V13H11V16H9V22H15V16H13V13H19V16H17V22H23V16H21V13C21,11.89 20.11,11 19,11H13V8H15V2H9Z"
+                />
+              </svg>
+            </button>
+            <button
+              class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+              onClick={() => {
+                props.showParentsPath(props.element.htmlElement);
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ width: "16px", height: "16px" }}
+                viewBox="0 0 24 24"
+              >
+                <title>format-list-text</title>
+                <path
+                  fill="currentColor"
+                  d="M2 14H8V20H2M16 8H10V10H16M2 10H8V4H2M10 4V6H22V4M10 20H16V18H10M10 16H22V14H10"
+                />
+              </svg>
+            </button>
+            <button
+              class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+              onClick={() => {
+                props.copyToClipboard(props.element.htmlElement);
+              }}
+            >
+              <svg
+                style={{ width: "16px", height: "16px" }}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"
+                />
+              </svg>
+            </button>
+          </div>
           {props.element.thisElement.label}
         </div>
       </div>
