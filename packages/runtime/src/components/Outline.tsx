@@ -35,7 +35,7 @@ export function Outline(props: {
     const box = props.element.thisElement.box;
     if (htmlElement && box) {
       const style = window.getComputedStyle(htmlElement);
-      const display = style.display;
+
       const margin = {
         top: parseFloat(style.marginTop),
         left: parseFloat(style.marginLeft),
@@ -179,7 +179,7 @@ export function Outline(props: {
 function RenderBoxes(props: { allBoxes: AllBoxes }) {
   return (
     <>
-      {Object.entries(props.allBoxes.margin).map(([key, box]) => {
+      {Object.entries(props.allBoxes.margin).map(([, box]) => {
         return (
           <div
             class="fixed flex text-xs font-bold items-center justify-center text-blue-500"
@@ -197,7 +197,7 @@ function RenderBoxes(props: { allBoxes: AllBoxes }) {
           </div>
         );
       })}
-      {Object.entries(props.allBoxes.padding).map(([key, box]) => {
+      {Object.entries(props.allBoxes.padding).map(([, box]) => {
         return (
           <div
             class="fixed flex text-xs font-bold items-center justify-center text-orange-500"

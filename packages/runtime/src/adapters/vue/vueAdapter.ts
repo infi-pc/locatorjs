@@ -108,7 +108,7 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
       const info = getElementInfo(currentElement);
 
       const currentComponentKey = JSON.stringify(info?.componentsLabels);
-      debugger;
+
       if (info && currentComponentKey !== previousComponentKey) {
         previousComponentKey = currentComponentKey;
 
