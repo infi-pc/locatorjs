@@ -130,6 +130,31 @@ export function Outline(props: {
 
     return null;
   };
+
+  let buttonsWrapper: HTMLDivElement | undefined;
+
+  function getOffset() {
+    const buttonsWrapperWidth = buttonsWrapper?.clientWidth || 80;
+
+    const offset = {
+      top: -16,
+      left: 0,
+    };
+
+    if (box().width < 140) {
+      offset.left = -buttonsWrapperWidth / 2 + box().width / 2 - 1;
+    }
+
+    if (box().height < 40) {
+      offset.top = -30;
+    }
+
+    return {
+      top: offset.top + "px",
+      left: offset.left + "px",
+    };
+  }
+
   return (
     <>
       <div>
@@ -148,14 +173,13 @@ export function Outline(props: {
           }}
         >
           <div
-            class="absolute -top-4 left-0 bg-black/60 text-white font-bold rounded-md px-1 py-1 flex"
+            class="absolute bg-black/60 text-white font-bold rounded-md px-1 py-1 flex"
             style={{
               "text-shadow": "none",
               "pointer-events": "auto",
-              ...(box().width < 50 || box().height < 50
-                ? { top: "-8px", left: "-8px" }
-                : {}),
+              ...getOffset(),
             }}
+            ref={buttonsWrapper}
           >
             <Button
               onClick={() => {
