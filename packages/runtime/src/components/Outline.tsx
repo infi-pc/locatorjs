@@ -243,13 +243,15 @@ export function Outline(props: {
           {props.element.thisElement.label}
         </div>
       </div>
-      <ComponentOutline
-        labels={props.element.componentsLabels}
-        bbox={props.element.componentBox}
-        element={props.element.htmlElement}
-        showTreeFromElement={props.showTreeFromElement}
-        targets={props.targets}
-      />
+      {props.element.componentsLabels.length > 0 && (
+        <ComponentOutline
+          labels={props.element.componentsLabels}
+          bbox={props.element.componentBox}
+          element={props.element.htmlElement}
+          showTreeFromElement={props.showTreeFromElement}
+          targets={props.targets}
+        />
+      )}
     </>
   );
 }
