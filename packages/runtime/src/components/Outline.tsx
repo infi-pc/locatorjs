@@ -2,7 +2,9 @@ import { ComponentOutline } from "./ComponentOutline";
 
 import type { Targets } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
-import { createSignal } from "solid-js";
+import { ClipboardButton } from "./ClipboardButton";
+import { Button } from "./Button";
+import { RenderBoxes } from "./RenderBoxes";
 
 type Box = {
   top: number;
@@ -18,7 +20,7 @@ type IndividualBoxes = {
   bottom: Box;
 };
 
-type AllBoxes = {
+export type AllBoxes = {
   margin: IndividualBoxes;
   padding: IndividualBoxes;
   innerBox: Box;
@@ -162,7 +164,11 @@ export function Outline(props: {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                style={{ width: "16px", height: "16px" }}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  "pointer-events": "none",
+                }}
                 viewBox="0 0 24 24"
               >
                 <title>sitemap</title>
@@ -183,7 +189,11 @@ export function Outline(props: {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                style={{ width: "16px", height: "16px" }}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  "pointer-events": "none",
+                }}
                 viewBox="0 0 24 24"
               >
                 <title>format-list-text</title>
@@ -213,120 +223,6 @@ export function Outline(props: {
   );
 }
 
-function RenderBoxes(props: { allBoxes: AllBoxes }) {
-  return (
-    <>
-      {Object.entries(props.allBoxes.margin).map(([, box]) => {
-        return (
-          <div
-            class="fixed flex text-xs font-bold items-center justify-center text-blue-500"
-            style={{
-              left: box.left + "px",
-              top: box.top + "px",
-              width: box.width + "px",
-              height: box.height + "px",
-              "background-color": "rgba(0, 181, 222, 0.1)",
-              "text-shadow":
-                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-            }}
-          >
-            {/* {box.label} */}
-          </div>
-        );
-      })}
-      {Object.entries(props.allBoxes.padding).map(([, box]) => {
-        return (
-          <div
-            class="fixed flex text-xs font-bold items-center justify-center text-orange-500"
-            style={{
-              left: box.left + "px",
-              top: box.top + "px",
-              width: box.width + "px",
-              height: box.height + "px",
-              "background-color": "rgba(222, 148, 0, 0.3)",
-              "text-shadow":
-                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-            }}
-          >
-            {/* {box.label} */}
-          </div>
-        );
-      })}
-
-      <div
-        class="fixed flex text-xs font-bold items-center justify-center text-sky-500"
-        style={{
-          left: props.allBoxes.innerBox.left + "px",
-          top: props.allBoxes.innerBox.top + "px",
-          width: props.allBoxes.innerBox.width + "px",
-          height: props.allBoxes.innerBox.height + "px",
-          "background-color": "rgba(0, 133, 222, 0.3)",
-          "text-shadow":
-            "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-        }}
-      >
-        {props.allBoxes.innerBox.label}
-      </div>
-    </>
-  );
-}
-
 function label(value: number) {
   return value ? `${value}px` : "";
-}
-
-function ClipboardButton(props: { onClick: () => void }) {
-  const [copied, setCopied] = createSignal(false);
-  return (
-    <Button
-      onClick={() => {
-        setCopied(true);
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
-
-        props.onClick();
-      }}
-    >
-      {copied() ? (
-        <svg
-          style={{ width: "16px", height: "16px" }}
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-        >
-          <title>check-bold</title>
-          <path
-            fill="green"
-            d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"
-          />
-        </svg>
-      ) : (
-        <svg
-          style={{ width: "16px", height: "16px" }}
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-        >
-          <path
-            fill="currentColor"
-            d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"
-          />
-        </svg>
-      )}
-    </Button>
-  );
-}
-
-function Button(props: { onClick: () => void; children: any }) {
-  return (
-    <button
-      class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        props.onClick();
-      }}
-    >
-      {props.children}
-    </button>
-  );
 }
