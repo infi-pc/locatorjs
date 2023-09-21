@@ -2,6 +2,7 @@ import { ComponentOutline } from "./ComponentOutline";
 
 import type { Targets } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
+import { createSignal } from "solid-js";
 
 type Box = {
   top: number;
@@ -132,8 +133,9 @@ export function Outline(props: {
       <div>
         {domElementInfo() && <RenderBoxes allBoxes={domElementInfo()!} />}
         <div
-          class="fixed flex text-xs font-bold items-center justify-center text-red-500 rounded border border-solid border-red-500"
+          class="fixed flex text-xs font-bold items-center justify-center text-sky-500 rounded border border-solid border-sky-500"
           style={{
+            "z-index": 2,
             left: box().x + "px",
             top: box().y + "px",
             width: box().width + "px",
@@ -153,8 +155,7 @@ export function Outline(props: {
                 : {}),
             }}
           >
-            <button
-              class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+            <Button
               onClick={() => {
                 props.showTreeFromElement(props.element.htmlElement);
               }}
@@ -170,9 +171,8 @@ export function Outline(props: {
                   d="M9,2V8H11V11H5C3.89,11 3,11.89 3,13V16H1V22H7V16H5V13H11V16H9V22H15V16H13V13H19V16H17V22H23V16H21V13C21,11.89 20.11,11 19,11H13V8H15V2H9Z"
                 />
               </svg>
-            </button>
-            <button
-              class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+            </Button>
+            <Button
               onClick={() => {
                 props.showParentsPath(
                   props.element.htmlElement,
@@ -192,24 +192,12 @@ export function Outline(props: {
                   d="M2 14H8V20H2M16 8H10V10H16M2 10H8V4H2M10 4V6H22V4M10 20H16V18H10M10 16H22V14H10"
                 />
               </svg>
-            </button>
-            <button
-              class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+            </Button>
+            <ClipboardButton
               onClick={() => {
                 props.copyToClipboard(props.element.htmlElement);
               }}
-            >
-              <svg
-                style={{ width: "16px", height: "16px" }}
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"
-                />
-              </svg>
-            </button>
+            />
           </div>
           {props.element.thisElement.label}
         </div>
@@ -266,7 +254,7 @@ function RenderBoxes(props: { allBoxes: AllBoxes }) {
       })}
 
       <div
-        class="fixed flex text-xs font-bold items-center justify-center text-red-500"
+        class="fixed flex text-xs font-bold items-center justify-center text-sky-500"
         style={{
           left: props.allBoxes.innerBox.left + "px",
           top: props.allBoxes.innerBox.top + "px",
@@ -285,4 +273,60 @@ function RenderBoxes(props: { allBoxes: AllBoxes }) {
 
 function label(value: number) {
   return value ? `${value}px` : "";
+}
+
+function ClipboardButton(props: { onClick: () => void }) {
+  const [copied, setCopied] = createSignal(false);
+  return (
+    <Button
+      onClick={() => {
+        setCopied(true);
+        setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+
+        props.onClick();
+      }}
+    >
+      {copied() ? (
+        <svg
+          style={{ width: "16px", height: "16px" }}
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        >
+          <title>check-bold</title>
+          <path
+            fill="green"
+            d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"
+          />
+        </svg>
+      ) : (
+        <svg
+          style={{ width: "16px", height: "16px" }}
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        >
+          <path
+            fill="currentColor"
+            d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"
+          />
+        </svg>
+      )}
+    </Button>
+  );
+}
+
+function Button(props: { onClick: () => void; children: any }) {
+  return (
+    <button
+      class="py-1 px-1 hover:bg-white/30 pointer hover:text-gray-100 rounded"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onClick();
+      }}
+    >
+      {props.children}
+    </button>
+  );
 }
