@@ -85,14 +85,14 @@ function Runtime(props: RuntimeProps) {
   }
 
   function mouseOverListener(e: MouseEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e, true));
-
     const target = e.target;
     if (target && target instanceof HTMLElement) {
       // Ignore LocatorJS elements
       if (isLocatorsOwnElement(target)) {
         return;
       }
+
+      setHoldingModKey(isCombinationModifiersPressed(e, true));
 
       batch(() => {
         setCurrentElement(target);
