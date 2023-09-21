@@ -142,7 +142,7 @@ export function Outline(props: {
       left: 0,
     };
 
-    if (box().width < 140) {
+    if (box().width < buttonsWrapperWidth) {
       offset.left = -buttonsWrapperWidth / 2 + box().width / 2 - 1;
     }
 
