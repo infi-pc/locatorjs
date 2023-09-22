@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  cache-and-install:
+  build-test-and-lint:
     runs-on: ubuntu-latest
 
     steps:
