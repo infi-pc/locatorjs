@@ -149,7 +149,10 @@ export function ContextView(props: {
                     (index() === focusedIndex() ? "bg-slate-100" : "")
                   }
                   href={buildLink(path.link!, props.targets, options)}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToLinkProps(path.link!, props.targets, options);
                     props.close();
                   }}
                 >
