@@ -7,9 +7,9 @@ body:
     attributes:
       label: Where the bug happens
       options:
-      - label: Browser Extension
-      - label: Library
-      - label: Other
+        - label: Browser Extension
+        - label: Library
+        - label: Other
   - type: input
     attributes:
       label: your browser
@@ -19,13 +19,3 @@ body:
       description: A clear and consice description of the bug, as well as what you expected to happen when encountering it.
     validations:
       required: true
-  - type: textarea
-    attributes:
-      label: To reproduce
-      description: Describe how to reproduce your bug. Steps, code snippets etc.
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: Additional information
-      description: Add any other information related to the bug here, screenshots if applicable.
