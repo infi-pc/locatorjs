@@ -21,24 +21,25 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16
-          cache: "yarn"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: yarn
+        uses: pnpm/action-setup@v2
+        run: pnpm
 
       - name: Build
-        run: yarn build
+        run: pnpm build
 
       - name: Test
-        run: yarn test
+        run: pnpm test
 
   lint:
     name: Lint
@@ -50,21 +51,22 @@ jobs:
     #  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16
-          cache: "yarn"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: yarn
+        uses: pnpm/action-setup@v2
+        run: pnpm
 
       - name: Lint
-        run: yarn lint
+        run: pnpm lint
 
   # test-devs:
   #   name: Test devs
@@ -73,24 +75,25 @@ jobs:
 
   #   steps:
   #     - name: Check out code
-  #       uses: actions/checkout@v2
+  #       uses: actions/checkout@v3
   #       with:
   #         fetch-depth: 2
 
   #     - name: Setup Node.js environment
-  #       uses: actions/setup-node@v2
+  #       uses: actions/setup-node@v3
   #       with:
   #         node-version: 16
-  #         cache: "yarn"
+  #         cache: "pnpm"
 
   #     - name: Install dependencies
-  #       run: yarn
+  #       uses: pnpm/action-setup@v2
+  #       run: pnpm
 
   #     - name: Run dev
-  #       run: yarn dev &
+  #       run: pnpm dev &
 
   #     - name: Install browsers
-  #       run: yarn workspace e2e-tests install-browsers
+  #       run: pnpm workspace e2e-tests install-browsers
 
   #     - name: E2E
-  #       run: yarn e2e
+  #       run: pnpm e2e

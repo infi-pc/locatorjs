@@ -7,7 +7,7 @@ Repo is based on Workspaces and Turborepo
 To develop all apps and packages, run the following command:
 
 ```
-yarn dev
+pnpm dev
 ```
 
 ### Projects
@@ -21,5 +21,5 @@ yarn dev
 To build all apps and packages, run the following command:
 
 ```
-yarn build
+pnpm build
 ```
