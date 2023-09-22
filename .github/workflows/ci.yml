@@ -4,96 +4,49 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    types: [opened, synchronize]
 
 jobs:
-  build:
-    name: Build and Test
-    timeout-minutes: 15
-    runs-on: ${{ matrix.os }}
-    # To use Remote Caching, uncomment the next lines and follow the steps below.
-    # env:
-    #  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-    #  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest] # macos-latest
+  cache-and-install:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
 
-      - name: Setup Node.js environment
+      - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16
-          cache: "pnpm"
+          node-version: 18
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        uses: pnpm/action-setup@v2
-        run: pnpm
+        run: pnpm install
 
       - name: Build
         run: pnpm build
 
-      - name: Test
-        run: pnpm test
-
-  lint:
-    name: Lint
-    timeout-minutes: 15
-    runs-on: [ubuntu-latest]
-    # To use Remote Caching, uncomment the next lines and follow the steps below.
-    # env:
-    #  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-    #  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-          cache: "pnpm"
-
-      - name: Install dependencies
-        uses: pnpm/action-setup@v2
-        run: pnpm
-
       - name: Lint
         run: pnpm lint
 
-  # test-devs:
-  #   name: Test devs
-  #   timeout-minutes: 15
-  #   runs-on: ubuntu-latest
+      - name: Test
+        run: pnpm test
 
-  #   steps:
-  #     - name: Check out code
-  #       uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 2
-
-  #     - name: Setup Node.js environment
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: 16
-  #         cache: "pnpm"
-
-  #     - name: Install dependencies
-  #       uses: pnpm/action-setup@v2
-  #       run: pnpm
-
-  #     - name: Run dev
-  #       run: pnpm dev &
-
-  #     - name: Install browsers
-  #       run: pnpm workspace e2e-tests install-browsers
-
-  #     - name: E2E
-  #       run: pnpm e2e
+      
