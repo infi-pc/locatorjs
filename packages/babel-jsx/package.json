@@ -1,7 +1,7 @@
 {
   "name": "@locator/babel-jsx",
   "main": "dist/index.js",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
