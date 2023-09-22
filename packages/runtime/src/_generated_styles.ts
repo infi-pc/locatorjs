@@ -1200,6 +1200,10 @@ select {
   background-color: rgb(59 130 246 / var(--tw-bg-opacity));
 }
 
+.bg-blue-500\\/30 {
+  background-color: rgb(59 130 246 / 0.3);
+}
+
 .bg-blue-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(37 99 235 / var(--tw-bg-opacity));
@@ -1233,6 +1237,19 @@ select {
 .bg-green-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(34 197 94 / var(--tw-bg-opacity));
+}
+
+.bg-green-500\\/30 {
+  background-color: rgb(34 197 94 / 0.3);
+}
+
+.bg-orange-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 115 22 / var(--tw-bg-opacity));
+}
+
+.bg-orange-500\\/30 {
+  background-color: rgb(249 115 22 / 0.3);
 }
 
 .bg-purple-500 {
@@ -1278,27 +1295,6 @@ select {
 .bg-yellow-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 249 195 / var(--tw-bg-opacity));
-}
-
-.bg-green-500\\/30 {
-  background-color: rgb(34 197 94 / 0.3);
-}
-
-.bg-blue-500\\/30 {
-  background-color: rgb(59 130 246 / 0.3);
-}
-
-.bg-orange-500\\/30 {
-  background-color: rgb(249 115 22 / 0.3);
-}
-
-.bg-orange-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(249 115 22 / var(--tw-bg-opacity));
-}
-
-.bg-red-500\\/30 {
-  background-color: rgb(239 68 68 / 0.3);
 }
 
 .p-0 {
