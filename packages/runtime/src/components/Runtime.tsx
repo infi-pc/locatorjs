@@ -139,8 +139,7 @@ function Runtime(props: RuntimeProps) {
     if (elInfo) {
       const linkProps = elInfo.thisElement.link;
       if (linkProps) {
-        const link = buildLink(linkProps, props.targets, options);
-        navigator.clipboard.writeText(link);
+        navigator.clipboard.writeText(linkProps.filePath);
       }
     }
   }

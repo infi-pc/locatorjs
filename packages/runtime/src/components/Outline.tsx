@@ -232,7 +232,7 @@ export function Outline(props: {
                 </svg>
               </Button>
             </Tooltip>
-            <Tooltip tooltipText="Copy link">
+            <Tooltip tooltipText="Copy path">
               <ClipboardButton
                 onClick={() => {
                   props.copyToClipboard(props.element.htmlElement);
