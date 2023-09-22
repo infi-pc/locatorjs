@@ -5,7 +5,6 @@ export default () => {
     ></Aaaa>
   );
 };
-
 (() => {
   if (typeof window !== "undefined") {
     window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};

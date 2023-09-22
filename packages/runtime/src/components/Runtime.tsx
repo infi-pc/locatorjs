@@ -4,7 +4,11 @@ import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
 import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
 import { trackClickStats } from "../functions/trackClickStats";
-import { LinkProps, Targets as SetupTargets } from "../types/types";
+import {
+  ContextMenuState,
+  LinkProps,
+  Targets as SetupTargets,
+} from "../types/types";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 
@@ -24,11 +28,14 @@ import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
 import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
+import { ContextView } from "./ContextView";
+import { buildLink } from "../functions/buildLink";
 
 type UiMode =
   | ["off"]
   | ["options"]
   | ["tree", TreeState]
+  | ["context", ContextMenuState]
   | ["disable-confirmation"];
 
 type RuntimeProps = {
@@ -74,18 +81,18 @@ function Runtime(props: RuntimeProps) {
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e));
+    setHoldingModKey(isCombinationModifiersPressed(e, true));
   }
 
   function mouseOverListener(e: MouseEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e));
-
     const target = e.target;
     if (target && target instanceof HTMLElement) {
       // Ignore LocatorJS elements
       if (isLocatorsOwnElement(target)) {
         return;
       }
+
+      setHoldingModKey(isCombinationModifiersPressed(e, true));
 
       batch(() => {
         setCurrentElement(target);
@@ -112,6 +119,46 @@ function Runtime(props: RuntimeProps) {
     if (isCombinationModifiersPressed(e)) {
       e.preventDefault();
       e.stopPropagation();
+    }
+  }
+
+  function showContextMenu(target: HTMLElement, x: number, y: number) {
+    setUiMode([
+      "context",
+      {
+        target,
+        x,
+        y,
+      },
+    ]);
+  }
+
+  function copyToClipboard(target: HTMLElement) {
+    const elInfo = getElementInfo(target, props.adapterId);
+
+    if (elInfo) {
+      const linkProps = elInfo.thisElement.link;
+      if (linkProps) {
+        navigator.clipboard.writeText(linkProps.filePath);
+      }
+    }
+  }
+
+  function rightClickListener(e: MouseEvent) {
+    if (!isCombinationModifiersPressed(e, true)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const x = e.clientX;
+    const y = e.clientY;
+
+    // show context menu
+    const target = e.target;
+    if (target && target instanceof HTMLElement) {
+      showContextMenu(target, x, y);
     }
   }
 
@@ -188,6 +235,10 @@ function Runtime(props: RuntimeProps) {
     root.addEventListener("click", clickListener as EventListener, {
       capture: true,
     });
+    root.addEventListener("contextmenu", rightClickListener as EventListener, {
+      capture: true,
+    });
+
     root.addEventListener("mousedown", mouseDownUpListener as EventListener, {
       capture: true,
     });
@@ -211,6 +262,13 @@ function Runtime(props: RuntimeProps) {
       root.removeEventListener("click", clickListener as EventListener, {
         capture: true,
       });
+      root.removeEventListener(
+        "contextmenu",
+        rightClickListener as EventListener,
+        {
+          capture: true,
+        }
+      );
       root.removeEventListener(
         "mousedown",
         mouseDownUpListener as EventListener,
@@ -243,9 +301,18 @@ function Runtime(props: RuntimeProps) {
     <>
       {uiMode()[0] === "tree" ? (
         <TreeView
-          treeState={uiMode()[1]!}
+          treeState={uiMode()[1]! as TreeState}
           close={() => setUiMode(["off"])}
           setTreeState={(newState) => setUiMode(["tree", newState])}
+          adapterId={props.adapterId}
+          targets={props.targets}
+          setHighlightedNode={setHighlightedNode}
+        />
+      ) : null}
+      {uiMode()[0] === "context" ? (
+        <ContextView
+          contextMenuState={uiMode()[1]! as ContextMenuState}
+          close={() => setUiMode(["off"])}
           adapterId={props.adapterId}
           targets={props.targets}
           setHighlightedNode={setHighlightedNode}
@@ -254,9 +321,11 @@ function Runtime(props: RuntimeProps) {
       {(holdingModKey() || uiMode()[0] === "options") && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
-          showTreeFromElement={showTreeFromElement}
           adapterId={props.adapterId}
           targets={props.targets}
+          showTreeFromElement={showTreeFromElement}
+          showParentsPath={showContextMenu}
+          copyToClipboard={copyToClipboard}
         />
       ) : null}
       {holdingModKey() ? (

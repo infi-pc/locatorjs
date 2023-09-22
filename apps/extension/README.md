@@ -30,8 +30,8 @@ When I click on a component's bounding box, it doesn't go to editor
 
 # Run extension locally
 
-run `yarn dev` for development.
-run `yarn build` to build the extension.
+run `pnpm dev` for development.
+run `pnpm build` to build the extension.
 
 # Contributing
 

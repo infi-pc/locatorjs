@@ -37,13 +37,14 @@ export function ComponentOutline(props: {
 
   return (
     <div
+      class="border border-purple-500"
       style={{
+        "z-index": 1,
         position: "fixed",
         left: left() + "px",
         top: top() + "px",
         width: width() + "px",
         height: height() + "px",
-        border: "2px solid " + baseColor,
         // "border-radius": "8px",
         "border-top-left-radius": left() === 0 || top() === 0 ? "0" : "8px",
         "border-top-right-radius":
@@ -107,7 +108,7 @@ export function ComponentOutline(props: {
                 ? buildLink(label.link, props.targets, options)
                 : null;
               const labelClass =
-                "cursor-pointer bg-red-500 block text-white text-xs font-bold text-center px-1 py-0.5 rounded whitespace-nowrap pointer-events-auto hover:bg-red-600";
+                "cursor-pointer bg-purple-500 block text-white text-xs font-bold text-center px-1 py-0.5 rounded whitespace-nowrap pointer-events-auto hover:bg-purple-600";
               const labelStyles = {
                 "line-height": "18px",
               };

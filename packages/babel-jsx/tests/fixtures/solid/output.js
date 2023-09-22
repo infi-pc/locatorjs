@@ -2,25 +2,19 @@ import { template as _$template } from "solid-js/web";
 import { className as _$className } from "solid-js/web";
 import { effect as _$effect } from "solid-js/web";
 import { setAttribute as _$setAttribute } from "solid-js/web";
-
 const _tmpl$ = /*#__PURE__*/ _$template(
-  `<div data-x="another-data-attribute" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::0"><header data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::1"><img alt="logo" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::2"><p data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::3">Edit <code data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::4">src/App.jsx</code> and save to reload.</p><a href="https://github.com/solidjs/solid" target="_blank" rel="noopener noreferrer" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::5">Learn Solid</a></header></div>`,
-  11
+  `<div data-x="another-data-attribute" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::0"><header data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::1"><img alt="logo" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::2"><p data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::3">Edit <code data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::4">src/App.jsx</code> and save to reload.</p><a href="https://github.com/solidjs/solid" target="_blank" rel="noopener noreferrer" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::5">Learn Solid`
 );
-
 import logo from "./logo.svg";
 import styles from "./App.module.css";
-
 function App() {
   return (() => {
-    const _el$ = _tmpl$.cloneNode(true),
+    const _el$ = _tmpl$(),
       _el$2 = _el$.firstChild,
       _el$3 = _el$2.firstChild,
       _el$4 = _el$3.nextSibling,
       _el$5 = _el$4.nextSibling;
-
     _$setAttribute(_el$3, "src", logo);
-
     _$effect(
       (_p$) => {
         const _v$ = styles.App,
@@ -40,13 +34,10 @@ function App() {
         _v$4: undefined,
       }
     );
-
     return _el$;
   })();
 }
-
 export default App;
-
 (() => {
   if (typeof window !== "undefined") {
     window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};

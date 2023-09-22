@@ -23,7 +23,13 @@ export type TreeState = {
   highlightedId: string;
 };
 
+export type ParentPathItem = {
+  title: string;
+  link: LinkProps | null;
+};
+
 export interface AdapterObject {
   getElementInfo(element: HTMLElement): FullElementInfo | null;
   getTree?(includeElement: HTMLElement): TreeState | null;
+  getParentsPaths(element: HTMLElement): ParentPathItem[];
 }

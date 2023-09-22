@@ -2,6 +2,10 @@ import { ComponentOutline } from "./ComponentOutline";
 
 import type { Targets } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
+import { ClipboardButton } from "./ClipboardButton";
+import { Button } from "./Button";
+import { RenderBoxes } from "./RenderBoxes";
+import Tooltip from "./Tooltip";
 
 type Box = {
   top: number;
@@ -17,7 +21,7 @@ type IndividualBoxes = {
   bottom: Box;
 };
 
-type AllBoxes = {
+export type AllBoxes = {
   margin: IndividualBoxes;
   padding: IndividualBoxes;
   innerBox: Box;
@@ -26,6 +30,8 @@ type AllBoxes = {
 export function Outline(props: {
   element: FullElementInfo;
   showTreeFromElement: (element: HTMLElement) => void;
+  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
+  copyToClipboard: (element: HTMLElement) => void;
   targets: Targets;
 }) {
   const box = () => props.element.thisElement.box;
@@ -35,7 +41,7 @@ export function Outline(props: {
     const box = props.element.thisElement.box;
     if (htmlElement && box) {
       const style = window.getComputedStyle(htmlElement);
-      const display = style.display;
+
       const margin = {
         top: parseFloat(style.marginTop),
         left: parseFloat(style.marginLeft),
@@ -125,13 +131,39 @@ export function Outline(props: {
 
     return null;
   };
+
+  let buttonsWrapper: HTMLDivElement | undefined;
+
+  function getOffset() {
+    const buttonsWrapperWidth = buttonsWrapper?.clientWidth || 80;
+
+    const offset = {
+      top: -16,
+      left: 0,
+    };
+
+    if (box().width < buttonsWrapperWidth) {
+      offset.left = -buttonsWrapperWidth / 2 + box().width / 2 - 1;
+    }
+
+    if (box().height < 40) {
+      offset.top = -30;
+    }
+
+    return {
+      top: offset.top + "px",
+      left: offset.left + "px",
+    };
+  }
+
   return (
     <>
       <div>
         {domElementInfo() && <RenderBoxes allBoxes={domElementInfo()!} />}
         <div
-          class="fixed flex text-xs font-bold items-center justify-center text-red-500 rounded border border-solid border-red-500"
+          class="fixed flex text-xs font-bold items-center justify-center text-sky-500 rounded border border-solid border-sky-500"
           style={{
+            "z-index": 2,
             left: box().x + "px",
             top: box().y + "px",
             width: box().width + "px",
@@ -141,95 +173,85 @@ export function Outline(props: {
             "text-overflow": "ellipsis",
           }}
         >
-          <button
-            class="absolute top-1 left-1 bg-red-500 text-white font-bold p-0.5 rounded hover:bg-red-800"
+          <div
+            class="absolute bg-black/60 text-white font-bold rounded-md px-1 py-1 flex"
             style={{
               "text-shadow": "none",
               "pointer-events": "auto",
-              cursor: "pointer",
-              ...(box().width < 50 || box().height < 50
-                ? { top: "-8px", left: "-8px" }
-                : {}),
+              ...getOffset(),
             }}
-            onClick={() => {
-              props.showTreeFromElement(props.element.htmlElement);
-            }}
+            ref={buttonsWrapper}
           >
-            <svg style={{ width: "16px", height: "16éx" }} viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12.89,3L14.85,3.4L11.11,21L9.15,20.6L12.89,3M19.59,12L16,8.41V5.58L22.42,12L16,18.41V15.58L19.59,12M1.58,12L8,5.58V8.41L4.41,12L8,15.58V18.41L1.58,12Z"
+            <Tooltip tooltipText="Tree view">
+              <Button
+                onClick={() => {
+                  props.showTreeFromElement(props.element.htmlElement);
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    "pointer-events": "none",
+                  }}
+                  viewBox="0 0 24 24"
+                >
+                  <title>sitemap</title>
+                  <path
+                    fill="currentColor"
+                    d="M9,2V8H11V11H5C3.89,11 3,11.89 3,13V16H1V22H7V16H5V13H11V16H9V22H15V16H13V13H19V16H17V22H23V16H21V13C21,11.89 20.11,11 19,11H13V8H15V2H9Z"
+                  />
+                </svg>
+              </Button>
+            </Tooltip>
+            <Tooltip tooltipText="Parents">
+              <Button
+                onClick={() => {
+                  props.showParentsPath(
+                    props.element.htmlElement,
+                    box().x + 2,
+                    box().y + 20
+                  );
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    "pointer-events": "none",
+                  }}
+                  viewBox="0 0 24 24"
+                >
+                  <title>format-list-text</title>
+                  <path
+                    fill="currentColor"
+                    d="M2 14H8V20H2M16 8H10V10H16M2 10H8V4H2M10 4V6H22V4M10 20H16V18H10M10 16H22V14H10"
+                  />
+                </svg>
+              </Button>
+            </Tooltip>
+            <Tooltip tooltipText="Copy path">
+              <ClipboardButton
+                onClick={() => {
+                  props.copyToClipboard(props.element.htmlElement);
+                }}
               />
-            </svg>
-          </button>
+            </Tooltip>
+          </div>
           {props.element.thisElement.label}
         </div>
       </div>
-      <ComponentOutline
-        labels={props.element.componentsLabels}
-        bbox={props.element.componentBox}
-        element={props.element.htmlElement}
-        showTreeFromElement={props.showTreeFromElement}
-        targets={props.targets}
-      />
-    </>
-  );
-}
-
-function RenderBoxes(props: { allBoxes: AllBoxes }) {
-  return (
-    <>
-      {Object.entries(props.allBoxes.margin).map(([key, box]) => {
-        return (
-          <div
-            class="fixed flex text-xs font-bold items-center justify-center text-blue-500"
-            style={{
-              left: box.left + "px",
-              top: box.top + "px",
-              width: box.width + "px",
-              height: box.height + "px",
-              "background-color": "rgba(0, 181, 222, 0.1)",
-              "text-shadow":
-                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-            }}
-          >
-            {/* {box.label} */}
-          </div>
-        );
-      })}
-      {Object.entries(props.allBoxes.padding).map(([key, box]) => {
-        return (
-          <div
-            class="fixed flex text-xs font-bold items-center justify-center text-orange-500"
-            style={{
-              left: box.left + "px",
-              top: box.top + "px",
-              width: box.width + "px",
-              height: box.height + "px",
-              "background-color": "rgba(222, 148, 0, 0.3)",
-              "text-shadow":
-                "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-            }}
-          >
-            {/* {box.label} */}
-          </div>
-        );
-      })}
-
-      <div
-        class="fixed flex text-xs font-bold items-center justify-center text-red-500"
-        style={{
-          left: props.allBoxes.innerBox.left + "px",
-          top: props.allBoxes.innerBox.top + "px",
-          width: props.allBoxes.innerBox.width + "px",
-          height: props.allBoxes.innerBox.height + "px",
-          "background-color": "rgba(0, 133, 222, 0.3)",
-          "text-shadow":
-            "-1px 1px 0 #fff, 1px 1px 0 #fff, 1px -1px 0 #fff, -1px -1px 0 #fff",
-        }}
-      >
-        {props.allBoxes.innerBox.label}
-      </div>
+      {props.element.componentsLabels.length > 0 && (
+        <ComponentOutline
+          labels={props.element.componentsLabels}
+          bbox={props.element.componentBox}
+          element={props.element.htmlElement}
+          showTreeFromElement={props.showTreeFromElement}
+          targets={props.targets}
+        />
+      )}
     </>
   );
 }

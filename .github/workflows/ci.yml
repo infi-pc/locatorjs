@@ -4,93 +4,49 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    types: [opened, synchronize]
 
 jobs:
-  build:
-    name: Build and Test
-    timeout-minutes: 15
-    runs-on: ${{ matrix.os }}
-    # To use Remote Caching, uncomment the next lines and follow the steps below.
-    # env:
-    #  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-    #  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest] # macos-latest
+  build-test-and-lint:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2
+      - name: Install Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 16
-          cache: "yarn"
+          node-version: 18
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: yarn
+        run: pnpm install
 
       - name: Build
-        run: yarn build
-
-      - name: Test
-        run: yarn test
-
-  lint:
-    name: Lint
-    timeout-minutes: 15
-    runs-on: [ubuntu-latest]
-    # To use Remote Caching, uncomment the next lines and follow the steps below.
-    # env:
-    #  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-    #  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16
-          cache: "yarn"
-
-      - name: Install dependencies
-        run: yarn
+        run: pnpm build
 
       - name: Lint
-        run: yarn lint
+        run: pnpm lint
 
-  # test-devs:
-  #   name: Test devs
-  #   timeout-minutes: 15
-  #   runs-on: ubuntu-latest
+      - name: Test
+        run: pnpm test
 
-  #   steps:
-  #     - name: Check out code
-  #       uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: 2
-
-  #     - name: Setup Node.js environment
-  #       uses: actions/setup-node@v2
-  #       with:
-  #         node-version: 16
-  #         cache: "yarn"
-
-  #     - name: Install dependencies
-  #       run: yarn
-
-  #     - name: Run dev
-  #       run: yarn dev &
-
-  #     - name: Install browsers
-  #       run: yarn workspace e2e-tests install-browsers
-
-  #     - name: E2E
-  #       run: yarn e2e
+      
