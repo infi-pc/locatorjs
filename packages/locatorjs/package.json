@@ -1,7 +1,7 @@
 {
   "name": "locatorjs",
   "main": "dist/index.js",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "scripts": {},
   "author": "Michael Musil",
   "repository": {

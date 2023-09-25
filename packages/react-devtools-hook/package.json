@@ -1,6 +1,6 @@
 {
   "name": "@locator/react-devtools-hook",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
