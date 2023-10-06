@@ -8,6 +8,7 @@ export function insertRuntimeScript() {
   let attemptsNecessaryToShowError = 4; // but not necessarily all attempts, we want to show loading for a while
 
   const locatorClientUrl = document.documentElement.dataset.locatorClientUrl;
+  delete document.documentElement.dataset.locatorClientUrl;
 
   function sendStatusMessage(message: string) {
     document.head.dataset.locatorHookStatusMessage = message;

@@ -49,7 +49,6 @@ function injectScript() {
     document.documentElement.appendChild(script);
     if (script.parentNode) {
       script.parentNode.removeChild(script);
-      // delete document.documentElement.dataset.locatorClientUrl;
     }
   }
 }
