@@ -12,7 +12,29 @@ export type ProjectOptions = {
   hrefTarget?: "_blank" | "_self";
 };
 
-export function getStoredOptions() {
+let reported = false;
+function reportNoLocalStorate() {
+  if (!reported) {
+    console.warn(
+      `[LocatorJS]: No local storage available. Please check your browser settings.`
+    );
+    reported = true;
+  }
+}
+
+function hasLocalStorage() {
+  if (typeof localStorage === "undefined" || localStorage == null) {
+    reportNoLocalStorate();
+    return false;
+  }
+
+  return true;
+}
+
+export function getStoredOptions(): ProjectOptions {
+  if (!hasLocalStorage()) {
+    return {};
+  }
   const options: ProjectOptions = {};
   const storedOptions = localStorage.getItem("LOCATOR_OPTIONS");
   if (storedOptions) {
@@ -55,14 +77,23 @@ export function getStoredOptions() {
 }
 
 export function setStoredOptions(options: ProjectOptions) {
+  if (!hasLocalStorage()) {
+    return;
+  }
   localStorage.setItem("LOCATOR_OPTIONS", JSON.stringify(options));
 }
 
 export function cleanOptions() {
+  if (!hasLocalStorage()) {
+    return;
+  }
   localStorage.removeItem("LOCATOR_OPTIONS");
 }
 
 export function listenOnOptionsChanges(fn: (options: ProjectOptions) => void) {
+  if (!hasLocalStorage()) {
+    return;
+  }
   let currentRawData = localStorage.getItem("LOCATOR_OPTIONS");
   addEventListener("storage", (event) => {
     if ("LOCATOR_OPTIONS" !== event.key) {
