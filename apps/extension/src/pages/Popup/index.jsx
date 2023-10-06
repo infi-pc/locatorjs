@@ -1,5 +1,4 @@
 import { render } from 'solid-js/web';
-import './TrackingInit';
 import App from './App';
 import './index.css';
 import setupLocatorUI from '@locator/runtime';
