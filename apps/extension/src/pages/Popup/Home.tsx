@@ -66,7 +66,17 @@ export function Home(props: Props) {
       </div>
       <Editor />
 
-      <div class="mt-2 w-full flex justify-end">
+      <div class="mt-2 w-full flex justify-between items-center">
+        <div>
+          Support me on{' '}
+          <a
+            class="underline hover:text-sky-900 text-sky-700"
+            href="https://github.com/sponsors/infi-pc"
+            target="_blank"
+          >
+            GitHub sponsors
+          </a>
+        </div>
         <button
           class="bg-gray-50 text-gray-800 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs hover:text-red-800 flex gap-1"
           onClick={() => {

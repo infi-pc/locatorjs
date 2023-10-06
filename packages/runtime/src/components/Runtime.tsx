@@ -331,6 +331,21 @@ function Runtime(props: RuntimeProps) {
       {holdingModKey() ? (
         <div class={bannerClasses()}>
           <BannerHeader openOptions={openOptions} adapter={props.adapterId} />
+          <div class="mt-2 text-xs text-gray-600">
+            Support me on{" "}
+            <a
+              class="underline hover:text-sky-900 text-sky-700"
+              href="https://github.com/sponsors/infi-pc"
+              target="_blank"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(`https://github.com/sponsors/infi-pc`);
+              }}
+            >
+              GitHub sponsors
+            </a>
+          </div>
         </div>
       ) : null}
       {highlightedNode() ? (
