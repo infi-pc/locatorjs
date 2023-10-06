@@ -7,4 +7,5 @@ export const projects = {
   reactClean: "http://localhost:3348/",
   svelteClean: "http://localhost:3349/",
   vue: "http://localhost:3350/",
+  reactServerComponents: "http://localhost:3351/",
 };
