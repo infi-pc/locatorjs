@@ -1,5 +1,6 @@
 <script>
   import Aaa from "./Aaa.svelte";
+  import OuterShadowDom from "./OuterShadowDom.svelte";
   import svelteLogo from "./assets/svelte.svg";
   import Counter from "./lib/Counter.svelte";
 </script>
@@ -19,6 +20,8 @@
   <div class="card">
     <Counter />
   </div>
+
+  <OuterShadowDom />
 
   <p>
     Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank"
