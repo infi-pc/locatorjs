@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
-    "build": "tsc --declaration --outDir dist",
+    "build": "tsc --declaration --outDir dist && tsc-esm-fix --target='dist'",
     "//build-cjs": "tsc --module commonjs --outDir dist/cjs",
     "ts": "tsc --noEmit --outDir dist --preserveWatchOutput"
   },
@@ -13,6 +13,7 @@
     "@babel/parser": "^7.22.5",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
+    "tsc-esm-fix": "^2.20.17",
     "tsconfig": "^0.0.1",
     "typescript": "^4.7.4"
   },

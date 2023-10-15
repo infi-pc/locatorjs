@@ -30,6 +30,7 @@
     "@babel/core": "^7.22.5",
     "@locator/dev-config": "workspace:^",
     "@types/jsdom": "^16.2.14",
+    "babel-plugin-add-import-extension": "^1.6.0",
     "babel-preset-solid": "^1.7.7",
     "concurrently": "^7.6.0",
     "fs-extra": "^11.1.1",
