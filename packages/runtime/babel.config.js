@@ -10,5 +10,6 @@ module.exports = (api) => {
       "@babel/preset-typescript",
       "solid",
     ],
+    plugins: ["babel-plugin-add-import-extension"],
   };
 };
