@@ -31,7 +31,7 @@ go to [www.locatorjs.com](https://www.locatorjs.com) for more info
 
 Feel free to create issue or pull request.
 
-[more info](./contributig.md)
+[more info](./contributing.md)
 
 ## Similar projects and alternatives
 
