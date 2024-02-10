@@ -1,4 +1,4 @@
-import { detectSvelte, Targets } from "@locator/shared";
+import { detectSvelte, ProjectOptions, Targets } from "@locator/shared";
 import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
@@ -431,11 +431,12 @@ function RuntimeWrapper(props: RuntimeProps) {
 export function initRender(
   solidLayer: HTMLDivElement,
   adapter: AdapterId | undefined,
-  targets: SetupTargets
+  targets: SetupTargets,
+  optionOverrides?: ProjectOptions,
 ) {
   render(
     () => (
-      <OptionsProvider>
+      <OptionsProvider optionOverrides={optionOverrides}>
         <RuntimeWrapper
           targets={Object.fromEntries(
             Object.entries(targets).map(([key, t]) => {
