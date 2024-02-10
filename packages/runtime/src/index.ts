@@ -1,4 +1,4 @@
-import { Target } from "@locator/shared";
+import { ProjectOptions, Target } from "@locator/shared";
 import { AdapterId } from "./consts";
 import { initRuntime } from "./initRuntime";
 import { isExtension } from "./functions/isExtension";
@@ -15,13 +15,15 @@ export function setup({
   adapter,
   targets,
   projectPath,
+  optionOverrides,
 }: {
   adapter?: AdapterId;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
+  optionOverrides?: ProjectOptions;
 } = {}) {
-  setTimeout(() => initRuntime({ adapter, targets, projectPath }), 0);
+  setTimeout(() => initRuntime({ adapter, targets, projectPath, optionOverrides }), 0);
 }
 
 export default setup;
