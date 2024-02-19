@@ -22,7 +22,7 @@ type SvelteElement = HTMLElement & { __svelte_meta?: { loc: SvelteLoc } };
 export function getElementInfo(found: SvelteElement): FullElementInfo | null {
   if (found.__svelte_meta) {
     // if element is ignored, it should match the parent
-    if (isIgnoredElement(found) && found.parentElement) return getElementInfo(found.parentElement)
+    if (isIgnoredElement(found) && (found.parentElement || found.children.length > 0)) return getElementInfo((found.children[0] || found.parentElement) as HTMLElement)
     const { loc } = found.__svelte_meta;
     return {
       thisElement: {

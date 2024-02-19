@@ -17,7 +17,7 @@ import isIgnoredElement from "../../functions/isIgnoredElement";
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
   // if element is ignored, it should match the parent
-  if (found instanceof HTMLElement && isIgnoredElement(found) && found.parentElement && found.parentElement !== found) return getElementInfo(found.parentElement)
+  if (found instanceof HTMLElement && isIgnoredElement(found) && ((found.parentElement && found.parentElement !== found) || found.children.length > 0)) return getElementInfo((found.children[0] || found.parentElement) as HTMLElement)
 
   if (
     found &&

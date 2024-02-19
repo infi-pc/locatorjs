@@ -19,7 +19,7 @@ type VueElement = HTMLElement & {
 export function getElementInfo(found: VueElement): FullElementInfo | null {
   const parentComponent = found.__vueParentComponent;
   // if element is ignored, it should match the parent
-  if (isIgnoredElement(found) && parentComponent && found.parentElement) return getElementInfo(found.parentElement )
+  if (isIgnoredElement(found) && ((parentComponent && found.parentElement) || found.children.length > 0)) return getElementInfo((found.children[0] || found.parentElement) as HTMLElement )
 
   if (parentComponent) {
     if (!parentComponent.type) {

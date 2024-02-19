@@ -21,7 +21,7 @@ import isIgnoredElement from "../../functions/isIgnoredElement";
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // if element is ignored, it should match the parent
-  if (isIgnoredElement(found) && found.parentElement) return getElementInfo(found.parentElement)
+  if (isIgnoredElement(found) && (found.parentElement || found.children.length > 0)) return getElementInfo((found.children[0] || found.parentElement) as HTMLElement)
 
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
   const labels: LabelData[] = [];
