@@ -17,12 +17,16 @@ import { Fiber, Source } from "@locator/shared";
 import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import isIgnoredElement from "../../functions/isIgnoredElement";
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
+  // if element is ignored, it should match the parent
+  if (isIgnoredElement(found) && found.parentElement) return getElementInfo(found.parentElement)
+
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
   const labels: LabelData[] = [];
 
-  const fiber = findFiberByHtmlElement(found, false);
+  const fiber = findFiberByHtmlElement(found , false);
   if (fiber) {
     const { component, componentBox, parentElements } =
       getAllParentsElementsAndRootComponent(fiber);
