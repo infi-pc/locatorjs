@@ -10,6 +10,7 @@ import {
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { getVueComponentBoundingBox } from "./getVNodeBoundingBox";
+import isIgnoredElement from "../../functions/isIgnoredElement";
 
 type VueElement = HTMLElement & {
   __vueParentComponent?: ComponentInternalInstance;
@@ -17,6 +18,9 @@ type VueElement = HTMLElement & {
 
 export function getElementInfo(found: VueElement): FullElementInfo | null {
   const parentComponent = found.__vueParentComponent;
+  // if element is ignored, it should match the parent
+  if (isIgnoredElement(found) && parentComponent && found.parentElement) return getElementInfo(found.parentElement )
+
   if (parentComponent) {
     if (!parentComponent.type) {
       return null;
