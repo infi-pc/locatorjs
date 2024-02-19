@@ -12,9 +12,12 @@ import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { Source } from "../../types/types";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import isIgnoredElement from "../../functions/isIgnoredElement";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = target.closest("[data-locatorjs-id]");
+  // if element is ignored, it should match the parent
+  if (found instanceof HTMLElement && isIgnoredElement(found) && found.parentElement && found.parentElement !== found) return getElementInfo(found.parentElement)
 
   if (
     found &&
