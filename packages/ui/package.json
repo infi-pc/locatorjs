@@ -1,6 +1,6 @@
 {
   "name": "@amirrezadev1378/ui",
-  "version": "0.4.2",
+  "version": "1.0.0",
   "main": "./index.tsx",
   "types": "./index.tsx",
   "license": "MIT",
