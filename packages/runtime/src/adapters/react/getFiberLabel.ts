@@ -1,4 +1,4 @@
-import { Fiber, Source } from "@locator/shared";
+import { Fiber, Source } from "@amirrezadev1378/shared";
 import { LabelData } from "../../types/LabelData";
 import { getUsableName } from "../../functions/getUsableName";
 

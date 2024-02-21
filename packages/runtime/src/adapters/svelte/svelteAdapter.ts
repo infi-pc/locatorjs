@@ -1,4 +1,4 @@
-import { Source } from "@locator/shared";
+import { Source } from "@amirrezadev1378/shared";
 import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import {
   AdapterObject,

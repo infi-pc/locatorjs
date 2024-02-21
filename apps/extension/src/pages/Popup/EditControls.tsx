@@ -1,6 +1,6 @@
 import { For } from 'solid-js';
 import { CloseButton, Switch } from '@hope-ui/solid';
-import { modifiersTitles } from '@locator/shared';
+import { modifiersTitles } from '@amirrezadev1378/shared';
 import { Page } from './Page';
 import SectionHeadline from './SectionHeadline';
 import { useSyncedState } from './syncedState';
@@ -49,7 +49,7 @@ export function EditControls(props: Props) {
 
         <SectionHeadline>Others: </SectionHeadline>
         <div class="flex flex-col gap-1 mb-2 items-start">
-          {/* 
+          {/*
           // NOTE: we don't need tracking now
           <Switch
             size={'sm'}

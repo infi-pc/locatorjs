@@ -1,7 +1,7 @@
 import { Editor } from './Editor';
 import { Button, Kbd } from '@hope-ui/solid';
 import { HiSolidCog } from 'solid-icons/hi';
-import { modifiersTitles } from '@locator/shared';
+import { modifiersTitles } from '@amirrezadev1378/shared';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 import SectionHeadline from './SectionHeadline';

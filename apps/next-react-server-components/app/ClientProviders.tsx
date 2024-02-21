@@ -1,6 +1,6 @@
 "use client"
 
-import setupLocatorUI from "@locator/runtime"
+import setupLocatorUI from "@amirrezadev1378/runtime"
 
 if (process.env.NODE_ENV === "development") {
   setupLocatorUI()

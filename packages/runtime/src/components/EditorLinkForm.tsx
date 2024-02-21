@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { For } from "solid-js";
 
 export function EditorLinkForm(props: {

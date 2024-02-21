@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 
 export function getAllFiberChildren(fiber: Fiber) {
   const allChildren: Fiber[] = [];

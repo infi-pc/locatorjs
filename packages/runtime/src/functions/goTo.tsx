@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { buildLinkFromSource, buildLink } from "./buildLink";
 import { HREF_TARGET } from "../consts";
 import { LinkProps, Source } from "../types/types";

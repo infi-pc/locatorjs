@@ -2,7 +2,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { InlineCode } from "./Styled";
 
-export const minimalImportScript = `import setupLocatorUI from "@locator/runtime";
+export const minimalImportScript = `import setupLocatorUI from "@amirrezadev1378/runtime";
 
 if (process.env.NODE_ENV === "development") {
   setupLocatorUI();

@@ -1,6 +1,6 @@
 import { ComponentOutline } from "./ComponentOutline";
 
-import type { Targets } from "@locator/shared";
+import type { Targets } from "@amirrezadev1378/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { ClipboardButton } from "./ClipboardButton";
 import { Button } from "./Button";

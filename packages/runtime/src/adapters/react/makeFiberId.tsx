@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 
 let globalIdCounter = 0;
 const globalIdMap = new WeakMap<Fiber, string>();

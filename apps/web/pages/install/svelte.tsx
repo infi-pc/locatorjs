@@ -17,7 +17,7 @@ import { Tabs } from "../../components/Tabs";
 
 const svelteImportScript = (
   projectPath: string
-) => `import setupLocatorUI from "@locator/runtime";
+) => `import setupLocatorUI from "@amirrezadev1378/runtime";
 
 if (process.env.NODE_ENV === "development") {
   setupLocatorUI({
@@ -72,7 +72,7 @@ export default function InstallSvelte() {
             >
               If you would like to install Locator to your project, so all team
               members can use it. You can install it as a library.
-              <InstallByAnything packageName="@locator/runtime" />
+              <InstallByAnything packageName="@amirrezadev1378/runtime" />
               <Tabs
                 queryId="svelte-stack"
                 items={[

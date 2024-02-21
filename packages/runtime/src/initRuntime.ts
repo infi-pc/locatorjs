@@ -1,4 +1,4 @@
-import { allTargets, Target } from "@locator/shared";
+import { allTargets, Target } from "@amirrezadev1378/shared";
 import { AdapterId, fontFamily } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";

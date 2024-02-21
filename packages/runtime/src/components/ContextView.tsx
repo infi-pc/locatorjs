@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { AdapterId } from "../consts";
 import { TreeNode } from "../types/TreeNode";
 import { For, createSignal, onMount } from "solid-js";

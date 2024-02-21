@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import setupLocatorUI from "@locator/runtime";
+import setupLocatorUI from "@amirrezadev1378/runtime";
 
 if (process.env.NODE_ENV === "development") {
   setupLocatorUI();

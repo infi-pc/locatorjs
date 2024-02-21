@@ -1,6 +1,6 @@
 import { For } from 'solid-js';
 import { Button, Input, Radio } from '@hope-ui/solid';
-import { allTargets } from '@locator/shared';
+import { allTargets } from '@amirrezadev1378/shared';
 import SectionHeadline from './SectionHeadline';
 import { useSyncedState } from './syncedState';
 

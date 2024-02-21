@@ -13,7 +13,7 @@ import {
   ParentPathItem,
   TreeState,
 } from "../adapterApi";
-import { Fiber, Source } from "@locator/shared";
+import { Fiber, Source } from "@amirrezadev1378/shared";
 import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";

@@ -1,5 +1,5 @@
 import { getFiberOwnBoundingBox } from "./getFiberOwnBoundingBox";
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 import { getAllFiberChildren } from "./getAllFiberChildren";
 import { mergeRects } from "../../functions/mergeRects";
 import { SimpleDOMRect } from "../../types/types";

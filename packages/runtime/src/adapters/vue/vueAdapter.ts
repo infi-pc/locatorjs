@@ -1,4 +1,4 @@
-import { Source } from "@locator/shared";
+import { Source } from "@amirrezadev1378/shared";
 import type { ComponentInternalInstance } from "vue";
 import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import {

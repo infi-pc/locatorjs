@@ -6,7 +6,7 @@ import {
   detectReact,
   detectSvelte,
   detectVue,
-} from "@locator/shared";
+} from "@amirrezadev1378/shared";
 import vueAdapter from "./vue/vueAdapter";
 
 export function getTree(target: HTMLElement, adapterId?: string) {

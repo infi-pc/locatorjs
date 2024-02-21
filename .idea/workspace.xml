@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="3a48f8ec-90ee-4895-a30a-55d5ee8b6a6f" name="Changes" comment="feat: -included first children in ignored element fallback">
+      <change afterPath="$PROJECT_DIR$/.npmrc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/packages/runtime/.npmrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/.babelrc" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/.babelrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/global.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/global.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/ClientUI/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/ClientUI/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Content/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Content/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Hook/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Hook/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Hook/insertRuntimeScript.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Hook/insertRuntimeScript.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Popup/EditControls.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Popup/EditControls.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Popup/Editor.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Popup/Editor.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Popup/Home.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Popup/Home.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Popup/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Popup/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/extension/src/pages/Popup/syncedState.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/extension/src/pages/Popup/syncedState.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/next-react-server-components/app/Client.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/next-react-server-components/app/Client.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/next-react-server-components/app/ClientProviders.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/next-react-server-components/app/ClientProviders.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/next-react-server-components/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/next-react-server-components/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-preact-project/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-preact-project/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-preact-project/src/main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-preact-project/src/main.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-preact-project/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-preact-project/vite.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-react-clean-project/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-react-clean-project/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-react-project/.storybook/.babelrc" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-react-project/.storybook/.babelrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-react-project/.storybook/preview.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-react-project/.storybook/preview.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-react-project/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-react-project/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-react-project/src/main.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-react-project/src/main.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-react-project/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-react-project/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-solid-project/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-solid-project/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-solid-project/src/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-solid-project/src/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-solid-project/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-solid-project/vite.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-svelte-project/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-svelte-project/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-svelte-project/src/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-svelte-project/src/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-vue-project/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-vue-project/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/vite-vue-project/src/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/vite-vue-project/src/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/babel.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/babel.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components/InstallUiInFile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/components/InstallUiInFile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/_app.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/_app.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/install/preact.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/install/preact.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/install/react-data-id.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/install/react-data-id.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/install/react.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/install/react.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/install/solidjs.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/install/solidjs.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/install/svelte.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/install/svelte.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/pages/install/vue.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/pages/install/vue.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/babel-jsx/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/babel-jsx/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/babel-jsx/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/babel-jsx/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/babel-jsx/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/babel-jsx/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/dev-config/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/dev-config/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/locatorjs/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/packages/locatorjs/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/react-devtools-hook/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/react-devtools-hook/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/react-devtools-hook/src/createReactDevtoolsHook.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/react-devtools-hook/src/createReactDevtoolsHook.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/react-devtools-hook/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/react-devtools-hook/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/react-devtools-hook/src/installReactDevtoolsHook.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/react-devtools-hook/src/installReactDevtoolsHook.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/react-devtools-hook/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/react-devtools-hook/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/HtmlElementTreeNode.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/HtmlElementTreeNode.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/getParentsPath.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/getParentsPath.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/getTree.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/getTree.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/jsx/getExpressionData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/jsx/getExpressionData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/jsx/getJSXComponentBoundingBox.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/jsx/getJSXComponentBoundingBox.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/jsx/jsxAdapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/jsx/jsxAdapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/fiberToSimple.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/fiberToSimple.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/findDebugSource.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/findDebugSource.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/findFiberByHtmlElement.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/findFiberByHtmlElement.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/gatherFiberRoots.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/gatherFiberRoots.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getAllFiberChildren.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getAllFiberChildren.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getAllParentsElementsAndRootComponent.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getAllParentsElementsAndRootComponent.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getAllWrappingParents.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getAllWrappingParents.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getFiberComponentBoundingBox.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getFiberComponentBoundingBox.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getFiberLabel.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getFiberLabel.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getFiberOwnBoundingBox.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/getFiberOwnBoundingBox.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/isStyled.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/isStyled.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/makeFiberId.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/makeFiberId.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/react/reactAdapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/react/reactAdapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/svelte/svelteAdapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/svelte/svelteAdapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/adapters/vue/vueAdapter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/adapters/vue/vueAdapter.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/ComponentOutline.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/ComponentOutline.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/ContextView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/ContextView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/EditorLinkForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/EditorLinkForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/IntroInfo.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/IntroInfo.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/LinkOptions.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/LinkOptions.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/MaybeOutline.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/MaybeOutline.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/Options.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/Options.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/Outline.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/Outline.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/RootTreeNode.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/RootTreeNode.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/Runtime.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/Runtime.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/TreeNode.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/TreeNode.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/TreeNodeElementView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/TreeNodeElementView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/TreeView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/TreeView.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/components/WelcomeScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/components/WelcomeScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/functions/buildLink.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/functions/buildLink.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/functions/findNames.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/functions/findNames.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/functions/getUsableName.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/functions/getUsableName.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/functions/goTo.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/functions/goTo.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/functions/linkTemplateUrl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/functions/linkTemplateUrl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/functions/optionsStore.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/functions/optionsStore.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/global.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/global.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/initRuntime.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/initRuntime.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/runtime/src/types/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/runtime/src/types/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/shared/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/shared/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/ui/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/ui/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitToolBoxStore">
+    <option name="projectConfigVersion" value="5" />
+    <option name="recentBranches">
+      <RecentBranches>
+        <option name="branchesForRepo">
+          <list>
+            <RecentBranchesForRepo>
+              <option name="branches">
+                <list>
+                  <RecentBranch>
+                    <option name="branchName" value="feature/ignored-elements" />
+                    <option name="lastUsedInstant" value="1708363983" />
+                  </RecentBranch>
+                  <RecentBranch>
+                    <option name="branchName" value="master" />
+                    <option name="lastUsedInstant" value="1708363982" />
+                  </RecentBranch>
+                </list>
+              </option>
+              <option name="repositoryRootUrl" value="file://$PROJECT_DIR$" />
+            </RecentBranchesForRepo>
+          </list>
+        </option>
+      </RecentBranches>
+    </option>
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2capwuL29HhO8fK5m1SYx64zx6y" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "feature/ignored-elements",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "G:/Side_Projects/locatorjs",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "pnpm",
+    "npm.locatorjs > dependency-versions.executor": "Run",
+    "npm.locatorjs > dependency-versions:fix.executor": "Run",
+    "npm.locatorjs > dev.executor": "Run",
+    "npm.locatorjs > e2e.executor": "Run",
+    "npm.locatorjs > publishPackages.executor": "Run",
+    "npm.locatorjs > test.executor": "Run",
+    "npm.vite-preact-project > dev.executor": "Run",
+    "npm.vite-vue-project > dev.executor": "Run",
+    "settings.editor.selected.configurable": "preferences.updates",
+    "ts.external.directory.path": "G:\\Side_Projects\\locatorjs\\apps\\next-react-server-components\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="G:\Side_Projects\locatorjs" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="G:\Side_Projects\locatorjs\packages\runtime" />
+    </key>
+  </component>
+  <component name="RunManager" selected="npm.locatorjs &gt; publishPackages">
+    <configuration name="locatorjs &gt; build" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="build" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="locatorjs &gt; dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="locatorjs &gt; e2e" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="e2e" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="locatorjs &gt; publishPackages" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="publishPackages" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="locatorjs &gt; test" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="test" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="npm.locatorjs &gt; publishPackages" />
+        <item itemvalue="npm.locatorjs &gt; build" />
+        <item itemvalue="npm.locatorjs &gt; dev" />
+        <item itemvalue="npm.locatorjs &gt; e2e" />
+        <item itemvalue="npm.locatorjs &gt; test" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="3a48f8ec-90ee-4895-a30a-55d5ee8b6a6f" name="Changes" comment="" />
+      <created>1708359786717</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1708359786717</updated>
+      <workItem from="1708359789338" duration="3946000" />
+      <workItem from="1708363772570" duration="178000" />
+      <workItem from="1708363962302" duration="732000" />
+      <workItem from="1708365429774" duration="1217000" />
+      <workItem from="1708542376963" duration="1925000" />
+    </task>
+    <task id="LOCAL-00001" summary="feat: -added helper to check if element is ignored.">
+      <option name="closed" value="true" />
+      <created>1708363031522</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1708363031522</updated>
+    </task>
+    <task id="LOCAL-00002" summary="feat: -added ignored element support for jsx-adaptor">
+      <option name="closed" value="true" />
+      <created>1708363082212</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1708363082212</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feat: -added ignored element support for react-adaptor">
+      <option name="closed" value="true" />
+      <created>1708363104598</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1708363104598</updated>
+    </task>
+    <task id="LOCAL-00004" summary="feat: -added ignored element support for svelte-adaptor">
+      <option name="closed" value="true" />
+      <created>1708363120219</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1708363120219</updated>
+    </task>
+    <task id="LOCAL-00005" summary="feat: -added ignored element support for vue-adaptor">
+      <option name="closed" value="true" />
+      <created>1708363133096</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1708363133096</updated>
+    </task>
+    <task id="LOCAL-00006" summary="feat: -added helper to check if element is ignored.">
+      <option name="closed" value="true" />
+      <created>1708364012770</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1708364012770</updated>
+    </task>
+    <task id="LOCAL-00007" summary="feat: -added ignored element support for jsx-adaptor">
+      <option name="closed" value="true" />
+      <created>1708364046950</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1708364046950</updated>
+    </task>
+    <task id="LOCAL-00008" summary="feat: -added ignored element support for react-adaptor">
+      <option name="closed" value="true" />
+      <created>1708364071389</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1708364071389</updated>
+    </task>
+    <task id="LOCAL-00009" summary="feat: -added ignored element support for svelte-adaptor">
+      <option name="closed" value="true" />
+      <created>1708364082480</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1708364082480</updated>
+    </task>
+    <task id="LOCAL-00010" summary="feat: -added ignored element support for vue-adaptor">
+      <option name="closed" value="true" />
+      <created>1708364096020</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1708364096020</updated>
+    </task>
+    <task id="LOCAL-00011" summary="feat: -included first children in ignored element fallback">
+      <option name="closed" value="true" />
+      <created>1708366643020</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1708366643020</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="feature/ignored-elements" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="SHOW_PATCH_IN_EXPLORER" value="false" />
+    <MESSAGE value="feat: -added helper to check if element is ignored." />
+    <MESSAGE value="feat: -added ignored element support for jsx-adaptor" />
+    <MESSAGE value="feat: -added ignored element support for react-adaptor" />
+    <MESSAGE value="feat: -added ignored element support for svelte-adaptor" />
+    <MESSAGE value="feat: -added ignored element support for vue-adaptor" />
+    <MESSAGE value="feat: -included first children in ignored element fallback" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: -included first children in ignored element fallback" />
+  </component>
+</project>

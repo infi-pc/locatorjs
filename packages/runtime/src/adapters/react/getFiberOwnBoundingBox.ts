@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 import { SimpleDOMRect } from "../../types/types";
 
 export function getFiberOwnBoundingBox(fiber: Fiber): SimpleDOMRect | null {

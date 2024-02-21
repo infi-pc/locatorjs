@@ -1,4 +1,4 @@
-import { getStoredOptions, setStoredOptions } from '@locator/shared';
+import { getStoredOptions, setStoredOptions } from '@amirrezadev1378/shared';
 import browser from '../../browser';
 
 browser.storage.local.get(['target'], function (result) {

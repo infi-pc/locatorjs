@@ -20,7 +20,7 @@ export const babelPluginMinimalConfig = `
 {
   "plugins": [
     [
-      "@locator/babel-jsx/dist",
+      "@amirrezadev1378/babel-jsx/dist",
       {
         "env": "development"
       }
@@ -48,7 +48,7 @@ export default function InstallReactDataId() {
             <Step title="Add Babel plugin" no={1}>
               You need a babel plugin to gather all the component{"'"}s
               locations in their files.
-              <InstallByAnything packageName="@locator/babel-jsx" />
+              <InstallByAnything packageName="@amirrezadev1378/babel-jsx" />
               <Tabs
                 queryId="stack"
                 items={[
@@ -66,7 +66,7 @@ export default function InstallReactDataId() {
                           {`module.exports = {
   presets: ["next/babel"],
   plugins: [
-    ["@locator/babel-jsx/dist", {
+    ["@amirrezadev1378/babel-jsx/dist", {
       env: "development",
     }]
   ]
@@ -93,7 +93,7 @@ export default function InstallReactDataId() {
                           {`module.exports = {
   babel: {
     plugins: [
-      ["@locator/babel-jsx/dist", {
+      ["@amirrezadev1378/babel-jsx/dist", {
         env: "development"
       }]
     ],
@@ -123,7 +123,7 @@ export default defineConfig({
         plugins: [
           // other Babel plugins
           [
-            "@locator/babel-jsx/dist",
+            "@amirrezadev1378/babel-jsx/dist",
             {
               env: "development",
             },
@@ -185,7 +185,7 @@ export default defineConfig({
             >
               Import and call setup function to show the components and handle
               the clickings.
-              <InstallByAnything packageName="@locator/runtime" />
+              <InstallByAnything packageName="@amirrezadev1378/runtime" />
               <InstallReactRuntime />
               <AlternativelyInstallExtension />
             </Step>

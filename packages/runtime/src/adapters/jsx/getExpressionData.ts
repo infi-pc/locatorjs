@@ -1,5 +1,5 @@
 import { parseDataId } from "../../functions/parseDataId";
-import { ExpressionInfo, FileStorage } from "@locator/shared";
+import { ExpressionInfo, FileStorage } from "@amirrezadev1378/shared";
 
 export function getExpressionData(
   target: HTMLElement,

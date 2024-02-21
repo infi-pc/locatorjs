@@ -1,1 +1,1 @@
-import '@locator/runtime';
+import '@amirrezadev1378/runtime';

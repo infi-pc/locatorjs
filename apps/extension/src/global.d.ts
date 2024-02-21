@@ -1,4 +1,4 @@
-import { ReactDevtoolsHook } from '@locator/shared';
+import { ReactDevtoolsHook } from '@amirrezadev1378/shared';
 
 declare global {
   interface Window {

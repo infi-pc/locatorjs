@@ -15,7 +15,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { Tabs } from "../../components/Tabs";
 
-const vueImportScript = () => `import setupLocatorUI from "@locator/runtime";
+const vueImportScript = () => `import setupLocatorUI from "@amirrezadev1378/runtime";
 
 if (process.env.NODE_ENV === "development") {
   setupLocatorUI({
@@ -71,7 +71,7 @@ export default function InstallVue() {
             >
               If you would like to install Locator to your project, so all team
               members can use it. You can install it as a library.
-              <InstallByAnything packageName="@locator/runtime" />
+              <InstallByAnything packageName="@amirrezadev1378/runtime" />
               <Tabs
                 queryId="vue-stack"
                 items={[

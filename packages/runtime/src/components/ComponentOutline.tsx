@@ -6,7 +6,7 @@ import { trackClickStats } from "../functions/trackClickStats";
 import { goTo } from "../functions/goTo";
 import { SimpleDOMRect } from "../types/types";
 import { buildLink } from "../functions/buildLink";
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { useOptions } from "../functions/optionsStore";
 
 export function ComponentOutline(props: {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { Source } from "@locator/shared";
+import { Source } from "@amirrezadev1378/shared";
 import { getReferenceId } from "../functions/getReferenceId";
 import nonNullable from "../functions/nonNullable";
 import { TreeNode, TreeNodeComponent } from "../types/TreeNode";

@@ -1,4 +1,4 @@
-import { cleanOptions, Targets } from "@locator/shared";
+import { cleanOptions, Targets } from "@amirrezadev1378/shared";
 import { createMemo } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import { isExtension } from "../functions/isExtension";

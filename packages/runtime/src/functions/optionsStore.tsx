@@ -4,7 +4,7 @@ import {
   listenOnOptionsChanges,
   ProjectOptions,
   setStoredOptions,
-} from "@locator/shared";
+} from "@amirrezadev1378/shared";
 
 export type OptionsStore = {
   setOptions: (options: ProjectOptions) => void;

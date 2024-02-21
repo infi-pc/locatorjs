@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 
 // function printDebugOwnerTree(fiber: Fiber): string | null {
 //   let current: Fiber | null = fiber || null;

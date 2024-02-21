@@ -1,7 +1,8 @@
 {
-  "name": "@locator/runtime",
+  "name": "@amirrezadev1378/runtime",
   "main": "dist/index.js",
-  "version": "0.4.3",
+  "version": "0.7.0",
+
   "scripts": {
     "test": "vitest run",
     "test:dev": "vitest watch",
@@ -21,14 +22,14 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.0.1",
-    "@locator/shared": "workspace:^",
+    "@amirrezadev1378/shared": "workspace:^",
     "solid-js": "^1.7.8",
     "tailwindcss": "^3.3.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.17.10",
     "@babel/core": "^7.22.5",
-    "@locator/dev-config": "workspace:^",
+    "@amirrezadev1378/dev-config": "workspace:^",
     "@types/jsdom": "^16.2.14",
     "babel-preset-solid": "^1.7.7",
     "concurrently": "^7.6.0",
@@ -36,15 +37,18 @@
     "jest": "^28.1.2",
     "jest-environment-jsdom": "^28.1.2",
     "ts-node": "^10.8.2",
-    "typescript": "^4.7.4",
+    "typescript": "^5",
     "vitest": "^0.34.4",
     "vue": "^3.2.37"
   },
   "author": "Michael Musil",
   "repository": {
     "type": "git",
-    "url": "https://github.com/infi-pc/locatorjs"
+    "url": "https://github.com/amirrezaDev1378/locatorjs"
   },
   "license": "MIT",
-  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
+  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }

@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { OptionsStore } from "./optionsStore";
 
 export const getLinkTypeOrTemplate = (

@@ -1,7 +1,7 @@
 import { linkTemplateUrl } from "./linkTemplateUrl";
 import { evalTemplate } from "./evalTemplate";
 import { LinkProps, Source } from "../types/types";
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { OptionsStore } from "./optionsStore";
 import { transformPath } from "./transformPath";
 

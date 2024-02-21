@@ -1,5 +1,5 @@
-import { isValidRenderer } from '@locator/shared/dist/isValidRenderer';
-import { detectSvelte, detectVue } from '@locator/shared';
+import { isValidRenderer } from '@amirrezadev1378/shared/dist/isValidRenderer';
+import { detectSvelte, detectVue } from '@amirrezadev1378/shared';
 
 type Renderer = any;
 

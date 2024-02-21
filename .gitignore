@@ -35,3 +35,4 @@ yarn-error.log*
 
 # ignore vite config timestamp like apps/vite-preact-project/vite.config.js.timestamp-1689332089031.mjs
 vite.config.js.timestamp-*.mjs
+/.idea/.gitignore

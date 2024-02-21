@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 
 export function gatherFiberRoots(

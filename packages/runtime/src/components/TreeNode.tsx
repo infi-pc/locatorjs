@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { createSignal, For } from "solid-js";
 import { goToSource } from "../functions/goTo";
 import { useOptions } from "../functions/optionsStore";

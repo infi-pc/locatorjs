@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { createMemo } from "solid-js";
 import { AdapterId } from "../consts";
 import { getElementInfo } from "../adapters/getElementInfo";

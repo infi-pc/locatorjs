@@ -1,4 +1,4 @@
-import { Target } from "@locator/shared";
+import { Target } from "@amirrezadev1378/shared";
 import { AdapterId } from "./consts";
 import { initRuntime } from "./initRuntime";
 import { isExtension } from "./functions/isExtension";

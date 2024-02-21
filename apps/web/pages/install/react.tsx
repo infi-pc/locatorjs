@@ -83,7 +83,7 @@ export default function InstallReact() {
             >
               If you would like to install Locator to your project, so all team
               members can use it. You can install it as a library.
-              <InstallByAnything packageName="@locator/runtime" />
+              <InstallByAnything packageName="@amirrezadev1378/runtime" />
               <InstallReactRuntime />
               <Expandable title="storybook">
                 <>

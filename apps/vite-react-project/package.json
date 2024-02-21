@@ -1,5 +1,5 @@
 {
-  "name": "@locator/vite-react-project",
+  "name": "@amirrezadev1378/vite-react-project",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -10,9 +10,9 @@
     "build-storybook": "build-storybook"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "@locator/runtime": "workspace:^"
+    "react": "^18",
+    "react-dom": "^18",
+    "@amirrezadev1378/runtime": "workspace:^"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",
@@ -23,12 +23,12 @@
     "@storybook/builder-vite": "^0.2.1",
     "@storybook/react": "^6.5.9",
     "@storybook/testing-library": "^0.0.13",
-    "@types/react": "^18.0.15",
-    "@types/react-dom": "^18.0.6",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^2.0.0",
     "babel-loader": "^9.1.2",
-    "typescript": "^4.7.4",
+    "typescript": "^5",
     "vite": "^3.0.7",
-    "@locator/babel-jsx": "workspace:^"
+    "@amirrezadev1378/babel-jsx": "workspace:^"
   }
 }

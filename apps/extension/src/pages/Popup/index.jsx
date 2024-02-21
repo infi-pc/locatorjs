@@ -1,7 +1,7 @@
 import { render } from 'solid-js/web';
 import App from './App';
 import './index.css';
-import setupLocatorUI from '@locator/runtime';
+import setupLocatorUI from '@amirrezadev1378/runtime';
 
 render(App, document.getElementById('app-container'));
 

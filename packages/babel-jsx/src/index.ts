@@ -8,7 +8,7 @@ import {
   FileStorage,
   SourceLocation,
   StyledDefinitionInfo,
-} from "@locator/shared";
+} from "@amirrezadev1378/shared";
 
 export interface PluginOptions {
   opts?: {
@@ -278,7 +278,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
           })()`;
 
           // `function __bindLocatorExpression(id) {
-          //   return require("@locator/runtime").__bindLocatorExpression(${createFullPath(
+          //   return require("@amirrezadev1378/runtime").__bindLocatorExpression(${createFullPath(
           //     fileStorage
           //   )}, id);
           // }`;

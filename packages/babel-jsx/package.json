@@ -1,5 +1,5 @@
 {
-  "name": "@locator/babel-jsx",
+  "name": "@amirrezadev1378/babel-jsx",
   "main": "dist/index.js",
   "version": "0.4.3",
   "scripts": {
@@ -12,23 +12,23 @@
   "dependencies": {
     "@babel/parser": "^7.22.5",
     "@babel/plugin-syntax-jsx": "^7.16.0",
-    "@babel/preset-env": "^7.22.5",
+    "@babel/preset-env": "^7.22.15",
     "@babel/preset-react": "^7.16.0",
-    "@babel/preset-typescript": "^7.22.5",
+    "@babel/preset-typescript": "^7.22.15",
     "@babel/traverse": "^7.16.3",
     "@babel/types": "^7.21.5",
-    "@locator/runtime": "workspace:^",
-    "@locator/shared": "workspace:^"
+    "@amirrezadev1378/runtime": "workspace:^",
+    "@amirrezadev1378/shared": "workspace:^"
   },
   "devDependencies": {
-    "@babel/preset-typescript": "^7.22.5",
-    "@locator/dev-config": "workspace:^",
+    "@babel/preset-typescript": "^7.22.15",
+    "@amirrezadev1378/dev-config": "workspace:^",
     "@types/babel__traverse": "^7.14.2",
     "@types/jest": "^27.4.0",
-    "@types/node": "^20.4.2",
+    "@types/node": "^20",
     "babel-plugin-tester": "^10.1.0",
     "jest": "^28.1.2",
-    "typescript": "^4.7.4"
+    "typescript": "^5"
   },
   "author": "Michael Musil",
   "repository": {

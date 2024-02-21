@@ -1,4 +1,4 @@
-import { detectSvelte, Targets } from "@locator/shared";
+import { detectSvelte, Targets } from "@amirrezadev1378/shared";
 import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";

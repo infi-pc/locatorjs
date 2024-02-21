@@ -1,5 +1,5 @@
 {
-  "extends": "@locator/dev-config/tsconfig.base.json",
+  "extends": "@amirrezadev1378/dev-config/tsconfig.base.json",
   "include": ["src"],
   "exclude": ["dist", "build", "node_modules", "tests/fixtures"],
   "compilerOptions": {

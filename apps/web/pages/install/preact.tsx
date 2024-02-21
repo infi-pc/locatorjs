@@ -25,7 +25,7 @@ export default function InstallPreact() {
             <Step title="Add Babel plugin" no={1}>
               You need a babel plugin to gather all the component{"'"}s
               locations in their files.
-              <InstallByAnything packageName="@locator/babel-jsx" />
+              <InstallByAnything packageName="@amirrezadev1378/babel-jsx" />
               <Tabs
                 queryId="stack"
                 items={[
@@ -47,7 +47,7 @@ export default defineConfig({
       babel: {
         plugins: [
           [
-            "@locator/babel-jsx/dist",
+            "@amirrezadev1378/babel-jsx/dist",
             {
               env: "development",
             },
@@ -72,7 +72,7 @@ export default defineConfig({
                           style={a11yDark}
                         >
                           {`[
-  "@locator/babel-jsx/dist",
+  "@amirrezadev1378/babel-jsx/dist",
   {
     env: "development",
   },
@@ -98,7 +98,7 @@ export default defineConfig({
             >
               Import and call setup function to show the components and handle
               the clickings.
-              <InstallByAnything packageName="@locator/runtime" />
+              <InstallByAnything packageName="@amirrezadev1378/runtime" />
               <br />
               <InstallUiInFile file="index.jsx" />
               <AlternativelyInstallExtension />

@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { buildLink } from "../functions/buildLink";
 import { EditorLinkForm } from "./EditorLinkForm";
 import { ProjectLinkForm } from "./ProjectLinkForm";

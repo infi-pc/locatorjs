@@ -1,5 +1,5 @@
 {
-  "name": "@locator/shared",
+  "name": "@amirrezadev1378/shared",
   "version": "0.4.3",
   "main": "./dist/index.js",
   "license": "MIT",
@@ -11,10 +11,10 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.22.5",
-    "@types/react": "^18.0.15",
-    "@types/react-dom": "^18.0.6",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "tsconfig": "^0.0.1",
-    "typescript": "^4.7.4"
+    "typescript": "^5"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "files": [

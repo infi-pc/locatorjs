@@ -4,7 +4,7 @@ import {
   detectReact,
   detectSvelte,
   detectVue,
-} from "@locator/shared";
+} from "@amirrezadev1378/shared";
 import { ParentPathItem } from "./adapterApi";
 import svelteAdapter from "./svelte/svelteAdapter";
 import jsxAdapter from "./jsx/jsxAdapter";

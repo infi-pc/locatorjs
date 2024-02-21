@@ -1,4 +1,4 @@
-import { Fiber, Target } from "@locator/shared";
+import { Fiber, Target } from "@amirrezadev1378/shared";
 
 export type Source = {
   fileName: string;

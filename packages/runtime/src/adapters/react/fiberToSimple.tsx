@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 import { getBoundingRect } from "../../functions/getBoundingRect";
 import { getComposedBoundingBox } from "../../functions/getComposedBoundingBox";
 import { getUsableName } from "../../functions/getUsableName";

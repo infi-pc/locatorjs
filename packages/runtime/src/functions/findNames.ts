@@ -1,4 +1,4 @@
-import { Fiber } from "@locator/shared";
+import { Fiber } from "@amirrezadev1378/shared";
 import { getUsableName } from "./getUsableName";
 
 export function findNames(fiber: Fiber): {

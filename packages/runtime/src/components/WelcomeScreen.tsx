@@ -1,5 +1,5 @@
 import { LinkProps } from "../types/types";
-import { Targets } from "@locator/shared";
+import { Targets } from "@amirrezadev1378/shared";
 import { useOptions } from "../functions/optionsStore";
 import { LinkOptions } from "./LinkOptions";
 import { AdapterId, HREF_TARGET } from "../consts";

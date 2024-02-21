@@ -1,5 +1,5 @@
 import { parseDataId } from "../../functions/parseDataId";
-import { FileStorage } from "@locator/shared";
+import { FileStorage } from "@amirrezadev1378/shared";
 import { SimpleDOMRect } from "../../types/types";
 import { mergeRects } from "../../functions/mergeRects";
 import { getExpressionData } from "./getExpressionData";

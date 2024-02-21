@@ -2,7 +2,7 @@
   "presets": ["@babel/preset-react"],
   "plugins": [
     [
-      "@locator/babel-jsx/dist",
+      "@amirrezadev1378/babel-jsx/dist",
       {
         "env": "development"
       }

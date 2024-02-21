@@ -1,4 +1,4 @@
-import { Fiber, Source } from "@locator/shared";
+import { Fiber, Source } from "@amirrezadev1378/shared";
 
 export function findDebugSource(
   fiber: Fiber

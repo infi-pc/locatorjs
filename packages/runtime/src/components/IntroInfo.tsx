@@ -1,4 +1,4 @@
-import { modifiersTitles } from "@locator/shared";
+import { modifiersTitles } from "@amirrezadev1378/shared";
 import { createEffect, createSignal, For } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";

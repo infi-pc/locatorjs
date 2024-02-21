@@ -5,7 +5,7 @@ import {
   TreeState,
 } from "../adapterApi";
 import { parseDataId } from "../../functions/parseDataId";
-import { FileStorage } from "@locator/shared";
+import { FileStorage } from "@amirrezadev1378/shared";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";

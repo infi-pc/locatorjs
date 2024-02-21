@@ -1,2 +1,2 @@
 export * from "./installReactDevtoolsHook";
-export * from "@locator/shared/dist/isValidRenderer";
+export * from "@amirrezadev1378/shared/dist/isValidRenderer";
