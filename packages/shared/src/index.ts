@@ -13,7 +13,7 @@ export type Targets = { [k: string]: Target };
 
 export const allTargets: Targets = {
   vscode: {
-    url: "vscode://file${projectPath}${filePath}:${line}:${column}",
+    url: "vscode://file/${projectPath}${filePath}:${line}:${column}",
     label: "VSCode",
   },
   webstorm: {
