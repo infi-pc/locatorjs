@@ -41,3 +41,4 @@ Feel free to create issue or pull request.
 - [vite-plugin-svelte](https://github.com/sveltejs/vite-plugin-svelte/tree/main/packages/vite-plugin-svelte/src/ui/inspector)
 - [vite-plugin-vue-inspector](https://github.com/webfansplz/vite-plugin-vue-inspector)
 - [solid-devtools/locator](https://github.com/thetarnav/solid-devtools/tree/main/packages/locator)
+- [code-inspector-plugin](https://github.com/zh-lx/code-inspector)
