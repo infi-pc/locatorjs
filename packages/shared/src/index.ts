@@ -20,6 +20,14 @@ export const allTargets: Targets = {
     url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
     label: "WebStorm",
   },
+  cursor: {
+    url: "cursor://file/${projectPath}${filePath}:${line}:${column}",
+    label: "Cursor",
+  },
+  windsurf: {
+    url: "windsurf://file/${projectPath}${filePath}:${line}:${column}",
+    label: "Windsurf",
+  },
 };
 
 export const isMac =
