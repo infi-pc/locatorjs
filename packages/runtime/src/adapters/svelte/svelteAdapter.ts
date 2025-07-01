@@ -8,6 +8,7 @@ import {
 } from "../adapterApi";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import isIgnoredElement from "../../functions/isIgnoredElement";
 
 type SvelteLoc = {
   char: number;
@@ -20,6 +21,8 @@ type SvelteElement = HTMLElement & { __svelte_meta?: { loc: SvelteLoc } };
 
 export function getElementInfo(found: SvelteElement): FullElementInfo | null {
   if (found.__svelte_meta) {
+    // if element is ignored, it should match the parent
+    if (isIgnoredElement(found) && (found.parentElement || found.children.length > 0)) return getElementInfo((found.children[0] || found.parentElement) as HTMLElement)
     const { loc } = found.__svelte_meta;
     return {
       thisElement: {
