@@ -11,8 +11,9 @@ export type OptionsStore = {
   getOptions: () => ProjectOptions;
 };
 
-export function initOptions(): OptionsStore {
+export function initOptions(optionOverrides?: ProjectOptions): OptionsStore {
   const [signalOptions, setSignalOptions] = createSignal(getStoredOptions());
+  if (optionOverrides) setSignalOptions({...signalOptions(), ...optionOverrides});
 
   // This listens on localStorage changes, but the changes go only from scripts other than the current one and current one's content scripts
   listenOnOptionsChanges((newOptions) => {
@@ -57,8 +58,8 @@ export function initOptions(): OptionsStore {
 
 const OptionsContext = createContext<OptionsStore>();
 
-export function OptionsProvider(props: { children: any }) {
-  const options = initOptions();
+export function OptionsProvider(props: { children: any, optionOverrides?: ProjectOptions}) {
+  const options = initOptions(props.optionOverrides);
 
   return (
     <OptionsContext.Provider value={options}>
