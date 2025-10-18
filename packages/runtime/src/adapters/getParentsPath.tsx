@@ -8,7 +8,13 @@ import {
 import { ParentPathItem } from "./adapterApi";
 import svelteAdapter from "./svelte/svelteAdapter";
 import jsxAdapter from "./jsx/jsxAdapter";
+import swcAdapter from "./jsx/swcAdapter";
 import vueAdapter from "./vue/vueAdapter";
+
+// Helper to detect SWC plugin (data-source attributes)
+function detectSWC(): boolean {
+  return document.querySelector("[data-source]") !== null;
+}
 
 export function getParentsPaths(
   target: HTMLElement,
@@ -25,6 +31,11 @@ export function getParentsPaths(
   }
   if (adapterId === "jsx" && jsxAdapter.getParentsPaths) {
     return jsxAdapter.getParentsPaths(target);
+  }
+
+  // Check for SWC plugin first (Next.js with SWC plugin)
+  if (detectSWC() && swcAdapter.getParentsPaths) {
+    return swcAdapter.getParentsPaths(target);
   }
 
   if (detectSvelte() && svelteAdapter.getParentsPaths) {

@@ -1,5 +1,6 @@
 import reactAdapter from "./react/reactAdapter";
 import jsxAdapter from "./jsx/jsxAdapter";
+import swcAdapter from "./jsx/swcAdapter";
 import svelteAdapter from "./svelte/svelteAdapter";
 import {
   detectJSX,
@@ -8,6 +9,11 @@ import {
   detectVue,
 } from "@locator/shared";
 import vueAdapter from "./vue/vueAdapter";
+
+// Helper to detect SWC plugin (data-source attributes)
+function detectSWC(): boolean {
+  return document.querySelector("[data-source]") !== null;
+}
 
 export function getTree(target: HTMLElement, adapterId?: string) {
   if (adapterId === "react" && reactAdapter.getTree) {
@@ -21,6 +27,11 @@ export function getTree(target: HTMLElement, adapterId?: string) {
   }
   if (adapterId === "jsx" && jsxAdapter.getTree) {
     return jsxAdapter.getTree(target);
+  }
+
+  // Check for SWC plugin first (Next.js with SWC plugin)
+  if (detectSWC() && swcAdapter.getTree) {
+    return swcAdapter.getTree(target);
   }
 
   if (detectSvelte() && svelteAdapter.getTree) {
