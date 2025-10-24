@@ -165,6 +165,11 @@ export default function locatorLoader(
   // Get file path relative to project root
   const filePath = this.resourcePath;
   
+  // Skip node_modules and middleware files
+  if (filePath.includes('node_modules') || filePath.includes('middleware.')) {
+    return source;
+  }
+  
   // Transform the source
   const transformed = transformJSX(source, filePath, options);
   
