@@ -1,10 +1,12 @@
-import Header from "../../blocks/Header";
+import Link from "next/link";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import Link from "next/link";
-import { Step } from "../../components/Step";
-import { Tabs } from "../../components/Tabs";
+import Header from "../../blocks/Header";
+import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
 import { InstallByAnything } from "../../components/InstallByAnything";
+import { InstallReactRuntime } from "../../components/InstallReactRuntime";
+import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
+import { Step } from "../../components/Step";
 import {
   BlockHeadline,
   InlineCode,
@@ -12,9 +14,7 @@ import {
   StandardLink,
   StepsBody,
 } from "../../components/Styled";
-import { NotUsingBabelAlert } from "../../components/NotUsingBabelAlert";
-import { InstallReactRuntime } from "../../components/InstallReactRuntime";
-import { AlternativelyInstallExtension } from "../../components/AlternativelyInstallExtension";
+import { Tabs } from "../../components/Tabs";
 
 export const babelPluginMinimalConfig = `
 {
@@ -39,7 +39,7 @@ export default function InstallReactDataId() {
           <p className="text-center">
             Install Locator on React codebase. This is data-ids variant which is
             alternative solution for{" "}
-            <Link href="/install/react">
+            <Link href="/install/react" passHref>
               <StandardLink>devtools variant</StandardLink>
             </Link>
             .{" "}
@@ -73,6 +73,69 @@ export default function InstallReactDataId() {
 };`}
                         </SyntaxHighlighter>
                         <NotUsingBabelAlert />
+                      </>
+                    ),
+                  },
+                  {
+                    title: "Next.js 15+ (Turbopack/SWC)",
+                    content: (
+                      <>
+                        For Next.js 15+ using Turbopack or SWC, use the
+                        webpack/turbopack loader instead:
+                        <InstallByAnything packageName="@locator/webpack-loader" />
+                        <div className="mt-2 mb-1 font-semibold">
+                          For Turbopack (Next.js 15+):
+                        </div>
+                        Add this to your <InlineCode>next.config.ts</InlineCode>
+                        :
+                        <SyntaxHighlighter
+                          language="javascript"
+                          style={a11yDark}
+                        >
+                          {`import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    rules: {
+      "**/*.{tsx,jsx,ts,js}": {
+        loaders: [{
+          loader: "@locator/webpack-loader",
+          options: { env: "development" }
+        }]
+      }
+    }
+  }
+};
+
+export default nextConfig;`}
+                        </SyntaxHighlighter>
+                        <div className="mt-3 mb-1 font-semibold">
+                          For Webpack:
+                        </div>
+                        Add this to your <InlineCode>next.config.js</InlineCode>
+                        :
+                        <SyntaxHighlighter
+                          language="javascript"
+                          style={a11yDark}
+                        >
+                          {`module.exports = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.module.rules.push({
+        test: /\\.(tsx|ts|jsx|js)$/,
+        exclude: /node_modules/,
+        use: [{
+          loader: '@locator/webpack-loader',
+          options: { 
+            env: 'development'
+          }
+        }]
+      });
+    }
+    return config;
+  }
+};`}
+                        </SyntaxHighlighter>
                       </>
                     ),
                   },

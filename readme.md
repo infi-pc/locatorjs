@@ -9,9 +9,8 @@ Click on UI Component in the browser to open its code in your IDE.
 go to [www.locatorjs.com](https://www.locatorjs.com) for more info
 
 > [!NOTE]
-> LocatorJS is currently not compatible with Next.js 15+.
->
-> Currently, the only thing I can recommend is to use an alternative like [code-inspector-plugin](https://www.npmjs.com/package/code-inspector-plugin) which is based on Webpack.
+> For Next.js 15+ with Turbopack or SWC, use the [@locator/webpack-loader](https://www.locatorjs.com/install/react) instead of the direct babel plugin.
+
 ## Install Browser extension
 
 [Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi) (works for Chrome, Brave, Opera and Edge)
