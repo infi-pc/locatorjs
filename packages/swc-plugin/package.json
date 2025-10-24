@@ -1,0 +1,34 @@
+{
+  "name": "@locator/swc-plugin",
+  "version": "0.1.0",
+  "description": "SWC plugin for LocatorJS to add data-source attributes to JSX elements",
+  "main": "target/wasm32-unknown-unknown/release/locatorjs_swc_plugin.wasm",
+  "files": [
+    "target/wasm32-unknown-unknown/release/locatorjs_swc_plugin.wasm"
+  ],
+  "scripts": {
+    "build": "cargo build --target wasm32-unknown-unknown --release",
+    "test": "cargo test",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "swc",
+    "plugin",
+    "locatorjs",
+    "jsx",
+    "react",
+    "nextjs",
+    "turbopack"
+  ],
+  "author": "LocatorJS Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/infi-pc/locatorjs.git",
+    "directory": "packages/swc-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/infi-pc/locatorjs/issues"
+  },
+  "homepage": "https://github.com/infi-pc/locatorjs#readme"
+}

@@ -1,5 +1,6 @@
 import reactAdapter from "./react/reactAdapter";
 import jsxAdapter from "./jsx/jsxAdapter";
+import swcAdapter from "./jsx/swcAdapter";
 import svelteAdapter from "./svelte/svelteAdapter";
 import vueAdapter from "./vue/vueAdapter";
 import { AdapterId } from "../consts";
@@ -18,7 +19,10 @@ export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
     return vueAdapter.getElementInfo(target);
   }
 
+  // Try SWC adapter first for data-source attributes (Next.js with SWC plugin)
+  // Then fall back to other adapters
   return (
+    swcAdapter.getElementInfo(target) ||
     jsxAdapter.getElementInfo(target) ||
     reactAdapter.getElementInfo(target) ||
     svelteAdapter.getElementInfo(target) ||
