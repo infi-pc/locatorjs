@@ -28,6 +28,9 @@ interface LoaderContext<T = Record<string, unknown>> {
  * enabling component location tracking for projects using SWC or Turbopack
  * where direct babel plugin usage is not possible.
  *
+ * Always uses path-based data attributes (data-locatorjs) for React Server
+ * Component compatibility, working without requiring window.__LOCATOR_DATA__.
+ *
  * @example
  * ```js
  * // next.config.js
@@ -82,8 +85,8 @@ function locatorLoader(
           },
         ],
       ],
-      // Apply the locator plugin
-      plugins: [[locatorPlugin, options]],
+      // Apply the locator plugin with path-based data attributes for server components
+      plugins: [[locatorPlugin, { ...options, dataAttribute: "path" }]],
       // Preserve the original code structure
       retainLines: false,
       compact: false,

@@ -100,14 +100,15 @@ module.exports = {
 
 ## How It Works
 
-This loader uses Babel's transform API to apply the `@locator/babel-jsx` plugin to your JSX/TSX files. It adds special data attributes to your components that allow LocatorJS to track component locations and enable click-to-source functionality.
+This loader uses Babel's transform API to apply the `@locator/babel-jsx` plugin to your JSX/TSX files. It adds `data-locatorjs` attributes with full file path and location information to your components, enabling click-to-source functionality even in React Server Components where JavaScript execution is limited.
 
 The loader:
 
 1. Parses your JSX/TSX files using Babel
-2. Applies the LocatorJS transformation
+2. Applies the LocatorJS transformation with path-based attributes (`data-locatorjs="/path/to/file.tsx:line:column"`)
 3. Returns the transformed code with sourcemaps
 4. Automatically skips `node_modules` and middleware files
+5. Works without requiring `window.__LOCATOR_DATA__` - perfect for Server Components
 
 ## Requirements
 
