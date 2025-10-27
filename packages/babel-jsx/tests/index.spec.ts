@@ -1,6 +1,4 @@
-import pluginTester from "babel-plugin-tester";
-// @ts-ignore
-import prettier from "babel-plugin-tester/dist/formatters/prettier.js";
+import pluginTester, { prettierFormatter } from "babel-plugin-tester";
 
 import plugin from "../src";
 
@@ -13,6 +11,6 @@ pluginTester({
   snapshot: true,
   formatResult: (result, op) => {
     result = result.replace(/\"[\w/\\_-]*locatorjs\/packages/g, '"');
-    return prettier(result, op);
+    return prettierFormatter(result, op);
   },
 });

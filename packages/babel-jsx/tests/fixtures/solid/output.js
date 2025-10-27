@@ -2,14 +2,14 @@ import { template as _$template } from "solid-js/web";
 import { className as _$className } from "solid-js/web";
 import { effect as _$effect } from "solid-js/web";
 import { setAttribute as _$setAttribute } from "solid-js/web";
-const _tmpl$ = /*#__PURE__*/ _$template(
-  `<div data-x="another-data-attribute" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::0"><header data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::1"><img alt="logo" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::2"><p data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::3">Edit <code data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::4">src/App.jsx</code> and save to reload.</p><a href="https://github.com/solidjs/solid" target="_blank" rel="noopener noreferrer" data-locatorjs-id="/babel-jsx/tests/fixtures/solid/code.js::5">Learn Solid`
+var _tmpl$ = /*#__PURE__*/ _$template(
+  `<div data-x=another-data-attribute data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::0><header data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::1><img alt=logo data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::2><p data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::3>Edit <code data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::4>src/App.jsx</code> and save to reload.</p><a href=https://github.com/solidjs/solid target=_blank rel="noopener noreferrer"data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::5>Learn Solid`
 );
 import logo from "./logo.svg";
 import styles from "./App.module.css";
 function App() {
   return (() => {
-    const _el$ = _tmpl$(),
+    var _el$ = _tmpl$(),
       _el$2 = _el$.firstChild,
       _el$3 = _el$2.firstChild,
       _el$4 = _el$3.nextSibling,
@@ -17,21 +17,21 @@ function App() {
     _$setAttribute(_el$3, "src", logo);
     _$effect(
       (_p$) => {
-        const _v$ = styles.App,
+        var _v$ = styles.App,
           _v$2 = styles.header,
           _v$3 = styles.logo,
           _v$4 = styles.link;
-        _v$ !== _p$._v$ && _$className(_el$, (_p$._v$ = _v$));
-        _v$2 !== _p$._v$2 && _$className(_el$2, (_p$._v$2 = _v$2));
-        _v$3 !== _p$._v$3 && _$className(_el$3, (_p$._v$3 = _v$3));
-        _v$4 !== _p$._v$4 && _$className(_el$5, (_p$._v$4 = _v$4));
+        _v$ !== _p$.e && _$className(_el$, (_p$.e = _v$));
+        _v$2 !== _p$.t && _$className(_el$2, (_p$.t = _v$2));
+        _v$3 !== _p$.a && _$className(_el$3, (_p$.a = _v$3));
+        _v$4 !== _p$.o && _$className(_el$5, (_p$.o = _v$4));
         return _p$;
       },
       {
-        _v$: undefined,
-        _v$2: undefined,
-        _v$3: undefined,
-        _v$4: undefined,
+        e: undefined,
+        t: undefined,
+        a: undefined,
+        o: undefined,
       }
     );
     return _el$;
