@@ -4,6 +4,7 @@
 	"exclude": ["dist", "build", "node_modules"],
 	"compilerOptions": {
 		"moduleResolution": "Node",
-		"target": "ESNext"
+		"target": "ESNext",
+    "noEmit": false
 	}
 }
