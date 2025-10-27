@@ -53,35 +53,10 @@ export default function InstallReactDataId() {
                 queryId="stack"
                 items={[
                   {
-                    title: "Next.js",
+                    title: "Next.js 15+",
                     content: (
                       <>
-                        Add custom babel config to your Next.js project. Create
-                        of modify
-                        <InlineCode>babel.config.js</InlineCode> file.
-                        <SyntaxHighlighter
-                          language="javascript"
-                          style={a11yDark}
-                        >
-                          {`module.exports = {
-  presets: ["next/babel"],
-  plugins: [
-    ["@locator/babel-jsx/dist", {
-      env: "development",
-    }]
-  ]
-};`}
-                        </SyntaxHighlighter>
-                        <NotUsingBabelAlert />
-                      </>
-                    ),
-                  },
-                  {
-                    title: "Next.js 15+ (Turbopack/SWC)",
-                    content: (
-                      <>
-                        For Next.js 15+ using Turbopack or SWC, use the
-                        webpack/turbopack loader instead:
+                        For Next.js:
                         <InstallByAnything packageName="@locator/webpack-loader" />
                         <div className="mt-2 mb-1 font-semibold">
                           For Turbopack (Next.js 15+):
@@ -136,6 +111,30 @@ export default nextConfig;`}
   }
 };`}
                         </SyntaxHighlighter>
+                      </>
+                    ),
+                  },
+                  {
+                    title: "Next.js (older)",
+                    content: (
+                      <>
+                        Add custom babel config to your Next.js project. Create
+                        of modify
+                        <InlineCode>babel.config.js</InlineCode> file.
+                        <SyntaxHighlighter
+                          language="javascript"
+                          style={a11yDark}
+                        >
+                          {`module.exports = {
+  presets: ["next/babel"],
+  plugins: [
+    ["@locator/babel-jsx/dist", {
+      env: "development",
+    }]
+  ]
+};`}
+                        </SyntaxHighlighter>
+                        <NotUsingBabelAlert />
                       </>
                     ),
                   },
