@@ -26,7 +26,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   turbopack: {
     rules: {
-      "**/*.{tsx,jsx,ts,js}": {
+      "**/*.{tsx,jsx}": {
         loaders: [
           {
             loader: "@locator/webpack-loader",
