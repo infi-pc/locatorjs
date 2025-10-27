@@ -39,7 +39,7 @@ export default function InstallReactDataId() {
           <p className="text-center">
             Install Locator on React codebase. This is data-ids variant which is
             alternative solution for{" "}
-            <Link href="/install/react" passHref>
+            <Link href="/install/react" passHref legacyBehavior>
               <StandardLink>devtools variant</StandardLink>
             </Link>
             .{" "}

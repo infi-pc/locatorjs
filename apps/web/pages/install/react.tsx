@@ -38,7 +38,7 @@ export default function InstallReact() {
           <p className="text-center">
             Install Locator on React codebase. This is DevTools variant which is
             preffered solution. Alternative is{" "}
-            <Link href="/install/react-data-id" passHref>
+            <Link href="/install/react-data-id" passHref legacyBehavior>
               <StandardLink>data-id solution</StandardLink>
             </Link>
             .{" "}
@@ -169,7 +169,7 @@ export default nextConfig;`}
               </div>
               <br />
               <b>Or try alternative:</b>{" "}
-              <Link href="/install/react-data-id" passHref>
+              <Link href="/install/react-data-id" passHref legacyBehavior>
                 <StandardLink>
                   installation based on custom Babel plugin
                 </StandardLink>

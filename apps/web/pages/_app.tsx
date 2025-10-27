@@ -1,33 +1,37 @@
 import "../styles/globals.css";
 import setupLocatorUI from "@locator/runtime";
 import Head from "next/head";
+import { useEffect } from "react";
 
 const branchName = process.env.VERCEL_GIT_COMMIT_REF || "master";
 
-setupLocatorUI(
-  process.env.NODE_ENV === "production"
-    ? {
-        adapter: "jsx",
-        targets: {
-          github: {
-            label: "GitHub",
-            url: `https://www.github.com/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
-            // target: "_blank",
-          },
-          githubDevEditor: {
-            label: "GitHub.dev Editor",
-            url: `https://github.dev/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
-            // target: "_blank",
-          },
-        },
-      }
-    : {
-        // Show initial setup to all devs in your team so they can choose their editor.
-        adapter: "jsx",
-      }
-);
-
 function MyApp({ Component, pageProps }) {
+  useEffect(() => {
+    // Setup LocatorJS only on the client side to avoid hydration issues
+    setupLocatorUI(
+      process.env.NODE_ENV === "production"
+        ? {
+            adapter: "jsx",
+            targets: {
+              github: {
+                label: "GitHub",
+                url: `https://www.github.com/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
+                // target: "_blank",
+              },
+              githubDevEditor: {
+                label: "GitHub.dev Editor",
+                url: `https://github.dev/infi-pc/locatorjs/blob/${branchName}/apps/web\${filePath}#L\${line}`,
+                // target: "_blank",
+              },
+            },
+          }
+        : {
+            // Show initial setup to all devs in your team so they can choose their editor.
+            adapter: "jsx",
+          }
+    );
+  }, []);
+
   return (
     <>
       <Head>
