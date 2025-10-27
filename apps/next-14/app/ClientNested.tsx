@@ -1,14 +1,11 @@
 "use client"
 
-import ClientNested from "./ClientNested"
-
-export default () => {
+export default function ClientNested() {
   return (
     <section>
-      Client!{" "}
+      Client nested!{" "}
       <div>
         Bam<span>Bam</span>
-        <ClientNested />
       </div>
     </section>
   )

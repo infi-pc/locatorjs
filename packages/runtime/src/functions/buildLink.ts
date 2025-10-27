@@ -1,8 +1,8 @@
-import { linkTemplateUrl } from "./linkTemplateUrl";
+import type { Targets } from "@locator/shared";
+import type { LinkProps, Source } from "../types/types";
 import { evalTemplate } from "./evalTemplate";
-import { LinkProps, Source } from "../types/types";
-import { Targets } from "@locator/shared";
-import { OptionsStore } from "./optionsStore";
+import { linkTemplateUrl } from "./linkTemplateUrl";
+import type { OptionsStore } from "./optionsStore";
 import { transformPath } from "./transformPath";
 
 let internalProjectPath: string | null = null;

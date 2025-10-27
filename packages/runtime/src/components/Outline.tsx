@@ -1,9 +1,10 @@
-import { ComponentOutline } from "./ComponentOutline";
-
 import type { Targets } from "@locator/shared";
+import { createEffect } from "solid-js";
 import type { FullElementInfo } from "../adapters/adapterApi";
-import { ClipboardButton } from "./ClipboardButton";
+import { getParentsPaths } from "../adapters/getParentsPath";
 import { Button } from "./Button";
+import { ClipboardButton } from "./ClipboardButton";
+import { ComponentOutline } from "./ComponentOutline";
 import { RenderBoxes } from "./RenderBoxes";
 import Tooltip from "./Tooltip";
 
@@ -156,6 +157,9 @@ export function Outline(props: {
     };
   }
 
+  const parentsWithLinks = () =>
+    getParentsPaths(props.element.htmlElement).filter((parent) => parent.link);
+
   return (
     <>
       <div>
@@ -205,33 +209,35 @@ export function Outline(props: {
                 </svg>
               </Button>
             </Tooltip>
-            <Tooltip tooltipText="Parents">
-              <Button
-                onClick={() => {
-                  props.showParentsPath(
-                    props.element.htmlElement,
-                    box().x + 2,
-                    box().y + 20
-                  );
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    "pointer-events": "none",
+            {parentsWithLinks().length > 1 && (
+              <Tooltip tooltipText="Parents">
+                <Button
+                  onClick={() => {
+                    props.showParentsPath(
+                      props.element.htmlElement,
+                      box().x + 2,
+                      box().y + 20
+                    );
                   }}
-                  viewBox="0 0 24 24"
                 >
-                  <title>format-list-text</title>
-                  <path
-                    fill="currentColor"
-                    d="M2 14H8V20H2M16 8H10V10H16M2 10H8V4H2M10 4V6H22V4M10 20H16V18H10M10 16H22V14H10"
-                  />
-                </svg>
-              </Button>
-            </Tooltip>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      "pointer-events": "none",
+                    }}
+                    viewBox="0 0 24 24"
+                  >
+                    <title>format-list-text</title>
+                    <path
+                      fill="currentColor"
+                      d="M2 14H8V20H2M16 8H10V10H16M2 10H8V4H2M10 4V6H22V4M10 20H16V18H10M10 16H22V14H10"
+                    />
+                  </svg>
+                </Button>
+              </Tooltip>
+            )}
             <Tooltip tooltipText="Copy path">
               <ClipboardButton
                 onClick={() => {
