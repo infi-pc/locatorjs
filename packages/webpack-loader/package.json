@@ -22,7 +22,7 @@
     "webpack": "^5.96.1"
   },
   "peerDependencies": {
-    "webpack": "^5.0.0"
+    "webpack": "^5.96.1"
   },
   "author": "Michael Musil",
   "repository": {

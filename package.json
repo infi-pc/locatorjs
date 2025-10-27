@@ -20,17 +20,17 @@
     "clean:dist": "rm -rf */*/dist",
     "clean:turbo": "rm -rf */*/.turbo",
     "clean:next": "rm -rf */*/.next",
-    "dependency-versions": "check-dependency-version-consistency .",
-    "dependency-versions:fix": "check-dependency-version-consistency . --fix"
+    "dependency-versions": "check-dependency-version-consistency . --ignore-package-pattern='(vite|next)-.*'",
+    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-package-pattern='(vite|next)-.*'"
   },
   "devDependencies": {
-    "check-dependency-version-consistency": "^3.0.3",
+    "check-dependency-version-consistency": "5.0.1",
     "lerna": "^7.3.0",
     "prettier": "^2.8.8",
     "turbo": "^2.5.8",
-    "vitest": "^0.34.4",
-    "@babel/preset-env": "7.22.15",
-    "@babel/preset-typescript": "7.22.15"
+    "vitest": "^2.1.4",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-typescript": "^7.26.0"
   },
   "engines": {
     "npm": ">=7.0.0",
