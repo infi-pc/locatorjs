@@ -5,6 +5,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "lib": ["ESNext", "dom"],
+    "module": "CommonJS",
     "noEmit": false
   }
 }
