@@ -13,7 +13,7 @@ function Footer() {
             height={50}
             width={207}
             alt="LocatorJS logo"
-          ></Image>
+          />
         </a>
         <p className="mt-4 text-sm text-gray-500 sm:ml-4 sm:pl-4 sm:border-l-2 sm:border-gray-200 sm:py-2 sm:mt-0 dark:text-gray-400 dark:sm:border-gray-800">
           © 2022 LocatorJS —
