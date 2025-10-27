@@ -3,7 +3,7 @@ import { className as _$className } from "solid-js/web";
 import { effect as _$effect } from "solid-js/web";
 import { setAttribute as _$setAttribute } from "solid-js/web";
 var _tmpl$ = /*#__PURE__*/ _$template(
-  `<div data-x=another-data-attribute data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::0><header data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::1><img alt=logo data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::2><p data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::3>Edit <code data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::4>src/App.jsx</code> and save to reload.</p><a href=https://github.com/solidjs/solid target=_blank rel="noopener noreferrer"data-locatorjs-id=/Users/michaelmusil/www/locatorjs/packages/babel-jsx/tests/fixtures/solid/code.js::5>Learn Solid`
+  `<div data-x=another-data-attribute data-locatorjs-id=/babel-jsx/tests/fixtures/solid/code.js::0><header data-locatorjs-id=/babel-jsx/tests/fixtures/solid/code.js::1><img alt=logo data-locatorjs-id=/babel-jsx/tests/fixtures/solid/code.js::2><p data-locatorjs-id=/babel-jsx/tests/fixtures/solid/code.js::3>Edit <code data-locatorjs-id=/babel-jsx/tests/fixtures/solid/code.js::4>src/App.jsx</code> and save to reload.</p><a href=https://github.com/solidjs/solid target=_blank rel="noopener noreferrer"data-locatorjs-id=/babel-jsx/tests/fixtures/solid/code.js::5>Learn Solid`
 );
 import logo from "./logo.svg";
 import styles from "./App.module.css";

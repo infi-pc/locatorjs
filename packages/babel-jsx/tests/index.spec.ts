@@ -10,7 +10,9 @@ pluginTester({
   // babelOptions: require('./../babel.config.js'),
   snapshot: true,
   formatResult: (result, op) => {
-    result = result.replace(/\"[\w/\\_-]*locatorjs\/packages/g, '"');
+    // Normalize absolute paths to relative ones for cross-platform compatibility
+    // Match paths that start with / and end with /packages/babel-jsx
+    result = result.replace(/\/[^\s"]*\/packages\/babel-jsx/g, "/babel-jsx");
     return prettierFormatter(result, op);
   },
 });
