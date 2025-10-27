@@ -11,6 +11,7 @@
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "ts": "turbo run ts",
     "e2e": "turbo run e2e",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "publishPackages": "lerna publish",

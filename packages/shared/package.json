@@ -7,14 +7,16 @@
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
     "build": "tsc --declaration --outDir dist",
     "//build-cjs": "tsc --module commonjs --outDir dist/cjs",
-    "ts": "tsc --noEmit --outDir dist --preserveWatchOutput"
+    "ts": "tsc --noEmit"
   },
   "devDependencies": {
-    "@babel/parser": "^7.22.5",
-    "@types/react": "^18.0.15",
-    "@types/react-dom": "^18.0.6",
+    "@babel/parser": "^7.26.2",
+    "@locator/dev-config": "workspace:^",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/semver": "^7.5.0",
     "tsconfig": "^0.0.1",
-    "typescript": "^4.7.4"
+    "typescript": "^5.6.3"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "files": [
@@ -22,6 +24,6 @@
     "src"
   ],
   "dependencies": {
-    "semver": "^7.5.4"
+    "semver": "^7.7.3"
   }
 }

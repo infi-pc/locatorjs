@@ -19,6 +19,9 @@
     },
     "e2e": {
       "cache": false
+    },
+    "ts": {
+      "cache": false
     }
   }
 }

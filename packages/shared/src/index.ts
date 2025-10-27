@@ -1,5 +1,5 @@
 import { isValidRenderer } from "./isValidRenderer";
-import { Renderer } from "./types";
+import type { Renderer } from "./types";
 
 export * from "./types";
 
@@ -100,7 +100,7 @@ export function detectReact() {
     if (renderersMap) {
       const problematicRenderers: string[] = [];
       const renderers = Array.from(renderersMap.values()).filter(
-        (renderer: Renderer) => {
+        (renderer: any) => {
           return isValidRenderer(renderer, (msg) => {
             problematicRenderers.push(msg);
           });

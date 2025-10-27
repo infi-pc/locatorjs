@@ -6,9 +6,9 @@
   "scripts": {
     "//test": "jest tests/",
     "//test:update": "jest tests/ -u",
-    "dev": "tsc src/*.ts --watch --declaration --outDir dist --preserveWatchOutput",
-    "build": "tsc src/*.ts --declaration --outDir dist",
-    "ts": "tsc src/*.ts --noEmit --outDir dist"
+    "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
+    "build": "tsc --declaration --outDir dist",
+    "ts": "tsc --noEmit"
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",
