@@ -29,7 +29,6 @@ import { TreeView } from "./TreeView";
 import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
-import { buildLink } from "../functions/buildLink";
 
 type UiMode =
   | ["off"]
@@ -352,7 +351,9 @@ function Runtime(props: RuntimeProps) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      {props.showIntro !== false &&!isExtension() && options.getOptions().showIntro !== false ? (
+      {props.showIntro !== false &&
+      !isExtension() &&
+      options.getOptions().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
           hide={!!holdingModKey() || uiMode()[0] !== "off"}
