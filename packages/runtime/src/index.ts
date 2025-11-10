@@ -15,13 +15,15 @@ export function setup({
   adapter,
   targets,
   projectPath,
+  showIntro,
 }: {
   adapter?: AdapterId;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
+  showIntro?: boolean;
 } = {}) {
-  setTimeout(() => initRuntime({ adapter, targets, projectPath }), 0);
+  setTimeout(() => initRuntime({ adapter, targets, projectPath, showIntro }), 0);
 }
 
 export default setup;
