@@ -1,7 +1,7 @@
-import { parseDataId } from "../../functions/parseDataId";
-import { FileStorage } from "@locator/shared";
-import { SimpleDOMRect } from "../../types/types";
+import type { FileStorage } from "@locator/shared";
 import { mergeRects } from "../../functions/mergeRects";
+import { parseDataId, parseDataPath } from "../../functions/parseDataId";
+import type { SimpleDOMRect } from "../../types/types";
 import { getExpressionData } from "./getExpressionData";
 
 export function getJSXComponentBoundingBox(
@@ -18,27 +18,41 @@ export function getJSXComponentBoundingBox(
       return;
     }
     if (parent instanceof HTMLElement) {
-      if (parent.dataset.locatorjsId) {
-        const [fileFullPath] = parseDataId(parent.dataset.locatorjsId);
-        const fileData: FileStorage | undefined = locatorData[fileFullPath];
-        if (fileData) {
-          const expData = getExpressionData(parent, fileData);
-          if (expData) {
-            if (
-              expData.wrappingComponentId === componentId &&
-              componentFolder === fileFullPath
-            ) {
-              composedBox = mergeRects(
-                composedBox,
-                parent.getBoundingClientRect()
-              );
-              goParent(parent);
-            }
-            expData.wrappingComponentId;
+      // Check for either data-locatorjs (path-based) or data-locatorjs-id (ID-based)
+      if (parent.dataset.locatorjs || parent.dataset.locatorjsId) {
+        let fileFullPath: string;
+
+        if (parent.dataset.locatorjs) {
+          const parsed = parseDataPath(parent.dataset.locatorjs);
+          if (!parsed) {
+            goParent(parent);
+            return;
           }
+          [fileFullPath] = parsed;
+        } else if (parent.dataset.locatorjsId) {
+          [fileFullPath] = parseDataId(parent.dataset.locatorjsId);
+        } else {
+          goParent(parent);
+          return;
+        }
+
+        const fileData: FileStorage | undefined = locatorData[fileFullPath];
+        const expData = getExpressionData(parent, fileData || null);
+        if (expData) {
+          if (
+            expData.wrappingComponentId === componentId &&
+            componentFolder === fileFullPath
+          ) {
+            composedBox = mergeRects(
+              composedBox,
+              parent.getBoundingClientRect()
+            );
+            goParent(parent);
+          }
+          expData.wrappingComponentId;
         }
       } else {
-        // If there is no locatorjs-id, we should go to the parent, because it can be some library element
+        // If there is no locatorjs-id or locatorjs, we should go to the parent, because it can be some library element
         goParent(parent);
       }
     }

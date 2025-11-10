@@ -1,12 +1,11 @@
 {
-  "name": "next-react-server-components",
+  "name": "next-14",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3351",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start"
   },
   "dependencies": {
     "next": "^14",
@@ -15,6 +14,7 @@
   },
   "devDependencies": {
     "@locator/runtime": "workspace:^",
+    "@locator/webpack-loader": "workspace:^",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

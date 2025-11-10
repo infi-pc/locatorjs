@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import React from "react";
 import logo from "../public/logo-noborders3x.png";
 
@@ -6,15 +7,15 @@ function Footer() {
   return (
     <footer className="text-gray-600 body-font dark:text-gray-400 dark:bg-gray-900 ">
       <div className="container flex flex-col items-center px-5 py-8 mx-auto sm:flex-row rounded-t-3xl bg-slate-100">
-        <a href="/" className="">
+        <Link href="/">
           <Image
             unoptimized={true}
             src={logo}
             height={50}
             width={207}
             alt="LocatorJS logo"
-          ></Image>
-        </a>
+          />
+        </Link>
         <p className="mt-4 text-sm text-gray-500 sm:ml-4 sm:pl-4 sm:border-l-2 sm:border-gray-200 sm:py-2 sm:mt-0 dark:text-gray-400 dark:sm:border-gray-800">
           © 2022 LocatorJS —
           <a

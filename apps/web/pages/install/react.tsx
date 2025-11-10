@@ -1,7 +1,15 @@
-import Header from "../../blocks/Header";
 import Link from "next/link";
-import { Step } from "../../components/Step";
+import { useState } from "react";
+import { MdArrowDropDown, MdArrowDropUp } from "react-icons/md";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import Header from "../../blocks/Header";
+import { getBrowserLink } from "../../blocks/shared";
+import { AllBrowsersLinksInline } from "../../components/AllBrowsersLinks";
 import { InstallByAnything } from "../../components/InstallByAnything";
+import { InstallReactRuntime } from "../../components/InstallReactRuntime";
+import { minimalImportScript } from "../../components/InstallUiInFile";
+import { Step } from "../../components/Step";
 import {
   Alert,
   BlockHeadline,
@@ -10,14 +18,6 @@ import {
   StandardLink,
   StepsBody,
 } from "../../components/Styled";
-import { getBrowserLink } from "../../blocks/shared";
-import { InstallReactRuntime } from "../../components/InstallReactRuntime";
-import { AllBrowsersLinksInline } from "../../components/AllBrowsersLinks";
-import { useState } from "react";
-import { MdArrowDropDown, MdArrowDropUp } from "react-icons/md";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { a11yDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { minimalImportScript } from "../../components/InstallUiInFile";
 
 export const babelPluginMinimalDevtoolsConfig = `{
   "presets": ["@babel/preset-react"],
@@ -38,7 +38,7 @@ export default function InstallReact() {
           <p className="text-center">
             Install Locator on React codebase. This is DevTools variant which is
             preffered solution. Alternative is{" "}
-            <Link href="/install/react-data-id" passHref>
+            <Link href="/install/react-data-id" passHref legacyBehavior>
               <StandardLink>data-id solution</StandardLink>
             </Link>
             .{" "}
@@ -95,6 +95,54 @@ export default function InstallReact() {
               </Expandable>
             </Step>
 
+            <Step title="Next.js 15+ with Turbopack/SWC" no={3}>
+              For Next.js 15+ using Turbopack or SWC (where babel plugins don
+              {"'"}t work), use the webpack/turbopack loader:
+              <InstallByAnything packageName="@locator/webpack-loader" />
+              <div className="mt-2 mb-1 font-semibold">
+                For Turbopack (Next.js 15+):
+              </div>
+              Add this to your <InlineCode>next.config.ts</InlineCode>:
+              <SyntaxHighlighter language="javascript" style={a11yDark}>
+                {`import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    rules: {
+      "**/*.{tsx,jsx}": {
+        loaders: [{
+          loader: "@locator/webpack-loader",
+          options: { env: "development" }
+        }]
+      }
+    }
+  }
+};
+
+export default nextConfig;`}
+              </SyntaxHighlighter>
+              <div className="mt-3 mb-1 font-semibold">For Webpack:</div>
+              Add this to your <InlineCode>next.config.js</InlineCode>:
+              <SyntaxHighlighter language="javascript" style={a11yDark}>
+                {`module.exports = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.module.rules.push({
+        test: /\\.(tsx|ts|jsx|js)$/,
+        exclude: /node_modules/,
+        use: [{
+          loader: '@locator/webpack-loader',
+          options: { 
+            env: 'development'
+          }
+        }]
+      });
+    }
+    return config;
+  }
+};`}
+              </SyntaxHighlighter>
+            </Step>
             <Step title="Troubleshooting" no={"?"}>
               Locator should work automatically in dev mode in most modern
               stacks. They automatically include{" "}
@@ -121,7 +169,7 @@ export default function InstallReact() {
               </div>
               <br />
               <b>Or try alternative:</b>{" "}
-              <Link href="/install/react-data-id" passHref>
+              <Link href="/install/react-data-id" passHref legacyBehavior>
                 <StandardLink>
                   installation based on custom Babel plugin
                 </StandardLink>
@@ -145,6 +193,7 @@ function Expandable({
   return (
     <div className="mt-1">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center text-sm font-medium"
       >

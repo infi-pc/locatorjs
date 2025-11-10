@@ -1,13 +1,13 @@
-import { Targets } from "@locator/shared";
-import { AdapterId } from "../consts";
-import { TreeNode } from "../types/TreeNode";
-import { For, createSignal, onMount } from "solid-js";
-import { ContextMenuState } from "../types/types";
+import type { Targets } from "@locator/shared";
+import { createSignal, For, onMount } from "solid-js";
 import { getParentsPaths } from "../adapters/getParentsPath";
-import getUsableFileName from "../functions/getUsableFileName";
+import type { AdapterId } from "../consts";
 import { buildLink } from "../functions/buildLink";
-import { useOptions } from "../functions/optionsStore";
+import getUsableFileName from "../functions/getUsableFileName";
 import { goToLinkProps } from "../functions/goTo";
+import { useOptions } from "../functions/optionsStore";
+import type { TreeNode } from "../types/TreeNode";
+import type { ContextMenuState } from "../types/types";
 
 export function ContextView(props: {
   contextMenuState: ContextMenuState;
@@ -142,23 +142,27 @@ export function ContextView(props: {
         >
           <For each={paths()}>
             {(path, index) => {
+              const link = path.link;
+              if (!link) {
+                return null;
+              }
               return (
                 <a
                   class={
                     "px-4 py-2 w-60 hover:bg-slate-50 text-left text-sm font-medium " +
                     (index() === focusedIndex() ? "bg-slate-100" : "")
                   }
-                  href={buildLink(path.link!, props.targets, options)}
+                  href={buildLink(link, props.targets, options)}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    goToLinkProps(path.link!, props.targets, options);
+                    goToLinkProps(link, props.targets, options);
                     props.close();
                   }}
                 >
                   {path.title}
                   <div class="text-xs text-gray-500">
-                    {getUsableFileName(path.link?.filePath || "")}
+                    {getUsableFileName(link.filePath || "")}
                   </div>
                 </a>
               );

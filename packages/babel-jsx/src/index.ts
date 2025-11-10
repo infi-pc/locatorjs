@@ -1,14 +1,14 @@
-import * as BabelTypes from "@babel/types";
-import { Visitor, NodePath } from "@babel/traverse";
 import { parse, parseExpression } from "@babel/parser";
-import { isDisallowedComponent } from "./isDisallowedComponent";
-import {
+import type { NodePath, Visitor } from "@babel/traverse";
+import type * as BabelTypes from "@babel/types";
+import type {
   ComponentInfo,
   ExpressionInfo,
   FileStorage,
   SourceLocation,
   StyledDefinitionInfo,
 } from "@locator/shared";
+import { isDisallowedComponent } from "./isDisallowedComponent";
 
 export interface PluginOptions {
   opts?: {
@@ -16,6 +16,7 @@ export interface PluginOptions {
     target?: string;
     runtime?: string;
     ignoreComponentNames?: string[];
+    dataAttribute?: "id" | "path";
   };
   file: {
     path: NodePath;
@@ -222,7 +223,7 @@ export default function transformLocatorJsComponents(babel: Babel): {
                 }
                 return "";
               }
-              let name = getName(path.node.openingElement.name);
+              const name = getName(path.node.openingElement.name);
 
               if (
                 name &&
@@ -230,22 +231,40 @@ export default function transformLocatorJsComponents(babel: Babel): {
                 !isLocallyDisallowedComponent(name)
               ) {
                 if (path.node.loc) {
+                  const dataAttributeMode = state?.opts?.dataAttribute || "id";
+
+                  // Always add to storage for window.__LOCATOR_DATA__
                   const id = addExpressionToStorage({
                     name: name,
                     loc: path.node.loc,
                     wrappingComponentId: currentWrappingComponentId,
                   });
-                  const newAttr = t.jSXAttribute(
-                    t.jSXIdentifier("data-locatorjs-id"),
-                    t.jSXExpressionContainer(
-                      t.stringLiteral(
-                        // this is stored by projectPath+filePath because that's the only unique identifier
-                        createDataId(fileStorage, id)
+
+                  let newAttr: BabelTypes.JSXAttribute;
+                  if (dataAttributeMode === "path") {
+                    // Generate data-locatorjs with full path
+                    newAttr = t.jSXAttribute(
+                      t.jSXIdentifier("data-locatorjs"),
+                      t.jSXExpressionContainer(
+                        t.stringLiteral(
+                          createFullPathWithLocation(fileStorage, path.node.loc)
+                        )
                       )
-                      // t.ObjectExpression([
-                      // ])
-                    )
-                  );
+                    );
+                  } else {
+                    // Default: generate data-locatorjs-id with ID
+                    newAttr = t.jSXAttribute(
+                      t.jSXIdentifier("data-locatorjs-id"),
+                      t.jSXExpressionContainer(
+                        t.stringLiteral(
+                          // this is stored by projectPath+filePath because that's the only unique identifier
+                          createDataId(fileStorage, id)
+                        )
+                        // t.ObjectExpression([
+                        // ])
+                      )
+                    );
+                  }
                   path.node.openingElement.attributes.push(newAttr);
                 }
               }
@@ -300,4 +319,11 @@ function createDataId(fileStorage: FileStorage, id: number): string {
 
 function createFullPath(fileStorage: FileStorage): string {
   return fileStorage.projectPath + fileStorage.filePath;
+}
+
+function createFullPathWithLocation(
+  fileStorage: FileStorage,
+  loc: SourceLocation
+): string {
+  return `${fileStorage.projectPath}${fileStorage.filePath}:${loc.start.line}:${loc.start.column}`;
 }

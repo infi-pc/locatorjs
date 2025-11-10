@@ -18,7 +18,7 @@ function Header() {
               height={50}
               width={207}
               alt="LocatorJS logo"
-            ></Image>
+            />
           </div>
         </Link>
         <nav className="flex flex-wrap items-center justify-center gap-2 text-base md:ml-auto">

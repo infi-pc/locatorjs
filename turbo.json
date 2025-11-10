@@ -1,5 +1,7 @@
 {
-  "pipeline": {
+  "ui": "tui",
+  "concurrency": "20",
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**"]
@@ -16,6 +18,9 @@
       "cache": false
     },
     "e2e": {
+      "cache": false
+    },
+    "ts": {
       "cache": false
     }
   }

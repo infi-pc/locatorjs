@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@locator/web...",
+  "installCommand": "cd ../.. && pnpm install"
+}
+

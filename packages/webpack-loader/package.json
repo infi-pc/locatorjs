@@ -1,0 +1,36 @@
+{
+  "name": "@locator/webpack-loader",
+  "version": "0.5.0-alpha.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput"
+  },
+  "dependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/plugin-syntax-jsx": "^7.25.9",
+    "@babel/plugin-syntax-typescript": "^7.25.9",
+    "@babel/preset-typescript": "^7.26.0",
+    "@locator/babel-jsx": "workspace:^"
+  },
+  "devDependencies": {
+    "@locator/dev-config": "workspace:^",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3",
+    "webpack": "^5.96.1"
+  },
+  "peerDependencies": {
+    "webpack": "^5.96.1"
+  },
+  "author": "Michael Musil",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/infi-pc/locatorjs"
+  },
+  "license": "MIT"
+}

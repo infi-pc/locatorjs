@@ -1,54 +1,64 @@
+import type { FileStorage } from "@locator/shared";
 import {
+  parseDataId,
+  parseDataPath,
+  splitFullPath,
+} from "../../functions/parseDataId";
+import type { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
+import type { Source } from "../../types/types";
+import type {
   AdapterObject,
   FullElementInfo,
   ParentPathItem,
   TreeState,
 } from "../adapterApi";
-import { parseDataId } from "../../functions/parseDataId";
-import { FileStorage } from "@locator/shared";
-import { getExpressionData } from "./getExpressionData";
-import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
-import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
-import { Source } from "../../types/types";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import { getExpressionData } from "./getExpressionData";
+import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
-  const found = target.closest("[data-locatorjs-id]");
+  const found = target.closest("[data-locatorjs-id], [data-locatorjs]");
 
   if (
     found &&
     found instanceof HTMLElement &&
     found.dataset &&
-    (found.dataset.locatorjsId || found.dataset.locatorjsStyled)
+    (found.dataset.locatorjsId ||
+      found.dataset.locatorjs ||
+      found.dataset.locatorjsStyled)
   ) {
     const dataId = found.dataset.locatorjsId;
+    const dataPath = found.dataset.locatorjs;
     const styledDataId = found.dataset.locatorjsStyled;
-    if (!dataId) {
+
+    if (!dataId && !dataPath) {
       return null;
     }
 
-    const [fileFullPath] = parseDataId(dataId);
+    let fileFullPath: string;
+
+    if (dataPath) {
+      const parsed = parseDataPath(dataPath);
+      if (!parsed) {
+        return null;
+      }
+      [fileFullPath] = parsed;
+    } else if (dataId) {
+      [fileFullPath] = parseDataId(dataId);
+    } else {
+      return null;
+    }
+
+    const locatorData = window.__LOCATOR_DATA__;
+    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+
+    // Handle styled components (only when locatorData is available)
     const [styledFileFullPath, styledId] = styledDataId
       ? parseDataId(styledDataId)
       : [null, null];
-
-    const locatorData = window.__LOCATOR_DATA__;
-    if (!locatorData) {
-      return null;
-    }
-
-    const fileData: FileStorage | undefined = locatorData[fileFullPath];
-    if (!fileData) {
-      return null;
-    }
     const styledFileData: FileStorage | undefined =
-      styledFileFullPath && locatorData[styledFileFullPath];
-
-    const expData = getExpressionData(found, fileData);
-    if (!expData) {
-      return null;
-    }
+      styledFileFullPath && locatorData?.[styledFileFullPath];
     const styledExpData =
       styledFileData && styledFileData.styledDefinitions[Number(styledId)];
 
@@ -60,13 +70,26 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       line: styledExpData.loc?.start.line || 0,
     };
 
-    // TODO move styled to separate data
-    // const styled = found.dataset.locatorjsStyled
-    //   ? getDataForDataId(found.dataset.locatorjsStyled)
-    //   : null;
+    // Get expression data (works with or without locatorData)
+    const expData = getExpressionData(found, fileData || null);
+    if (!expData) {
+      return null;
+    }
+
+    // Extract file path components
+    let filePath: string;
+    let projectPath: string;
+
+    if (fileData) {
+      filePath = fileData.filePath;
+      projectPath = fileData.projectPath;
+    } else {
+      // If no fileData, split the full path
+      [projectPath, filePath] = splitFullPath(fileFullPath);
+    }
 
     const wrappingComponent =
-      expData.wrappingComponentId !== null
+      expData.wrappingComponentId !== null && fileData
         ? fileData.components[Number(expData.wrappingComponentId)]
         : null;
 
@@ -75,8 +98,8 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
         box: found.getBoundingClientRect(),
         label: expData.name,
         link: {
-          filePath: fileData.filePath,
-          projectPath: fileData.projectPath,
+          filePath,
+          projectPath,
           column: (expData.loc.start.column || 0) + 1,
           line: expData.loc.start.line || 0,
         },
@@ -85,7 +108,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
       parentElements: [],
       componentBox: getJSXComponentBoundingBox(
         found,
-        locatorData,
+        locatorData || {},
         fileFullPath,
         Number(expData.wrappingComponentId)
       ),
@@ -94,8 +117,8 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
             {
               label: wrappingComponent.name || "component",
               link: {
-                filePath: fileData.filePath,
-                projectPath: fileData.projectPath,
+                filePath,
+                projectPath,
                 column: (wrappingComponent.loc?.start.column || 0) + 1,
                 line: wrappingComponent.loc?.start.line || 0,
               },
@@ -113,48 +136,97 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
 export class JSXTreeNodeElement extends HtmlElementTreeNode {
   getSource(): Source | null {
     const dataId = this.element.dataset.locatorjsId;
-    const locatorData = window.__LOCATOR_DATA__;
-    if (dataId && locatorData) {
-      const [fileFullPath] = parseDataId(dataId);
-      const fileData: FileStorage | undefined = locatorData[fileFullPath];
-      if (fileData) {
-        const expData = getExpressionData(this.element, fileData);
-        if (expData) {
-          return {
-            fileName: fileData.filePath,
-            projectPath: fileData.projectPath,
-            columnNumber: (expData.loc.start.column || 0) + 1,
-            lineNumber: expData.loc.start.line || 0,
-          };
-        }
-      }
+    const dataPath = this.element.dataset.locatorjs;
+
+    if (!dataId && !dataPath) {
+      return null;
     }
+
+    let fileFullPath: string;
+
+    if (dataPath) {
+      const parsed = parseDataPath(dataPath);
+      if (!parsed) {
+        return null;
+      }
+      [fileFullPath] = parsed;
+    } else if (dataId) {
+      [fileFullPath] = parseDataId(dataId);
+    } else {
+      return null;
+    }
+
+    const locatorData = window.__LOCATOR_DATA__;
+    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+
+    // Get expression data (works with or without locatorData)
+    const expData = getExpressionData(this.element, fileData || null);
+    if (expData) {
+      let fileName: string;
+      let projectPath: string;
+
+      if (fileData) {
+        fileName = fileData.filePath;
+        projectPath = fileData.projectPath;
+      } else {
+        // If no fileData, split the full path
+        [projectPath, fileName] = splitFullPath(fileFullPath);
+      }
+
+      return {
+        fileName,
+        projectPath,
+        columnNumber: (expData.loc.start.column || 0) + 1,
+        lineNumber: expData.loc.start.line || 0,
+      };
+    }
+
     return null;
   }
   getComponent(): TreeNodeComponent | null {
     const dataId = this.element.dataset.locatorjsId;
+    const dataPath = this.element.dataset.locatorjs;
+
+    if (!dataId && !dataPath) {
+      return null;
+    }
+
+    let fileFullPath: string;
+
+    if (dataPath) {
+      const parsed = parseDataPath(dataPath);
+      if (!parsed) {
+        return null;
+      }
+      [fileFullPath] = parsed;
+    } else if (dataId) {
+      [fileFullPath] = parseDataId(dataId);
+    } else {
+      return null;
+    }
+
     const locatorData = window.__LOCATOR_DATA__;
-    if (dataId && locatorData) {
-      const [fileFullPath] = parseDataId(dataId);
-      const fileData: FileStorage | undefined = locatorData[fileFullPath];
-      if (fileData) {
-        const expData = getExpressionData(this.element, fileData);
-        if (expData && expData.wrappingComponentId !== null) {
-          const component = fileData.components[expData.wrappingComponentId];
-          if (component) {
-            return {
-              label: component.name || "component",
-              definitionLink: {
-                fileName: fileData.filePath,
-                projectPath: fileData.projectPath,
-                columnNumber: (component.loc?.start.column || 0) + 1,
-                lineNumber: component.loc?.start.line || 0,
-              },
-            };
-          }
+    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+
+    // Component information is only available when we have fileData
+    if (fileData) {
+      const expData = getExpressionData(this.element, fileData);
+      if (expData && expData.wrappingComponentId !== null) {
+        const component = fileData.components[expData.wrappingComponentId];
+        if (component) {
+          return {
+            label: component.name || "component",
+            definitionLink: {
+              fileName: fileData.filePath,
+              projectPath: fileData.projectPath,
+              columnNumber: (component.loc?.start.column || 0) + 1,
+              lineNumber: component.loc?.start.line || 0,
+            },
+          };
         }
       }
     }
+
     return null;
   }
 }

@@ -1,8 +1,10 @@
 {
-  "include": ["."],
-  "exclude": ["dist", "build", "node_modules"],
-  "compilerOptions": {
-    "moduleResolution": "Node",
-    "target": "ESNext"
-  }
+	"extends": "@locator/dev-config/tsconfig.base.json",
+	"include": ["src"],
+	"exclude": ["dist", "build", "node_modules"],
+	"compilerOptions": {
+		"moduleResolution": "Node",
+		"target": "ESNext",
+    "noEmit": false
+	}
 }

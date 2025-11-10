@@ -41,6 +41,7 @@ type UiMode =
 type RuntimeProps = {
   adapterId?: AdapterId;
   targets: Targets;
+  showIntro?: boolean;
 };
 
 function Runtime(props: RuntimeProps) {
@@ -351,7 +352,7 @@ function Runtime(props: RuntimeProps) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      {!isExtension() && options.getOptions().showIntro !== false ? (
+      {props.showIntro !== false &&!isExtension() && options.getOptions().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
           hide={!!holdingModKey() || uiMode()[0] !== "off"}
@@ -431,7 +432,8 @@ function RuntimeWrapper(props: RuntimeProps) {
 export function initRender(
   solidLayer: HTMLDivElement,
   adapter: AdapterId | undefined,
-  targets: SetupTargets
+  targets: SetupTargets,
+  showIntro?: boolean
 ) {
   render(
     () => (
@@ -443,6 +445,7 @@ export function initRender(
             })
           )}
           adapterId={adapter}
+          showIntro={showIntro}
         />
       </OptionsProvider>
     ),
