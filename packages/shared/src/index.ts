@@ -28,6 +28,10 @@ export const allTargets: Targets = {
     url: "windsurf://file/${projectPath}${filePath}:${line}:${column}",
     label: "Windsurf",
   },
+  antigravity: {
+    url: "antigravity://file/${projectPath}${filePath}?line=${line}&column=${column}",
+    label: "Antigravity",
+  },
 };
 
 export const isMac =
