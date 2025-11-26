@@ -29,7 +29,7 @@ export const allTargets: Targets = {
     label: "Windsurf",
   },
   antigravity: {
-    url: "antigravity://file/${projectPath}${filePath}?line=${line}&column=${column}",
+    url: "antigravity://file/${projectPath}${filePath}:${line}:${column}",
     label: "Antigravity",
   },
 };
