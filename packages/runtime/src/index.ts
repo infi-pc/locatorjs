@@ -16,14 +16,16 @@ export function setup({
   targets,
   projectPath,
   showIntro,
+  mouseModifiers,
 }: {
   adapter?: AdapterId;
   // defaultMode?: LocatorJSMode;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
   showIntro?: boolean;
+  mouseModifiers?: string;
 } = {}) {
-  setTimeout(() => initRuntime({ adapter, targets, projectPath, showIntro }), 0);
+  setTimeout(() => initRuntime({ adapter, targets, projectPath, showIntro, mouseModifiers }), 0);
 }
 
 export default setup;
