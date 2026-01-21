@@ -1,26 +1,6 @@
 export type FiberType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 export type FiberRootMode = 0 | 1 | 2;
 
-export type ReactDevtoolsHook = {
-  supportsFiber: boolean;
-  inject: (renderer: ReactInternals) => number;
-  // onScheduleRoot(rendererId: number, root: FiberRoot, children: any[]) {},
-  onCommitFiberUnmount: (rendererId: number, fiber: Fiber) => void;
-  onCommitFiberRoot: (
-    rendererId: number,
-    root: FiberRoot,
-    priorityLevel: any
-  ) => void;
-  onPostCommitFiberRoot: (rendererId: number, root: FiberRoot) => void;
-
-  // Not used. It is declared to follow React Devtools hook's behaviour
-  // in order for other tools like react-render to work
-  renderers?: Map<number, ReactInternals>;
-
-  // Marker is here but we can ignore it
-  // [MARKER]?: typeof MARKER;
-};
-
 export type Renderer = ReactInternals;
 
 export type TransferFiber = {
@@ -221,7 +201,8 @@ export type ReactInternals = {
   currentDispatcherRef: any;
   getCurrentFiber: () => Fiber | null;
   rendererPackageName?: string;
-  findFiberByHostInstance: (hostInstance: NativeType) => Fiber | null;
+  // React 19 移除了此 API，改为可选
+  findFiberByHostInstance?: (hostInstance: NativeType) => Fiber | null;
 };
 
 // TODO maybe add HTMLElement to this type
@@ -683,3 +664,53 @@ export type ReactIntegration = ReactDevtoolsHookHandlers & ReactInterationApi;
 export type RecordEventHandler = (
   payload: DistributiveOmit<Message, "id">
 ) => number;
+
+/**
+ * React DevTools 7.0.1+ RendererInterface API
+ * 每个 renderer 暴露的接口，用于获取组件信息和源码位置
+ */
+export type RendererInterface = {
+  // 从 DOM 元素获取 React 内部元素 ID
+  getElementIDForHostInstance: (hostInstance: NativeType) => number | null;
+  // 通过 ID 获取组件的源函数/类
+  getElementSourceFunctionById?: (id: number) => ((...args: any[]) => any) | null;
+  // 检查元素，返回包含 source 等详细信息
+  inspectElement: (
+    requestID: number,
+    id: number,
+    path: Array<string | number> | null,
+    forceFullData?: boolean
+  ) => InspectElementResult | null;
+  // 获取元素在树中的路径
+  getPathForElement?: (id: number) => Array<PathFrame> | null;
+  // 查找 Fiber（部分版本可用）
+  findFiberByHostInstance?: (hostInstance: NativeType) => Fiber | null;
+};
+
+export type InspectElementResult = {
+  type: 'full-data' | 'hydrated-path' | 'no-change' | 'not-found';
+  value?: InspectedElement;
+};
+
+export type ReactDevtoolsHook = {
+  supportsFiber: boolean;
+  inject: (renderer: ReactInternals) => number;
+  onCommitFiberUnmount: (rendererId: number, fiber: Fiber) => void;
+  onCommitFiberRoot: (
+    rendererId: number,
+    root: FiberRoot,
+    priorityLevel: any
+  ) => void;
+  onPostCommitFiberRoot: (rendererId: number, root: FiberRoot) => void;
+  // 传统 renderers Map
+  renderers?: Map<number, ReactInternals>;
+  // React DevTools 7.0.1+ 新增的 rendererInterfaces
+  rendererInterfaces?: Map<number, RendererInterface>;
+};
+
+// 扩展全局 Window 类型
+declare global {
+  interface Window {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: ReactDevtoolsHook;
+  }
+}

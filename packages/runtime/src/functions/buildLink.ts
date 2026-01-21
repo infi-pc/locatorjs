@@ -20,9 +20,22 @@ export function buildLink(
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): string {
+  const savedProjectPath = getSavedProjectPath(options) || linkProps.projectPath;
+
+  // 处理 Turbopack 的 [project]/ 前缀
+  // 如果 filePath 以 [project]/ 开头，用 projectPath 替换
+  let resolvedFilePath = linkProps.filePath;
+  if (resolvedFilePath.startsWith("[project]/") && savedProjectPath) {
+    // 移除 [project]/ 前缀，拼接 projectPath
+    const relativePath = resolvedFilePath.slice("[project]/".length);
+    resolvedFilePath = savedProjectPath.endsWith("/")
+      ? savedProjectPath + relativePath
+      : savedProjectPath + "/" + relativePath;
+  }
+
   const params = {
-    filePath: linkProps.filePath,
-    projectPath: getSavedProjectPath(options) || linkProps.projectPath,
+    filePath: resolvedFilePath,
+    projectPath: savedProjectPath,
     line: String(linkProps.line),
     column: String(linkProps.column),
     linePlusOne: String(linkProps.line + 1),

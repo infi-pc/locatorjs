@@ -1,4 +1,4 @@
-import { findDebugSource } from "./findDebugSource";
+import { findDebugSource, findDebugSourceAsync } from "./findDebugSource";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 import { getFiberLabel } from "./getFiberLabel";
 import { getAllWrappingParents } from "./getAllWrappingParents";
@@ -71,13 +71,11 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
 export class ReactTreeNodeElement extends HtmlElementTreeNode {
   getSource(): Source | null {
     const fiber = findFiberByHtmlElement(this.element, false);
-
-    if (fiber && fiber._debugSource) {
-      return {
-        fileName: fiber._debugSource.fileName,
-        lineNumber: fiber._debugSource.lineNumber,
-        columnNumber: fiber._debugSource.columnNumber,
-      };
+    if (fiber) {
+      const result = findDebugSource(fiber);
+      if (result) {
+        return result.source;
+      }
     }
     return null;
   }
@@ -137,6 +135,57 @@ function getParentsPaths(element: HTMLElement) {
     return pathItems;
   }
   return [];
+}
+
+/**
+ * 异步版本的 getElementInfo
+ * 当同步方式无法获取 source 时，尝试通过 source-map 解析
+ */
+export async function getElementInfoAsync(
+  found: HTMLElement
+): Promise<FullElementInfo | null> {
+  const labels: LabelData[] = [];
+
+  const fiber = findFiberByHtmlElement(found, false);
+  if (fiber) {
+    const { component, componentBox, parentElements } =
+      getAllParentsElementsAndRootComponent(fiber);
+
+    const allPotentialComponentFibers = getAllWrappingParents(component);
+
+    // 使用异步方式获取 source
+    for (const f of allPotentialComponentFibers) {
+      const fiberWithSource = await findDebugSourceAsync(f);
+      if (fiberWithSource) {
+        const label = getFiberLabel(
+          fiberWithSource.fiber,
+          fiberWithSource.source
+        );
+        labels.push(label);
+      }
+    }
+
+    // 获取当前元素的 source（异步）
+    const currentSource = await findDebugSourceAsync(fiber);
+    const thisLabel = getFiberLabel(fiber, currentSource?.source);
+
+    if (isStyledElement(fiber)) {
+      thisLabel.label = `${thisLabel.label} (styled)`;
+    }
+
+    return {
+      thisElement: {
+        box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
+        ...thisLabel,
+      },
+      htmlElement: found,
+      parentElements: parentElements,
+      componentBox,
+      componentsLabels: deduplicateLabels(labels),
+    };
+  }
+
+  return null;
 }
 
 const reactAdapter: AdapterObject = {
