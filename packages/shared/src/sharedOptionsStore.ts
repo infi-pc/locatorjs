@@ -10,6 +10,7 @@ export type ProjectOptions = {
   showIntro?: boolean;
   welcomeScreenDismissed?: boolean;
   hrefTarget?: "_blank" | "_self";
+  debugMode?: boolean;
 };
 
 let reported = false;
@@ -70,6 +71,9 @@ export function getStoredOptions(): ProjectOptions {
     }
     if (typeof parsedOptions.welcomeScreenDismissed === "boolean") {
       options.welcomeScreenDismissed = parsedOptions.welcomeScreenDismissed;
+    }
+    if (typeof parsedOptions.debugMode === "boolean") {
+      options.debugMode = parsedOptions.debugMode;
     }
   }
 
