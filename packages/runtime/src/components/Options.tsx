@@ -26,7 +26,16 @@ export function Options(props: {
   );
 
   return (
-    <div class={bannerClasses() + " w-[560px] max-w-full overflow-hidden"}>
+    <div
+      class={bannerClasses() + " w-[560px] max-w-full"}
+      style={{
+        "max-height": "calc(100vh - 32px)",
+        "overflow-y": "auto",
+        "overflow-x": "hidden",
+        "overscroll-behavior": "contain",
+      }}
+      onWheel={(e) => e.stopPropagation()}
+    >
       <div class="p-1">
         <div class="flex justify-between items-center">
           <LogoIcon />

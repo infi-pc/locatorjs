@@ -4,6 +4,8 @@ import { EditorLinkForm } from "./EditorLinkForm";
 import { ProjectLinkForm } from "./ProjectLinkForm";
 import { useOptions } from "../functions/optionsStore";
 import { TransformLinkForm } from "./TransformLinkForm";
+import { TmuxSessionForm } from "./TmuxSessionForm";
+import { NvimSetupGuide } from "./NvimSetupGuide";
 import { AdapterId, HREF_TARGET } from "../consts";
 import { LinkProps } from "../types/types";
 import { LinkHrefTarget } from "./LinkHrefTarget";
@@ -21,6 +23,14 @@ export function LinkOptions(props: {
   function selectTarget(val: string | undefined) {
     options.setOptions({ templateOrTemplateId: val });
   }
+
+  const isNvimTarget = () => {
+    const target = selectedTarget();
+    return (
+      target === "nvim" ||
+      (typeof target === "string" && target.includes("nvim://"))
+    );
+  };
 
   const currentLink = () =>
     props.linkProps
@@ -48,6 +58,26 @@ export function LinkOptions(props: {
         selectedTarget={selectedTarget()}
         selectTarget={selectTarget}
       />
+
+      {isNvimTarget() && (
+        <TmuxSessionForm
+          value={options.getOptions().tmuxSession}
+          onChange={(newValue) => {
+            options.setOptions({ tmuxSession: newValue });
+          }}
+          onTemplateSwitch={(useCustom, tmuxSession) => {
+            if (useCustom) {
+              selectTarget(
+                `nvim://file/\${projectPath}\${filePath}:\${line}:\${column}?tmux-session=\${tmuxSession}`
+              );
+            } else {
+              selectTarget("nvim");
+            }
+          }}
+        />
+      )}
+
+      {isNvimTarget() && <NvimSetupGuide />}
 
       <LinkHrefTarget
         value={options.getOptions().hrefTarget}
