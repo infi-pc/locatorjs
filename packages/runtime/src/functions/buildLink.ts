@@ -20,6 +20,7 @@ export function buildLink(
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): string {
+  const tmuxSession = options.getOptions().tmuxSession;
   const params = {
     filePath: linkProps.filePath,
     projectPath: getSavedProjectPath(options) || linkProps.projectPath,
@@ -29,6 +30,7 @@ export function buildLink(
     columnPlusOne: String(linkProps.column + 1),
     lineMinusOne: String(linkProps.line - 1),
     columnMinusOne: String(linkProps.column - 1),
+    ...(tmuxSession ? { tmuxSession } : {}),
   };
 
   const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
