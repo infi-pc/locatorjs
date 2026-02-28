@@ -32,6 +32,10 @@ export const allTargets: Targets = {
     url: "antigravity://file/${projectPath}${filePath}:${line}:${column}",
     label: "Antigravity",
   },
+  nvim: {
+    url: "nvim://file/${projectPath}${filePath}:${line}:${column}",
+    label: "Neovim (macOS only)",
+  },
 };
 
 export const isMac =
