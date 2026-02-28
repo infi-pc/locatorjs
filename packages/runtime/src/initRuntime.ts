@@ -9,11 +9,13 @@ export function initRuntime({
   targets,
   projectPath,
   showIntro,
+  mouseModifiers,
 }: {
   adapter?: AdapterId;
   targets?: { [k: string]: Target | string };
   projectPath?: string;
   showIntro?: boolean;
+  mouseModifiers?: string;
 } = {}) {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return;
@@ -25,6 +27,10 @@ export function initRuntime({
 
   if (projectPath) {
     setInternalProjectPath(projectPath);
+  }
+
+  if (mouseModifiers) {
+    document.documentElement.dataset.locatorMouseModifiers = mouseModifiers;
   }
 
   // add style tag to head
