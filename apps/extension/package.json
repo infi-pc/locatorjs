@@ -33,7 +33,7 @@
     "raw-loader": "^4.0.2",
     "semver": "^7.7.3",
     "solid-icons": "^1.0.11",
-    "solid-js": "^1.9.2",
+    "solid-js": "^1.9.11",
     "solid-transition-group": "^0.2.2"
   },
   "devDependencies": {
