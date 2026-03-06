@@ -7,6 +7,13 @@ export function makeFiberId(fiber: Fiber) {
   if (fiber._debugID) {
     return fiber._debugID.toString();
   }
+  
+  // 验证 fiber 是有效对象，避免 WeakMap 键无效错误
+  if (typeof fiber !== 'object' || fiber === null) {
+    globalIdCounter++;
+    return `fiber:${globalIdCounter}`;
+  }
+  
   const found = globalIdMap.get(fiber);
   if (found) {
     return found;
