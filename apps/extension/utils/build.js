@@ -3,7 +3,7 @@ process.env.BABEL_ENV = 'production';
 process.env.NODE_ENV = 'production';
 process.env.ASSET_PATH = '/';
 
-// 手动设置 npm_package_* 环境变量（直接调用 node 时不会自动设置）
+// Manually set npm_package_* env vars (not auto-set when calling node directly)
 var pkg = require('../package.json');
 process.env.npm_package_version = pkg.version;
 process.env.npm_package_description = pkg.description;

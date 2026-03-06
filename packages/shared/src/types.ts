@@ -201,7 +201,7 @@ export type ReactInternals = {
   currentDispatcherRef: any;
   getCurrentFiber: () => Fiber | null;
   rendererPackageName?: string;
-  // React 19 移除了此 API，改为可选
+  // React 19 removed this API, now optional
   findFiberByHostInstance?: (hostInstance: NativeType) => Fiber | null;
 };
 
@@ -667,23 +667,23 @@ export type RecordEventHandler = (
 
 /**
  * React DevTools 7.0.1+ RendererInterface API
- * 每个 renderer 暴露的接口，用于获取组件信息和源码位置
+ * Interface exposed by each renderer for getting component info and source locations
  */
 export type RendererInterface = {
-  // 从 DOM 元素获取 React 内部元素 ID
+  // Get React internal element ID from a DOM element
   getElementIDForHostInstance: (hostInstance: NativeType) => number | null;
-  // 通过 ID 获取组件的源函数/类
+  // Get component's source function/class by ID
   getElementSourceFunctionById?: (id: number) => ((...args: any[]) => any) | null;
-  // 检查元素，返回包含 source 等详细信息
+  // Inspect element, returns detailed info including source
   inspectElement: (
     requestID: number,
     id: number,
     path: Array<string | number> | null,
     forceFullData?: boolean
   ) => InspectElementResult | null;
-  // 获取元素在树中的路径
+  // Get the element's path in the tree
   getPathForElement?: (id: number) => Array<PathFrame> | null;
-  // 查找 Fiber（部分版本可用）
+  // Find Fiber (available in some versions)
   findFiberByHostInstance?: (hostInstance: NativeType) => Fiber | null;
 };
 
@@ -702,15 +702,9 @@ export type ReactDevtoolsHook = {
     priorityLevel: any
   ) => void;
   onPostCommitFiberRoot: (rendererId: number, root: FiberRoot) => void;
-  // 传统 renderers Map
+  // Legacy renderers Map
   renderers?: Map<number, ReactInternals>;
-  // React DevTools 7.0.1+ 新增的 rendererInterfaces
+  // rendererInterfaces added in React DevTools 7.0.1+
   rendererInterfaces?: Map<number, RendererInterface>;
 };
 
-// 扩展全局 Window 类型
-declare global {
-  interface Window {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__?: ReactDevtoolsHook;
-  }
-}

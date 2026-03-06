@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Chrome 扩展打包脚本
- * 完整流程：构建依赖 -> 构建扩展 -> 打包 zip
+ * Chrome extension packaging script
+ * Full pipeline: build deps -> build extension -> package zip
  *
- * 用法：
- *   node utils/release.js           # 打包 Chrome 版本
- *   node utils/release.js --firefox # 打包 Firefox 版本
- *   node utils/release.js --all     # 打包所有版本
+ * Usage:
+ *   node utils/release.js           # Package Chrome version
+ *   node utils/release.js --firefox # Package Firefox version
+ *   node utils/release.js --all     # Package all versions
  */
 
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs-extra");
 
-// archiver 可选，没有则 fallback 到系统 zip 命令
+// archiver is optional, falls back to system zip command
 let archiver;
 try {
   archiver = require("archiver");
@@ -22,13 +22,13 @@ try {
   archiver = null;
 }
 
-// 路径配置
+// Path configuration
 const ROOT_DIR = path.resolve(__dirname, "../../..");
 const EXTENSION_DIR = path.resolve(__dirname, "..");
 const RUNTIME_DIR = path.resolve(ROOT_DIR, "packages/runtime");
 const BUILD_DIR = path.resolve(EXTENSION_DIR, "build");
 
-// 颜色输出
+// Color output
 const colors = {
   reset: "\x1b[0m",
   bright: "\x1b[1m",
@@ -55,7 +55,7 @@ function logError(message) {
 }
 
 /**
- * 执行命令并实时输出
+ * Execute a command with real-time output
  */
 function execCommand(command, options = {}) {
   const { cwd = process.cwd(), silent = false } = options;
@@ -92,28 +92,28 @@ function execCommand(command, options = {}) {
 }
 
 /**
- * 构建 runtime 包
+ * Build the runtime package
  */
 async function buildRuntime() {
-  logStep(1, "构建 @locator/runtime 包...");
+  logStep(1, "Building @locator/runtime package...");
 
   await execCommand("pnpm run build", { cwd: RUNTIME_DIR });
-  logSuccess("runtime 构建完成");
+  logSuccess("Runtime build complete");
 }
 
 /**
- * 构建扩展
+ * Build the extension
  */
 async function buildExtension(target = "chrome") {
-  logStep(2, `构建 ${target} 扩展...`);
+  logStep(2, `Building ${target} extension...`);
 
   const buildCmd = target === "firefox" ? "pnpm run build:firefox" : "pnpm run build";
   await execCommand(buildCmd, { cwd: EXTENSION_DIR });
-  logSuccess(`${target} 扩展构建完成`);
+  logSuccess(`${target} extension build complete`);
 }
 
 /**
- * 使用 archiver 打包 zip（纯 Node.js 实现）
+ * Create zip using archiver (pure Node.js)
  */
 async function createZipWithArchiver(sourceDir, outputPath) {
   return new Promise((resolve, reject) => {
@@ -133,7 +133,7 @@ async function createZipWithArchiver(sourceDir, outputPath) {
 }
 
 /**
- * 使用系统 zip 命令打包
+ * Create zip using system zip command
  */
 async function createZipWithSystem(sourceDir, outputPath) {
   await execCommand(`cd "${sourceDir}" && zip -r "${outputPath}" .`);
@@ -142,25 +142,25 @@ async function createZipWithSystem(sourceDir, outputPath) {
 }
 
 /**
- * 打包成 zip
+ * Package the extension into a zip
  */
 async function packExtension(target = "chrome") {
-  logStep(3, `打包 ${target}.zip...`);
+  logStep(3, `Packaging ${target}.zip...`);
 
   const sourceDir = path.join(BUILD_DIR, `production_${target}`);
   const outputPath = path.join(BUILD_DIR, `${target}.zip`);
 
-  // 确保源目录存在
+  // Ensure source directory exists
   if (!fs.existsSync(sourceDir)) {
-    throw new Error(`构建目录不存在: ${sourceDir}`);
+    throw new Error(`Build directory does not exist: ${sourceDir}`);
   }
 
-  // 删除旧的 zip
+  // Remove old zip
   if (fs.existsSync(outputPath)) {
     fs.removeSync(outputPath);
   }
 
-  // 使用 archiver 或 fallback 到系统 zip 命令
+  // Use archiver or fall back to system zip command
   let size;
   if (archiver) {
     size = await createZipWithArchiver(sourceDir, outputPath);
@@ -168,12 +168,12 @@ async function packExtension(target = "chrome") {
     size = await createZipWithSystem(sourceDir, outputPath);
   }
 
-  logSuccess(`打包完成: ${outputPath} (${size}KB)`);
+  logSuccess(`Packaging complete: ${outputPath} (${size}KB)`);
   return outputPath;
 }
 
 /**
- * 获取版本信息
+ * Get version info from package.json
  */
 function getVersionInfo() {
   const pkg = require(path.join(EXTENSION_DIR, "package.json"));
@@ -184,7 +184,7 @@ function getVersionInfo() {
 }
 
 /**
- * 主流程
+ * Main entry point
  */
 async function main() {
   const args = process.argv.slice(2);
@@ -196,50 +196,50 @@ async function main() {
   const { version, name } = getVersionInfo();
 
   log(`\n${"=".repeat(50)}`, "bright");
-  log(`  ${name} v${version} 打包脚本`, "bright");
+  log(`  ${name} v${version} release script`, "bright");
   log(`${"=".repeat(50)}`, "bright");
 
   try {
-    // 1. 构建依赖
+    // 1. Build dependencies
     if (!skipRuntime) {
       await buildRuntime();
     } else {
-      log("\n[跳过] runtime 构建", "yellow");
+      log("\n[Skipped] runtime build", "yellow");
     }
 
     const outputs = [];
 
-    // 2. 构建和打包
+    // 2. Build and package
     if (buildAll) {
-      // 构建所有版本
+      // Build all versions
       await buildExtension("chrome");
       outputs.push(await packExtension("chrome"));
 
       await buildExtension("firefox");
       outputs.push(await packExtension("firefox"));
     } else if (buildFirefox) {
-      // 仅 Firefox
+      // Firefox only
       await buildExtension("firefox");
       outputs.push(await packExtension("firefox"));
     } else {
-      // 默认 Chrome
+      // Default: Chrome
       await buildExtension("chrome");
       outputs.push(await packExtension("chrome"));
     }
 
-    // 完成
+    // Done
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(`\n${"=".repeat(50)}`, "green");
-    log(`  打包完成! 耗时 ${duration}s`, "green");
+    log(`  Packaging complete! Time elapsed: ${duration}s`, "green");
     log(`${"=".repeat(50)}`, "green");
-    log("\n产物:");
+    log("\nArtifacts:");
     outputs.forEach((p) => log(`  - ${p}`));
     log("");
   } catch (error) {
-    logError(`打包失败: ${error.message}`);
+    logError(`Packaging failed: ${error.message}`);
     process.exit(1);
   }
 }
 
-// 运行
+// Run
 main();

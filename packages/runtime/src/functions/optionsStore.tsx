@@ -16,7 +16,7 @@ export function initOptions(): OptionsStore {
   const initialOptions = getStoredOptions();
   const [signalOptions, setSignalOptions] = createSignal(initialOptions);
 
-  // 初始化时同步 debug 状态
+  // Sync debug state on initialization
   if (initialOptions.debugMode) {
     setDebugMode(true);
   }
@@ -24,7 +24,7 @@ export function initOptions(): OptionsStore {
   // This listens on localStorage changes, but the changes go only from scripts other than the current one and current one's content scripts
   listenOnOptionsChanges((newOptions) => {
     setSignalOptions(newOptions);
-    // 同步 debug 状态
+    // Sync debug state
     setDebugMode(newOptions.debugMode ?? false);
   });
 
@@ -43,7 +43,7 @@ export function initOptions(): OptionsStore {
       ) {
         const newOptions = getStoredOptions();
         setSignalOptions(newOptions);
-        // 同步 debug 状态
+        // Sync debug state
         setDebugMode(newOptions.debugMode ?? false);
       }
     },

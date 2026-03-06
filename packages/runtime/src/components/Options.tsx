@@ -20,7 +20,7 @@ export function Options(props: {
 }) {
   const options = useOptions();
 
-  // 同步获取的 linkProps
+  // Synchronously fetched linkProps
   const syncLinkProps = createMemo(() =>
     props.currentElement
       ? getElementInfo(props.currentElement, props.adapterId)?.thisElement
@@ -28,24 +28,24 @@ export function Options(props: {
       : null
   );
 
-  // 异步获取的 linkProps（用于 Turbopack jsxDEV source）
+  // Async fetched linkProps (for Turbopack jsxDEV source)
   const [asyncLinkProps, setAsyncLinkProps] = createSignal<LinkProps | null>(null);
 
-  // 当 currentElement 改变且同步方式无法获取时，尝试异步获取
+  // When currentElement changes and sync fails, try async
   createEffect(() => {
     const element = props.currentElement;
     const syncResult = syncLinkProps();
 
-    // 如果同步已获取到，直接使用同步结果
+    // If sync succeeded, use sync result directly
     if (syncResult) {
       setAsyncLinkProps(null);
       return;
     }
 
-    // 同步获取失败，尝试异步获取
+    // Sync failed, try async
     if (element) {
       getElementInfoAsync(element, props.adapterId).then((elInfo) => {
-        // 确保 element 仍是当前元素
+        // Ensure element is still the current element
         if (props.currentElement === element) {
           setAsyncLinkProps(elInfo?.thisElement.link || null);
         }
@@ -55,20 +55,20 @@ export function Options(props: {
     }
   });
 
-  // 优先使用同步结果，否则使用异步结果
+  // Prefer sync result, fallback to async result
   const elLinkProps = () => syncLinkProps() || asyncLinkProps();
 
-  // debug 模式状态
+  // Debug mode state
   const [debugEnabled, setDebugEnabled] = createSignal(
     options.getOptions().debugMode ?? false
   );
 
-  // 初始化时同步 debug 状态
+  // Sync debug state on init
   createEffect(() => {
     setDebugMode(debugEnabled());
   });
 
-  // 切换 debug 模式
+  // Toggle debug mode
   const toggleDebugMode = () => {
     const newValue = !debugEnabled();
     setDebugEnabled(newValue);
@@ -115,7 +115,7 @@ export function Options(props: {
             <span>Debug Mode</span>
           </label>
           <span class="text-[10px] text-slate-400">
-            {debugEnabled() ? "(控制台查看定位日志)" : ""}
+            {debugEnabled() ? "(view location logs in console)" : ""}
           </span>
         </div>
 

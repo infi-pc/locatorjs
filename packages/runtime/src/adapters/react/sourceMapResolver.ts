@@ -1,18 +1,18 @@
 import { Source } from "@locator/shared";
 
 /**
- * Source Map 解析器
- * 用于 Next.js 15+ / React 19+ 使用 Turbopack 打包的环境
- * 当传统 _debugSource 方式失效时，通过 source-map 反查原始位置
+ * Source Map Resolver
+ * For Next.js 15+ / React 19+ using Turbopack
+ * When traditional _debugSource is unavailable, reverse-lookup via source-map
  */
 
-// source-map 缓存：url -> 解析后的 map 数据
+// Source map cache: url -> parsed map data
 const sourceMapCache = new Map<string, SourceMapConsumer | null>();
 
-// 正在加载的 source-map Promise 缓存，避免重复请求
+// Loading promise cache to avoid duplicate requests
 const loadingPromises = new Map<string, Promise<SourceMapConsumer | null>>();
 
-// 简化的 Source Map Consumer 接口
+// Simplified Source Map Consumer interface
 interface SourceMapConsumer {
   originalPositionFor(pos: {
     line: number;
@@ -31,17 +31,17 @@ interface RawSourceMap {
   sourceRoot?: string;
 }
 
-// Indexed Source Map 格式（Turbopack 使用）
+// Indexed Source Map format (used by Turbopack)
 interface IndexedSourceMap {
   version: number;
-  sources: string[]; // 顶层为空
+  sources: string[]; // empty at top level
   sections: Array<{
     offset: { line: number; column: number };
     map: RawSourceMap;
   }>;
 }
 
-// VLQ 解码表
+// VLQ decoding table
 const VLQ_BASE_SHIFT = 5;
 const VLQ_BASE = 1 << VLQ_BASE_SHIFT;
 const VLQ_BASE_MASK = VLQ_BASE - 1;
@@ -55,9 +55,9 @@ const charToInt: Record<string, number> = {};
   });
 
 /**
- * 解码 VLQ 编码的值
+ * Decode a VLQ-encoded value
  */
-function decodeVLQ(encoded: string, index: number): [number, number] {
+export function decodeVLQ(encoded: string, index: number): [number, number] {
   let result = 0;
   let shift = 0;
   let continuation: boolean;
@@ -76,13 +76,13 @@ function decodeVLQ(encoded: string, index: number): [number, number] {
     shift += VLQ_BASE_SHIFT;
   } while (continuation);
 
-  // 符号位在最低位
+  // Sign bit is in the least significant position
   const isNegative = result & 1;
   result >>= 1;
   return [isNegative ? -result : result, index];
 }
 
-interface MappingSegment {
+export interface MappingSegment {
   generatedColumn: number;
   sourceIndex: number;
   originalLine: number;
@@ -90,10 +90,10 @@ interface MappingSegment {
 }
 
 /**
- * 解析 source map mappings 字符串
- * 返回按行组织的映射数组
+ * Parse source map mappings string
+ * Returns mappings organized by generated line
  */
-function parseMappings(mappings: string): MappingSegment[][] {
+export function parseMappings(mappings: string): MappingSegment[][] {
   const lines: MappingSegment[][] = [];
 
   let generatedColumn = 0;
@@ -115,14 +115,14 @@ function parseMappings(mappings: string): MappingSegment[][] {
     } else if (char === ",") {
       i++;
     } else {
-      // 解析一个 segment
+      // Parse one segment
       let value: number;
 
-      // 1. generated column (相对于上一个 segment)
+      // 1. generated column (relative to previous segment)
       [value, i] = decodeVLQ(mappings, i);
       generatedColumn += value;
 
-      // 检查是否有更多字段
+      // Check if there are more fields
       if (i < mappings.length && mappings[i] !== "," && mappings[i] !== ";") {
         // 2. source index
         [value, i] = decodeVLQ(mappings, i);
@@ -136,7 +136,7 @@ function parseMappings(mappings: string): MappingSegment[][] {
         [value, i] = decodeVLQ(mappings, i);
         originalColumn += value;
 
-        // 5. name index (可选，忽略)
+        // 5. name index (optional, ignored)
         if (i < mappings.length && mappings[i] !== "," && mappings[i] !== ";") {
           [, i] = decodeVLQ(mappings, i);
         }
@@ -151,7 +151,7 @@ function parseMappings(mappings: string): MappingSegment[][] {
     }
   }
 
-  // 不要忘记最后一行
+  // Don't forget the last line
   if (currentLine.length > 0 || mappings.endsWith(";")) {
     lines.push(currentLine);
   }
@@ -160,14 +160,14 @@ function parseMappings(mappings: string): MappingSegment[][] {
 }
 
 /**
- * 创建简易 Source Map Consumer（普通格式）
+ * Create a basic Source Map Consumer (standard format)
  */
 function createBasicSourceMapConsumer(rawMap: RawSourceMap): SourceMapConsumer {
   const parsedMappings = parseMappings(rawMap.mappings);
 
   return {
     originalPositionFor(pos: { line: number; column: number }) {
-      // line 是 1-based，转为 0-based 索引
+      // line is 1-based, convert to 0-based index
       const lineIndex = pos.line - 1;
       const segments = parsedMappings[lineIndex];
 
@@ -175,7 +175,7 @@ function createBasicSourceMapConsumer(rawMap: RawSourceMap): SourceMapConsumer {
         return { source: null, line: null, column: null };
       }
 
-      // 二分查找最接近的 segment
+      // Binary search for closest segment
       let low = 0;
       let high = segments.length - 1;
 
@@ -199,14 +199,14 @@ function createBasicSourceMapConsumer(rawMap: RawSourceMap): SourceMapConsumer {
         return { source: null, line: null, column: null };
       }
 
-      // 处理 sourceRoot
+      // Handle sourceRoot
       const fullSource = rawMap.sourceRoot
         ? `${rawMap.sourceRoot}${source}`
         : source;
 
       return {
         source: fullSource,
-        line: segment.originalLine + 1, // 转回 1-based
+        line: segment.originalLine + 1, // Convert back to 1-based
         column: segment.originalColumn,
       };
     },
@@ -214,11 +214,11 @@ function createBasicSourceMapConsumer(rawMap: RawSourceMap): SourceMapConsumer {
 }
 
 /**
- * 创建 Indexed Source Map Consumer（Turbopack 格式）
- * sections 按 offset 排序，每个 section 有自己的 map
+ * Create Indexed Source Map Consumer (Turbopack format)
+ * Sections sorted by offset, each has its own map
  */
 function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMapConsumer {
-  // 预解析所有 section 的 mappings
+  // Pre-parse all section mappings
   const sectionConsumers = indexedMap.sections.map(section => ({
     offset: section.offset,
     consumer: createBasicSourceMapConsumer(section.map),
@@ -227,15 +227,15 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
 
   return {
     originalPositionFor(pos: { line: number; column: number }) {
-      // 找到包含该位置的 section（从后往前找，找第一个 offset <= pos 的）
+      // Find section containing position (search backward for first offset <= pos)
       let targetSection: typeof sectionConsumers[0] | null = null;
       for (let i = sectionConsumers.length - 1; i >= 0; i--) {
         const section = sectionConsumers[i];
         if (!section) continue;
-        // offset.line 是 0-based，pos.line 是 1-based
+        // offset.line is 0-based, pos.line is 1-based
         const sectionStartLine = section.offset.line + 1;
         if (pos.line >= sectionStartLine) {
-          // 如果在同一行，还需要检查 column
+          // On same line, also check column
           if (pos.line === sectionStartLine && pos.column < section.offset.column) {
             continue;
           }
@@ -248,7 +248,7 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
         return { source: null, line: null, column: null };
       }
 
-      // 计算相对于 section 的位置
+      // Calculate position relative to section
       const relativePos = {
         line: pos.line - targetSection.offset.line,
         column: pos.line === targetSection.offset.line + 1
@@ -262,10 +262,10 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
 }
 
 /**
- * 创建 Source Map Consumer（自动检测格式）
+ * Create Source Map Consumer (auto-detect format)
  */
 function createSourceMapConsumer(map: RawSourceMap | IndexedSourceMap): SourceMapConsumer {
-  // 检测是否是 Indexed Source Map
+  // Detect if this is an Indexed Source Map
   if ('sections' in map && Array.isArray(map.sections)) {
     return createIndexedSourceMapConsumer(map as IndexedSourceMap);
   }
@@ -273,17 +273,17 @@ function createSourceMapConsumer(map: RawSourceMap | IndexedSourceMap): SourceMa
 }
 
 /**
- * 从 URL 加载 source map
+ * Load source map from URL
  */
 async function loadSourceMap(
   mapUrl: string
 ): Promise<SourceMapConsumer | null> {
-  // 检查缓存
+  // Check cache
   if (sourceMapCache.has(mapUrl)) {
     return sourceMapCache.get(mapUrl) ?? null;
   }
 
-  // 检查是否正在加载
+  // Check if already loading
   const existing = loadingPromises.get(mapUrl);
   if (existing) {
     return existing;
@@ -314,10 +314,10 @@ async function loadSourceMap(
 }
 
 /**
- * 从 JS 文件 URL 推断 source map URL
+ * Infer source map URL from JS file URL
  */
 function inferSourceMapUrl(jsUrl: string): string | null {
-  // 处理各种打包工具的 source map 命名规则
+  // Handle various bundler source map naming conventions
   if (jsUrl.endsWith(".js")) {
     return `${jsUrl}.map`;
   }
@@ -325,8 +325,8 @@ function inferSourceMapUrl(jsUrl: string): string | null {
 }
 
 /**
- * 解析 Error stack trace 获取调用位置
- * 支持 Chrome/Firefox/Safari 格式
+ * Parse Error stack trace for call location
+ * Supports Chrome/Firefox/Safari formats
  */
 interface StackFrame {
   fileName: string;
@@ -340,8 +340,8 @@ function parseStackTrace(stack: string): StackFrame[] {
   const lines = stack.split("\n");
 
   for (const line of lines) {
-    // Chrome 格式: "    at functionName (file:line:column)"
-    // 或 "    at file:line:column"
+    // Chrome format: "    at functionName (file:line:column)"
+    // or "    at file:line:column"
     const chromeMatch = line.match(
       /^\s*at\s+(?:(.+?)\s+\()?(.+?):(\d+):(\d+)\)?$/
     );
@@ -358,7 +358,7 @@ function parseStackTrace(stack: string): StackFrame[] {
       continue;
     }
 
-    // Firefox 格式: "functionName@file:line:column"
+    // Firefox format: "functionName@file:line:column"
     const firefoxMatch = line.match(/^(.+?)@(.+?):(\d+):(\d+)$/);
     if (firefoxMatch) {
       const [, funcName, fileName, lineStr, colStr] = firefoxMatch;
@@ -377,14 +377,14 @@ function parseStackTrace(stack: string): StackFrame[] {
 }
 
 /**
- * 过滤掉 LocatorJS 自身和 React 内部的 stack frames
+ * Filter out LocatorJS and React internal stack frames
  */
 function filterRelevantFrames(frames: StackFrame[]): StackFrame[] {
   return frames.filter((frame) => {
     const fileName = frame.fileName.toLowerCase();
-    // 排除 LocatorJS 自身
+    // Exclude LocatorJS
     if (fileName.includes("locator")) return false;
-    // 排除 React 内部
+    // Exclude React internals
     if (fileName.includes("react-dom")) return false;
     if (fileName.includes("react.development")) return false;
     if (fileName.includes("react.production")) return false;
@@ -393,12 +393,12 @@ function filterRelevantFrames(frames: StackFrame[]): StackFrame[] {
 }
 
 /**
- * 尝试从 stack trace 获取组件源码位置
- * 这是核心函数，用于无法获取 _debugSource 的环境
+ * Try to get component source from stack trace
+ * Core function for environments where _debugSource is unavailable
  */
 export async function resolveSourceFromStack(): Promise<Source | null> {
   try {
-    // 生成一个 Error 获取 stack trace
+    // Generate Error to get stack trace
     const error = new Error();
     const stack = error.stack;
     if (!stack) return null;
@@ -408,14 +408,14 @@ export async function resolveSourceFromStack(): Promise<Source | null> {
 
     if (relevantFrames.length === 0) return null;
 
-    // 取第一个相关的 frame（通常是组件渲染位置）
+    // Take first relevant frame (usually component render location)
     const frame = relevantFrames[0];
     if (!frame) return null;
 
     const mapUrl = inferSourceMapUrl(frame.fileName);
 
     if (!mapUrl) {
-      // 没有 source map，直接返回编译后的位置
+      // No source map, return compiled position
       return {
         fileName: frame.fileName,
         lineNumber: frame.lineNumber,
@@ -423,7 +423,7 @@ export async function resolveSourceFromStack(): Promise<Source | null> {
       };
     }
 
-    // 加载并解析 source map
+    // Load and parse source map
     const consumer = await loadSourceMap(mapUrl);
     if (!consumer) {
       return {
@@ -457,26 +457,26 @@ export async function resolveSourceFromStack(): Promise<Source | null> {
 }
 
 /**
- * 将 file:// URL 转换为本地路径
+ * Convert file:// URL to local path
  * file:///Users/foo/bar.ts -> /Users/foo/bar.ts
  * file:///C:/foo/bar.ts -> C:/foo/bar.ts (Windows)
  */
-function fileUrlToPath(fileUrl: string): string {
+export function fileUrlToPath(fileUrl: string): string {
   if (!fileUrl.startsWith('file://')) {
     return fileUrl;
   }
 
-  // 移除 file:// 前缀
+  // Remove file:// prefix
   let path = fileUrl.slice(7);
 
-  // URL 解码（处理 %40 -> @ 等）
+  // URL decode (handle %40 -> @ etc.)
   try {
     path = decodeURIComponent(path);
   } catch {
-    // 解码失败则保持原样
+    // Keep original if decoding fails
   }
 
-  // Windows 路径处理：file:///C:/foo -> C:/foo
+  // Windows path handling: file:///C:/foo -> C:/foo
   if (path.match(/^\/[A-Za-z]:\//)) {
     path = path.slice(1);
   }
@@ -485,7 +485,7 @@ function fileUrlToPath(fileUrl: string): string {
 }
 
 /**
- * 从指定的编译后位置反查原始位置
+ * Reverse-lookup original position from compiled position
  */
 export async function resolveOriginalPosition(
   compiledUrl: string,
@@ -505,7 +505,7 @@ export async function resolveOriginalPosition(
   const original = consumer.originalPositionFor({ line, column });
 
   if (original.source && original.line) {
-    // 转换 file:// URL 为本地路径
+    // Convert file:// URL to local path
     const fileName = fileUrlToPath(original.source);
     return {
       fileName,
@@ -518,10 +518,10 @@ export async function resolveOriginalPosition(
 }
 
 /**
- * 预加载页面上所有 chunk 的 source map（可选优化）
+ * Preload source maps for all page chunks (optional optimization)
  */
 export async function preloadSourceMaps(): Promise<void> {
-  // 查找页面上所有的 script 标签
+  // Find all script tags on page
   const scripts = document.querySelectorAll('script[src*=".js"]');
   const loadPromises: Promise<void>[] = [];
 
@@ -541,7 +541,7 @@ export async function preloadSourceMaps(): Promise<void> {
 }
 
 /**
- * 清除 source map 缓存
+ * Clear source map cache
  */
 export function clearSourceMapCache(): void {
   sourceMapCache.clear();

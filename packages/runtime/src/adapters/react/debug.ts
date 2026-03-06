@@ -1,15 +1,15 @@
 /**
- * LocatorJS Debug 模块
- * 用于调试源码定位流程，帮助排查跳转问题
+ * LocatorJS Debug Module
+ * Helps debug source location resolution and troubleshoot navigation issues.
  *
- * 启用方式：
- * 1. 浏览器控制台执行: window.__LOCATORJS_DEBUG__ = true
- * 2. 或在代码中调用: enableLocatorDebug()
+ * Enable via:
+ * 1. Browser console: window.__LOCATORJS_DEBUG__ = true
+ * 2. Or call: enableLocatorDebug()
  */
 
-// 定位方式枚举
+// Source resolution method enum
 export const SourceMethod = {
-  // 同步方式 (findDebugSource.ts)
+  // Synchronous methods (findDebugSource.ts)
   FIBER_DEBUG_SOURCE: "fiber._debugSource",
   ELEMENT_TYPE_SOURCE: "fiber.elementType._source",
   TYPE_SOURCE: "fiber.type._source",
@@ -18,17 +18,17 @@ export const SourceMethod = {
   PENDING_PROPS_SOURCE: "fiber.pendingProps.__source",
   DEBUG_INFO_STACK: "fiber._debugInfo[].stack",
   TYPE_COMPONENT_SOURCE: "fiber.type.__componentSource",
-  CACHE_HIT: "cache (之前异步解析的结果)",
+  CACHE_HIT: "cache (previously async-resolved)",
 
-  // 异步方式 (clickSourceResolver.ts)
+  // Asynchronous methods (clickSourceResolver.ts)
   RENDERER_INTERFACE: "rendererInterfaces API (React DevTools 7.0.1+)",
   DEBUG_INFO: "_debugInfo (React 19 Server Components)",
   DEBUG_STACK: "_debugStack (React 19)",
-  FUNCTION_META: "函数元数据 (__source/_source)",
-  DEVTOOLS_RENDERERS: "React DevTools renderers (旧版 API)",
-  SOURCE_URL: "函数 toString() sourceURL",
-  TURBOPACK_ELEMENT: "Turbopack chunk (原生元素)",
-  TURBOPACK_COMPONENT: "Turbopack chunk (组件名)",
+  FUNCTION_META: "function metadata (__source/_source)",
+  DEVTOOLS_RENDERERS: "React DevTools renderers (legacy API)",
+  SOURCE_URL: "function toString() sourceURL",
+  TURBOPACK_ELEMENT: "Turbopack chunk (native element)",
+  TURBOPACK_COMPONENT: "Turbopack chunk (component name)",
 } as const;
 
 export type SourceMethodType = (typeof SourceMethod)[keyof typeof SourceMethod];
@@ -46,16 +46,16 @@ interface DebugInfo {
   timestamp: number;
 }
 
-// 全局 debug 状态
+// Global debug state
 let debugEnabled = false;
 const debugHistory: DebugInfo[] = [];
 const MAX_HISTORY = 50;
 
 /**
- * 检查是否启用 debug 模式
+ * Check if debug mode is enabled
  */
 export function isDebugEnabled(): boolean {
-  // 支持通过 window 全局变量控制
+  // Also check window global variable
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== "undefined" && (window as any).__LOCATORJS_DEBUG__) {
     return true;
@@ -64,7 +64,7 @@ export function isDebugEnabled(): boolean {
 }
 
 /**
- * 启用 debug 模式
+ * Enable debug mode
  */
 export function enableLocatorDebug(): void {
   debugEnabled = true;
@@ -73,15 +73,15 @@ export function enableLocatorDebug(): void {
     (window as any).__LOCATORJS_DEBUG__ = true;
   }
   console.log(
-    "%c[LocatorJS Debug] 已启用调试模式",
+    "%c[LocatorJS Debug] Debug mode enabled",
     "color: #4CAF50; font-weight: bold"
   );
-  console.log("查看历史记录: window.__LOCATORJS_DEBUG_HISTORY__");
-  console.log("禁用: window.__LOCATORJS_DEBUG__ = false 或 disableLocatorDebug()");
+  console.log("View debug history: window.__LOCATORJS_DEBUG_HISTORY__");
+  console.log("Disable: window.__LOCATORJS_DEBUG__ = false or disableLocatorDebug()");
 }
 
 /**
- * 禁用 debug 模式
+ * Disable debug mode
  */
 export function disableLocatorDebug(): void {
   debugEnabled = false;
@@ -90,13 +90,13 @@ export function disableLocatorDebug(): void {
     (window as any).__LOCATORJS_DEBUG__ = false;
   }
   console.log(
-    "%c[LocatorJS Debug] 已禁用调试模式",
+    "%c[LocatorJS Debug] Debug mode disabled",
     "color: #f44336; font-weight: bold"
   );
 }
 
 /**
- * 设置 debug 模式（供设置面板调用，静默模式）
+ * Set debug mode (called from settings panel, silent)
  */
 export function setDebugMode(enabled: boolean): void {
   debugEnabled = enabled;
@@ -107,7 +107,7 @@ export function setDebugMode(enabled: boolean): void {
 }
 
 /**
- * 获取 Fiber 类型描述
+ * Get a human-readable description of a Fiber's type
  */
 function getFiberTypeDesc(fiber: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,13 +116,13 @@ function getFiberTypeDesc(fiber: unknown): string {
 
   const type = f.type;
   if (typeof type === "string") {
-    return `<${type}>`; // 原生元素如 <div>
+    return `<${type}>`; // native element e.g. <div>
   }
   if (typeof type === "function") {
     return type.displayName || type.name || "Anonymous";
   }
   if (type && typeof type === "object") {
-    // memo/forwardRef 等
+    // memo/forwardRef etc.
     if (type.displayName) return type.displayName;
     if (type.render?.displayName) return type.render.displayName;
     if (type.render?.name) return type.render.name;
@@ -131,7 +131,7 @@ function getFiberTypeDesc(fiber: unknown): string {
 }
 
 /**
- * 记录 debug 信息
+ * Log debug info when a source is found
  */
 export function logSourceFound(
   method: SourceMethodType,
@@ -155,41 +155,41 @@ export function logSourceFound(
     timestamp: Date.now(),
   };
 
-  // 添加到历史记录
+  // Add to history
   debugHistory.push(info);
   if (debugHistory.length > MAX_HISTORY) {
     debugHistory.shift();
   }
 
-  // 暴露到 window
+  // Expose on window
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== "undefined") {
     (window as any).__LOCATORJS_DEBUG_HISTORY__ = debugHistory;
   }
 
-  // 控制台输出
-  const asyncLabel = async ? "[异步]" : "[同步]";
+  // Console output
+  const asyncLabel = async ? "[async]" : "[sync]";
   const methodColor = async ? "#2196F3" : "#4CAF50";
 
   if (source) {
     console.log(
-      `%c[LocatorJS] ${asyncLabel} 源码定位成功`,
+      `%c[LocatorJS] ${asyncLabel} Source found`,
       `color: ${methodColor}; font-weight: bold`,
-      "\n方式:", method,
-      "\n组件:", fiberType,
-      "\n位置:", `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
+      "\nMethod:", method,
+      "\nComponent:", fiberType,
+      "\nLocation:", `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
     );
   } else {
     console.log(
-      `%c[LocatorJS] ${asyncLabel} 尝试方式: ${method}`,
+      `%c[LocatorJS] ${asyncLabel} Tried: ${method}`,
       "color: #9E9E9E",
-      `(${fiberType}) - 未找到`
+      `(${fiberType}) - not found`
     );
   }
 }
 
 /**
- * 记录定位开始
+ * Log when source resolution starts
  */
 export function logSourceStart(fiber: unknown, element?: HTMLElement): void {
   if (!isDebugEnabled()) return;
@@ -199,19 +199,19 @@ export function logSourceStart(fiber: unknown, element?: HTMLElement): void {
   const fiberTag = (fiber as any)?.tag ?? -1;
 
   console.group(
-    `%c[LocatorJS] 开始定位源码`,
+    `%c[LocatorJS] Starting source resolution`,
     "color: #FF9800; font-weight: bold"
   );
   console.log("Fiber:", fiberType, `(tag: ${fiberTag})`);
   if (element) {
-    console.log("DOM 元素:", element);
+    console.log("DOM element:", element);
   }
-  console.log("Fiber 对象:", fiber);
+  console.log("Fiber object:", fiber);
   console.groupEnd();
 }
 
 /**
- * 记录定位完成
+ * Log when source resolution completes
  */
 export function logSourceComplete(
   success: boolean,
@@ -222,33 +222,33 @@ export function logSourceComplete(
 
   if (success && source) {
     console.log(
-      `%c[LocatorJS] ✅ 定位完成`,
+      `%c[LocatorJS] Location complete`,
       "color: #4CAF50; font-weight: bold",
-      "\n最终方式:", method,
-      "\n目标位置:", `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
+      "\nFinal method:", method,
+      "\nTarget location:", `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
     );
   } else {
     console.log(
-      `%c[LocatorJS] ❌ 定位失败 - 所有方式均未找到源码`,
+      `%c[LocatorJS] Location failed - no source found via any method`,
       "color: #f44336; font-weight: bold"
     );
   }
 }
 
 /**
- * 记录错误
+ * Log an error during source resolution
  */
 export function logError(method: SourceMethodType, error: unknown): void {
   if (!isDebugEnabled()) return;
 
   console.warn(
-    `%c[LocatorJS] ⚠️ ${method} 出错:`,
+    `%c[LocatorJS] ${method} error:`,
     "color: #FF9800",
     error
   );
 }
 
-// 初始化时暴露到 window
+// Expose helpers on window at init
 if (typeof window !== "undefined") {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = window as any;

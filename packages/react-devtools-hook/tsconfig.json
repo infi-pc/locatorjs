@@ -4,6 +4,7 @@
   "exclude": ["dist", "build", "node_modules"],
   "compilerOptions": {
     "outDir": "dist",
+    "noEmit": false,
     "lib": ["ESNext", "dom"]
   }
 }

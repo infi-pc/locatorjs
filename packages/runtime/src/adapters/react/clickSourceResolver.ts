@@ -9,39 +9,39 @@ import {
 } from "./debug";
 
 /**
- * 基于点击位置的 Source 解析器
- * 用于 Next.js 15+ / React 19+ 使用新打包工具的环境
+ * Click-based source resolver
+ * For Next.js 15+ / React 19+ environments with new bundlers
  *
- * 核心思路：
- * 1. 优先使用 React DevTools 7.0.1+ rendererInterfaces API
- * 2. 从 Fiber 获取组件 type（函数）
- * 3. 解析函数的 toString() 或相关元数据获取编译后位置
- * 4. 通过 source-map 反查原始位置
- * 5. 从 Turbopack chunk 代码中提取 jsxDEV 调用的 source 信息
+ * Strategy:
+ * 1. Prefer React DevTools 7.0.1+ rendererInterfaces API
+ * 2. Get component type (function) from Fiber
+ * 3. Parse function toString() or metadata for compiled location
+ * 4. Reverse-lookup original position via source-map
+ * 5. Extract source info from jsxDEV calls in Turbopack chunk code
  */
 
 /**
- * 扩展的 DevTools Hook 类型（兼容 7.0.1+）
+ * Extended DevTools Hook type (compatible with 7.0.1+)
  */
 type DevToolsHookWithInterfaces = {
   rendererInterfaces?: Map<number, RendererInterface>;
   renderers?: Map<number, unknown>;
 };
 
-// 缓存组件 type 到 source 的映射
+// Cache: component type -> source mapping
 const componentSourceCache = new WeakMap<object, Source | null>();
 
-// 缓存 chunk 代码，避免重复请求
+// Cache: chunk code to avoid repeated fetches
 const chunkCodeCache = new Map<string, string>();
 
-// 缓存组件名到 source 的映射（用于 Turbopack 方案）
+// Cache: component name -> source mapping (for Turbopack)
 const componentNameSourceCache = new Map<string, Source | null>();
 
-// 缓存元素签名到 source 的映射（用于原生元素）
+// Cache: element signature -> source mapping (for native elements)
 const elementSignatureSourceCache = new Map<string, Source | null>();
 
 /**
- * 获取所有 chunk 代码（带缓存）
+ * Get all chunk codes (with caching)
  */
 async function getAllChunkCodes(): Promise<string[]> {
   const scripts = Array.from(
@@ -70,11 +70,11 @@ async function getAllChunkCodes(): Promise<string[]> {
 }
 
 /**
- * 在 chunk 代码中搜索 source 信息（通用方法）
- * 从属性值位置向后搜索 fileName/lineNumber
+ * Search for source info in chunk code (generic method)
+ * Search forward from attribute value position for fileName/lineNumber
  */
 function extractSourceNearPosition(code: string, position: number): Source | null {
-  // 从当前位置向后搜索 source 信息（在 1500 字符范围内）
+  // Search forward from current position for source info (within 1500 chars)
   const searchRange = code.slice(position, position + 1500);
   const fileMatch = searchRange.match(/fileName:\s*"([^"]+)"/);
   const lineMatch = searchRange.match(/lineNumber:\s*(\d+)/);
@@ -91,21 +91,21 @@ function extractSourceNearPosition(code: string, position: number): Source | nul
 }
 
 /**
- * 从 Turbopack chunk 代码中提取原生元素（div/span 等）的 source 信息
- * 通过 className/id 进行精确匹配
+ * Extract source info for native elements (div/span etc.) from Turbopack chunk code
+ * Match precisely via className/id
  */
 async function extractSourceFromTurbopackChunksForElement(
   tagName: string,
   className?: string,
   id?: string
 ): Promise<Source | null> {
-  // 构建缓存 key
+  // Build cache key
   const cacheKey = `${tagName}:${className || ""}:${id || ""}`;
   if (elementSignatureSourceCache.has(cacheKey)) {
     return elementSignatureSourceCache.get(cacheKey) ?? null;
   }
 
-  // 没有 className 和 id 则无法精确匹配
+  // Cannot match precisely without className or id
   if (!className && !id) {
     elementSignatureSourceCache.set(cacheKey, null);
     return null;
@@ -114,13 +114,13 @@ async function extractSourceFromTurbopackChunksForElement(
   try {
     const codes = await getAllChunkCodes();
 
-    // 收集所有可能的搜索模式
+    // Collect all possible search patterns
     const searchPatterns: string[] = [];
     if (id) {
       searchPatterns.push(id);
     }
     if (className) {
-      // 分割所有类名，每个都可以作为搜索关键词
+      // Split class names, each can be used as search keyword
       const classes = className.split(/\s+/).filter(c => c.length > 2);
       searchPatterns.push(...classes);
     }
@@ -132,18 +132,18 @@ async function extractSourceFromTurbopackChunksForElement(
 
     for (const code of codes) {
       for (const pattern of searchPatterns) {
-        // 在代码中搜索属性值
+        // Search for attribute value in code
         let searchIndex = 0;
         while (searchIndex < code.length) {
           const attrIndex = code.indexOf(`"${pattern}"`, searchIndex);
           if (attrIndex === -1) break;
 
-          // 向前搜索确认是 jsxDEV 调用（在 800 字符范围内）
+          // Search backward to confirm jsxDEV call (within 800 chars)
           const startRange = Math.max(0, attrIndex - 800);
           const beforeAttr = code.slice(startRange, attrIndex);
 
-          // 检查是否是 jsxDEV("tagName", 或类似调用
-          // 支持多种 Turbopack 格式:
+          // Check if this is jsxDEV("tagName", or similar call
+          // Supports multiple Turbopack formats:
           // - ["jsxDEV"])("div",
           // - jsxDEV("div",
           // - (0, _jsxDevRuntime.jsxDEV)("div",
@@ -179,13 +179,13 @@ async function extractSourceFromTurbopackChunksForElement(
 }
 
 /**
- * 从 Turbopack chunk 代码中提取 jsxDEV 调用的 source 信息
- * 适用于 React 19 + Turbopack 环境，Fiber 上没有 _debugSource 的情况
+ * Extract jsxDEV source info from Turbopack chunk code
+ * For React 19 + Turbopack where Fiber has no _debugSource
  */
 async function extractSourceFromTurbopackChunks(
   componentName: string
 ): Promise<Source | null> {
-  // 检查缓存
+  // Check cache
   if (componentNameSourceCache.has(componentName)) {
     return componentNameSourceCache.get(componentName) ?? null;
   }
@@ -194,7 +194,7 @@ async function extractSourceFromTurbopackChunks(
     const codes = await getAllChunkCodes();
 
     for (const code of codes) {
-      // 搜索多种组件调用模式:
+      // Search for various component call patterns:
       // - (ComponentName,
       // - jsxDEV(ComponentName,
       // - ["jsxDEV"])(ComponentName,
@@ -221,7 +221,7 @@ async function extractSourceFromTurbopackChunks(
       }
     }
 
-    // 未找到，缓存 null
+    // Not found, cache null
     componentNameSourceCache.set(componentName, null);
     return null;
   } catch {
@@ -230,8 +230,8 @@ async function extractSourceFromTurbopackChunks(
 }
 
 /**
- * 清除 Turbopack chunk 缓存
- * 用于开发时 HMR 更新后刷新缓存
+ * Clear Turbopack chunk cache
+ * Useful after HMR updates during development
  */
 export function clearTurbopackCache(): void {
   chunkCodeCache.clear();
@@ -240,7 +240,7 @@ export function clearTurbopackCache(): void {
 }
 
 /**
- * 获取第一个 rendererInterface（默认取第一个，处理多 react-dom 实例情况）
+ * Get the first rendererInterface (handles multiple react-dom instances)
  */
 function getFirstRendererInterface(): { rendererID: number; rendererInterface: RendererInterface } | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -259,15 +259,15 @@ function getFirstRendererInterface(): { rendererID: number; rendererInterface: R
 }
 
 /**
- * 解析 inspectElement 返回的 source 信息
- * React DevTools 返回格式可能是：
- * - 数组: [componentName, fileName, lineNumber, columnNumber]
- * - 对象: { fileName, lineNumber, columnNumber }
+ * Parse source info returned by inspectElement
+ * React DevTools may return:
+ * - Array: [componentName, fileName, lineNumber, columnNumber]
+ * - Object: { fileName, lineNumber, columnNumber }
  */
 function parseInspectElementSource(source: unknown): { fileName: string; lineNumber: number; columnNumber: number } | null {
   if (!source) return null;
 
-  // 数组格式: [componentName, fileName, lineNumber, columnNumber]
+  // Array format: [componentName, fileName, lineNumber, columnNumber]
   if (Array.isArray(source) && source.length >= 3) {
     const [, fileName, lineNumber, columnNumber] = source;
     if (typeof fileName === 'string' && typeof lineNumber === 'number') {
@@ -279,7 +279,7 @@ function parseInspectElementSource(source: unknown): { fileName: string; lineNum
     }
   }
 
-  // 对象格式: { fileName, lineNumber, columnNumber }
+  // Object format: { fileName, lineNumber, columnNumber }
   if (typeof source === 'object' && source !== null) {
     const src = source as Record<string, unknown>;
     if (typeof src.fileName === 'string' && typeof src.lineNumber === 'number') {
@@ -295,10 +295,10 @@ function parseInspectElementSource(source: unknown): { fileName: string; lineNum
 }
 
 /**
- * 通过 React DevTools 7.0.1+ rendererInterfaces API 获取 DOM 节点的源码位置
- * 这是最直接的方式，优先使用
+ * Get source location of DOM node via React DevTools 7.0.1+ rendererInterfaces API
+ * Most direct method, preferred
  *
- * 返回的是编译后位置，需要后续通过 source-map 反查原始位置
+ * Returns compiled position, needs source-map reverse lookup
  */
 export function getSourceViaRendererInterface(domElement: HTMLElement): Source | null {
   const renderer = getFirstRendererInterface();
@@ -309,18 +309,18 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
   const { rendererID, rendererInterface } = renderer;
 
   try {
-    // 1. 从 DOM 获取 React 内部元素 ID
+    // 1. Get React internal element ID from DOM
     const elementID = rendererInterface.getElementIDForHostInstance(domElement as any);
     if (!elementID) {
       return null;
     }
 
-    // 2. 使用 inspectElement 获取详细信息（包含 source）
+    // 2. Use inspectElement for detailed info (including source)
     const inspectedElement = rendererInterface.inspectElement(
       rendererID,   // requestID
       elementID,    // id
       null,         // path
-      true          // forceFullData - 强制获取完整数据
+      true          // forceFullData - force full data retrieval
     );
 
     if (inspectedElement?.value?.source) {
@@ -330,11 +330,11 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
       }
     }
 
-    // 3. 备用方案：通过 getElementSourceFunctionById 获取组件函数
+    // 3. Fallback: get component function via getElementSourceFunctionById
     if (rendererInterface.getElementSourceFunctionById) {
       const sourceFunc = rendererInterface.getElementSourceFunctionById(elementID);
       if (sourceFunc) {
-        // 检查函数上的 __source 属性
+        // Check __source property on function
         const funcAny = sourceFunc as any;
         if (funcAny.__source) {
           return {
@@ -353,7 +353,7 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
       }
     }
   } catch (e) {
-    // 静默失败，回退到其他方法
+    // Fail silently, fall back to other methods
     if (process.env.NODE_ENV === 'development') {
       console.debug('[LocatorJS] getSourceViaRendererInterface error:', e);
     }
@@ -363,8 +363,8 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
 }
 
 /**
- * 通过 Fiber 和 rendererInterfaces API 获取源码位置
- * 适用于已有 Fiber 但需要获取源码的场景
+ * Get source location via Fiber and rendererInterfaces API
+ * For cases where we have a Fiber but need its source
  */
 export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | null {
   const renderer = getFirstRendererInterface();
@@ -375,13 +375,13 @@ export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | nul
   const { rendererID, rendererInterface } = renderer;
 
   try {
-    // 尝试从 fiber.stateNode 获取 DOM 元素
+    // Try to get DOM element from fiber.stateNode
     const stateNode = fiber.stateNode;
     if (stateNode instanceof HTMLElement) {
       return getSourceViaRendererInterface(stateNode);
     }
 
-    // 对于函数组件，stateNode 为 null，尝试从子节点获取
+    // For function components, stateNode is null, try child nodes
     let childFiber = fiber.child;
     while (childFiber) {
       if (childFiber.stateNode instanceof HTMLElement) {
@@ -413,8 +413,8 @@ export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | nul
 }
 
 /**
- * 从函数的 toString() 中提取 sourceURL 注释
- * 某些打包工具会在函数末尾添加 //# sourceURL=xxx
+ * Extract sourceURL comment from function toString()
+ * Some bundlers append //# sourceURL=xxx at the end of functions
  */
 function extractSourceURL(funcStr: string): string | null {
   const match = funcStr.match(/\/\/[#@]\s*sourceURL=(.+?)(?:\s|$)/);
@@ -422,7 +422,7 @@ function extractSourceURL(funcStr: string): string | null {
 }
 
 /**
- * 从 React 19+ 的 _debugInfo 中提取 stack 信息
+ * Extract stack info from React 19+ _debugInfo
  */
 function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -433,10 +433,10 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
   }
 
   for (const info of fiberAny._debugInfo) {
-    // React Server Components 的 stack 信息
+    // React Server Components stack info
     if (info.stack && typeof info.stack === "string") {
-      // 解析 stack 获取第一个有效的位置
-      // 格式: "at ComponentName (file:line:column)"
+      // Parse stack to get first valid position
+      // Format: "at ComponentName (file:line:column)"
       const match = info.stack.match(
         /at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/
       );
@@ -448,7 +448,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
         };
       }
 
-      // 另一种格式: "ComponentName@file:line:column"
+      // Alternative format: "ComponentName@file:line:column"
       const firefoxMatch = info.stack.match(
         /\S+@([^:]+):(\d+):(\d+)/
       );
@@ -461,7 +461,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
       }
     }
 
-    // 某些情况下 _debugInfo 包含 owner 信息
+    // In some cases _debugInfo contains owner info
     if (info.owner && typeof info.owner === "object") {
       const ownerSource = extractSourceFromDebugInfo(info.owner);
       if (ownerSource) {
@@ -474,8 +474,8 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
 }
 
 /**
- * 从组件函数的元数据中获取 source
- * 某些构建工具会在函数上附加 __source 或类似属性
+ * Get source from component function metadata
+ * Some build tools attach __source or similar properties to functions
  */
 function extractSourceFromFunctionMeta(
   type: unknown
@@ -487,7 +487,7 @@ function extractSourceFromFunctionMeta(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const typeAny = type as any;
 
-  // 检查各种可能的 source 属性
+  // Check various possible source properties
   const sourceKeys = [
     "__source",
     "_source",
@@ -513,7 +513,7 @@ function extractSourceFromFunctionMeta(
 }
 
 /**
- * 尝试从 React DevTools hook 获取 source 信息
+ * Try to get source info from React DevTools hook
  */
 function getSourceFromDevTools(fiber: Fiber): Source | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -523,11 +523,11 @@ function getSourceFromDevTools(fiber: Fiber): Source | null {
   }
 
   try {
-    // React DevTools 可能提供 inspectElement API
+    // React DevTools may provide inspectElement API
     const renderers = hook.renderers;
     if (renderers) {
       for (const renderer of renderers.values()) {
-        // 某些版本的 React DevTools 提供获取 source 的方法
+        // Some React DevTools versions provide source retrieval methods
         if (renderer.getSourceForFiber) {
           const source = renderer.getSourceForFiber(fiber);
           if (source) {
@@ -537,36 +537,36 @@ function getSourceFromDevTools(fiber: Fiber): Source | null {
       }
     }
   } catch {
-    // 忽略错误
+    // Ignore errors
   }
 
   return null;
 }
 
 /**
- * 解析 Fiber 的 _debugStack（如果存在）
- * React 19 开发模式下可能包含组件栈
+ * Parse Fiber's _debugStack (if present)
+ * React 19 dev mode may include component stack
  */
 function parseDebugStack(fiber: Fiber): Source | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fiberAny = fiber as any;
 
-  // React 19 可能使用 _debugStack
+  // React 19 may use _debugStack
   const stack = fiberAny._debugStack || fiberAny.__debugStack;
   if (!stack) {
     return null;
   }
 
-  // 尝试解析 stack 字符串
+  // Try to parse stack string
   if (typeof stack === "string") {
     const lines = stack.split("\n");
     for (const line of lines) {
-      // 跳过 React 内部的 frames
+      // Skip React internal frames
       if (line.includes("react-dom") || line.includes("react.")) {
         continue;
       }
 
-      // Chrome 格式
+      // Chrome format
       const chromeMatch = line.match(
         /at\s+\S+\s+\((.+?):(\d+):(\d+)\)/
       );
@@ -578,7 +578,7 @@ function parseDebugStack(fiber: Fiber): Source | null {
         };
       }
 
-      // Firefox 格式
+      // Firefox format
       const firefoxMatch = line.match(
         /\S+@(.+?):(\d+):(\d+)/
       );
@@ -596,8 +596,8 @@ function parseDebugStack(fiber: Fiber): Source | null {
 }
 
 /**
- * 主函数：从 Fiber 获取组件的原始源码位置
- * 支持异步 source-map 解析
+ * Main function: get component's original source location from Fiber
+ * Supports async source-map resolution
  */
 export async function resolveSourceFromFiber(
   fiber: Fiber
@@ -606,7 +606,7 @@ export async function resolveSourceFromFiber(
   const fiberAny = fiber as any;
   const debug = isDebugEnabled();
 
-  // 1. 检查缓存（仅当 type 是对象时使用 WeakMap）
+  // 1. Check cache (use WeakMap only when type is an object)
   if (fiberAny.type && typeof fiberAny.type === 'object' && componentSourceCache.has(fiberAny.type)) {
     const cached = componentSourceCache.get(fiberAny.type) ?? null;
     if (debug && cached) {
@@ -615,12 +615,12 @@ export async function resolveSourceFromFiber(
     return cached;
   }
 
-  // 2. [优先] 通过 React DevTools 7.0.1+ rendererInterfaces API 获取
-  // 这是最直接可靠的方式，但返回的是编译后位置，需要 source-map 反查
+  // 2. [Preferred] Get via React DevTools 7.0.1+ rendererInterfaces API
+  // Most direct and reliable, but returns compiled position, needs source-map reverse lookup
   try {
     const rendererInterfaceSource = getSourceViaRendererInterfaceByFiber(fiber);
     if (rendererInterfaceSource && rendererInterfaceSource.fileName) {
-      // 尝试通过 source-map 反查原始位置
+      // Try source-map reverse lookup for original position
       const resolved = await resolveOriginalPosition(
         rendererInterfaceSource.fileName,
         rendererInterfaceSource.lineNumber,
@@ -641,11 +641,11 @@ export async function resolveSourceFromFiber(
     if (debug) logError(SourceMethod.RENDERER_INTERFACE, e);
   }
 
-  // 3. 从 _debugInfo 获取（React 19 Server Components）
+  // 3. Get from _debugInfo (React 19 Server Components)
   try {
     const debugInfoSource = extractSourceFromDebugInfo(fiber);
     if (debugInfoSource && debugInfoSource.fileName) {
-      // 尝试通过 source-map 反查原始位置
+      // Try source-map reverse lookup for original position
       const resolved = await resolveOriginalPosition(
         debugInfoSource.fileName,
         debugInfoSource.lineNumber,
@@ -664,7 +664,7 @@ export async function resolveSourceFromFiber(
     if (debug) logError(SourceMethod.DEBUG_INFO, e);
   }
 
-  // 4. 从 _debugStack 解析
+  // 4. Parse from _debugStack
   try {
     const debugStackSource = parseDebugStack(fiber);
     if (debugStackSource && debugStackSource.fileName) {
@@ -686,7 +686,7 @@ export async function resolveSourceFromFiber(
     if (debug) logError(SourceMethod.DEBUG_STACK, e);
   }
 
-  // 5. 从组件函数元数据获取
+  // 5. Get from component function metadata
   try {
     const metaSource = extractSourceFromFunctionMeta(fiberAny.type);
     if (metaSource && metaSource.fileName) {
@@ -708,7 +708,7 @@ export async function resolveSourceFromFiber(
     if (debug) logError(SourceMethod.FUNCTION_META, e);
   }
 
-  // 6. 从 React DevTools renderers 获取（旧版 API）
+  // 6. Get from React DevTools renderers (legacy API)
   try {
     const devToolsSource = getSourceFromDevTools(fiber);
     if (devToolsSource && devToolsSource.fileName) {
@@ -730,16 +730,16 @@ export async function resolveSourceFromFiber(
     if (debug) logError(SourceMethod.DEVTOOLS_RENDERERS, e);
   }
 
-  // 7. 尝试从函数的 toString 中提取 sourceURL
+  // 7. Try to extract sourceURL from function toString()
   if (typeof fiberAny.type === "function") {
     try {
       const funcStr = fiberAny.type.toString();
       const sourceURL = extractSourceURL(funcStr);
       if (sourceURL) {
-        // sourceURL 通常是完整路径，但可能需要解析
+        // sourceURL is usually a full path but may need parsing
         const resolved: Source = {
           fileName: sourceURL,
-          lineNumber: 1, // 无法确定具体行号
+          lineNumber: 1, // Cannot determine exact line number
           columnNumber: 0,
         };
         componentSourceCache.set(fiberAny.type, resolved);
@@ -754,13 +754,13 @@ export async function resolveSourceFromFiber(
     }
   }
 
-  // 8. [Turbopack 方案] 从 chunk 代码中提取 jsxDEV 调用的 source 信息
-  // 适用于 React 19 + Next.js 15 + Turbopack 环境
+  // 8. [Turbopack] Extract jsxDEV source info from chunk code
+  // For React 19 + Next.js 15 + Turbopack environments
   const isNativeElement = typeof fiberAny.type === "string";
   const componentName = typeof fiberAny.type === "function" ? fiberAny.type.name : null;
 
   if (isNativeElement) {
-    // 原生元素（div/span 等）：尝试用标签名 + 属性精确匹配
+    // Native elements (div/span etc.): try precise match by tag + attributes
     const tagName = fiberAny.type as string;
     const props = fiberAny.memoizedProps || {};
     try {
@@ -783,7 +783,7 @@ export async function resolveSourceFromFiber(
     try {
       const turbopackSource = await extractSourceFromTurbopackChunks(componentName);
       if (turbopackSource) {
-        // Turbopack 方案获取的是组件使用位置（已经是原始路径，无需 source-map 转换）
+        // Turbopack returns component usage location (already original path, no source-map needed)
         if (fiberAny.type && typeof fiberAny.type === "object") {
           componentSourceCache.set(fiberAny.type, turbopackSource);
         }
@@ -798,7 +798,7 @@ export async function resolveSourceFromFiber(
     }
   }
 
-  // 9. 缓存 null 结果，避免重复查找（仅当 type 是对象时）
+  // 9. Cache null result to avoid repeated lookups (only when type is an object)
   if (fiberAny.type && typeof fiberAny.type === 'object') {
     componentSourceCache.set(fiberAny.type, null);
   }
@@ -807,7 +807,7 @@ export async function resolveSourceFromFiber(
 }
 
 /**
- * 同步版本：仅从缓存获取（用于非异步上下文）
+ * Synchronous: get from cache only (for non-async contexts)
  */
 export function getSourceFromCache(fiber: Fiber): Source | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -821,9 +821,9 @@ export function getSourceFromCache(fiber: Fiber): Source | null {
 }
 
 /**
- * 清除组件 source 缓存
+ * Clear component source cache
  */
 export function clearComponentSourceCache(): void {
-  // WeakMap 无法清除，创建新的
-  // 实际上 WeakMap 会自动回收不再引用的键
+  // WeakMap cannot be cleared, would need to create a new one
+  // In practice, WeakMap automatically garbage-collects unreferenced keys
 }

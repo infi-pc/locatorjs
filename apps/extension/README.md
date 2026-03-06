@@ -30,40 +30,40 @@ When I click on a component's bounding box, it doesn't go to editor
 
 ## Debug Mode
 
-如果遇到跳转位置不正确或跳转报错的问题，可以启用 Debug 模式来排查：
+If source locations are incorrect or navigation fails, enable Debug Mode to troubleshoot:
 
-### 启用方式
+### How to enable
 
-1. **设置面板开关**（推荐）：点击 LocatorJS 图标打开设置，开启 "Debug Mode" 开关
-2. **控制台命令**：`window.__LOCATORJS_DEBUG__ = true` 或 `enableLocatorDebug()`
+1. **Settings panel** (recommended): Click the LocatorJS icon, open settings, and toggle "Debug Mode" on
+2. **Console command**: `window.__LOCATORJS_DEBUG__ = true` or `enableLocatorDebug()`
 
-### 控制台输出
+### Console output
 
-启用后，点击元素时控制台会显示：
+When enabled, clicking an element will log resolution details to the console:
 
 ```
-[LocatorJS] 开始定位源码
+[LocatorJS] Starting source resolution
   Fiber: <div> (tag: 5)
-  DOM 元素: <div class="xxx">...</div>
+  DOM element: <div class="xxx">...</div>
 
-[LocatorJS] [同步] 源码定位成功
-  方式: fiber._debugSource
-  组件: <div>
-  位置: /app/page.tsx:15:0
+[LocatorJS] [sync] Source found
+  Method: fiber._debugSource
+  Component: <div>
+  Location: /app/page.tsx:15:0
 
-[LocatorJS] ✅ 定位完成
-  最终方式: fiber._debugSource
-  目标位置: /app/page.tsx:15:0
+[LocatorJS] Location complete
+  Final method: fiber._debugSource
+  Target location: /app/page.tsx:15:0
 ```
 
-### 支持的定位方式
+### Supported resolution methods
 
-| 类型 | 方式 |
-|------|------|
-| 同步 | `fiber._debugSource`、`elementType._source`、`type._source`、`memoizedProps.__source`、`_debugInfo` |
-| 异步 | `rendererInterfaces API` (React DevTools 7.0.1+)、`Turbopack chunk`、`source-map` 反查 |
+| Type | Methods |
+|------|---------|
+| Sync | `fiber._debugSource`, `elementType._source`, `type._source`, `memoizedProps.__source`, `_debugInfo` |
+| Async | `rendererInterfaces API` (React DevTools 7.0.1+), `Turbopack chunk`, `source-map` reverse lookup |
 
-### 查看历史记录
+### View debug history
 
 ```javascript
 window.__LOCATORJS_DEBUG_HISTORY__
@@ -74,78 +74,73 @@ window.__LOCATORJS_DEBUG_HISTORY__
 ## Run extension locally
 
 ```bash
-# 开发模式（Chrome）
+# Development mode (Chrome)
 pnpm dev
 
-# 开发模式（Firefox）
+# Development mode (Firefox)
 pnpm dev:firefox
 ```
 
 ## Build & Release
 
-### 使用 Node 脚本（推荐）
+### Using Node script (recommended)
 
 ```bash
-# 打包 Chrome 版本（自动构建依赖 + 扩展 + zip）
+# Package Chrome version (builds deps + extension + zip)
 pnpm run release:node
 
-# 打包 Firefox 版本
+# Package Firefox version
 pnpm run release:node:firefox
 
-# 打包所有版本
+# Package all versions
 pnpm run release:node:all
 
-# 跳过依赖构建（仅重新打包扩展）
+# Skip dependency build (re-package extension only)
 node utils/release.js --skip-runtime
 ```
 
-### 分步构建
+### Step-by-step build
 
 ```bash
-# 1. 构建依赖包（按顺序）
+# 1. Build dependency packages (in order)
 cd ../../packages/shared && pnpm build && cd -
 cd ../../packages/runtime && pnpm build && cd -
 
-# 2. 构建扩展
+# 2. Build extension
 pnpm build              # Chrome
 pnpm build:firefox      # Firefox
 
-# 3. 打包 zip
+# 3. Package zip
 pnpm pack:chrome        # -> build/chrome.zip
 pnpm pack:firefox       # -> build/artifacts_firefox/
 ```
 
-### 构建注意事项
+### Build notes
 
-- **包依赖顺序**：`shared` → `runtime` → `extension`
-- 修改 `shared` 包类型定义后，需要先构建 `shared`，再构建 `runtime`
-- TypeScript 类型错误可能是因为依赖包未重新构建，实际构建时会正常工作
+- **Package build order**: `shared` -> `runtime` -> `extension`
+- After modifying `shared` type definitions, rebuild `shared` first, then `runtime`
+- TypeScript type errors may occur if dependency packages haven't been rebuilt; the actual build will work correctly
 
-### 产物位置
+### Build output
 
-| 版本 | 构建目录 | 打包文件 |
-|------|----------|----------|
+| Version | Build directory | Package file |
+|---------|----------------|--------------|
 | Chrome | `build/production_chrome/` | `build/chrome.zip` |
 | Firefox | `build/production_firefox/` | `build/artifacts_firefox/*.zip` |
 
 ## Load unpacked extension
 
 **Chrome:**
-1. 打开 `chrome://extensions/`
-2. 开启「开发者模式」
-3. 点击「加载已解压的扩展程序」
-4. 选择 `build/production_chrome` 目录
+1. Open `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `build/production_chrome` directory
 
 **Firefox:**
-1. 打开 `about:debugging#/runtime/this-firefox`
-2. 点击「临时载入附加组件」
-3. 选择 `build/production_firefox/manifest.json`
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on"
+3. Select `build/production_firefox/manifest.json`
 
 # Contributing
 
 To develop of contribute to this project [continue here](./../../contributing.md)
-构建扩展：
-<!-- cd apps/extension && pnpm run release:chrome -->
-
-debug:
- window.__LOCATORJS_DEBUG__ = true

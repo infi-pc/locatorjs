@@ -28,27 +28,27 @@ export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
 }
 
 /**
- * 异步版本的 getElementInfo
- * 当同步方式无法获取 source 时，尝试通过 source-map 解析
- * 目前仅支持 React adapter
+ * Async version of getElementInfo
+ * When sync cannot get source, try source-map resolution
+ * Currently only supports React adapter
  */
 export async function getElementInfoAsync(
   target: HTMLElement,
   adapterId?: AdapterId
 ): Promise<FullElementInfo | null> {
-  // 先尝试同步方式
+  // Try synchronous method first
   const syncResult = getElementInfo(target, adapterId);
   if (syncResult && syncResult.thisElement.link) {
     return syncResult;
   }
 
-  // 同步方式无法获取 link，尝试异步方式（仅 React）
+  // Sync failed to get link, try async (React only)
   if (adapterId === "react" || !adapterId) {
     const asyncResult = await getReactElementInfoAsync(target);
     if (asyncResult && asyncResult.thisElement.link) {
       return asyncResult;
     }
-    // 如果异步也没有获取到 link，返回同步结果（至少有元素信息）
+    // If async also failed, return sync result (at least has element info)
     return asyncResult || syncResult;
   }
 

@@ -177,14 +177,32 @@ function Runtime(props: RuntimeProps) {
         return;
       }
 
-      // 先阻止默认行为，避免异步期间页面跳转
+      // Try sync resolution first
+      let elInfo = getElementInfo(target, props.adapterId);
+
+      if (elInfo?.thisElement.link) {
+        // Sync found a link — prevent default and navigate
+        e.preventDefault();
+        e.stopPropagation();
+        trackClickStats();
+
+        if (
+          (!isExtension() || detectSvelte()) &&
+          !options.getOptions().welcomeScreenDismissed
+        ) {
+          setDialog(["choose-editor", elInfo.thisElement.link]);
+        } else {
+          goToLinkProps(elInfo.thisElement.link, props.targets, options);
+        }
+        return;
+      }
+
+      // Sync failed to find link — prevent default before async to avoid
+      // page navigation during the await
       e.preventDefault();
       e.stopPropagation();
 
-      // 先尝试同步获取
-      let elInfo = getElementInfo(target, props.adapterId);
-
-      // 如果同步方式无法获取 link，尝试异步方式（source-map）
+      // Try async resolution (source-map, Turbopack, etc.)
       if (!elInfo?.thisElement.link) {
         elInfo = await getElementInfoAsync(target, props.adapterId);
       }

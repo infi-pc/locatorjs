@@ -8,7 +8,7 @@ export function makeFiberId(fiber: Fiber) {
     return fiber._debugID.toString();
   }
   
-  // 验证 fiber 是有效对象，避免 WeakMap 键无效错误
+  // Validate fiber is a valid object to avoid invalid WeakMap key errors
   if (typeof fiber !== 'object' || fiber === null) {
     globalIdCounter++;
     return `fiber:${globalIdCounter}`;

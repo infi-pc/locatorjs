@@ -138,8 +138,8 @@ function getParentsPaths(element: HTMLElement) {
 }
 
 /**
- * 异步版本的 getElementInfo
- * 当同步方式无法获取 source 时，尝试通过 source-map 解析
+ * Async version of getElementInfo
+ * When sync cannot get source, try source-map resolution
  */
 export async function getElementInfoAsync(
   found: HTMLElement
@@ -153,7 +153,7 @@ export async function getElementInfoAsync(
 
     const allPotentialComponentFibers = getAllWrappingParents(component);
 
-    // 使用异步方式获取 source
+    // Use async method to get source
     for (const f of allPotentialComponentFibers) {
       const fiberWithSource = await findDebugSourceAsync(f);
       if (fiberWithSource) {
@@ -165,7 +165,7 @@ export async function getElementInfoAsync(
       }
     }
 
-    // 获取当前元素的 source（异步）
+    // Get current element's source (async)
     const currentSource = await findDebugSourceAsync(fiber);
     const thisLabel = getFiberLabel(fiber, currentSource?.source);
 
