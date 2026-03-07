@@ -1,5 +1,5 @@
 import { cleanOptions, Targets } from "@locator/shared";
-import { createMemo } from "solid-js";
+import { createMemo, createSignal, createEffect } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import { isExtension } from "../functions/isExtension";
 import LogoIcon from "./LogoIcon";
@@ -7,7 +7,9 @@ import { OptionsCloseButton } from "./OptionsCloseButton";
 import { useOptions } from "../functions/optionsStore";
 import { AdapterId } from "../consts";
 import { LinkOptions } from "./LinkOptions";
-import { getElementInfo } from "../adapters/getElementInfo";
+import { getElementInfo, getElementInfoAsync } from "../adapters/getElementInfo";
+import { LinkProps } from "../types/types";
+import { setDebugMode } from "../adapters/react/debug";
 
 export function Options(props: {
   targets: Targets;
@@ -18,12 +20,60 @@ export function Options(props: {
 }) {
   const options = useOptions();
 
-  const elLinkProps = createMemo(() =>
+  // Synchronously fetched linkProps
+  const syncLinkProps = createMemo(() =>
     props.currentElement
       ? getElementInfo(props.currentElement, props.adapterId)?.thisElement
           .link || null
       : null
   );
+
+  // Async fetched linkProps (for Turbopack jsxDEV source)
+  const [asyncLinkProps, setAsyncLinkProps] = createSignal<LinkProps | null>(null);
+
+  // When currentElement changes and sync fails, try async
+  createEffect(() => {
+    const element = props.currentElement;
+    const syncResult = syncLinkProps();
+
+    // If sync succeeded, use sync result directly
+    if (syncResult) {
+      setAsyncLinkProps(null);
+      return;
+    }
+
+    // Sync failed, try async
+    if (element) {
+      getElementInfoAsync(element, props.adapterId).then((elInfo) => {
+        // Ensure element is still the current element
+        if (props.currentElement === element) {
+          setAsyncLinkProps(elInfo?.thisElement.link || null);
+        }
+      });
+    } else {
+      setAsyncLinkProps(null);
+    }
+  });
+
+  // Prefer sync result, fallback to async result
+  const elLinkProps = () => syncLinkProps() || asyncLinkProps();
+
+  // Debug mode state
+  const [debugEnabled, setDebugEnabled] = createSignal(
+    options.getOptions().debugMode ?? false
+  );
+
+  // Sync debug state on init
+  createEffect(() => {
+    setDebugMode(debugEnabled());
+  });
+
+  // Toggle debug mode
+  const toggleDebugMode = () => {
+    const newValue = !debugEnabled();
+    setDebugEnabled(newValue);
+    options.setOptions({ debugMode: newValue });
+  };
 
   return (
     <div
@@ -48,11 +98,33 @@ export function Options(props: {
           targets={props.targets}
         />
 
-        <div class="flex gap-2 justify-between mt-4">
+        <div class="flex items-center gap-2 mt-4 mb-2">
+          <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+            <div
+              class={`relative w-9 h-5 rounded-full transition-colors ${
+                debugEnabled() ? "bg-blue-500" : "bg-slate-300"
+              }`}
+              onClick={toggleDebugMode}
+            >
+              <div
+                class={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  debugEnabled() ? "translate-x-4 left-0.5" : "left-0.5"
+                }`}
+              />
+            </div>
+            <span>Debug Mode</span>
+          </label>
+          <span class="text-[10px] text-slate-400">
+            {debugEnabled() ? "(view location logs in console)" : ""}
+          </span>
+        </div>
+
+        <div class="flex gap-2 justify-between mt-2">
           <button
             class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
             onClick={() => {
               cleanOptions();
+              setDebugEnabled(false);
               props.onClose();
             }}
           >

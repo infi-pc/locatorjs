@@ -3,6 +3,11 @@ process.env.BABEL_ENV = 'production';
 process.env.NODE_ENV = 'production';
 process.env.ASSET_PATH = '/';
 
+// Manually set npm_package_* env vars (not auto-set when calling node directly)
+var pkg = require('../package.json');
+process.env.npm_package_version = pkg.version;
+process.env.npm_package_description = pkg.description;
+
 var webpack = require('webpack'),
   config = require('../webpack.config');
 
@@ -10,6 +15,21 @@ delete config.chromeExtensionBoilerplate;
 
 config.mode = 'production';
 
-webpack(config, function (err) {
-  if (err) throw err;
+webpack(config, function (err, stats) {
+  if (err) {
+    console.error(err.stack || err);
+    if (err.details) {
+      console.error(err.details);
+    }
+    return;
+  }
+
+  const info = stats.toJson();
+  if (stats.hasErrors()) {
+    console.error(info.errors);
+  }
+  if (stats.hasWarnings()) {
+    console.warn(info.warnings);
+  }
+  console.log(stats.toString({ colors: true }));
 });
