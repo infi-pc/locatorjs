@@ -36,4 +36,3 @@ run `pnpm build` to build the extension.
 # Contributing
 
 To develop of contribute to this project [continue here](./../../contributing.md)
-

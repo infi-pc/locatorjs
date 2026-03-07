@@ -9,7 +9,7 @@
     "install-browsers": "playwright install"
   },
   "devDependencies": {
-    "@playwright/test": "^1.24.2"
+    "@playwright/test": "^1.50.0"
   },
   "files": []
 }

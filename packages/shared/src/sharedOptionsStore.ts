@@ -16,7 +16,7 @@ export type ProjectOptions = {
 let reported = false;
 function reportNoLocalStorate() {
   if (!reported) {
-    console.warn(
+    console.info(
       `[LocatorJS]: No local storage available. Please check your browser settings.`
     );
     reported = true;
