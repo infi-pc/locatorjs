@@ -240,6 +240,34 @@ importers:
         specifier: ^5
         version: 5.2.2
 
+  apps/next-16-turbopack:
+    dependencies:
+      next:
+        specifier: 16.0.0
+        version: 16.0.0(@babel/core@7.28.5)(react-dom@19.2.0)(react@19.2.0)
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: 19.2.0
+        version: 19.2.0(react@19.2.0)
+    devDependencies:
+      '@locator/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      '@types/node':
+        specifier: ^20
+        version: 20.4.2
+      '@types/react':
+        specifier: ^19
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.2(@types/react@19.2.2)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   apps/playwright:
     devDependencies:
       '@playwright/test':
@@ -18205,6 +18233,7 @@ packages:
   /next@16.0.0(@babel/core@7.28.5)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-nYohiNdxGu4OmBzggxy9rczmjIGI+TpR5vbKTsE1HqYwNm1B+YSiugSrFguX6omMOKnDHAmBPY4+8TNJk0Idyg==}
     engines: {node: '>=20.9.0'}
+    deprecated: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details.
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.1.0

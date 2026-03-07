@@ -1,5 +1,5 @@
 import { Source, Fiber, RendererInterface } from "@locator/shared";
-import { resolveOriginalPosition } from "./sourceMapResolver";
+import { resolveOriginalPosition, fileUrlToPath } from "./sourceMapResolver";
 import {
   SourceMethod,
   logSourceFound,
@@ -7,6 +7,99 @@ import {
   logError,
   isDebugEnabled,
 } from "./debug";
+
+/**
+ * Clean up stack frame file paths
+ * Handles React Server Component URLs: about://React/Server/file:///path -> /path
+ * Handles Turbopack chunk query params: /path.js?5 -> /path.js
+ */
+function cleanStackFileName(fileName: string): string {
+  let cleaned = fileName;
+
+  // Strip about://React/Server/ prefix (React 19 Server Components)
+  if (cleaned.startsWith("about://React/Server/")) {
+    cleaned = cleaned.slice("about://React/Server/".length);
+  }
+
+  // Convert file:// URLs to local paths
+  cleaned = fileUrlToPath(cleaned);
+
+  // Strip query params from chunk paths (e.g. .js?5 -> .js)
+  const queryIdx = cleaned.indexOf("?");
+  if (queryIdx !== -1) {
+    cleaned = cleaned.slice(0, queryIdx);
+  }
+
+  return cleaned;
+}
+
+/**
+ * Check if a fileName looks like a compiled chunk (not an original source file)
+ */
+function isChunkUrl(fileName: string): boolean {
+  return (
+    fileName.startsWith("http://") ||
+    fileName.startsWith("https://") ||
+    fileName.includes("/_next/") ||
+    fileName.includes(".next/dev/server/chunks/")
+  );
+}
+
+// Cached Turbopack project root (undefined = not yet resolved)
+let turbopackProjectRoot: string | null | undefined = undefined;
+
+// Cached Next.js app root for resolving relative paths from /__nextjs_original-stack-frames
+let nextjsAppRoot: string | null | undefined = undefined;
+
+/**
+ * Resolve Turbopack [project]/ prefix to absolute path
+ * Infers the project root by matching source map sources against the relative path
+ */
+async function resolveProjectPrefix(fileName: string): Promise<string> {
+  if (!fileName.startsWith("[project]/")) return fileName;
+
+  const relativePath = fileName.slice("[project]/".length);
+
+  if (turbopackProjectRoot !== undefined) {
+    return turbopackProjectRoot
+      ? turbopackProjectRoot + "/" + relativePath
+      : fileName;
+  }
+
+  // Infer project root from source map sources
+  const scripts = Array.from(
+    document.querySelectorAll('script[src*="/_next/static/chunks"]')
+  ) as HTMLScriptElement[];
+
+  for (const script of scripts) {
+    try {
+      const res = await fetch(script.src + ".map");
+      if (!res.ok) continue;
+      const map = await res.json();
+
+      const sources: string[] = map.sections
+        ? map.sections.flatMap((s: { map?: { sources?: string[] } }) => s.map?.sources || [])
+        : map.sources || [];
+
+      for (const source of sources) {
+        if (!source.startsWith("file:///")) continue;
+        const absPath = fileUrlToPath(source);
+        if (absPath.endsWith(relativePath)) {
+          turbopackProjectRoot = absPath.slice(
+            0,
+            absPath.length - relativePath.length - 1
+          );
+          return turbopackProjectRoot + "/" + relativePath;
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  turbopackProjectRoot = null;
+  return fileName;
+}
 
 /**
  * Click-based source resolver
@@ -422,6 +515,25 @@ function extractSourceURL(funcStr: string): string | null {
 }
 
 /**
+ * Extract source info from JSX-embedded fileName/lineNumber in function body
+ * Turbopack's JSX transform embeds source info as arguments to jsxDEV calls
+ * inside the function body (visible via toString()).
+ */
+function extractSourceFromFunctionBody(funcStr: string): Source | null {
+  const fileMatch = funcStr.match(/fileName:\s*"([^"]+)"/);
+  const lineMatch = funcStr.match(/lineNumber:\s*(\d+)/);
+  if (fileMatch?.[1] && lineMatch?.[1]) {
+    const colMatch = funcStr.match(/columnNumber:\s*(\d+)/);
+    return {
+      fileName: fileMatch[1],
+      lineNumber: parseInt(lineMatch[1], 10),
+      columnNumber: colMatch?.[1] ? parseInt(colMatch[1], 10) : 0,
+    };
+  }
+  return null;
+}
+
+/**
  * Extract stack info from React 19+ _debugInfo
  */
 function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
@@ -543,56 +655,194 @@ function getSourceFromDevTools(fiber: Fiber): Source | null {
   return null;
 }
 
+interface DebugStackResult {
+  source: Source;
+  /** Raw file URL from the stack frame (before cleaning), needed for Next.js API */
+  rawFileUrl: string;
+  /** Method/component name from the stack frame */
+  methodName: string;
+}
+
 /**
  * Parse Fiber's _debugStack (if present)
  * React 19 dev mode may include component stack
  */
-function parseDebugStack(fiber: Fiber): Source | null {
+function parseDebugStack(fiber: Fiber): DebugStackResult | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fiberAny = fiber as any;
 
   // React 19 may use _debugStack
-  const stack = fiberAny._debugStack || fiberAny.__debugStack;
-  if (!stack) {
+  const rawStack = fiberAny._debugStack || fiberAny.__debugStack;
+  if (!rawStack) {
     return null;
   }
 
-  // Try to parse stack string
-  if (typeof stack === "string") {
-    const lines = stack.split("\n");
-    for (const line of lines) {
-      // Skip React internal frames
-      if (line.includes("react-dom") || line.includes("react.")) {
-        continue;
-      }
+  // React 19 stores _debugStack as an Error object — extract .stack string
+  let stackStr: string | null = null;
+  if (typeof rawStack === "string") {
+    stackStr = rawStack;
+  } else if (rawStack instanceof Error || (typeof rawStack === "object" && typeof rawStack.stack === "string")) {
+    stackStr = rawStack.stack;
+  }
 
-      // Chrome format
-      const chromeMatch = line.match(
-        /at\s+\S+\s+\((.+?):(\d+):(\d+)\)/
-      );
-      if (chromeMatch && chromeMatch[1] && chromeMatch[2] && chromeMatch[3]) {
-        return {
-          fileName: chromeMatch[1],
-          lineNumber: parseInt(chromeMatch[2], 10),
-          columnNumber: parseInt(chromeMatch[3], 10),
-        };
-      }
+  if (!stackStr) {
+    return null;
+  }
 
-      // Firefox format
-      const firefoxMatch = line.match(
-        /\S+@(.+?):(\d+):(\d+)/
-      );
-      if (firefoxMatch && firefoxMatch[1] && firefoxMatch[2] && firefoxMatch[3]) {
-        return {
-          fileName: firefoxMatch[1],
-          lineNumber: parseInt(firefoxMatch[2], 10),
-          columnNumber: parseInt(firefoxMatch[3], 10),
-        };
-      }
+  const lines = stackStr.split("\n");
+  for (const line of lines) {
+    // Skip React internal and JSX runtime frames
+    if (
+      line.includes("react-dom") ||
+      line.includes("react.") ||
+      line.includes("react-server-dom") ||
+      line.includes("react_stack_bottom_frame") ||
+      line.includes("react-stack-top-frame") ||
+      line.includes("jsxDEV") ||
+      line.includes("fakeJSXCallSite")
+    ) {
+      continue;
+    }
+
+    // Chrome format: "at ComponentName (url:line:col)"
+    const chromeMatch = line.match(
+      /at\s+(\S+)\s+\((.+?):(\d+):(\d+)\)/
+    );
+    if (chromeMatch && chromeMatch[2] && chromeMatch[3] && chromeMatch[4]) {
+      const cleaned = cleanStackFileName(chromeMatch[2]);
+      return {
+        source: {
+          fileName: cleaned,
+          lineNumber: parseInt(chromeMatch[3], 10),
+          columnNumber: parseInt(chromeMatch[4], 10),
+        },
+        rawFileUrl: chromeMatch[2],
+        methodName: chromeMatch[1] ?? "<unknown>",
+      };
+    }
+
+    // Firefox format: "functionName@url:line:col"
+    const firefoxMatch = line.match(
+      /(\S+)@(.+?):(\d+):(\d+)/
+    );
+    if (firefoxMatch && firefoxMatch[2] && firefoxMatch[3] && firefoxMatch[4]) {
+      const cleaned = cleanStackFileName(firefoxMatch[2]);
+      return {
+        source: {
+          fileName: cleaned,
+          lineNumber: parseInt(firefoxMatch[3], 10),
+          columnNumber: parseInt(firefoxMatch[4], 10),
+        },
+        rawFileUrl: firefoxMatch[2],
+        methodName: firefoxMatch[1] ?? "<unknown>",
+      };
     }
   }
 
   return null;
+}
+
+/**
+ * Resolve a relative path from Next.js API to an absolute path
+ * Uses /__nextjs_source-map to get the SSR chunk's source map and find file:// absolute paths
+ */
+async function resolveNextjsRelativePath(
+  relativePath: string,
+  rawChunkUrl: string,
+): Promise<string> {
+  // Use cached result if available
+  if (nextjsAppRoot !== undefined) {
+    return nextjsAppRoot ? nextjsAppRoot + "/" + relativePath : relativePath;
+  }
+
+  // Fetch source map for the SSR chunk via Next.js dev server
+  try {
+    const mapRes = await fetch(
+      `/__nextjs_source-map?filename=${encodeURIComponent(rawChunkUrl)}`
+    );
+    if (mapRes.ok) {
+      const map = await mapRes.json();
+      const sources: string[] = map.sections
+        ? map.sections.flatMap(
+            (s: { map?: { sources?: string[] } }) => s.map?.sources || []
+          )
+        : map.sources || [];
+
+      for (const src of sources) {
+        if (!src.startsWith("file:///")) continue;
+        const absPath = fileUrlToPath(src);
+        if (absPath.endsWith("/" + relativePath)) {
+          nextjsAppRoot = absPath.slice(
+            0,
+            absPath.length - relativePath.length - 1
+          );
+          return absPath;
+        }
+      }
+    }
+  } catch {
+    // Fall through
+  }
+
+  nextjsAppRoot = null;
+  return relativePath;
+}
+
+/**
+ * Resolve source via Next.js dev server's stack frame API
+ * Uses /__nextjs_original-stack-frames (internal API used by error overlay)
+ * Only works in Next.js dev mode
+ */
+async function resolveViaNextDevServer(
+  rawFileUrl: string,
+  line: number,
+  column: number,
+  methodName: string,
+): Promise<Source | null> {
+  try {
+    const res = await fetch("/__nextjs_original-stack-frames", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        frames: [{
+          file: rawFileUrl,
+          methodName,
+          line1: line,
+          column1: column,
+        }],
+        isServer: true,
+        isAppDirectory: true,
+      }),
+    });
+
+    if (!res.ok) return null;
+
+    const result = await res.json();
+    if (!Array.isArray(result) || result.length === 0) return null;
+
+    const entry = result[0];
+    if (entry.status !== "fulfilled" || !entry.value?.originalStackFrame) {
+      return null;
+    }
+
+    const sf = entry.value.originalStackFrame;
+    if (!sf.file || sf.ignored) return null;
+
+    // The API returns relative paths (e.g. "app/page.tsx")
+    // Resolve to absolute via SSR chunk source map
+    let fileName = sf.file;
+    if (!fileName.startsWith("/")) {
+      fileName = await resolveNextjsRelativePath(fileName, rawFileUrl);
+    }
+
+    return {
+      fileName,
+      lineNumber: sf.line1 ?? 1,
+      columnNumber: sf.column1 ?? 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -666,21 +916,58 @@ export async function resolveSourceFromFiber(
 
   // 4. Parse from _debugStack
   try {
-    const debugStackSource = parseDebugStack(fiber);
-    if (debugStackSource && debugStackSource.fileName) {
-      const resolved = await resolveOriginalPosition(
-        debugStackSource.fileName,
-        debugStackSource.lineNumber,
-        debugStackSource.columnNumber ?? 0
-      );
-      if (resolved && fiberAny.type && typeof fiberAny.type === 'object') {
-        componentSourceCache.set(fiberAny.type, resolved);
+    const debugStackResult = parseDebugStack(fiber);
+    if (debugStackResult && debugStackResult.source.fileName) {
+      const { source: debugStackSource, rawFileUrl, methodName } = debugStackResult;
+      // For chunk/compiled URLs, try source-map resolution
+      if (isChunkUrl(debugStackSource.fileName)) {
+        const resolved = await resolveOriginalPosition(
+          debugStackSource.fileName,
+          debugStackSource.lineNumber,
+          debugStackSource.columnNumber ?? 0
+        );
+        // Only use the result if it resolved to an original source file
+        if (resolved && !isChunkUrl(resolved.fileName)) {
+          if (fiberAny.type && typeof fiberAny.type === 'object') {
+            componentSourceCache.set(fiberAny.type, resolved);
+          }
+          if (debug) {
+            logSourceFound(SourceMethod.DEBUG_STACK, fiber, resolved, true);
+            logSourceComplete(true, SourceMethod.DEBUG_STACK, resolved);
+          }
+          return resolved;
+        }
+
+        // Client-side source-map failed (e.g. SSR chunk maps not served via HTTP)
+        // Try Next.js dev server API which can resolve server-side source maps
+        const nextResolved = await resolveViaNextDevServer(
+          rawFileUrl,
+          debugStackSource.lineNumber,
+          debugStackSource.columnNumber ?? 0,
+          methodName,
+        );
+        if (nextResolved && !isChunkUrl(nextResolved.fileName)) {
+          if (fiberAny.type && typeof fiberAny.type === 'object') {
+            componentSourceCache.set(fiberAny.type, nextResolved);
+          }
+          if (debug) {
+            logSourceFound(SourceMethod.DEBUG_STACK, fiber, nextResolved, true);
+            logSourceComplete(true, SourceMethod.DEBUG_STACK, nextResolved);
+          }
+          return nextResolved;
+        }
+        // Both failed — skip, let parent fiber try
+      } else {
+        // Already a local file path — use directly
+        if (fiberAny.type && typeof fiberAny.type === 'object') {
+          componentSourceCache.set(fiberAny.type, debugStackSource);
+        }
+        if (debug) {
+          logSourceFound(SourceMethod.DEBUG_STACK, fiber, debugStackSource, true);
+          logSourceComplete(true, SourceMethod.DEBUG_STACK, debugStackSource);
+        }
+        return debugStackSource;
       }
-      if (debug && resolved) {
-        logSourceFound(SourceMethod.DEBUG_STACK, fiber, resolved, true);
-        logSourceComplete(true, SourceMethod.DEBUG_STACK, resolved);
-      }
-      return resolved;
     }
   } catch (e) {
     if (debug) logError(SourceMethod.DEBUG_STACK, e);
@@ -749,6 +1036,20 @@ export async function resolveSourceFromFiber(
         }
         return resolved;
       }
+
+      // 7b. Extract source from JSX-embedded fileName/lineNumber in function body
+      // Turbopack embeds source info as jsxDEV arguments visible via toString()
+      const bodySource = extractSourceFromFunctionBody(funcStr);
+      if (bodySource && bodySource.fileName) {
+        // Resolve [project]/ prefix to absolute path
+        bodySource.fileName = await resolveProjectPrefix(bodySource.fileName);
+        componentSourceCache.set(fiberAny.type, bodySource);
+        if (debug) {
+          logSourceFound(SourceMethod.FUNCTION_BODY_JSX, fiber, bodySource, true);
+          logSourceComplete(true, SourceMethod.FUNCTION_BODY_JSX, bodySource);
+        }
+        return bodySource;
+      }
     } catch (e) {
       if (debug) logError(SourceMethod.SOURCE_URL, e);
     }
@@ -770,6 +1071,7 @@ export async function resolveSourceFromFiber(
         props.id
       );
       if (turbopackSource) {
+        turbopackSource.fileName = await resolveProjectPrefix(turbopackSource.fileName);
         if (debug) {
           logSourceFound(SourceMethod.TURBOPACK_ELEMENT, fiber, turbopackSource, true);
           logSourceComplete(true, SourceMethod.TURBOPACK_ELEMENT, turbopackSource);
@@ -783,6 +1085,7 @@ export async function resolveSourceFromFiber(
     try {
       const turbopackSource = await extractSourceFromTurbopackChunks(componentName);
       if (turbopackSource) {
+        turbopackSource.fileName = await resolveProjectPrefix(turbopackSource.fileName);
         // Turbopack returns component usage location (already original path, no source-map needed)
         if (fiberAny.type && typeof fiberAny.type === "object") {
           componentSourceCache.set(fiberAny.type, turbopackSource);
