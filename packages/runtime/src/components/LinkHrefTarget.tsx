@@ -3,7 +3,7 @@ import { HREF_TARGET } from "../consts";
 
 const hrefTargets = ["_blank", "_self"] as const;
 
-type HrefTarget = typeof hrefTargets[number];
+type HrefTarget = (typeof hrefTargets)[number];
 
 export function LinkHrefTarget(props: {
   value?: HrefTarget;

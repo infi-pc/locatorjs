@@ -7,7 +7,8 @@
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
     "build": "tsc --declaration --outDir dist",
     "//build-cjs": "tsc --module commonjs --outDir dist/cjs",
-    "ts": "tsc --noEmit"
+    "ts": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
   },
   "devDependencies": {
     "@babel/parser": "^7.26.2",
