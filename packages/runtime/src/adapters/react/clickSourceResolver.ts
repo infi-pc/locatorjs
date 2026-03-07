@@ -167,7 +167,8 @@ async function getAllChunkCodes(): Promise<string[]> {
  * Search forward from attribute value position for fileName/lineNumber
  */
 function extractSourceNearPosition(code: string, position: number): Source | null {
-  // Search forward from current position for source info (within 1500 chars)
+  // Search forward for fileName/lineNumber in the jsxDEV call arguments.
+  // 1500 chars covers typical jsxDEV argument spans including props objects.
   const searchRange = code.slice(position, position + 1500);
   const fileMatch = searchRange.match(/fileName:\s*"([^"]+)"/);
   const lineMatch = searchRange.match(/lineNumber:\s*(\d+)/);
@@ -231,7 +232,8 @@ async function extractSourceFromTurbopackChunksForElement(
           const attrIndex = code.indexOf(`"${pattern}"`, searchIndex);
           if (attrIndex === -1) break;
 
-          // Search backward to confirm jsxDEV call (within 800 chars)
+          // Search backward to find the enclosing jsxDEV("tagName", ...) call.
+          // 800 chars covers the opening call + typical preceding props/children.
           const startRange = Math.max(0, attrIndex - 800);
           const beforeAttr = code.slice(startRange, attrIndex);
 
@@ -1123,10 +1125,5 @@ export function getSourceFromCache(fiber: Fiber): Source | null {
   return null;
 }
 
-/**
- * Clear component source cache
- */
-export function clearComponentSourceCache(): void {
-  // WeakMap cannot be cleared, would need to create a new one
-  // In practice, WeakMap automatically garbage-collects unreferenced keys
-}
+// Note: componentSourceCache is a WeakMap which auto-GCs when keys are dereferenced.
+// No explicit clear function is needed.

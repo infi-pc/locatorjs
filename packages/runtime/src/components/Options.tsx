@@ -44,12 +44,16 @@ export function Options(props: {
 
     // Sync failed, try async
     if (element) {
-      getElementInfoAsync(element, props.adapterId).then((elInfo) => {
-        // Ensure element is still the current element
-        if (props.currentElement === element) {
-          setAsyncLinkProps(elInfo?.thisElement.link || null);
-        }
-      });
+      getElementInfoAsync(element, props.adapterId)
+        .then((elInfo) => {
+          // Ensure element is still the current element
+          if (props.currentElement === element) {
+            setAsyncLinkProps(elInfo?.thisElement.link || null);
+          }
+        })
+        .catch(() => {
+          // Async resolution failed — leave as null
+        });
     } else {
       setAsyncLinkProps(null);
     }
