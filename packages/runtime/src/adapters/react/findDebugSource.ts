@@ -52,7 +52,7 @@ function getSourceFromFiber(fiber: Fiber): [Source | null, SourceMethodType | nu
   // 6. Try from _debugInfo (React 19 Server Components)
   if (fiberAny._debugInfo && Array.isArray(fiberAny._debugInfo)) {
     for (const info of fiberAny._debugInfo) {
-      if (info.stack) {
+      if (info.stack && typeof info.stack === "string") {
         // Parse stack for first valid position
         const match = info.stack.match(/at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/);
         if (match) {
@@ -141,7 +141,7 @@ export async function findDebugSourceAsync(
     );
   }
 
-  // 2. Sync failed, try async resolution (via source-map)
+  // 2. Sync failed, try async resolution via _debugOwner chain
   let current: Fiber | null = fiber;
   while (current) {
     const source = await resolveSourceFromFiber(current);
@@ -149,6 +149,24 @@ export async function findDebugSourceAsync(
       return { fiber: current, source };
     }
     current = current._debugOwner || null;
+  }
+
+  // 3. _debugOwner chain exhausted — try fiber.return chain (actual parent tree)
+  // This catches cases where _debugOwner skips intermediate components
+  // (e.g. Server Component owns <p> directly, but <p> is rendered inside <Card>)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let parent: any = (fiber as any).return;
+  const visited = new Set<any>();
+  while (parent && !visited.has(parent)) {
+    visited.add(parent);
+    // Only try function components (tag 0 = FunctionComponent, tag 11 = ForwardRef)
+    if (typeof parent.type === "function") {
+      const source = await resolveSourceFromFiber(parent);
+      if (source) {
+        return { fiber: parent, source };
+      }
+    }
+    parent = parent.return;
   }
 
   if (debug) {

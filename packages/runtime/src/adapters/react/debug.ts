@@ -27,6 +27,7 @@ export const SourceMethod = {
   FUNCTION_META: "function metadata (__source/_source)",
   DEVTOOLS_RENDERERS: "React DevTools renderers (legacy API)",
   SOURCE_URL: "function toString() sourceURL",
+  FUNCTION_BODY_JSX: "function toString() JSX source info",
   TURBOPACK_ELEMENT: "Turbopack chunk (native element)",
   TURBOPACK_COMPONENT: "Turbopack chunk (component name)",
 } as const;
