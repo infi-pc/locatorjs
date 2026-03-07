@@ -40,7 +40,7 @@ jobs:
       - uses: actions/cache/save@v4
         name: Save turbo cache
         with:
-          path: node_modules/.cache/turbo
+          path: .turbo/cache
           key: ${{ runner.os }}-turbo-${{ github.sha }}
 
   typecheck:
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/cache/restore@v4
         name: Restore turbo cache
         with:
-          path: node_modules/.cache/turbo
+          path: .turbo/cache
           key: ${{ runner.os }}-turbo-${{ github.sha }}
       - run: pnpm install
       - run: pnpm build
@@ -93,7 +93,7 @@ jobs:
       - uses: actions/cache/restore@v4
         name: Restore turbo cache
         with:
-          path: node_modules/.cache/turbo
+          path: .turbo/cache
           key: ${{ runner.os }}-turbo-${{ github.sha }}
       - run: pnpm install
       - run: pnpm build
@@ -121,7 +121,7 @@ jobs:
       - uses: actions/cache/restore@v4
         name: Restore turbo cache
         with:
-          path: node_modules/.cache/turbo
+          path: .turbo/cache
           key: ${{ runner.os }}-turbo-${{ github.sha }}
       - run: pnpm install
       - run: pnpm build
@@ -149,12 +149,13 @@ jobs:
       - uses: actions/cache/restore@v4
         name: Restore turbo cache
         with:
-          path: node_modules/.cache/turbo
+          path: .turbo/cache
           key: ${{ runner.os }}-turbo-${{ github.sha }}
       - run: pnpm install
       - run: pnpm build
       - name: Install Playwright browsers
-        run: pnpm --filter e2e-tests exec playwright install --with-deps
+        working-directory: apps/playwright
+        run: pnpm exec playwright install --with-deps
       - name: Start dev servers
         run: pnpm dev &
         env:
