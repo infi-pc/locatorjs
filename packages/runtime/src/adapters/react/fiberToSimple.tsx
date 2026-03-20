@@ -4,6 +4,7 @@ import { getComposedBoundingBox } from "../../functions/getComposedBoundingBox";
 import { getUsableName } from "../../functions/getUsableName";
 
 import { getAllFiberChildren } from "./getAllFiberChildren";
+import { normaliseSource } from "./findDebugSource";
 import { SimpleNode } from "../../types/types";
 import { makeFiberId } from "./makeFiberId";
 
@@ -46,7 +47,7 @@ export function fiberToSimple(
       name: getUsableName(fiber),
       box: box || getComposedBoundingBox(simpleChildren),
       children: simpleChildren,
-      source: fiber._debugSource || null,
+      source: fiber._debugSource ? normaliseSource(fiber._debugSource) : null,
     };
   } else {
     return {
@@ -56,7 +57,7 @@ export function fiberToSimple(
       name: getUsableName(fiber),
       box: getComposedBoundingBox(simpleChildren),
       children: simpleChildren,
-      source: fiber._debugSource || null,
+      source: fiber._debugSource ? normaliseSource(fiber._debugSource) : null,
       definitionSourceFile: simpleChildren.reduce<string | null>(
         (acc, curr) => {
           if (curr.source?.fileName) {

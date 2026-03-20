@@ -1,4 +1,4 @@
-import { findDebugSource } from "./findDebugSource";
+import { findDebugSource, normaliseSource } from "./findDebugSource";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 import { getFiberLabel } from "./getFiberLabel";
 import { getAllWrappingParents } from "./getAllWrappingParents";
@@ -74,7 +74,7 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
 
     if (fiber && fiber._debugSource) {
       return {
-        fileName: fiber._debugSource.fileName,
+        fileName: normaliseSource(fiber._debugSource).fileName,
         lineNumber: fiber._debugSource.lineNumber,
         columnNumber: fiber._debugSource.columnNumber,
       };
