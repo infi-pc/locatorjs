@@ -1,4 +1,6 @@
-import reactAdapter, { getElementInfoAsync as getReactElementInfoAsync } from "./react/reactAdapter";
+import reactAdapter, {
+  getElementInfoAsync as getReactElementInfoAsync,
+} from "./react/reactAdapter";
 import jsxAdapter from "./jsx/jsxAdapter";
 import svelteAdapter from "./svelte/svelteAdapter";
 import vueAdapter from "./vue/vueAdapter";

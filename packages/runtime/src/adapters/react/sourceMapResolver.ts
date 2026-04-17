@@ -14,10 +14,11 @@ const loadingPromises = new Map<string, Promise<SourceMapConsumer | null>>();
 
 // Simplified Source Map Consumer interface
 interface SourceMapConsumer {
-  originalPositionFor(pos: {
-    line: number;
-    column: number;
-  }): { source: string | null; line: number | null; column: number | null };
+  originalPositionFor(pos: { line: number; column: number }): {
+    source: string | null;
+    line: number | null;
+    column: number | null;
+  };
   destroy?: () => void;
 }
 
@@ -217,9 +218,11 @@ function createBasicSourceMapConsumer(rawMap: RawSourceMap): SourceMapConsumer {
  * Create Indexed Source Map Consumer (Turbopack format)
  * Sections sorted by offset, each has its own map
  */
-function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMapConsumer {
+function createIndexedSourceMapConsumer(
+  indexedMap: IndexedSourceMap
+): SourceMapConsumer {
   // Pre-parse all section mappings
-  const sectionConsumers = indexedMap.sections.map(section => ({
+  const sectionConsumers = indexedMap.sections.map((section) => ({
     offset: section.offset,
     consumer: createBasicSourceMapConsumer(section.map),
     map: section.map,
@@ -228,7 +231,7 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
   return {
     originalPositionFor(pos: { line: number; column: number }) {
       // Find section containing position (search backward for first offset <= pos)
-      let targetSection: typeof sectionConsumers[0] | null = null;
+      let targetSection: (typeof sectionConsumers)[0] | null = null;
       for (let i = sectionConsumers.length - 1; i >= 0; i--) {
         const section = sectionConsumers[i];
         if (!section) continue;
@@ -236,7 +239,10 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
         const sectionStartLine = section.offset.line + 1;
         if (pos.line >= sectionStartLine) {
           // On same line, also check column
-          if (pos.line === sectionStartLine && pos.column < section.offset.column) {
+          if (
+            pos.line === sectionStartLine &&
+            pos.column < section.offset.column
+          ) {
             continue;
           }
           targetSection = section;
@@ -251,9 +257,10 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
       // Calculate position relative to section
       const relativePos = {
         line: pos.line - targetSection.offset.line,
-        column: pos.line === targetSection.offset.line + 1
-          ? pos.column - targetSection.offset.column
-          : pos.column,
+        column:
+          pos.line === targetSection.offset.line + 1
+            ? pos.column - targetSection.offset.column
+            : pos.column,
       };
 
       return targetSection.consumer.originalPositionFor(relativePos);
@@ -264,9 +271,11 @@ function createIndexedSourceMapConsumer(indexedMap: IndexedSourceMap): SourceMap
 /**
  * Create Source Map Consumer (auto-detect format)
  */
-function createSourceMapConsumer(map: RawSourceMap | IndexedSourceMap): SourceMapConsumer {
+function createSourceMapConsumer(
+  map: RawSourceMap | IndexedSourceMap
+): SourceMapConsumer {
   // Detect if this is an Indexed Source Map
-  if ('sections' in map && Array.isArray(map.sections)) {
+  if ("sections" in map && Array.isArray(map.sections)) {
     return createIndexedSourceMapConsumer(map as IndexedSourceMap);
   }
   return createBasicSourceMapConsumer(map as RawSourceMap);
@@ -462,7 +471,7 @@ export async function resolveSourceFromStack(): Promise<Source | null> {
  * file:///C:/foo/bar.ts -> C:/foo/bar.ts (Windows)
  */
 export function fileUrlToPath(fileUrl: string): string {
-  if (!fileUrl.startsWith('file://')) {
+  if (!fileUrl.startsWith("file://")) {
     return fileUrl;
   }
 

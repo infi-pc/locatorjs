@@ -7,7 +7,10 @@ import { OptionsCloseButton } from "./OptionsCloseButton";
 import { useOptions } from "../functions/optionsStore";
 import { AdapterId } from "../consts";
 import { LinkOptions } from "./LinkOptions";
-import { getElementInfo, getElementInfoAsync } from "../adapters/getElementInfo";
+import {
+  getElementInfo,
+  getElementInfoAsync,
+} from "../adapters/getElementInfo";
 import { LinkProps } from "../types/types";
 import { setDebugMode } from "../adapters/react/debug";
 
@@ -29,7 +32,9 @@ export function Options(props: {
   );
 
   // Async fetched linkProps (for Turbopack jsxDEV source)
-  const [asyncLinkProps, setAsyncLinkProps] = createSignal<LinkProps | null>(null);
+  const [asyncLinkProps, setAsyncLinkProps] = createSignal<LinkProps | null>(
+    null
+  );
 
   // When currentElement changes and sync fails, try async
   createEffect(() => {

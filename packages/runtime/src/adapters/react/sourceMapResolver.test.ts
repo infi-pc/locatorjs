@@ -105,9 +105,7 @@ describe("parseMappings", () => {
 
 describe("fileUrlToPath", () => {
   test("converts Unix file:// URL to path", () => {
-    expect(fileUrlToPath("file:///Users/foo/bar.ts")).toBe(
-      "/Users/foo/bar.ts"
-    );
+    expect(fileUrlToPath("file:///Users/foo/bar.ts")).toBe("/Users/foo/bar.ts");
   });
 
   test("converts Windows file:// URL to path", () => {

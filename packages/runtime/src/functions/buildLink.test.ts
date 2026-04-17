@@ -3,7 +3,9 @@ import { buildLink, setInternalProjectPath } from "./buildLink";
 import type { OptionsStore } from "./optionsStore";
 
 // Minimal mock for OptionsStore
-function createMockOptions(overrides: Record<string, unknown> = {}): OptionsStore {
+function createMockOptions(
+  overrides: Record<string, unknown> = {}
+): OptionsStore {
   return {
     getOptions: () => ({
       projectPath: "/project",
