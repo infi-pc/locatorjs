@@ -469,6 +469,7 @@ export function getSourceViaRendererInterface(
   } catch (e) {
     // Fail silently, fall back to other methods
     if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
       console.debug("[LocatorJS] getSourceViaRendererInterface error:", e);
     }
   }
@@ -525,6 +526,7 @@ export function getSourceViaRendererInterfaceByFiber(
     }
   } catch (e) {
     if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
       console.debug(
         "[LocatorJS] getSourceViaRendererInterfaceByFiber error:",
         e

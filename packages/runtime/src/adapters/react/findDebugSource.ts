@@ -149,6 +149,7 @@ export async function findDebugSourceAsync(
 
   const debug = isDebugEnabled();
   if (debug) {
+    // eslint-disable-next-line no-console
     console.log(
       "%c[LocatorJS] Sync methods failed, trying async resolution...",
       "color: #2196F3; font-style: italic"

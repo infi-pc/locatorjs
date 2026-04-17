@@ -208,6 +208,7 @@ async function diagnoseAllElements(): Promise<void> {
 
   const rows: DiagnoseRow[] = [];
 
+  // eslint-disable-next-line no-console
   console.log(
     `%c[LocatorJS-diag] Scanning ${allElements.length} elements...`,
     "color: #FF9800; font-weight: bold"
@@ -287,10 +288,12 @@ async function diagnoseAllElements(): Promise<void> {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(
     `%c[LocatorJS-diag] Results:`,
     "color: #4CAF50; font-weight: bold"
   );
+  // eslint-disable-next-line no-console
   console.table(rows);
 
   // Summary
@@ -301,6 +304,7 @@ async function diagnoseAllElements(): Promise<void> {
       r.asyncSource !== "-" &&
       r.asyncSource !== "error"
   );
+  // eslint-disable-next-line no-console
   console.log(
     `%c[LocatorJS-diag] Summary: ${rows.length} elements, ${withFiber.length} with fiber, ${resolved.length} resolved`,
     "color: #2196F3; font-weight: bold"

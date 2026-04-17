@@ -6,6 +6,7 @@
  * 1. Browser console: window.__LOCATORJS_DEBUG__ = true
  * 2. Or call: enableLocatorDebug()
  */
+/* eslint-disable no-console */
 
 // Source resolution method enum
 export const SourceMethod = {
