@@ -217,13 +217,15 @@ async function diagnoseAllElements(): Promise<void> {
     if (!(el instanceof HTMLElement)) continue;
 
     // Skip LocatorJS own UI elements
-    if (el.closest("[data-locatorjs]") || el.id === "locatorjs-wrapper") continue;
+    if (el.closest("[data-locatorjs]") || el.id === "locatorjs-wrapper")
+      continue;
 
     const tag = el.tagName.toLowerCase();
     const id = el.id ? `#${el.id}` : "";
-    const cls = el.className && typeof el.className === "string"
-      ? `.${el.className.split(/\s+/).filter(Boolean).join(".")}`
-      : "";
+    const cls =
+      el.className && typeof el.className === "string"
+        ? `.${el.className.split(/\s+/).filter(Boolean).join(".")}`
+        : "";
     const label = `<${tag}${id}${cls}>`;
 
     const textContent = el.textContent?.trim().slice(0, 40) || "";
@@ -243,7 +245,9 @@ async function diagnoseAllElements(): Promise<void> {
     // Sync source
     const syncResult = findDebugSource(fiber);
     const syncStr = syncResult?.source
-      ? `${syncResult.source.fileName}:${syncResult.source.lineNumber}:${syncResult.source.columnNumber ?? 0}`
+      ? `${syncResult.source.fileName}:${syncResult.source.lineNumber}:${
+          syncResult.source.columnNumber ?? 0
+        }`
       : "none";
 
     // Async source (directly on this fiber, no chain walking)
@@ -251,7 +255,9 @@ async function diagnoseAllElements(): Promise<void> {
     try {
       const asyncResult = await resolveSourceFromFiber(fiber);
       if (asyncResult) {
-        asyncStr = `${asyncResult.fileName}:${asyncResult.lineNumber}:${asyncResult.columnNumber ?? 0}`;
+        asyncStr = `${asyncResult.fileName}:${asyncResult.lineNumber}:${
+          asyncResult.columnNumber ?? 0
+        }`;
       }
     } catch {
       asyncStr = "error";
@@ -263,7 +269,9 @@ async function diagnoseAllElements(): Promise<void> {
       try {
         const fullResult = await findDebugSourceAsync(fiber);
         if (fullResult?.source) {
-          fullAsyncStr = `${fullResult.source.fileName}:${fullResult.source.lineNumber}:${fullResult.source.columnNumber ?? 0}`;
+          fullAsyncStr = `${fullResult.source.fileName}:${
+            fullResult.source.lineNumber
+          }:${fullResult.source.columnNumber ?? 0}`;
         }
       } catch {
         fullAsyncStr = "error";
@@ -287,7 +295,12 @@ async function diagnoseAllElements(): Promise<void> {
 
   // Summary
   const withFiber = rows.filter((r) => r.hasFiber);
-  const resolved = withFiber.filter((r) => r.asyncSource !== "none" && r.asyncSource !== "-" && r.asyncSource !== "error");
+  const resolved = withFiber.filter(
+    (r) =>
+      r.asyncSource !== "none" &&
+      r.asyncSource !== "-" &&
+      r.asyncSource !== "error"
+  );
   console.log(
     `%c[LocatorJS-diag] Summary: ${rows.length} elements, ${withFiber.length} with fiber, ${resolved.length} resolved`,
     "color: #2196F3; font-weight: bold"

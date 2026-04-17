@@ -78,7 +78,9 @@ async function resolveProjectPrefix(fileName: string): Promise<string> {
       const map = await res.json();
 
       const sources: string[] = map.sections
-        ? map.sections.flatMap((s: { map?: { sources?: string[] } }) => s.map?.sources || [])
+        ? map.sections.flatMap(
+            (s: { map?: { sources?: string[] } }) => s.map?.sources || []
+          )
         : map.sources || [];
 
       for (const source of sources) {
@@ -166,7 +168,10 @@ async function getAllChunkCodes(): Promise<string[]> {
  * Search for source info in chunk code (generic method)
  * Search forward from attribute value position for fileName/lineNumber
  */
-function extractSourceNearPosition(code: string, position: number): Source | null {
+function extractSourceNearPosition(
+  code: string,
+  position: number
+): Source | null {
   // Search forward from current position for source info (within 1500 chars)
   const searchRange = code.slice(position, position + 1500);
   const fileMatch = searchRange.match(/fileName:\s*"([^"]+)"/);
@@ -214,7 +219,7 @@ async function extractSourceFromTurbopackChunksForElement(
     }
     if (className) {
       // Split class names, each can be used as search keyword
-      const classes = className.split(/\s+/).filter(c => c.length > 2);
+      const classes = className.split(/\s+/).filter((c) => c.length > 2);
       searchPatterns.push(...classes);
     }
 
@@ -249,7 +254,7 @@ async function extractSourceFromTurbopackChunksForElement(
             new RegExp(`jsx\\("${tagName}",[^}]*$`),
           ];
 
-          const hasJsxCall = jsxPatterns.some(p => p.test(beforeAttr));
+          const hasJsxCall = jsxPatterns.some((p) => p.test(beforeAttr));
 
           if (hasJsxCall) {
             const source = extractSourceNearPosition(code, attrIndex);
@@ -335,9 +340,14 @@ export function clearTurbopackCache(): void {
 /**
  * Get the first rendererInterface (handles multiple react-dom instances)
  */
-function getFirstRendererInterface(): { rendererID: number; rendererInterface: RendererInterface } | null {
+function getFirstRendererInterface(): {
+  rendererID: number;
+  rendererInterface: RendererInterface;
+} | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hook = (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__ as DevToolsHookWithInterfaces | undefined;
+  const hook = (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__ as
+    | DevToolsHookWithInterfaces
+    | undefined;
   if (!hook?.rendererInterfaces || hook.rendererInterfaces.size === 0) {
     return null;
   }
@@ -357,29 +367,35 @@ function getFirstRendererInterface(): { rendererID: number; rendererInterface: R
  * - Array: [componentName, fileName, lineNumber, columnNumber]
  * - Object: { fileName, lineNumber, columnNumber }
  */
-function parseInspectElementSource(source: unknown): { fileName: string; lineNumber: number; columnNumber: number } | null {
+function parseInspectElementSource(
+  source: unknown
+): { fileName: string; lineNumber: number; columnNumber: number } | null {
   if (!source) return null;
 
   // Array format: [componentName, fileName, lineNumber, columnNumber]
   if (Array.isArray(source) && source.length >= 3) {
     const [, fileName, lineNumber, columnNumber] = source;
-    if (typeof fileName === 'string' && typeof lineNumber === 'number') {
+    if (typeof fileName === "string" && typeof lineNumber === "number") {
       return {
         fileName,
         lineNumber,
-        columnNumber: typeof columnNumber === 'number' ? columnNumber : 0,
+        columnNumber: typeof columnNumber === "number" ? columnNumber : 0,
       };
     }
   }
 
   // Object format: { fileName, lineNumber, columnNumber }
-  if (typeof source === 'object' && source !== null) {
+  if (typeof source === "object" && source !== null) {
     const src = source as Record<string, unknown>;
-    if (typeof src.fileName === 'string' && typeof src.lineNumber === 'number') {
+    if (
+      typeof src.fileName === "string" &&
+      typeof src.lineNumber === "number"
+    ) {
       return {
         fileName: src.fileName,
         lineNumber: src.lineNumber,
-        columnNumber: typeof src.columnNumber === 'number' ? src.columnNumber : 0,
+        columnNumber:
+          typeof src.columnNumber === "number" ? src.columnNumber : 0,
       };
     }
   }
@@ -393,7 +409,9 @@ function parseInspectElementSource(source: unknown): { fileName: string; lineNum
  *
  * Returns compiled position, needs source-map reverse lookup
  */
-export function getSourceViaRendererInterface(domElement: HTMLElement): Source | null {
+export function getSourceViaRendererInterface(
+  domElement: HTMLElement
+): Source | null {
   const renderer = getFirstRendererInterface();
   if (!renderer) {
     return null;
@@ -403,17 +421,19 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
 
   try {
     // 1. Get React internal element ID from DOM
-    const elementID = rendererInterface.getElementIDForHostInstance(domElement as any);
+    const elementID = rendererInterface.getElementIDForHostInstance(
+      domElement as any
+    );
     if (!elementID) {
       return null;
     }
 
     // 2. Use inspectElement for detailed info (including source)
     const inspectedElement = rendererInterface.inspectElement(
-      rendererID,   // requestID
-      elementID,    // id
-      null,         // path
-      true          // forceFullData - force full data retrieval
+      rendererID, // requestID
+      elementID, // id
+      null, // path
+      true // forceFullData - force full data retrieval
     );
 
     if (inspectedElement?.value?.source) {
@@ -425,7 +445,8 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
 
     // 3. Fallback: get component function via getElementSourceFunctionById
     if (rendererInterface.getElementSourceFunctionById) {
-      const sourceFunc = rendererInterface.getElementSourceFunctionById(elementID);
+      const sourceFunc =
+        rendererInterface.getElementSourceFunctionById(elementID);
       if (sourceFunc) {
         // Check __source property on function
         const funcAny = sourceFunc as any;
@@ -447,8 +468,8 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
     }
   } catch (e) {
     // Fail silently, fall back to other methods
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('[LocatorJS] getSourceViaRendererInterface error:', e);
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[LocatorJS] getSourceViaRendererInterface error:", e);
     }
   }
 
@@ -459,7 +480,9 @@ export function getSourceViaRendererInterface(domElement: HTMLElement): Source |
  * Get source location via Fiber and rendererInterfaces API
  * For cases where we have a Fiber but need its source
  */
-export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | null {
+export function getSourceViaRendererInterfaceByFiber(
+  fiber: Fiber
+): Source | null {
   const renderer = getFirstRendererInterface();
   if (!renderer) {
     return null;
@@ -478,7 +501,9 @@ export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | nul
     let childFiber = fiber.child;
     while (childFiber) {
       if (childFiber.stateNode instanceof HTMLElement) {
-        const elementID = rendererInterface.getElementIDForHostInstance(childFiber.stateNode as any);
+        const elementID = rendererInterface.getElementIDForHostInstance(
+          childFiber.stateNode as any
+        );
         if (elementID) {
           const inspectedElement = rendererInterface.inspectElement(
             rendererID,
@@ -487,7 +512,9 @@ export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | nul
             true
           );
           if (inspectedElement?.value?.source) {
-            const parsed = parseInspectElementSource(inspectedElement.value.source);
+            const parsed = parseInspectElementSource(
+              inspectedElement.value.source
+            );
             if (parsed) {
               return parsed;
             }
@@ -497,8 +524,11 @@ export function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | nul
       childFiber = childFiber.sibling;
     }
   } catch (e) {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('[LocatorJS] getSourceViaRendererInterfaceByFiber error:', e);
+    if (process.env.NODE_ENV === "development") {
+      console.debug(
+        "[LocatorJS] getSourceViaRendererInterfaceByFiber error:",
+        e
+      );
     }
   }
 
@@ -549,9 +579,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
     if (info.stack && typeof info.stack === "string") {
       // Parse stack to get first valid position
       // Format: "at ComponentName (file:line:column)"
-      const match = info.stack.match(
-        /at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/
-      );
+      const match = info.stack.match(/at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/);
       if (match) {
         return {
           fileName: match[1],
@@ -561,9 +589,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
       }
 
       // Alternative format: "ComponentName@file:line:column"
-      const firefoxMatch = info.stack.match(
-        /\S+@([^:]+):(\d+):(\d+)/
-      );
+      const firefoxMatch = info.stack.match(/\S+@([^:]+):(\d+):(\d+)/);
       if (firefoxMatch) {
         return {
           fileName: firefoxMatch[1],
@@ -589,9 +615,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
  * Get source from component function metadata
  * Some build tools attach __source or similar properties to functions
  */
-function extractSourceFromFunctionMeta(
-  type: unknown
-): Source | null {
+function extractSourceFromFunctionMeta(type: unknown): Source | null {
   if (typeof type !== "function" && typeof type !== "object") {
     return null;
   }
@@ -681,7 +705,10 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
   let stackStr: string | null = null;
   if (typeof rawStack === "string") {
     stackStr = rawStack;
-  } else if (rawStack instanceof Error || (typeof rawStack === "object" && typeof rawStack.stack === "string")) {
+  } else if (
+    rawStack instanceof Error ||
+    (typeof rawStack === "object" && typeof rawStack.stack === "string")
+  ) {
     stackStr = rawStack.stack;
   }
 
@@ -705,9 +732,7 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
     }
 
     // Chrome format: "at ComponentName (url:line:col)"
-    const chromeMatch = line.match(
-      /at\s+(\S+)\s+\((.+?):(\d+):(\d+)\)/
-    );
+    const chromeMatch = line.match(/at\s+(\S+)\s+\((.+?):(\d+):(\d+)\)/);
     if (chromeMatch && chromeMatch[2] && chromeMatch[3] && chromeMatch[4]) {
       const cleaned = cleanStackFileName(chromeMatch[2]);
       return {
@@ -722,9 +747,7 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
     }
 
     // Firefox format: "functionName@url:line:col"
-    const firefoxMatch = line.match(
-      /(\S+)@(.+?):(\d+):(\d+)/
-    );
+    const firefoxMatch = line.match(/(\S+)@(.+?):(\d+):(\d+)/);
     if (firefoxMatch && firefoxMatch[2] && firefoxMatch[3] && firefoxMatch[4]) {
       const cleaned = cleanStackFileName(firefoxMatch[2]);
       return {
@@ -748,7 +771,7 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
  */
 async function resolveNextjsRelativePath(
   relativePath: string,
-  rawChunkUrl: string,
+  rawChunkUrl: string
 ): Promise<string> {
   // Use cached result if available
   if (nextjsAppRoot !== undefined) {
@@ -797,19 +820,21 @@ async function resolveViaNextDevServer(
   rawFileUrl: string,
   line: number,
   column: number,
-  methodName: string,
+  methodName: string
 ): Promise<Source | null> {
   try {
     const res = await fetch("/__nextjs_original-stack-frames", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        frames: [{
-          file: rawFileUrl,
-          methodName,
-          line1: line,
-          column1: column,
-        }],
+        frames: [
+          {
+            file: rawFileUrl,
+            methodName,
+            line1: line,
+            column1: column,
+          },
+        ],
         isServer: true,
         isAppDirectory: true,
       }),
@@ -857,7 +882,11 @@ export async function resolveSourceFromFiber(
   const debug = isDebugEnabled();
 
   // 1. Check cache (use WeakMap only when type is an object)
-  if (fiberAny.type && typeof fiberAny.type === 'object' && componentSourceCache.has(fiberAny.type)) {
+  if (
+    fiberAny.type &&
+    typeof fiberAny.type === "object" &&
+    componentSourceCache.has(fiberAny.type)
+  ) {
     const cached = componentSourceCache.get(fiberAny.type) ?? null;
     if (debug && cached) {
       logSourceFound(SourceMethod.CACHE_HIT, fiber, cached, true);
@@ -878,11 +907,16 @@ export async function resolveSourceFromFiber(
       );
 
       const finalSource = resolved || rendererInterfaceSource;
-      if (fiberAny.type && typeof fiberAny.type === 'object') {
+      if (fiberAny.type && typeof fiberAny.type === "object") {
         componentSourceCache.set(fiberAny.type, finalSource);
       }
       if (debug) {
-        logSourceFound(SourceMethod.RENDERER_INTERFACE, fiber, finalSource, true);
+        logSourceFound(
+          SourceMethod.RENDERER_INTERFACE,
+          fiber,
+          finalSource,
+          true
+        );
         logSourceComplete(true, SourceMethod.RENDERER_INTERFACE, finalSource);
       }
       return finalSource;
@@ -901,7 +935,7 @@ export async function resolveSourceFromFiber(
         debugInfoSource.lineNumber,
         debugInfoSource.columnNumber ?? 0
       );
-      if (resolved && fiberAny.type && typeof fiberAny.type === 'object') {
+      if (resolved && fiberAny.type && typeof fiberAny.type === "object") {
         componentSourceCache.set(fiberAny.type, resolved);
       }
       if (debug && resolved) {
@@ -918,7 +952,11 @@ export async function resolveSourceFromFiber(
   try {
     const debugStackResult = parseDebugStack(fiber);
     if (debugStackResult && debugStackResult.source.fileName) {
-      const { source: debugStackSource, rawFileUrl, methodName } = debugStackResult;
+      const {
+        source: debugStackSource,
+        rawFileUrl,
+        methodName,
+      } = debugStackResult;
       // For chunk/compiled URLs, try source-map resolution
       if (isChunkUrl(debugStackSource.fileName)) {
         const resolved = await resolveOriginalPosition(
@@ -928,7 +966,7 @@ export async function resolveSourceFromFiber(
         );
         // Only use the result if it resolved to an original source file
         if (resolved && !isChunkUrl(resolved.fileName)) {
-          if (fiberAny.type && typeof fiberAny.type === 'object') {
+          if (fiberAny.type && typeof fiberAny.type === "object") {
             componentSourceCache.set(fiberAny.type, resolved);
           }
           if (debug) {
@@ -944,10 +982,10 @@ export async function resolveSourceFromFiber(
           rawFileUrl,
           debugStackSource.lineNumber,
           debugStackSource.columnNumber ?? 0,
-          methodName,
+          methodName
         );
         if (nextResolved && !isChunkUrl(nextResolved.fileName)) {
-          if (fiberAny.type && typeof fiberAny.type === 'object') {
+          if (fiberAny.type && typeof fiberAny.type === "object") {
             componentSourceCache.set(fiberAny.type, nextResolved);
           }
           if (debug) {
@@ -959,11 +997,16 @@ export async function resolveSourceFromFiber(
         // Both failed — skip, let parent fiber try
       } else {
         // Already a local file path — use directly
-        if (fiberAny.type && typeof fiberAny.type === 'object') {
+        if (fiberAny.type && typeof fiberAny.type === "object") {
           componentSourceCache.set(fiberAny.type, debugStackSource);
         }
         if (debug) {
-          logSourceFound(SourceMethod.DEBUG_STACK, fiber, debugStackSource, true);
+          logSourceFound(
+            SourceMethod.DEBUG_STACK,
+            fiber,
+            debugStackSource,
+            true
+          );
           logSourceComplete(true, SourceMethod.DEBUG_STACK, debugStackSource);
         }
         return debugStackSource;
@@ -982,7 +1025,7 @@ export async function resolveSourceFromFiber(
         metaSource.lineNumber,
         metaSource.columnNumber ?? 0
       );
-      if (resolved && fiberAny.type && typeof fiberAny.type === 'object') {
+      if (resolved && fiberAny.type && typeof fiberAny.type === "object") {
         componentSourceCache.set(fiberAny.type, resolved);
       }
       if (debug && resolved) {
@@ -1004,7 +1047,7 @@ export async function resolveSourceFromFiber(
         devToolsSource.lineNumber,
         devToolsSource.columnNumber ?? 0
       );
-      if (resolved && fiberAny.type && typeof fiberAny.type === 'object') {
+      if (resolved && fiberAny.type && typeof fiberAny.type === "object") {
         componentSourceCache.set(fiberAny.type, resolved);
       }
       if (debug && resolved) {
@@ -1045,7 +1088,12 @@ export async function resolveSourceFromFiber(
         bodySource.fileName = await resolveProjectPrefix(bodySource.fileName);
         componentSourceCache.set(fiberAny.type, bodySource);
         if (debug) {
-          logSourceFound(SourceMethod.FUNCTION_BODY_JSX, fiber, bodySource, true);
+          logSourceFound(
+            SourceMethod.FUNCTION_BODY_JSX,
+            fiber,
+            bodySource,
+            true
+          );
           logSourceComplete(true, SourceMethod.FUNCTION_BODY_JSX, bodySource);
         }
         return bodySource;
@@ -1058,7 +1106,8 @@ export async function resolveSourceFromFiber(
   // 8. [Turbopack] Extract jsxDEV source info from chunk code
   // For React 19 + Next.js 15 + Turbopack environments
   const isNativeElement = typeof fiberAny.type === "string";
-  const componentName = typeof fiberAny.type === "function" ? fiberAny.type.name : null;
+  const componentName =
+    typeof fiberAny.type === "function" ? fiberAny.type.name : null;
 
   if (isNativeElement) {
     // Native elements (div/span etc.): try precise match by tag + attributes
@@ -1071,10 +1120,21 @@ export async function resolveSourceFromFiber(
         props.id
       );
       if (turbopackSource) {
-        turbopackSource.fileName = await resolveProjectPrefix(turbopackSource.fileName);
+        turbopackSource.fileName = await resolveProjectPrefix(
+          turbopackSource.fileName
+        );
         if (debug) {
-          logSourceFound(SourceMethod.TURBOPACK_ELEMENT, fiber, turbopackSource, true);
-          logSourceComplete(true, SourceMethod.TURBOPACK_ELEMENT, turbopackSource);
+          logSourceFound(
+            SourceMethod.TURBOPACK_ELEMENT,
+            fiber,
+            turbopackSource,
+            true
+          );
+          logSourceComplete(
+            true,
+            SourceMethod.TURBOPACK_ELEMENT,
+            turbopackSource
+          );
         }
         return turbopackSource;
       }
@@ -1083,16 +1143,29 @@ export async function resolveSourceFromFiber(
     }
   } else if (componentName && componentName !== "Anonymous") {
     try {
-      const turbopackSource = await extractSourceFromTurbopackChunks(componentName);
+      const turbopackSource = await extractSourceFromTurbopackChunks(
+        componentName
+      );
       if (turbopackSource) {
-        turbopackSource.fileName = await resolveProjectPrefix(turbopackSource.fileName);
+        turbopackSource.fileName = await resolveProjectPrefix(
+          turbopackSource.fileName
+        );
         // Turbopack returns component usage location (already original path, no source-map needed)
         if (fiberAny.type && typeof fiberAny.type === "object") {
           componentSourceCache.set(fiberAny.type, turbopackSource);
         }
         if (debug) {
-          logSourceFound(SourceMethod.TURBOPACK_COMPONENT, fiber, turbopackSource, true);
-          logSourceComplete(true, SourceMethod.TURBOPACK_COMPONENT, turbopackSource);
+          logSourceFound(
+            SourceMethod.TURBOPACK_COMPONENT,
+            fiber,
+            turbopackSource,
+            true
+          );
+          logSourceComplete(
+            true,
+            SourceMethod.TURBOPACK_COMPONENT,
+            turbopackSource
+          );
         }
         return turbopackSource;
       }
@@ -1102,7 +1175,7 @@ export async function resolveSourceFromFiber(
   }
 
   // 9. Cache null result to avoid repeated lookups (only when type is an object)
-  if (fiberAny.type && typeof fiberAny.type === 'object') {
+  if (fiberAny.type && typeof fiberAny.type === "object") {
     componentSourceCache.set(fiberAny.type, null);
   }
 
@@ -1116,7 +1189,11 @@ export function getSourceFromCache(fiber: Fiber): Source | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fiberAny = fiber as any;
 
-  if (fiberAny.type && typeof fiberAny.type === 'object' && componentSourceCache.has(fiberAny.type)) {
+  if (
+    fiberAny.type &&
+    typeof fiberAny.type === "object" &&
+    componentSourceCache.has(fiberAny.type)
+  ) {
     return componentSourceCache.get(fiberAny.type) ?? null;
   }
 
