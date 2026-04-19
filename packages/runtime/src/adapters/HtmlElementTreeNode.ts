@@ -6,7 +6,7 @@ import { TreeNode, TreeNodeComponent } from "../types/TreeNode";
 import { SimpleDOMRect } from "../types/types";
 
 export class HtmlElementTreeNode implements TreeNode {
-  type: "element" = "element";
+  type = "element" as const;
   element: HTMLElement;
   name: string;
   uniqueId: string;

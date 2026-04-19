@@ -29,15 +29,15 @@
     "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/'"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.26.0",
-    "@babel/preset-typescript": "^7.26.0",
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-typescript": "^7.28.5",
     "check-dependency-version-consistency": "5.0.1",
     "husky": "^9.1.7",
-    "lerna": "^7.3.0",
-    "lint-staged": "^16.3.2",
+    "lerna": "^7.4.2",
+    "lint-staged": "^16.4.0",
     "prettier": "^2.8.8",
-    "turbo": "^2.5.8",
-    "vitest": "^2.1.4"
+    "turbo": "^2.9.6",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "npm": ">=7.0.0",
