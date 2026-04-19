@@ -272,6 +272,19 @@ export function registerDiagnose(diagnoseFn: () => Promise<void>): void {
   }
 }
 
+/**
+ * Register the diagnose function.
+ * Called from outside to avoid circular imports (debug.ts must not import resolution modules).
+ */
+export function registerDiagnose(
+  diagnoseFn: () => Promise<void>
+): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof window !== "undefined") {
+    (window as any).locatorDiagnose = diagnoseFn;
+  }
+}
+
 // Expose helpers on window at init
 if (typeof window !== "undefined") {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

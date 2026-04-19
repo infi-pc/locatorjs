@@ -1,6 +1,4 @@
 import { isValidRenderer } from "./isValidRenderer";
-import type { Renderer } from "./types";
-
 export * from "./types";
 
 export type Target = {
@@ -39,9 +37,7 @@ export const allTargets: Targets = {
 };
 
 export const isMac =
-  // @ts-ignore
   typeof navigator !== "undefined" &&
-  // @ts-ignore
   navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
 export const altTitle = isMac ? "⌥ Option" : "Alt";
@@ -71,13 +67,13 @@ export function getModifiersString(modifiersMap: { [key: string]: true }) {
 }
 
 export function detectSvelte() {
-  // @ts-ignore
+  // @ts-expect-error accessing window globals
   if (window.__SVELTE_HMR) {
     // __SVELTE_HMR is so far the only way to detect svelte I found
     return true;
   }
 
-  // @ts-ignore
+  // @ts-expect-error accessing window globals
   if (window.__SAPPER__) {
     return true;
   }
@@ -85,7 +81,7 @@ export function detectSvelte() {
 }
 
 export function detectVue() {
-  // @ts-ignore
+  // @ts-expect-error accessing window globals
   if (window.__VUE__) {
     return true;
   }
@@ -93,7 +89,7 @@ export function detectVue() {
 }
 
 export function detectJSX() {
-  // @ts-ignore
+  // @ts-expect-error accessing window globals
   if (window.__LOCATOR_DATA__) {
     return true;
   }
@@ -101,9 +97,9 @@ export function detectJSX() {
 }
 
 export function detectReact() {
-  // @ts-ignore
+  // @ts-expect-error accessing window globals
   if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
-    // @ts-ignore
+    // @ts-expect-error accessing window globals
     const renderersMap = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
     if (renderersMap) {
       const problematicRenderers: string[] = [];

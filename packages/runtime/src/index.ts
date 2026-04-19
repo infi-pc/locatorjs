@@ -23,7 +23,10 @@ export function setup({
   projectPath?: string;
   showIntro?: boolean;
 } = {}) {
-  setTimeout(() => initRuntime({ adapter, targets, projectPath, showIntro }), 0);
+  setTimeout(
+    () => initRuntime({ adapter, targets, projectPath, showIntro }),
+    0
+  );
 }
 
 export default setup;

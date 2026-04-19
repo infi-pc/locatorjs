@@ -53,7 +53,12 @@ export function TmuxSessionForm(props: {
             class="text-xs text-left text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
             onClick={() => setShowGuide(!showGuide())}
           >
-            <span class="inline-block transition-transform" style={{ transform: showGuide() ? "rotate(90deg)" : "rotate(0deg)" }}>
+            <span
+              class="inline-block transition-transform"
+              style={{
+                transform: showGuide() ? "rotate(90deg)" : "rotate(0deg)",
+              }}
+            >
               ▶
             </span>
             How to use
@@ -62,19 +67,24 @@ export function TmuxSessionForm(props: {
           <Show when={showGuide()}>
             <div class="text-xs text-gray-600 bg-gray-50 rounded p-3 flex flex-col gap-2">
               <div>
-                <div class="font-medium text-gray-700">1. Start a tmux session:</div>
+                <div class="font-medium text-gray-700">
+                  1. Start a tmux session:
+                </div>
                 <code class="block bg-gray-100 rounded px-2 py-1 mt-1 text-gray-800">
                   tmux new-session -s my-project
                 </code>
               </div>
               <div>
-                <div class="font-medium text-gray-700">2. Start Neovim with a socket:</div>
+                <div class="font-medium text-gray-700">
+                  2. Start Neovim with a socket:
+                </div>
                 <code class="block bg-gray-100 rounded px-2 py-1 mt-1 text-gray-800">
                   nvim --listen /tmp/nvim-my-project
                 </code>
               </div>
               <div class="text-gray-500 italic">
-                The socket path must follow the format: /tmp/nvim-&lt;session-name&gt;
+                The socket path must follow the format:
+                /tmp/nvim-&lt;session-name&gt;
               </div>
             </div>
           </Show>

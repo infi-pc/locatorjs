@@ -1930,4 +1930,4 @@ select {
     font-size: 0.875rem;
     line-height: 1.25rem;
   }
-}`
+}`;
