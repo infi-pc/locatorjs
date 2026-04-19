@@ -1202,10 +1202,5 @@ export function getSourceFromCache(fiber: Fiber): Source | null {
   return null;
 }
 
-/**
- * Clear component source cache
- */
-export function clearComponentSourceCache(): void {
-  // WeakMap cannot be cleared, would need to create a new one
-  // In practice, WeakMap automatically garbage-collects unreferenced keys
-}
+// Note: componentSourceCache is a WeakMap which auto-GCs when keys are dereferenced.
+// No explicit clear function is needed.
