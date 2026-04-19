@@ -11,13 +11,13 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "devDependencies": {
-    "@babel/parser": "^7.26.2",
+    "@babel/parser": "^7.29.2",
     "@locator/dev-config": "workspace:^",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@types/semver": "^7.5.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@types/semver": "^7.7.1",
     "tsconfig": "^0.0.1",
-    "typescript": "^5.6.3"
+    "typescript": "^5.9.3"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "files": [
@@ -25,6 +25,6 @@
     "src"
   ],
   "dependencies": {
-    "semver": "^7.7.3"
+    "semver": "^7.7.4"
   }
 }
