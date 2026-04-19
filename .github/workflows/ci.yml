@@ -156,8 +156,10 @@ jobs:
       - name: Install Playwright browsers
         working-directory: apps/playwright
         run: pnpm exec playwright install --with-deps
-      - name: Start dev servers
-        run: pnpm dev &
+      - name: Start web + test-app dev servers
+        run: |
+          pnpm --filter @locator/web dev &
+          pnpm test-apps:dev &
         env:
           CI: true
       - name: Wait for dev servers

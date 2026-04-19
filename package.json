@@ -4,17 +4,20 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "test-apps/*"
   ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "ts": "turbo run ts",
-    "e2e": "turbo run e2e",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
+    "build": "turbo run build --filter=./packages/* --filter=./apps/*",
+    "dev": "turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
+    "lint": "turbo run lint --filter=./packages/* --filter=./apps/*",
+    "test": "turbo run test --filter=./packages/* --filter=./apps/*",
+    "ts": "turbo run ts --filter=./packages/* --filter=./apps/*",
+    "e2e": "turbo run e2e --filter=./apps/playwright",
+    "test-apps:dev": "turbo run dev --parallel --filter=./test-apps/*",
+    "test-apps:build": "turbo run build --filter=./test-apps/*",
+    "format": "prettier --write \"{packages,apps}/**/*.{ts,tsx,md}\"",
+    "format:check": "prettier --check \"{packages,apps}/**/*.{ts,tsx,md}\"",
     "prepare": "husky",
     "publishPackages": "lerna publish",
     "clean": "concurrently pnpm:clean:*",
@@ -22,8 +25,8 @@
     "clean:dist": "rm -rf */*/dist",
     "clean:turbo": "rm -rf */*/.turbo",
     "clean:next": "rm -rf */*/.next",
-    "dependency-versions": "check-dependency-version-consistency . --ignore-package-pattern='(vite|next)-.*'",
-    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-package-pattern='(vite|next)-.*'"
+    "dependency-versions": "check-dependency-version-consistency . --ignore-path-pattern='^test-apps/'",
+    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/'"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.0",
