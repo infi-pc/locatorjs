@@ -58,15 +58,15 @@ When enabled, clicking an element will log resolution details to the console:
 
 ### Supported resolution methods
 
-| Type | Methods |
-|------|---------|
-| Sync | `fiber._debugSource`, `elementType._source`, `type._source`, `memoizedProps.__source`, `_debugInfo` |
-| Async | `rendererInterfaces API` (React DevTools 7.0.1+), `Turbopack chunk`, `source-map` reverse lookup |
+| Type  | Methods                                                                                             |
+| ----- | --------------------------------------------------------------------------------------------------- |
+| Sync  | `fiber._debugSource`, `elementType._source`, `type._source`, `memoizedProps.__source`, `_debugInfo` |
+| Async | `rendererInterfaces API` (React DevTools 7.0.1+), `Turbopack chunk`, `source-map` reverse lookup    |
 
 ### View debug history
 
 ```javascript
-window.__LOCATORJS_DEBUG_HISTORY__
+window.__LOCATORJS_DEBUG_HISTORY__;
 ```
 
 # Development
@@ -123,20 +123,22 @@ pnpm pack:firefox       # -> build/artifacts_firefox/
 
 ### Build output
 
-| Version | Build directory | Package file |
-|---------|----------------|--------------|
-| Chrome | `build/production_chrome/` | `build/chrome.zip` |
+| Version | Build directory             | Package file                    |
+| ------- | --------------------------- | ------------------------------- |
+| Chrome  | `build/production_chrome/`  | `build/chrome.zip`              |
 | Firefox | `build/production_firefox/` | `build/artifacts_firefox/*.zip` |
 
 ## Load unpacked extension
 
 **Chrome:**
+
 1. Open `chrome://extensions/`
 2. Enable "Developer mode"
 3. Click "Load unpacked"
 4. Select the `build/production_chrome` directory
 
 **Firefox:**
+
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on"
 3. Select `build/production_firefox/manifest.json`
