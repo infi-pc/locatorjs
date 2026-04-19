@@ -64,7 +64,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
       timeout: ASYNC_TIMEOUT,
     });
     const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /apps\/next-16-turbopack\/app\//);
+    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("wrapper component - Card title", async ({ page }) => {
@@ -78,7 +78,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
       timeout: ASYNC_TIMEOUT,
     });
     const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /apps\/next-16-turbopack\/app\//);
+    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("native element with id", async ({ page }) => {
@@ -92,7 +92,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
       timeout: ASYNC_TIMEOUT,
     });
     const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /apps\/next-16-turbopack\/app\//);
+    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("native element with className", async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
       timeout: ASYNC_TIMEOUT,
     });
     const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /apps\/next-16-turbopack\/app\//);
+    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("server component heading", async ({ page }) => {
@@ -132,7 +132,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
       timeout: ASYNC_TIMEOUT,
     });
     const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /apps\/next-16-turbopack\/app\//);
+    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
   });
 });
 
@@ -161,7 +161,7 @@ test.describe("Turbopack debug diagnostics", () => {
     const asyncAppEntry = history.find(
       (h: any) =>
         h.async === true &&
-        h.source?.fileName?.match(/apps\/next-16-turbopack\/app\//)
+        h.source?.fileName?.match(/test-apps\/next-16-turbopack\/app\//)
     );
     expect(asyncAppEntry).toBeTruthy();
   });

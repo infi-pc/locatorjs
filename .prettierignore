@@ -3,3 +3,4 @@
 **/.next
 **/build
 pnpm-lock.yaml
+test-apps
