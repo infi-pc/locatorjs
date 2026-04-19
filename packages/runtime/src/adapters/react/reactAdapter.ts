@@ -18,6 +18,7 @@ import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { registerDiagnose } from "./debug";
+import { resolveSourceFromFiber } from "./clickSourceResolver";
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
@@ -207,6 +208,7 @@ async function diagnoseAllElements(): Promise<void> {
 
   const rows: DiagnoseRow[] = [];
 
+  // eslint-disable-next-line no-console
   console.log(
     `%c[LocatorJS-diag] Scanning ${allElements.length} elements...`,
     "color: #FF9800; font-weight: bold"
@@ -216,13 +218,15 @@ async function diagnoseAllElements(): Promise<void> {
     if (!(el instanceof HTMLElement)) continue;
 
     // Skip LocatorJS own UI elements
-    if (el.closest("[data-locatorjs]") || el.id === "locatorjs-wrapper") continue;
+    if (el.closest("[data-locatorjs]") || el.id === "locatorjs-wrapper")
+      continue;
 
     const tag = el.tagName.toLowerCase();
     const id = el.id ? `#${el.id}` : "";
-    const cls = el.className && typeof el.className === "string"
-      ? `.${el.className.split(/\s+/).filter(Boolean).join(".")}`
-      : "";
+    const cls =
+      el.className && typeof el.className === "string"
+        ? `.${el.className.split(/\s+/).filter(Boolean).join(".")}`
+        : "";
     const label = `<${tag}${id}${cls}>`;
 
     const textContent = el.textContent?.trim().slice(0, 40) || "";
@@ -242,18 +246,37 @@ async function diagnoseAllElements(): Promise<void> {
     // Sync source
     const syncResult = findDebugSource(fiber);
     const syncStr = syncResult?.source
-      ? `${syncResult.source.fileName}:${syncResult.source.lineNumber}:${syncResult.source.columnNumber ?? 0}`
+      ? `${syncResult.source.fileName}:${syncResult.source.lineNumber}:${
+          syncResult.source.columnNumber ?? 0
+        }`
       : "none";
 
-    // Async source (tries fiber directly, then _debugOwner chain, then fiber.return chain)
+    // Async source (directly on this fiber, no chain walking)
     let asyncStr = "none";
     try {
-      const asyncResult = await findDebugSourceAsync(fiber);
-      if (asyncResult?.source) {
-        asyncStr = `${asyncResult.source.fileName}:${asyncResult.source.lineNumber}:${asyncResult.source.columnNumber ?? 0}`;
+      const asyncResult = await resolveSourceFromFiber(fiber);
+      if (asyncResult) {
+        asyncStr = `${asyncResult.fileName}:${asyncResult.lineNumber}:${
+          asyncResult.columnNumber ?? 0
+        }`;
       }
     } catch {
       asyncStr = "error";
+    }
+
+    // Full async with chain walking
+    let fullAsyncStr = asyncStr;
+    if (asyncStr === "none") {
+      try {
+        const fullResult = await findDebugSourceAsync(fiber);
+        if (fullResult?.source) {
+          fullAsyncStr = `${fullResult.source.fileName}:${
+            fullResult.source.lineNumber
+          }:${fullResult.source.columnNumber ?? 0}`;
+        }
+      } catch {
+        fullAsyncStr = "error";
+      }
     }
 
     rows.push({
@@ -261,19 +284,27 @@ async function diagnoseAllElements(): Promise<void> {
       text: textContent,
       hasFiber: true,
       syncSource: syncStr,
-      asyncSource: asyncStr,
+      asyncSource: fullAsyncStr,
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(
     `%c[LocatorJS-diag] Results:`,
     "color: #4CAF50; font-weight: bold"
   );
+  // eslint-disable-next-line no-console
   console.table(rows);
 
   // Summary
   const withFiber = rows.filter((r) => r.hasFiber);
-  const resolved = withFiber.filter((r) => r.asyncSource !== "none" && r.asyncSource !== "-" && r.asyncSource !== "error");
+  const resolved = withFiber.filter(
+    (r) =>
+      r.asyncSource !== "none" &&
+      r.asyncSource !== "-" &&
+      r.asyncSource !== "error"
+  );
+  // eslint-disable-next-line no-console
   console.log(
     `%c[LocatorJS-diag] Summary: ${rows.length} elements, ${withFiber.length} with fiber, ${resolved.length} resolved`,
     "color: #2196F3; font-weight: bold"

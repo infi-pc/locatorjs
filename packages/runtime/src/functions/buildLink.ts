@@ -21,7 +21,8 @@ export function buildLink(
   localLinkTypeOrTemplate?: string
 ): string {
   const tmuxSession = options.getOptions().tmuxSession;
-  const savedProjectPath = getSavedProjectPath(options) || linkProps.projectPath;
+  const savedProjectPath =
+    getSavedProjectPath(options) || linkProps.projectPath;
 
   // Handle Turbopack [project]/ prefix
   let resolvedFilePath = linkProps.filePath;

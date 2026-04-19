@@ -97,11 +97,34 @@ const config: PlaywrightTestConfig = {
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   // outputDir: 'test-results/',
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   port: 3000,
-  // },
+  /**
+   * Start Playwright's own dev servers for the Next.js 16 apps.
+   * `reuseExistingServer: true` means if a dev server is already running on
+   * the expected port (e.g. via `pnpm dev` for local work), Playwright reuses
+   * it instead of starting a second one and fighting over the port. On CI,
+   * nothing is running so Playwright starts each app fresh.
+   *
+   * Other project ports (vite, svelte, vue, etc.) are still started by the
+   * monorepo `pnpm dev` pipeline; the CI workflow port-wait covers them.
+   */
+  webServer: [
+    {
+      command: "pnpm --filter next-16 dev",
+      port: 3352,
+      reuseExistingServer: true,
+      timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      command: "pnpm --filter next-16-turbopack dev",
+      port: 3353,
+      reuseExistingServer: true,
+      timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  ],
 };
 
 export default config;

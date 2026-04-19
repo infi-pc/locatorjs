@@ -673,7 +673,9 @@ export type RendererInterface = {
   // Get React internal element ID from a DOM element
   getElementIDForHostInstance: (hostInstance: NativeType) => number | null;
   // Get component's source function/class by ID
-  getElementSourceFunctionById?: (id: number) => ((...args: any[]) => any) | null;
+  getElementSourceFunctionById?: (
+    id: number
+  ) => ((...args: any[]) => any) | null;
   // Inspect element, returns detailed info including source
   inspectElement: (
     requestID: number,
@@ -688,7 +690,7 @@ export type RendererInterface = {
 };
 
 export type InspectElementResult = {
-  type: 'full-data' | 'hydrated-path' | 'no-change' | 'not-found';
+  type: "full-data" | "hydrated-path" | "no-change" | "not-found";
   value?: InspectedElement;
 };
 
@@ -707,4 +709,3 @@ export type ReactDevtoolsHook = {
   // rendererInterfaces added in React DevTools 7.0.1+
   rendererInterfaces?: Map<number, RendererInterface>;
 };
-

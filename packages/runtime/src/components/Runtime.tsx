@@ -21,7 +21,10 @@ import { NoLinkDialog } from "./NoLinkDialog";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
 import { goToLinkProps } from "../functions/goTo";
-import { getElementInfo, getElementInfoAsync } from "../adapters/getElementInfo";
+import {
+  getElementInfo,
+  getElementInfoAsync,
+} from "../adapters/getElementInfo";
 import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
@@ -286,9 +289,13 @@ function Runtime(props: RuntimeProps) {
           capture: true,
         }
       );
-      root.removeEventListener("click", clickListener as unknown as EventListener, {
-        capture: true,
-      });
+      root.removeEventListener(
+        "click",
+        clickListener as unknown as EventListener,
+        {
+          capture: true,
+        }
+      );
       root.removeEventListener(
         "contextmenu",
         rightClickListener as EventListener,

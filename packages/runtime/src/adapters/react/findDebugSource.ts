@@ -1,5 +1,8 @@
 import { Fiber, Source } from "@locator/shared";
-import { resolveSourceFromFiber, getSourceFromCache } from "./clickSourceResolver";
+import {
+  resolveSourceFromFiber,
+  getSourceFromCache,
+} from "./clickSourceResolver";
 import {
   SourceMethod,
   logSourceFound,
@@ -14,7 +17,9 @@ import {
  * React 19 / Next.js 15+ may store source in different locations
  * Returns [source, method] for debug logging
  */
-function getSourceFromFiber(fiber: Fiber): [Source | null, SourceMethodType | null] {
+function getSourceFromFiber(
+  fiber: Fiber
+): [Source | null, SourceMethodType | null] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fiberAny = fiber as any;
 
@@ -41,7 +46,10 @@ function getSourceFromFiber(fiber: Fiber): [Source | null, SourceMethodType | nu
 
   // 4. Try __source from memoizedProps (JSX transform injection)
   if (fiberAny.memoizedProps?.__source) {
-    return [fiberAny.memoizedProps.__source, SourceMethod.MEMOIZED_PROPS_SOURCE];
+    return [
+      fiberAny.memoizedProps.__source,
+      SourceMethod.MEMOIZED_PROPS_SOURCE,
+    ];
   }
 
   // 5. Try __source from pendingProps
@@ -56,11 +64,14 @@ function getSourceFromFiber(fiber: Fiber): [Source | null, SourceMethodType | nu
         // Parse stack for first valid position
         const match = info.stack.match(/at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/);
         if (match) {
-          return [{
-            fileName: match[1],
-            lineNumber: parseInt(match[2], 10),
-            columnNumber: parseInt(match[3], 10),
-          }, SourceMethod.DEBUG_INFO_STACK];
+          return [
+            {
+              fileName: match[1],
+              lineNumber: parseInt(match[2], 10),
+              columnNumber: parseInt(match[3], 10),
+            },
+            SourceMethod.DEBUG_INFO_STACK,
+          ];
         }
       }
     }
@@ -69,7 +80,10 @@ function getSourceFromFiber(fiber: Fiber): [Source | null, SourceMethodType | nu
   // 7. Try inferring from type function (last resort)
   // May get component definition file info
   if (typeof fiberAny.type === "function" && fiberAny.type.__componentSource) {
-    return [fiberAny.type.__componentSource, SourceMethod.TYPE_COMPONENT_SOURCE];
+    return [
+      fiberAny.type.__componentSource,
+      SourceMethod.TYPE_COMPONENT_SOURCE,
+    ];
   }
 
   return [null, null];
@@ -135,6 +149,7 @@ export async function findDebugSourceAsync(
 
   const debug = isDebugEnabled();
   if (debug) {
+    // eslint-disable-next-line no-console
     console.log(
       "%c[LocatorJS] Sync methods failed, trying async resolution...",
       "color: #2196F3; font-style: italic"

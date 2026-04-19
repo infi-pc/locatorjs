@@ -6,6 +6,7 @@
  * 1. Browser console: window.__LOCATORJS_DEBUG__ = true
  * 2. Or call: enableLocatorDebug()
  */
+/* eslint-disable no-console */
 
 // Source resolution method enum
 export const SourceMethod = {
@@ -78,7 +79,9 @@ export function enableLocatorDebug(): void {
     "color: #4CAF50; font-weight: bold"
   );
   console.log("View debug history: window.__LOCATORJS_DEBUG_HISTORY__");
-  console.log("Disable: window.__LOCATORJS_DEBUG__ = false or disableLocatorDebug()");
+  console.log(
+    "Disable: window.__LOCATORJS_DEBUG__ = false or disableLocatorDebug()"
+  );
 }
 
 /**
@@ -137,7 +140,11 @@ function getFiberTypeDesc(fiber: unknown): string {
 export function logSourceFound(
   method: SourceMethodType,
   fiber: unknown,
-  source: { fileName: string; lineNumber: number; columnNumber?: number } | null,
+  source: {
+    fileName: string;
+    lineNumber: number;
+    columnNumber?: number;
+  } | null,
   async = false
 ): void {
   if (!isDebugEnabled()) return;
@@ -176,9 +183,12 @@ export function logSourceFound(
     console.log(
       `%c[LocatorJS] ${asyncLabel} Source found`,
       `color: ${methodColor}; font-weight: bold`,
-      "\nMethod:", method,
-      "\nComponent:", fiberType,
-      "\nLocation:", `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
+      "\nMethod:",
+      method,
+      "\nComponent:",
+      fiberType,
+      "\nLocation:",
+      `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
     );
   } else {
     console.log(
@@ -217,7 +227,11 @@ export function logSourceStart(fiber: unknown, element?: HTMLElement): void {
 export function logSourceComplete(
   success: boolean,
   method?: SourceMethodType,
-  source?: { fileName: string; lineNumber: number; columnNumber?: number } | null
+  source?: {
+    fileName: string;
+    lineNumber: number;
+    columnNumber?: number;
+  } | null
 ): void {
   if (!isDebugEnabled()) return;
 
@@ -225,8 +239,10 @@ export function logSourceComplete(
     console.log(
       `%c[LocatorJS] Location complete`,
       "color: #4CAF50; font-weight: bold",
-      "\nFinal method:", method,
-      "\nTarget location:", `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
+      "\nFinal method:",
+      method,
+      "\nTarget location:",
+      `${source.fileName}:${source.lineNumber}:${source.columnNumber ?? 0}`
     );
   } else {
     console.log(
@@ -242,20 +258,14 @@ export function logSourceComplete(
 export function logError(method: SourceMethodType, error: unknown): void {
   if (!isDebugEnabled()) return;
 
-  console.warn(
-    `%c[LocatorJS] ${method} error:`,
-    "color: #FF9800",
-    error
-  );
+  console.warn(`%c[LocatorJS] ${method} error:`, "color: #FF9800", error);
 }
 
 /**
  * Register the diagnose function.
  * Called from outside to avoid circular imports (debug.ts must not import resolution modules).
  */
-export function registerDiagnose(
-  diagnoseFn: () => Promise<void>
-): void {
+export function registerDiagnose(diagnoseFn: () => Promise<void>): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== "undefined") {
     (window as any).locatorDiagnose = diagnoseFn;
