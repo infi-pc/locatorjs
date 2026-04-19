@@ -21,9 +21,20 @@ export function buildLink(
   localLinkTypeOrTemplate?: string
 ): string {
   const tmuxSession = options.getOptions().tmuxSession;
+  const savedProjectPath = getSavedProjectPath(options) || linkProps.projectPath;
+
+  // Handle Turbopack [project]/ prefix
+  let resolvedFilePath = linkProps.filePath;
+  if (resolvedFilePath.startsWith("[project]/") && savedProjectPath) {
+    const relativePath = resolvedFilePath.slice("[project]/".length);
+    resolvedFilePath = savedProjectPath.endsWith("/")
+      ? savedProjectPath + relativePath
+      : savedProjectPath + "/" + relativePath;
+  }
+
   const params = {
-    filePath: linkProps.filePath,
-    projectPath: getSavedProjectPath(options) || linkProps.projectPath,
+    filePath: resolvedFilePath,
+    projectPath: savedProjectPath,
     line: String(linkProps.line),
     column: String(linkProps.column),
     linePlusOne: String(linkProps.line + 1),

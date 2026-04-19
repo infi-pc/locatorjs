@@ -1,4 +1,4 @@
-import { findDebugSource } from "./findDebugSource";
+import { findDebugSource, findDebugSourceAsync } from "./findDebugSource";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 import { getFiberLabel } from "./getFiberLabel";
 import { getAllWrappingParents } from "./getAllWrappingParents";
@@ -17,6 +17,7 @@ import { Fiber, Source } from "@locator/shared";
 import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import { registerDiagnose } from "./debug";
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
@@ -71,13 +72,11 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
 export class ReactTreeNodeElement extends HtmlElementTreeNode {
   getSource(): Source | null {
     const fiber = findFiberByHtmlElement(this.element, false);
-
-    if (fiber && fiber._debugSource) {
-      return {
-        fileName: fiber._debugSource.fileName,
-        lineNumber: fiber._debugSource.lineNumber,
-        columnNumber: fiber._debugSource.columnNumber,
-      };
+    if (fiber) {
+      const result = findDebugSource(fiber);
+      if (result) {
+        return result.source;
+      }
     }
     return null;
   }
@@ -138,6 +137,151 @@ function getParentsPaths(element: HTMLElement) {
   }
   return [];
 }
+
+/**
+ * Async version of getElementInfo
+ * When sync cannot get source, try source-map resolution
+ */
+export async function getElementInfoAsync(
+  found: HTMLElement
+): Promise<FullElementInfo | null> {
+  const labels: LabelData[] = [];
+
+  const fiber = findFiberByHtmlElement(found, false);
+  if (fiber) {
+    const { component, componentBox, parentElements } =
+      getAllParentsElementsAndRootComponent(fiber);
+
+    const allPotentialComponentFibers = getAllWrappingParents(component);
+
+    // Use async method to get source
+    for (const f of allPotentialComponentFibers) {
+      const fiberWithSource = await findDebugSourceAsync(f);
+      if (fiberWithSource) {
+        const label = getFiberLabel(
+          fiberWithSource.fiber,
+          fiberWithSource.source
+        );
+        labels.push(label);
+      }
+    }
+
+    // Get current element's source (async)
+    const currentSource = await findDebugSourceAsync(fiber);
+    const thisLabel = getFiberLabel(fiber, currentSource?.source);
+
+    if (isStyledElement(fiber)) {
+      thisLabel.label = `${thisLabel.label} (styled)`;
+    }
+
+    return {
+      thisElement: {
+        box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
+        ...thisLabel,
+      },
+      htmlElement: found,
+      parentElements: parentElements,
+      componentBox,
+      componentsLabels: deduplicateLabels(labels),
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Walk all DOM elements and log debug info + resolved source for each.
+ * Exposed as window.locatorDiagnose()
+ */
+async function diagnoseAllElements(): Promise<void> {
+  const root = document.querySelector("main") || document.body;
+  const allElements = root.querySelectorAll("*");
+
+  interface DiagnoseRow {
+    element: string;
+    text: string;
+    hasFiber: boolean;
+    syncSource: string;
+    asyncSource: string;
+  }
+
+  const rows: DiagnoseRow[] = [];
+
+  console.log(
+    `%c[LocatorJS-diag] Scanning ${allElements.length} elements...`,
+    "color: #FF9800; font-weight: bold"
+  );
+
+  for (const el of Array.from(allElements)) {
+    if (!(el instanceof HTMLElement)) continue;
+
+    // Skip LocatorJS own UI elements
+    if (el.closest("[data-locatorjs]") || el.id === "locatorjs-wrapper") continue;
+
+    const tag = el.tagName.toLowerCase();
+    const id = el.id ? `#${el.id}` : "";
+    const cls = el.className && typeof el.className === "string"
+      ? `.${el.className.split(/\s+/).filter(Boolean).join(".")}`
+      : "";
+    const label = `<${tag}${id}${cls}>`;
+
+    const textContent = el.textContent?.trim().slice(0, 40) || "";
+
+    const fiber = findFiberByHtmlElement(el, false);
+    if (!fiber) {
+      rows.push({
+        element: label,
+        text: textContent,
+        hasFiber: false,
+        syncSource: "-",
+        asyncSource: "-",
+      });
+      continue;
+    }
+
+    // Sync source
+    const syncResult = findDebugSource(fiber);
+    const syncStr = syncResult?.source
+      ? `${syncResult.source.fileName}:${syncResult.source.lineNumber}:${syncResult.source.columnNumber ?? 0}`
+      : "none";
+
+    // Async source (tries fiber directly, then _debugOwner chain, then fiber.return chain)
+    let asyncStr = "none";
+    try {
+      const asyncResult = await findDebugSourceAsync(fiber);
+      if (asyncResult?.source) {
+        asyncStr = `${asyncResult.source.fileName}:${asyncResult.source.lineNumber}:${asyncResult.source.columnNumber ?? 0}`;
+      }
+    } catch {
+      asyncStr = "error";
+    }
+
+    rows.push({
+      element: label,
+      text: textContent,
+      hasFiber: true,
+      syncSource: syncStr,
+      asyncSource: asyncStr,
+    });
+  }
+
+  console.log(
+    `%c[LocatorJS-diag] Results:`,
+    "color: #4CAF50; font-weight: bold"
+  );
+  console.table(rows);
+
+  // Summary
+  const withFiber = rows.filter((r) => r.hasFiber);
+  const resolved = withFiber.filter((r) => r.asyncSource !== "none" && r.asyncSource !== "-" && r.asyncSource !== "error");
+  console.log(
+    `%c[LocatorJS-diag] Summary: ${rows.length} elements, ${withFiber.length} with fiber, ${resolved.length} resolved`,
+    "color: #2196F3; font-weight: bold"
+  );
+}
+
+// Register diagnose so it's available as window.locatorDiagnose()
+registerDiagnose(diagnoseAllElements);
 
 const reactAdapter: AdapterObject = {
   getElementInfo,

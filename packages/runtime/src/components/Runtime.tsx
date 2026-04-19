@@ -21,7 +21,7 @@ import { NoLinkDialog } from "./NoLinkDialog";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
 import { goToLinkProps } from "../functions/goTo";
-import { getElementInfo } from "../adapters/getElementInfo";
+import { getElementInfo, getElementInfoAsync } from "../adapters/getElementInfo";
 import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
@@ -162,7 +162,7 @@ function Runtime(props: RuntimeProps) {
     }
   }
 
-  function clickListener(e: MouseEvent) {
+  async function clickListener(e: MouseEvent) {
     if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
       return;
     }
@@ -177,13 +177,39 @@ function Runtime(props: RuntimeProps) {
         return;
       }
 
-      const elInfo = getElementInfo(target, props.adapterId);
+      // Try sync resolution first
+      let elInfo = getElementInfo(target, props.adapterId);
+
+      if (elInfo?.thisElement.link) {
+        // Sync found a link — prevent default and navigate
+        e.preventDefault();
+        e.stopPropagation();
+        trackClickStats();
+
+        if (
+          (!isExtension() || detectSvelte()) &&
+          !options.getOptions().welcomeScreenDismissed
+        ) {
+          setDialog(["choose-editor", elInfo.thisElement.link]);
+        } else {
+          goToLinkProps(elInfo.thisElement.link, props.targets, options);
+        }
+        return;
+      }
+
+      // Sync failed to find link — prevent default before async to avoid
+      // page navigation during the await
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Try async resolution (source-map, Turbopack, etc.)
+      if (!elInfo?.thisElement.link) {
+        elInfo = await getElementInfoAsync(target, props.adapterId);
+      }
 
       if (elInfo) {
         const linkProps = elInfo.thisElement.link;
         if (linkProps) {
-          e.preventDefault();
-          e.stopPropagation();
           trackClickStats();
 
           if (
@@ -192,10 +218,10 @@ function Runtime(props: RuntimeProps) {
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {
-            // const link = buidLink(linkProps, props.targets);
             goToLinkProps(linkProps, props.targets, options);
           }
         } else {
+          // eslint-disable-next-line no-console
           console.error(
             "[LocatorJS]: Could not find link: Element info: ",
             elInfo
@@ -203,6 +229,7 @@ function Runtime(props: RuntimeProps) {
           setDialog(["no-link"]);
         }
       } else {
+        // eslint-disable-next-line no-console
         console.error(
           "[LocatorJS]: Could not find element info. Element: ",
           target
@@ -232,7 +259,7 @@ function Runtime(props: RuntimeProps) {
     });
     root.addEventListener("keydown", keyDownListener as EventListener);
     root.addEventListener("keyup", keyUpListener as EventListener);
-    root.addEventListener("click", clickListener as EventListener, {
+    root.addEventListener("click", clickListener as unknown as EventListener, {
       capture: true,
     });
     root.addEventListener("contextmenu", rightClickListener as EventListener, {
@@ -259,7 +286,7 @@ function Runtime(props: RuntimeProps) {
           capture: true,
         }
       );
-      root.removeEventListener("click", clickListener as EventListener, {
+      root.removeEventListener("click", clickListener as unknown as EventListener, {
         capture: true,
       });
       root.removeEventListener(

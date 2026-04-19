@@ -11,6 +11,7 @@ export type ProjectOptions = {
   welcomeScreenDismissed?: boolean;
   hrefTarget?: "_blank" | "_self";
   tmuxSession?: string;
+  debugMode?: boolean;
 };
 
 let reported = false;
@@ -74,6 +75,9 @@ export function getStoredOptions(): ProjectOptions {
     }
     if (typeof parsedOptions.tmuxSession === "string") {
       options.tmuxSession = parsedOptions.tmuxSession;
+    }
+    if (typeof parsedOptions.debugMode === "boolean") {
+      options.debugMode = parsedOptions.debugMode;
     }
   }
 

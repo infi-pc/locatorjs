@@ -1,6 +1,6 @@
 {
   "name": "locatorjs-extension",
-  "version": "1.3.1",
+  "version": "1.3.3",
   "description": "LocatorJS Chrome Extension - option-click to code (ReactJS)",
   "license": "MIT",
   "repository": {
@@ -10,12 +10,20 @@
   "scripts": {
     "build": "node utils/build.js",
     "build:firefox": "TARGET_BROWSER=firefox node utils/build.js",
+    "build:all": "run-s build build:firefox",
     "lint": "eslint src --ext .ts,.tsx",
     "dev": "node utils/webserver.js",
     "dev:firefox": "TARGET_BROWSER=firefox node utils/webserver.js",
     "start:firefox": "web-ext run --source-dir ./build/production_firefox",
+    "pack:chrome": "cd ./build/production_chrome && zip -r ../chrome.zip .",
     "pack:firefox": "web-ext build --source-dir ./build/production_firefox --artifacts-dir ./build/artifacts_firefox",
-    "pack:chrome": "cd ./build/production_chrome && zip -r ../../build/chrome.zip .",
+    "pack:all": "run-s pack:chrome pack:firefox",
+    "release:chrome": "run-s build pack:chrome",
+    "release:firefox": "run-s build:firefox pack:firefox",
+    "release": "run-s build:all pack:all",
+    "release:node": "node utils/release.js",
+    "release:node:firefox": "node utils/release.js --firefox",
+    "release:node:all": "node utils/release.js --all",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {

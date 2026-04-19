@@ -5,6 +5,7 @@ import {
   ProjectOptions,
   setStoredOptions,
 } from "@locator/shared";
+import { setDebugMode } from "../adapters/react/debug";
 
 export type OptionsStore = {
   setOptions: (options: ProjectOptions) => void;
@@ -12,11 +13,19 @@ export type OptionsStore = {
 };
 
 export function initOptions(): OptionsStore {
-  const [signalOptions, setSignalOptions] = createSignal(getStoredOptions());
+  const initialOptions = getStoredOptions();
+  const [signalOptions, setSignalOptions] = createSignal(initialOptions);
+
+  // Sync debug state on initialization
+  if (initialOptions.debugMode) {
+    setDebugMode(true);
+  }
 
   // This listens on localStorage changes, but the changes go only from scripts other than the current one and current one's content scripts
   listenOnOptionsChanges((newOptions) => {
     setSignalOptions(newOptions);
+    // Sync debug state
+    setDebugMode(newOptions.debugMode ?? false);
   });
 
   // This listens only on changes from the contents script for this current page
@@ -32,7 +41,10 @@ export function initOptions(): OptionsStore {
         event.data.type &&
         event.data.type == "LOCATOR_EXTENSION_UPDATED_OPTIONS"
       ) {
-        setSignalOptions(getStoredOptions());
+        const newOptions = getStoredOptions();
+        setSignalOptions(newOptions);
+        // Sync debug state
+        setDebugMode(newOptions.debugMode ?? false);
       }
     },
     false
