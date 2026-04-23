@@ -72,12 +72,11 @@ export default function InstallReactDataId() {
 const nextConfig: NextConfig = {
   turbopack: {
     rules: {
-      "**/*.{tsx,jsx}": {
-        loaders: [{
-          loader: "@locator/webpack-loader",
-          options: { env: "development" }
-        }]
-      }
+     '*.tsx': {
+        loaders: [{ loader: '@locator/webpack-loader', options: { env: 'development' } }]
+      },
+      '*.jsx': {
+        loaders: [{ loader: '@locator/webpack-loader', options: { env: 'development' } }]
     }
   }
 };
