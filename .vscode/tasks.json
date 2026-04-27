@@ -18,39 +18,8 @@
       }
     },
     {
-      "type": "npm",
-      "label": "apps/web dev",
-      "script": "dev",
-      "path": "apps/web",
-      "isBackground": true,
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false,
-        "group": "dev"
-      }
-    },
-    {
-      "type": "npm",
-      "label": "apps/playwright dev",
-      "script": "dev",
-      "path": "apps/playwright",
-      "isBackground": true,
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "showReuseMessage": true,
-        "clear": false,
-        "group": "x"
-      }
-    },
-    {
       "label": "dev",
-      "dependsOn": ["apps/extension dev", "apps/web dev", "apps/playwright dev"]
+      "dependsOn": ["apps/extension dev"]
     }
   ]
 }

@@ -12,20 +12,16 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "ts": "turbo run ts",
-    "e2e": "turbo run e2e",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "publishPackages": "lerna publish",
     "clean": "concurrently pnpm:clean:*",
     "clean:node_modules": "rm -rf node_modules && rm -rf */*/node_modules",
     "clean:dist": "rm -rf */*/dist",
     "clean:turbo": "rm -rf */*/.turbo",
-    "clean:next": "rm -rf */*/.next",
-    "dependency-versions": "check-dependency-version-consistency . --ignore-package-pattern='(vite|next)-.*'",
-    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-package-pattern='(vite|next)-.*'"
+    "dependency-versions": "check-dependency-version-consistency .",
+    "dependency-versions:fix": "check-dependency-version-consistency . --fix"
   },
   "devDependencies": {
     "check-dependency-version-consistency": "5.0.1",
-    "lerna": "^7.3.0",
     "prettier": "^2.8.8",
     "turbo": "^2.5.8",
     "vitest": "^2.1.4",

@@ -1,3 +1,0 @@
-{
-  "extends": ["../../packages/dev-config/eslint-react-preset.js"]
-}

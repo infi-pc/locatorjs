@@ -8,9 +8,6 @@ Click on UI Component in the browser to open its code in your IDE.
 
 go to [www.locatorjs.com](https://www.locatorjs.com) for more info
 
-> [!NOTE]
-> For Next.js 15+ with Turbopack or SWC, use the [@locator/webpack-loader](https://www.locatorjs.com/install/react) instead of the direct babel plugin.
-
 ## Install Browser extension
 
 [Install extension from Chrome Web Store](https://chrome.google.com/webstore/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi) (works for Chrome, Brave, Opera and Edge)
@@ -18,17 +15,6 @@ go to [www.locatorjs.com](https://www.locatorjs.com) for more info
 [Install extension from Firefox Add-ons](https://addons.mozilla.org/cs/firefox/addon/locatorjs/)
 
 [Extension readme](./apps/extension/README.md) (requirements, troubleshooting, etc)
-
-## Install as a library (or combination with extension)
-
-[installation docs](https://www.locatorjs.com/install)
-
-- [React DevTools based](https://www.locatorjs.com/install/react)
-- [React data-id based](https://www.locatorjs.com/install/react-data-id)
-- [SolidJS](https://www.locatorjs.com/install/solidjs)
-- [Preact](https://www.locatorjs.com/install/preact)
-- [Svelte](https://www.locatorjs.com/install/svelte)
-- [Vue](https://www.locatorjs.com/install/vue)
 
 ## Contributing
 
