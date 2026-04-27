@@ -75,9 +75,18 @@ function getSourceFromFiber(fiber: Fiber): [Source | null, SourceMethodType | nu
   return [null, null];
 }
 
+// 判断 source 是否指向依赖目录，项目源优先于 node_modules
+function isThirdPartySource(source: Source | null): boolean {
+  if (!source?.fileName) return false;
+  return source.fileName.includes("/node_modules/");
+}
+
 /**
  * 同步版本：从 Fiber 查找 debug source
  * 优先使用传统方式，适用于大多数场景
+ *
+ * 就近原则：沿 _debugOwner 链向上找，项目源优先；
+ * 整条链都在 node_modules 内时回退到最近一次命中，保证可跳转。
  */
 export function findDebugSource(
   fiber: Fiber
@@ -89,27 +98,47 @@ export function findDebugSource(
   }
 
   let current: Fiber | null = fiber;
+  let fallback: { fiber: Fiber; source: Source; method: SourceMethodType } | null = null;
+
   while (current) {
     const [source, method] = getSourceFromFiber(current);
     if (source) {
-      if (debug) {
-        logSourceFound(method!, current, source, false);
-        logSourceComplete(true, method!, source);
+      if (!isThirdPartySource(source)) {
+        if (debug) {
+          logSourceFound(method!, current, source, false);
+          logSourceComplete(true, method!, source);
+        }
+        return { fiber: current, source };
       }
-      return { fiber: current, source };
-    }
-
-    // 尝试从缓存获取（如果之前异步解析过）
-    const cached = getSourceFromCache(current);
-    if (cached) {
-      if (debug) {
-        logSourceFound(SourceMethod.CACHE_HIT, current, cached, false);
-        logSourceComplete(true, SourceMethod.CACHE_HIT, cached);
+      if (!fallback) {
+        fallback = { fiber: current, source, method: method! };
       }
-      return { fiber: current, source: cached };
+    } else {
+      // 尝试从缓存获取（如果之前异步解析过）
+      const cached = getSourceFromCache(current);
+      if (cached) {
+        if (!isThirdPartySource(cached)) {
+          if (debug) {
+            logSourceFound(SourceMethod.CACHE_HIT, current, cached, false);
+            logSourceComplete(true, SourceMethod.CACHE_HIT, cached);
+          }
+          return { fiber: current, source: cached };
+        }
+        if (!fallback) {
+          fallback = { fiber: current, source: cached, method: SourceMethod.CACHE_HIT };
+        }
+      }
     }
 
     current = current._debugOwner || null;
+  }
+
+  if (fallback) {
+    if (debug) {
+      logSourceFound(fallback.method, fallback.fiber, fallback.source, false);
+      logSourceComplete(true, fallback.method, fallback.source);
+    }
+    return { fiber: fallback.fiber, source: fallback.source };
   }
 
   if (debug) {
@@ -127,29 +156,41 @@ export function findDebugSource(
 export async function findDebugSourceAsync(
   fiber: Fiber
 ): Promise<{ fiber: Fiber; source: Source } | null> {
-  // 1. 先尝试同步方式
+  const debug = isDebugEnabled();
+
+  // 1. 先尝试同步方式，仅当其结果已是项目源时直接返回；
+  //    否则保留为 fallback，继续走异步解析找项目源
   const syncResult = findDebugSource(fiber);
-  if (syncResult) {
+  if (syncResult && !isThirdPartySource(syncResult.source)) {
     return syncResult;
   }
 
-  const debug = isDebugEnabled();
   if (debug) {
     console.log(
-      "%c[LocatorJS] 同步方式未找到，尝试异步解析...",
+      "%c[LocatorJS] 同步方式未找到项目源，尝试异步解析...",
       "color: #2196F3; font-style: italic"
     );
   }
 
-  // 2. 同步方式失败，尝试异步解析（通过 source-map）
+  // 2. 异步解析（通过 source-map / chunk 扫描等），同样遵循就近项目源优先
   let current: Fiber | null = fiber;
+  let asyncFallback: { fiber: Fiber; source: Source } | null = null;
   while (current) {
     const source = await resolveSourceFromFiber(current);
     if (source) {
-      return { fiber: current, source };
+      if (!isThirdPartySource(source)) {
+        return { fiber: current, source };
+      }
+      if (!asyncFallback) {
+        asyncFallback = { fiber: current, source };
+      }
     }
     current = current._debugOwner || null;
   }
+
+  // 3. 异步没找到项目源时，优先用异步命中的 fallback，其次用同步命中的 fallback
+  if (asyncFallback) return asyncFallback;
+  if (syncResult) return syncResult;
 
   if (debug) {
     logSourceComplete(false);
