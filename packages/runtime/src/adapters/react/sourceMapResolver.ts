@@ -315,13 +315,22 @@ async function loadSourceMap(
 
 /**
  * 从 JS 文件 URL 推断 source map URL
+ * Turbopack 的 chunk URL 带 `?id=...` query，必须先剥掉才能拼出有效的 .map 路径
  */
 function inferSourceMapUrl(jsUrl: string): string | null {
-  // 处理各种打包工具的 source map 命名规则
-  if (jsUrl.endsWith(".js")) {
-    return `${jsUrl}.map`;
+  const clean = jsUrl.replace(/[?#].*$/, "");
+  if (clean.endsWith(".js")) {
+    return `${clean}.map`;
   }
   return null;
+}
+
+/**
+ * 清洗 Turbopack sources 里的环境标注后缀
+ * 例如: "[project]/src/foo.tsx [client] (ecmascript)" -> "[project]/src/foo.tsx"
+ */
+function cleanTurbopackSourcePath(source: string): string {
+  return source.replace(/\s*\[[^\]]+\]\s*\([^)]*\)\s*$/, "");
 }
 
 /**
@@ -439,8 +448,9 @@ export async function resolveSourceFromStack(): Promise<Source | null> {
     });
 
     if (original.source && original.line) {
+      const cleaned = cleanTurbopackSourcePath(original.source);
       return {
-        fileName: original.source,
+        fileName: fileUrlToPath(cleaned),
         lineNumber: original.line,
         columnNumber: original.column ?? undefined,
       };
@@ -505,8 +515,10 @@ export async function resolveOriginalPosition(
   const original = consumer.originalPositionFor({ line, column });
 
   if (original.source && original.line) {
+    // Turbopack 的 source 可能带有 " [client] (ecmascript)" 之类后缀，先清洗
+    const cleaned = cleanTurbopackSourcePath(original.source);
     // 转换 file:// URL 为本地路径
-    const fileName = fileUrlToPath(original.source);
+    const fileName = fileUrlToPath(cleaned);
     return {
       fileName,
       lineNumber: original.line,
