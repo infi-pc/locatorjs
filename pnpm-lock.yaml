@@ -59,6 +59,9 @@ importers:
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
+      lucide-solid:
+        specifier: ^1.14.0
+        version: 1.14.0(solid-js@1.9.12)
       postcss:
         specifier: ^8.5.10
         version: 8.5.10
@@ -77,9 +80,6 @@ importers:
       semver:
         specifier: ^7.7.4
         version: 7.7.4
-      solid-icons:
-        specifier: ^1.2.0
-        version: 1.2.0(solid-js@1.9.12)
       solid-js:
         specifier: ^1.9.12
         version: 1.9.12
@@ -16113,6 +16113,14 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
+  /lucide-solid@1.14.0(solid-js@1.9.12):
+    resolution: {integrity: sha512-OeuC91agcJS3CyneSo96VpdkUAQdQO8c8r0QO5/FIkGnlfJ7Gd0fw3Z6CcdKnG94P0Ydwt+He2ar3oeTzbuNnw==}
+    peerDependencies:
+      solid-js: ^1.4.7
+    dependencies:
+      solid-js: 1.9.12
+    dev: false
+
   /lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
@@ -16677,6 +16685,7 @@ packages:
   /mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
     hasBin: true
+    requiresBuild: true
     dependencies:
       minimist: 1.2.8
     dev: true
@@ -20611,14 +20620,6 @@ packages:
       ip-address: 10.1.0
       smart-buffer: 4.2.0
     dev: true
-
-  /solid-icons@1.2.0(solid-js@1.9.12):
-    resolution: {integrity: sha512-yjQxWQMi9l19P5Af9vjsvalTMDFPDL4XD6etrUdNxNVhFp1bMYF0SFwUa5VYDfJ7u0SF3Qkz/F7BZxqcLUwklw==}
-    peerDependencies:
-      solid-js: '*'
-    dependencies:
-      solid-js: 1.9.12
-    dev: false
 
   /solid-js@1.9.12:
     resolution: {integrity: sha512-QzKaSJq2/iDrWR1As6MHZQ8fQkdOBf8GReYb7L5iKwMGceg7HxDcaOHk0at66tNgn9U2U7dXo8ZZpLIAmGMzgw==}

@@ -1,6 +1,6 @@
 import { Editor } from './Editor';
 import { Button, Kbd } from '@hope-ui/solid';
-import { HiSolidCog } from 'solid-icons/hi';
+import { Settings } from 'lucide-solid';
 import { modifiersTitles, getModifiersMap } from '@locator/shared';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
@@ -55,7 +55,7 @@ export function Home(props: Props) {
               props.setPage({ type: 'edit-controls' });
             }}
           >
-            <HiSolidCog /> settings
+            <Settings size={16} /> settings
           </Button>
         </div>
       </div>
