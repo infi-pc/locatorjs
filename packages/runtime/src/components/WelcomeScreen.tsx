@@ -13,15 +13,17 @@ export function WelcomeScreen(props: {
 }) {
   const options = useOptions();
 
-  const currentLink = () =>
-    props.originalLinkProps
+  const currentLink = () => {
+    const eff = options.effective();
+    return props.originalLinkProps
       ? buildLink(
           props.originalLinkProps,
           props.targets,
           options,
-          options.getOptions().templateOrTemplateId
+          eff.targetTemplate ?? eff.targetId
         )
       : undefined;
+  };
 
   return (
     <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-xl max-h-full overflow-auto">
@@ -43,14 +45,14 @@ export function WelcomeScreen(props: {
         <div class="flex gap-2">
           <a
             href={currentLink()}
-            target={options.getOptions().hrefTarget || HREF_TARGET}
+            target={options.effective().hrefTarget || HREF_TARGET}
             class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
             Test link
           </a>
           <button
             onClick={() => {
-              options.setOptions({ welcomeScreenDismissed: true });
+              options.setUiState({ welcomeScreenDismissed: true });
               props.onClose();
             }}
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"

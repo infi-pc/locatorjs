@@ -3,37 +3,56 @@ import { Button, Input, Radio } from '@hope-ui/solid';
 import { allTargets } from '@locator/shared';
 import SectionHeadline from './SectionHeadline';
 import { useSyncedState } from './syncedState';
+import { ProvenanceBadge } from './ProvenanceBadge';
+import { SiteLocalToggle } from './SiteLocalToggle';
 
 export function Editor() {
   let input: HTMLInputElement | undefined;
-  const { target } = useSyncedState();
+  const { snapshot, setUserExtension, setSiteLocal } = useSyncedState();
+
+  const availableTargets = () => snapshot()?.allTargets ?? allTargets;
+  const selectedTargetId = () => {
+    const s = snapshot();
+    return s?.effective.targetTemplate ?? s?.effective.targetId ?? '';
+  };
+  const targetProvenance = () =>
+    snapshot()?.provenance.targetTemplate ?? snapshot()?.provenance.targetId;
+
+  function selectTarget(
+    val: string,
+    scope: 'extension' | 'site' = 'extension'
+  ) {
+    const setter = scope === 'site' ? setSiteLocal : setUserExtension;
+    if (val.includes('://')) {
+      setter({ targetTemplate: val, targetId: undefined });
+    } else {
+      setter({ targetId: val, targetTemplate: undefined });
+    }
+  }
 
   return (
     <div class="mt-2">
       <SectionHeadline>
-        Editor link: <span class="text-gray-500">(for all projects)</span>
+        <span>Editor link</span> <ProvenanceBadge layer={targetProvenance()} />
       </SectionHeadline>
-      <p class="text-sm leading-5 text-gray-500" />
       <fieldset class="mt-2">
-        <legend class="sr-only">Notification method</legend>
+        <legend class="sr-only">Editor</legend>
         <div class="flex flex-col">
-          <For each={Object.entries(allTargets)}>
+          <For each={Object.entries(availableTargets())}>
             {([key, { label }]) => (
-              <div class="flex justify-between">
+              <div class="flex justify-between items-center">
                 <Radio
-                  checked={key === target.get()}
-                  onChange={() => {
-                    target.set(key);
-                  }}
+                  checked={key === selectedTargetId()}
+                  onChange={() => selectTarget(key)}
                 >
                   {label}
                 </Radio>
-                {key === 'vscode' && target.get() === 'vscode' && (
+                {key === 'vscode' && selectedTargetId() === 'vscode' && (
                   <Button
                     size="xs"
                     variant="ghost"
                     onClick={() => {
-                      target.set(
+                      selectTarget(
                         allTargets['vscode'].url.replace(
                           'vscode://',
                           'vscode-insiders://'
@@ -48,10 +67,12 @@ export function Editor() {
             )}
           </For>
           <Radio
-            checked={allTargets[target.get()] === undefined}
+            checked={availableTargets()[selectedTargetId()] === undefined}
             onChange={() => {
-              if (allTargets[target.get()]) {
-                target.set(allTargets[target.get()].url);
+              const current = selectedTargetId();
+              const known = availableTargets()[current];
+              if (known) {
+                selectTarget(known.url);
               }
               input?.focus();
               input?.select();
@@ -66,20 +87,22 @@ export function Editor() {
           placeholder="Basic usage"
           ref={input}
           value={
-            allTargets[target.get()]
-              ? allTargets[target.get()].url
-              : target.get()
+            availableTargets()[selectedTargetId()]
+              ? availableTargets()[selectedTargetId()].url
+              : selectedTargetId()
           }
-          onInput={(e) => target.set(e.currentTarget.value)}
+          onInput={(e) => selectTarget(e.currentTarget.value)}
           type="text"
           name="link"
           id="link"
           class={
-            allTargets[target.get()] ? 'text-gray-400 focus:text-gray-800' : ''
+            availableTargets()[selectedTargetId()]
+              ? 'text-gray-400 focus:text-gray-800'
+              : ''
           }
         />
 
-        {!allTargets[target.get()] ? (
+        {!availableTargets()[selectedTargetId()] ? (
           <div class="text-gray-500 mt-1">
             Available variables: {`projectPath, filePath, line, column`}
           </div>
@@ -87,6 +110,11 @@ export function Editor() {
           ''
         )}
       </div>
+      <SiteLocalToggle
+        label="Apply this editor only to this site"
+        onSiteLocal={() => selectTarget(selectedTargetId(), 'site')}
+        disabled={!snapshot()}
+      />
     </div>
   );
 }

@@ -1,17 +1,18 @@
 import { Editor } from './Editor';
 import { Button, Kbd } from '@hope-ui/solid';
 import { HiSolidCog } from 'solid-icons/hi';
-import { modifiersTitles } from '@locator/shared';
+import { modifiersTitles, getModifiersMap } from '@locator/shared';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 import SectionHeadline from './SectionHeadline';
-import { requestEnable } from './requestEnable';
 
 type Props = {
   setPage: (page: Page) => void;
 };
 
 export function Home(props: Props) {
+  const { setSiteLocal, snapshot } = useSyncedState();
+
   return (
     <>
       <div class="flex justify-between">
@@ -40,12 +41,6 @@ export function Home(props: Props) {
             </b>{' '}
             go to editor
           </div>
-          {/* <div class="py-1 text-sm">
-            <b>
-              <Modifiers /> + <Kbd>D</Kbd>
-            </b>{' '}
-            toggle select mode
-          </div> */}
           <p class="text-xs leading-5 text-gray-800 dark:text-gray-200">
             remember to <b>focus your app</b> (click on any surface)
           </p>
@@ -79,8 +74,9 @@ export function Home(props: Props) {
         </div>
         <button
           class="bg-gray-50 text-gray-800 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs hover:text-red-800 flex gap-1"
+          disabled={!snapshot()}
           onClick={() => {
-            requestEnable(false);
+            setSiteLocal({ disabled: true });
           }}
         >
           <svg style={{ width: '16px', height: '16px' }} viewBox="0 0 24 24">
@@ -97,10 +93,12 @@ export function Home(props: Props) {
 }
 
 function Modifiers() {
-  const { controls } = useSyncedState();
+  const { snapshot } = useSyncedState();
+  const map = () =>
+    getModifiersMap(snapshot()?.effective.mouseModifiers ?? 'alt');
   return (
     <>
-      {Object.keys(controls.getMap()).map((key, i) => {
+      {Object.keys(map()).map((key, i) => {
         return (
           <>
             {i === 0 ? '' : ' + '}

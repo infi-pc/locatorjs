@@ -24,7 +24,7 @@ export function IntroInfo(props: {
     }
   });
 
-  const modifiers = () => getMouseModifiers();
+  const modifiers = () => getMouseModifiers(options);
   return (
     <div
       class={bannerClasses()}
@@ -63,7 +63,7 @@ export function IntroInfo(props: {
         <a
           class="underline cursor-pointer"
           onClick={() => {
-            options.setOptions({ showIntro: false });
+            options.setUserProject({ showIntro: false });
           }}
         >
           Stop showing this popup

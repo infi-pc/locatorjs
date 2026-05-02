@@ -155,3 +155,5 @@ export type FileStorage = {
 };
 
 export * from "./sharedOptionsStore";
+export * from "./layeredOptions";
+export * from "./cleanupLegacyStorage";

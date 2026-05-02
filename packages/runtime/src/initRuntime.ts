@@ -2,17 +2,14 @@ import { allTargets, Target } from "@locator/shared";
 import { AdapterId, fontFamily } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
-import { setInternalProjectPath } from "./functions/buildLink";
 
 export function initRuntime({
   adapter,
   targets,
-  projectPath,
   showIntro,
 }: {
   adapter?: AdapterId;
   targets?: { [k: string]: Target | string };
-  projectPath?: string;
   showIntro?: boolean;
 } = {}) {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -21,10 +18,6 @@ export function initRuntime({
   if (document.getElementById("locatorjs-wrapper")) {
     // already initialized
     return;
-  }
-
-  if (projectPath) {
-    setInternalProjectPath(projectPath);
   }
 
   // add style tag to head

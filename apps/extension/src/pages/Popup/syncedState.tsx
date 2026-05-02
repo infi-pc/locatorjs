@@ -1,126 +1,151 @@
 /* eslint-disable solid/reactivity */
-import { getModifiersMap, getModifiersString } from '@locator/shared';
-import { createSignal, createContext, useContext, Accessor } from 'solid-js';
+import {
+  createSignal,
+  createContext,
+  useContext,
+  Accessor,
+  JSX,
+} from 'solid-js';
+import type {
+  LocatorOptions,
+  LocatorLayer,
+  Targets,
+  WriteResult,
+} from '@locator/shared';
 import browser from '../../browser';
 
-type ControlsMap = { [key: string]: boolean };
+const USER_OPTIONS_KEY = 'userOptions';
+
+export type Snapshot = {
+  effective: LocatorOptions;
+  provenance: Partial<Record<keyof LocatorOptions, LocatorLayer>>;
+  allTargets: Targets;
+};
+
+export type ConnectivityStatus = 'loading' | 'connected' | 'no-runtime';
 
 type SyncedState = {
-  clicks: Accessor<number>;
-  target: { get: Accessor<string>; set: (target: string) => void };
-  controls: {
-    getMap: Accessor<ControlsMap>;
-    getString: Accessor<string>;
-    setControl: (key: string, value: boolean) => void;
-  };
-  allowTracking: {
-    get: Accessor<boolean | null>;
-    set: (target: boolean) => void;
-  };
-  sharedOnSocialMedia: {
-    get: Accessor<string | null>;
-    set: (target: string) => void;
-  };
-  enableExperimentalFeatures: {
-    get: Accessor<boolean | null>;
-    set: (target: boolean) => void;
-  };
+  userExtension: Accessor<LocatorOptions>;
+  snapshot: Accessor<Snapshot | null>;
+  status: Accessor<ConnectivityStatus>;
+  setUserExtension: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  setSiteLocal: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  refresh: () => void;
 };
 
 const SyncedStateContext = createContext<SyncedState>();
 
-export function SyncedStateProvider(props: { children: any }) {
-  const [state, setState] = createSignal<SyncedState | null>(null);
-  const [error, setError] = createSignal<string | null>(null);
+export function SyncedStateProvider(props: { children: JSX.Element }) {
+  const [userExtension, setUserExtensionSignal] = createSignal<LocatorOptions>(
+    {}
+  );
+  const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
+  const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
+  const [ready, setReady] = createSignal(false);
 
-  browser.storage.local
-    .get([
-      'clickCount',
-      'target',
-      'controls',
-      'allowTracking',
-      'sharedOnSocialMedia',
-      'enableExperimentalFeatures',
-    ])
-    .then((result) => {
-      const [clicks] = createSignal(result.clickCount || 0);
-      const [sharedOnSocialMedia, setSharedOnSocialMedia] = createSignal<
-        string | null
-      >(result.sharedOnSocialMedia || null);
-      const [target, setTarget] = createSignal<string>(
-        result.target || 'vscode'
-      );
-      const [controls, setControls] = createSignal<string>(
-        result.controls || 'alt'
-      );
-      const [allowTracking, setAllowTracking] = createSignal<boolean | null>(
-        result.allowTracking ?? null
-      );
-      const [enableExperimentalFeatures, setEnableExperimentalFeatures] =
-        createSignal<boolean | null>(result.enableExperimentalFeatures || null);
+  browser.storage.local.get([USER_OPTIONS_KEY]).then((result) => {
+    const stored = (result?.[USER_OPTIONS_KEY] ?? {}) as LocatorOptions;
+    setUserExtensionSignal(stored);
+    setReady(true);
+  });
 
-      const controlsMap = () => getModifiersMap(controls() || 'alt');
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (USER_OPTIONS_KEY in changes) {
+      const next = (changes[USER_OPTIONS_KEY].newValue ?? {}) as LocatorOptions;
+      setUserExtensionSignal(next);
+    }
+  });
 
-      setState({
-        clicks,
-        target: {
-          get: target,
-          set: (newTarget: string) => {
-            browser.storage.local.set({ target: newTarget }, function () {
-              // console.log('Value is set to ' + newTarget);
-            });
-            setTarget(newTarget);
-          },
-        },
-        controls: {
-          getMap: controlsMap,
-          getString: controls,
-          setControl: (control: string, enable: boolean) => {
-            const map = controlsMap();
-            if (enable) {
-              map[control] = true;
-            } else {
-              delete map[control];
-            }
-            setControls(getModifiersString(map));
-            browser.storage.local.set({ controls: getModifiersString(map) });
-          },
-        },
-        allowTracking: {
-          get: allowTracking,
-          set: (newAllowTracking: boolean) => {
-            setAllowTracking(newAllowTracking);
-            browser.storage.local.set({ allowTracking: newAllowTracking });
-          },
-        },
-        sharedOnSocialMedia: {
-          get: sharedOnSocialMedia,
-          set: (newValue: string) => {
-            setSharedOnSocialMedia(newValue);
-            browser.storage.local.set({ sharedOnSocialMedia: newValue });
-          },
-        },
-        enableExperimentalFeatures: {
-          get: enableExperimentalFeatures,
-          set: (newValue: boolean) => {
-            setEnableExperimentalFeatures(newValue);
-            browser.storage.local.set({ enableExperimentalFeatures: newValue });
-          },
-        },
-      });
-    })
-    .catch((e) => {
-      setError(String(e));
+  function requestSnapshot() {
+    browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentTab = tabs[0];
+      if (!currentTab?.id) {
+        setStatus('no-runtime');
+        return;
+      }
+      browser.tabs.sendMessage(
+        currentTab.id,
+        { from: 'popup', subject: 'requestSnapshot' },
+        (
+          response:
+            | { ok: true; snapshot: Snapshot }
+            | { ok: false; reason: string }
+            | undefined
+        ) => {
+          if (chrome.runtime.lastError || !response) {
+            setStatus('no-runtime');
+            setSnapshot(null);
+            return;
+          }
+          if (response.ok) {
+            setSnapshot(response.snapshot);
+            setStatus('connected');
+          } else {
+            setStatus('no-runtime');
+            setSnapshot(null);
+          }
+        }
+      );
     });
+  }
+
+  requestSnapshot();
+  const refreshInterval = setInterval(requestSnapshot, 1500);
+  // cleanup isn't critical here — popup window closes and state is gone
+  void refreshInterval;
+
+  const state: SyncedState = {
+    userExtension,
+    snapshot,
+    status,
+    setUserExtension: async (patch) => {
+      const current = userExtension();
+      const next = { ...current, ...patch };
+      // Strip undefined to keep storage clean
+      for (const key of Object.keys(next) as (keyof LocatorOptions)[]) {
+        if (next[key] === undefined) delete next[key];
+      }
+      try {
+        await browser.storage.local.set({ [USER_OPTIONS_KEY]: next });
+        setUserExtensionSignal(next);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, reason: 'blocked' };
+      }
+    },
+    setSiteLocal: async (patch) => {
+      return new Promise((resolve) => {
+        browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const currentTab = tabs[0];
+          if (!currentTab?.id) {
+            resolve({ ok: false, reason: 'blocked' });
+            return;
+          }
+          browser.tabs.sendMessage(
+            currentTab.id,
+            { from: 'popup', subject: 'applySiteLocal', patch },
+            (response: WriteResult | undefined) => {
+              if (chrome.runtime.lastError || !response) {
+                resolve({ ok: false, reason: 'blocked' });
+                return;
+              }
+              resolve(response);
+              requestSnapshot();
+            }
+          );
+        });
+      });
+    },
+    refresh: requestSnapshot,
+  };
 
   return (
     <>
-      {state() ? (
-        <SyncedStateContext.Provider value={state()!}>
+      {ready() ? (
+        <SyncedStateContext.Provider value={state}>
           {props.children}
         </SyncedStateContext.Provider>
-      ) : error() ? (
-        <>{error()}</>
       ) : (
         <>Loading...</>
       )}
@@ -129,5 +154,7 @@ export function SyncedStateProvider(props: { children: any }) {
 }
 
 export function useSyncedState() {
-  return useContext(SyncedStateContext)!;
+  const ctx = useContext(SyncedStateContext);
+  if (!ctx) throw new Error('SyncedStateContext not provided');
+  return ctx;
 }

@@ -5,24 +5,15 @@ import { linkTemplateUrl } from "./linkTemplateUrl";
 import type { OptionsStore } from "./optionsStore";
 import { transformPath } from "./transformPath";
 
-let internalProjectPath: string | null = null;
-export function setInternalProjectPath(projectPath: string) {
-  internalProjectPath = projectPath;
-}
-
-export function getSavedProjectPath(options: OptionsStore) {
-  return options.getOptions().projectPath || internalProjectPath;
-}
-
 export function buildLink(
   linkProps: LinkProps,
   targets: Targets,
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): string {
-  const tmuxSession = options.getOptions().tmuxSession;
-  const savedProjectPath =
-    getSavedProjectPath(options) || linkProps.projectPath;
+  const effective = options.effective();
+  const tmuxSession = effective.tmuxSession;
+  const savedProjectPath = effective.projectPath || linkProps.projectPath;
 
   // Handle Turbopack [project]/ prefix
   let resolvedFilePath = linkProps.filePath;
@@ -46,7 +37,7 @@ export function buildLink(
   };
 
   const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
-  const replacePathObj = options.getOptions().replacePath;
+  const replacePathObj = effective.replacePath;
   let evaluated = evalTemplate(template, params);
 
   if (replacePathObj) {

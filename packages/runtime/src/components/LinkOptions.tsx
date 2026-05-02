@@ -18,10 +18,22 @@ export function LinkOptions(props: {
   const options = useOptions();
 
   function selectedTarget() {
-    return options.getOptions().templateOrTemplateId;
+    const eff = options.effective();
+    return eff.targetTemplate ?? eff.targetId;
   }
   function selectTarget(val: string | undefined) {
-    options.setOptions({ templateOrTemplateId: val });
+    if (!val) {
+      options.setUserProject({
+        targetId: undefined,
+        targetTemplate: undefined,
+      });
+      return;
+    }
+    if (val.includes("://")) {
+      options.setUserProject({ targetTemplate: val, targetId: undefined });
+    } else {
+      options.setUserProject({ targetId: val, targetTemplate: undefined });
+    }
   }
 
   const isNvimTarget = () => {
@@ -40,16 +52,16 @@ export function LinkOptions(props: {
   return (
     <div>
       <ProjectLinkForm
-        value={options.getOptions().projectPath}
+        value={options.effective().projectPath}
         onChange={function (newValue) {
-          options.setOptions({ projectPath: newValue });
+          options.setUserProject({ projectPath: newValue });
         }}
       />
 
       <TransformLinkForm
-        value={options.getOptions().replacePath}
+        value={options.effective().replacePath}
         onChange={(newValue) => {
-          options.setOptions({ replacePath: newValue });
+          options.setUserProject({ replacePath: newValue });
         }}
       />
 
@@ -61,9 +73,9 @@ export function LinkOptions(props: {
 
       {isNvimTarget() && (
         <TmuxSessionForm
-          value={options.getOptions().tmuxSession}
+          value={options.effective().tmuxSession}
           onChange={(newValue) => {
-            options.setOptions({ tmuxSession: newValue });
+            options.setUserProject({ tmuxSession: newValue });
           }}
           onTemplateSwitch={(useCustom, tmuxSession) => {
             if (useCustom) {
@@ -80,9 +92,9 @@ export function LinkOptions(props: {
       {isNvimTarget() && <NvimSetupGuide />}
 
       <LinkHrefTarget
-        value={options.getOptions().hrefTarget}
+        value={options.effective().hrefTarget}
         onChange={(newValue) => {
-          options.setOptions({ hrefTarget: newValue });
+          options.setUserProject({ hrefTarget: newValue });
         }}
       />
 
@@ -94,7 +106,7 @@ export function LinkOptions(props: {
           {currentLink() ? (
             <a
               href={currentLink()}
-              target={options.getOptions().hrefTarget || HREF_TARGET}
+              target={options.effective().hrefTarget || HREF_TARGET}
               class="hover:underline"
             >
               {currentLink()}

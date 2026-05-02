@@ -80,11 +80,11 @@ function Runtime(props: RuntimeProps) {
     //   }
     // }
 
-    setHoldingModKey(isCombinationModifiersPressed(e));
+    setHoldingModKey(isCombinationModifiersPressed(options, e));
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e, true));
+    setHoldingModKey(isCombinationModifiersPressed(options, e, true));
   }
 
   function mouseOverListener(e: MouseEvent) {
@@ -95,7 +95,7 @@ function Runtime(props: RuntimeProps) {
         return;
       }
 
-      setHoldingModKey(isCombinationModifiersPressed(e, true));
+      setHoldingModKey(isCombinationModifiersPressed(options, e, true));
 
       batch(() => {
         setCurrentElement(target);
@@ -119,7 +119,7 @@ function Runtime(props: RuntimeProps) {
   }
 
   function mouseDownUpListener(e: MouseEvent) {
-    if (isCombinationModifiersPressed(e)) {
+    if (isCombinationModifiersPressed(options, e)) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -148,7 +148,7 @@ function Runtime(props: RuntimeProps) {
   }
 
   function rightClickListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(e, true)) {
+    if (!isCombinationModifiersPressed(options, e, true)) {
       return;
     }
 
@@ -166,7 +166,10 @@ function Runtime(props: RuntimeProps) {
   }
 
   async function clickListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
+    if (
+      !isCombinationModifiersPressed(options, e) &&
+      uiMode()[0] !== "options"
+    ) {
       return;
     }
 
@@ -191,7 +194,7 @@ function Runtime(props: RuntimeProps) {
 
         if (
           (!isExtension() || detectSvelte()) &&
-          !options.getOptions().welcomeScreenDismissed
+          !options.uiState().welcomeScreenDismissed
         ) {
           setDialog(["choose-editor", elInfo.thisElement.link]);
         } else {
@@ -217,7 +220,7 @@ function Runtime(props: RuntimeProps) {
 
           if (
             (!isExtension() || detectSvelte()) &&
-            !options.getOptions().welcomeScreenDismissed
+            !options.uiState().welcomeScreenDismissed
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {
@@ -387,7 +390,7 @@ function Runtime(props: RuntimeProps) {
       ) : null}
       {props.showIntro !== false &&
       !isExtension() &&
-      options.getOptions().showIntro !== false ? (
+      options.effective().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
           hide={!!holdingModKey() || uiMode()[0] !== "off"}
@@ -447,7 +450,7 @@ function Runtime(props: RuntimeProps) {
 function RuntimeWrapper(props: RuntimeProps) {
   const options = useOptions();
 
-  const isDisabled = () => options.getOptions().disabled || false;
+  const isDisabled = () => options.effective().disabled || false;
 
   createEffect(() => {
     if (isDisabled() && isExtension()) {
