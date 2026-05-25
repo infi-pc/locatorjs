@@ -29,8 +29,8 @@ export const allTargets: Targets = {
     label: "Windsurf",
   },
   antigravity: {
-    url: "antigravity://file/${projectPath}${filePath}:${line}:${column}",
-    label: "Antigravity",
+    url: "antigravity-ide://file/${projectPath}${filePath}:${line}:${column}",
+    label: "Antigravity IDE",
   },
   nvim: {
     url: "nvim://file/${projectPath}${filePath}:${line}:${column}",
