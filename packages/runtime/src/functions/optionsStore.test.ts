@@ -19,11 +19,15 @@ function withRoot<T>(fn: () => T): T {
   });
 }
 
+function setUserExtensionGlobal(options: unknown) {
+  document.documentElement.dataset.locatorUserExtensionOptions =
+    JSON.stringify(options);
+}
+
 function resetState() {
   while (disposers.length) disposers.pop()!();
   localStorage.clear();
-  delete (window as unknown as Record<string, unknown>)
-    .__LOCATOR_USER_EXTENSION_OPTIONS__;
+  delete document.documentElement.dataset.locatorUserExtensionOptions;
   delete (window as unknown as Record<string, unknown>).__LOCATOR_RUNTIME__;
   delete (window as unknown as Record<string, unknown>).enableLocator;
   __resetTeamLayerForTesting();
@@ -45,10 +49,8 @@ describe("optionsStore integration", () => {
     expect(options.provenance().projectPath).toBe("team");
   });
 
-  test("reads initial user-extension layer from window global", async () => {
-    (
-      window as unknown as Record<string, unknown>
-    ).__LOCATOR_USER_EXTENSION_OPTIONS__ = { mouseModifiers: "ctrl" };
+  test("reads initial user-extension layer from documentElement dataset", async () => {
+    setUserExtensionGlobal({ mouseModifiers: "ctrl" });
 
     const options = withRoot(() => initOptions());
 
@@ -61,9 +63,7 @@ describe("optionsStore integration", () => {
 
     expect(options.provenance().mouseModifiers).toBe("default");
 
-    (
-      window as unknown as Record<string, unknown>
-    ).__LOCATOR_USER_EXTENSION_OPTIONS__ = { mouseModifiers: "shift" };
+    setUserExtensionGlobal({ mouseModifiers: "shift" });
     window.dispatchEvent(
       new MessageEvent("message", {
         data: { type: "LOCATOR_USER_EXTENSION_OPTIONS_UPDATED" },
@@ -77,9 +77,7 @@ describe("optionsStore integration", () => {
 
   test("user-project layer overrides user-extension and team layers", async () => {
     updateTeamLayer({ targetId: "vscode" });
-    (
-      window as unknown as Record<string, unknown>
-    ).__LOCATOR_USER_EXTENSION_OPTIONS__ = { targetId: "cursor" };
+    setUserExtensionGlobal({ targetId: "cursor" });
 
     const options = withRoot(() => initOptions());
     await options.setUserProject({ targetId: "webstorm" });

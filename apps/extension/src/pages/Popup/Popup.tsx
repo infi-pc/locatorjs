@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, Switch, Match } from 'solid-js';
 import { Button, Spinner } from '@hope-ui/solid';
 import { hope } from '@hope-ui/solid';
 import { Home } from './Home';
@@ -51,13 +51,14 @@ const Popup = () => {
               </div>
             }
           >
-            {page().type === 'home' ? (
-              <Home setPage={setPage} />
-            ) : page().type === 'edit-controls' ? (
-              <EditControls setPage={setPage} />
-            ) : (
-              <>No page</>
-            )}
+            <Switch fallback={<>No page</>}>
+              <Match when={page().type === 'home'}>
+                <Home setPage={setPage} />
+              </Match>
+              <Match when={page().type === 'edit-controls'}>
+                <EditControls setPage={setPage} />
+              </Match>
+            </Switch>
           </Show>
         </Show>
       </Show>

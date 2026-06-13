@@ -38,10 +38,16 @@ export type OptionsStore = {
 };
 
 function readUserExtensionGlobal(): LocatorOptions | undefined {
-  const raw = (globalThis as Record<string, unknown>)
-    .__LOCATOR_USER_EXTENSION_OPTIONS__;
-  if (raw && typeof raw === "object") {
-    return raw as LocatorOptions;
+  if (typeof document === "undefined") return undefined;
+  const raw = document.documentElement?.dataset?.locatorUserExtensionOptions;
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      return parsed as LocatorOptions;
+    }
+  } catch {
+    // ignore corrupt JSON
   }
   return undefined;
 }

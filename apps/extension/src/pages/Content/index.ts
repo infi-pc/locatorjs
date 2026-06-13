@@ -27,15 +27,9 @@ browser.storage.onChanged.addListener((changes, areaName) => {
 });
 
 function injectUserExtensionGlobal(options: unknown) {
-  const script = document.createElement('script');
-  script.textContent = `window.__LOCATOR_USER_EXTENSION_OPTIONS__ = ${JSON.stringify(
-    options
-  )};`;
-  const parent = document.head || document.documentElement;
-  if (parent) {
-    parent.appendChild(script);
-    script.remove();
-  }
+  if (!document.documentElement) return;
+  document.documentElement.dataset.locatorUserExtensionOptions =
+    JSON.stringify(options);
 }
 
 function injectClientHook() {
