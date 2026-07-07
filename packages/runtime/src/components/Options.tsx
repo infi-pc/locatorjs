@@ -1,5 +1,10 @@
-import { clearUserOriginOptions, Targets } from "@locator/shared";
+import {
+  clearUserOriginOptions,
+  DEFAULT_LAYER,
+  Targets,
+} from "@locator/shared";
 import { createMemo, createSignal, createEffect } from "solid-js";
+import { LayeredOptionsEditor, LayerTabConfig } from "@locator/ui";
 import { bannerClasses } from "../functions/bannerClasses";
 import { isExtension } from "../functions/isExtension";
 import LogoIcon from "./LogoIcon";
@@ -12,7 +17,6 @@ import {
   getElementInfoAsync,
 } from "../adapters/getElementInfo";
 import { LinkProps } from "../types/types";
-import { setDebugMode } from "../adapters/react/debug";
 
 export function Options(props: {
   targets: Targets;
@@ -67,22 +71,35 @@ export function Options(props: {
   // Prefer sync result, fallback to async result
   const elLinkProps = () => syncLinkProps() || asyncLinkProps();
 
-  // Debug mode state
-  const [debugEnabled, setDebugEnabled] = createSignal(
-    options.effective().debugMode ?? false
-  );
-
-  // Sync debug state on init
-  createEffect(() => {
-    setDebugMode(debugEnabled());
-  });
-
-  // Toggle debug mode
-  const toggleDebugMode = () => {
-    const newValue = !debugEnabled();
-    setDebugEnabled(newValue);
-    options.setUserOrigin({ debugMode: newValue });
-  };
+  const layerTabs = (): LayerTabConfig[] => [
+    {
+      layer: "user-origin",
+      label: "This origin",
+      values: options.layers()["user-origin"] ?? {},
+      write: options.setUserOrigin,
+      note: "Stored in this page’s origin — applies to everyone opening it in this browser profile.",
+    },
+    {
+      layer: "user-extension",
+      label: "Extension",
+      values: options.layers()["user-extension"] ?? {},
+      note: isExtension()
+        ? "Your extension defaults — change them in the extension popup."
+        : "Install the browser extension to set personal cross-site defaults.",
+    },
+    {
+      layer: "team",
+      label: "Team",
+      values: options.layers().team ?? {},
+      note: "Defined by setup() in the app’s code — change it in the repository.",
+    },
+    {
+      layer: "default",
+      label: "Defaults",
+      values: options.layers().default ?? DEFAULT_LAYER,
+      note: "Built-in LocatorJS defaults.",
+    },
+  ];
 
   return (
     <div
@@ -107,33 +124,25 @@ export function Options(props: {
           targets={props.targets}
         />
 
-        <div class="flex items-center gap-2 mt-4 mb-2">
-          <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
-            <div
-              class={`relative w-9 h-5 rounded-full transition-colors ${
-                debugEnabled() ? "bg-blue-500" : "bg-slate-300"
-              }`}
-              onClick={toggleDebugMode}
-            >
-              <div
-                class={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                  debugEnabled() ? "translate-x-4 left-0.5" : "left-0.5"
-                }`}
-              />
-            </div>
-            <span>Debug Mode</span>
-          </label>
-          <span class="text-[10px] text-slate-400">
-            {debugEnabled() ? "(view location logs in console)" : ""}
-          </span>
-        </div>
+        <details class="mt-4 mb-2">
+          <summary class="cursor-pointer text-sm font-medium text-gray-800 select-none">
+            All settings by layer
+          </summary>
+          <div class="mt-2">
+            <LayeredOptionsEditor
+              tabs={layerTabs()}
+              effective={options.effective()}
+              provenance={options.provenance()}
+              targets={options.allTargets()}
+            />
+          </div>
+        </details>
 
         <div class="flex gap-2 justify-between mt-2">
           <button
             class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
             onClick={() => {
               clearUserOriginOptions();
-              setDebugEnabled(false);
               props.onClose();
             }}
           >

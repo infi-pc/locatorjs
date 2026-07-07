@@ -344,6 +344,9 @@ importers:
       '@locator/shared':
         specifier: workspace:^
         version: link:../shared
+      '@locator/ui':
+        specifier: workspace:^
+        version: link:../ui
       solid-js:
         specifier: ^1.9.12
         version: 1.9.12
