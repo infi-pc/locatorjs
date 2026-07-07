@@ -6,6 +6,7 @@ type RuntimeBridge = {
   getSnapshot: () => {
     effective: LocatorOptions;
     provenance: ReturnType<OptionsStore["provenance"]>;
+    layers: ReturnType<OptionsStore["layers"]>;
     allTargets: ReturnType<OptionsStore["allTargets"]>;
   };
   applySiteLocal: (
@@ -26,6 +27,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     getSnapshot: () => ({
       effective: options.effective(),
       provenance: options.provenance(),
+      layers: options.layers(),
       allTargets: options.allTargets(),
     }),
     applySiteLocal: (patch) => options.setUserOrigin(patch),

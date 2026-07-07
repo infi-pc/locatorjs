@@ -1,10 +1,8 @@
-import { Editor } from './Editor';
-import { Button, Kbd } from '@hope-ui/solid';
 import { Settings } from 'lucide-solid';
 import { modifiersTitles, getModifiersMap } from '@locator/shared';
+import { Button, Kbd, ProvenanceBadge, SectionHeadline } from '@locator/ui';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
-import SectionHeadline from './SectionHeadline';
 
 type Props = {
   setPage: (page: Page) => void;
@@ -12,6 +10,16 @@ type Props = {
 
 export function Home(props: Props) {
   const { setSiteLocal, snapshot } = useSyncedState();
+
+  const targetProvenance = () =>
+    snapshot()?.provenance.targetTemplate ?? snapshot()?.provenance.targetId;
+  const currentEditor = () => {
+    const s = snapshot();
+    if (!s) return undefined;
+    const selected = s.effective.targetTemplate ?? s.effective.targetId;
+    if (selected && s.allTargets[selected]) return s.allTargets[selected].label;
+    return selected;
+  };
 
   return (
     <>
@@ -47,21 +55,32 @@ export function Home(props: Props) {
         </div>
         <div class="absolute right-4">
           <Button
-            colorScheme="neutral"
-            variant="subtle"
+            variant="ghost"
             size="xs"
-            class="gap-1"
             onClick={() => {
-              props.setPage({ type: 'edit-controls' });
+              props.setPage({ type: 'settings' });
             }}
           >
             <Settings size={16} /> settings
           </Button>
         </div>
       </div>
-      <Editor />
 
-      <div class="mt-2 w-full flex justify-between items-center">
+      <div class="mt-3 flex items-center justify-between rounded bg-gray-50 px-3 py-2 dark:bg-gray-800">
+        <div class="text-sm text-gray-800 dark:text-gray-200">
+          Editor: <b>{currentEditor() ?? '—'}</b>{' '}
+          <ProvenanceBadge layer={targetProvenance()} />
+        </div>
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() => props.setPage({ type: 'settings' })}
+        >
+          change
+        </Button>
+      </div>
+
+      <div class="mt-4 w-full flex justify-between items-center">
         <div>
           Support me on{' '}
           <a

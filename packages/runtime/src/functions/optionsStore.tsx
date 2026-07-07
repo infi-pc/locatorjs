@@ -31,6 +31,7 @@ export type UiState = NonNullable<LocatorUserOriginStored["uiState"]>;
 export type OptionsStore = {
   effective: () => LocatorOptions;
   provenance: () => Partial<Record<keyof LocatorOptions, LocatorLayer>>;
+  layers: () => Partial<Record<LocatorLayer, LocatorOptions>>;
   uiState: () => UiState;
   allTargets: () => Targets;
   setUserOrigin: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
@@ -64,14 +65,16 @@ export function initOptions(): OptionsStore {
   );
   const [uiState, setUiState] = createSignal<UiState>(getUserOriginUiState());
 
-  const resolved = createMemo(() =>
-    resolve({
+  const layers = createMemo(
+    (): Partial<Record<LocatorLayer, LocatorOptions>> => ({
       default: DEFAULT_LAYER,
       team: teamLayer(),
       "user-extension": userExtension(),
       "user-origin": userOrigin(),
     })
   );
+
+  const resolved = createMemo(() => resolve(layers()));
 
   const effective = () => resolved().effective;
   const provenance = () => resolved().provenance;
@@ -109,6 +112,7 @@ export function initOptions(): OptionsStore {
   const store: OptionsStore = {
     effective,
     provenance,
+    layers,
     uiState,
     allTargets: () => teamTargets() ?? allTargets,
     setUserOrigin: async (patch) => {

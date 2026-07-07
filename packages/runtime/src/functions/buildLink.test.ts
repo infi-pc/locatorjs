@@ -7,6 +7,7 @@ function createMockOptions(effective: LocatorOptions): OptionsStore {
   return {
     effective: () => effective,
     provenance: () => ({}),
+    layers: () => ({}),
     uiState: () => ({}),
     allTargets: () => ({}),
     setUserOrigin: async () => ({ ok: true as const }),

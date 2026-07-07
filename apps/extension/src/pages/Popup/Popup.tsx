@@ -1,11 +1,11 @@
 import { createSignal, Show, Switch, Match } from 'solid-js';
-import { Button, Spinner } from '@hope-ui/solid';
-import { hope } from '@hope-ui/solid';
+import { Button, SectionHeadline, Spinner } from '@locator/ui';
+import { Settings } from 'lucide-solid';
 import { Home } from './Home';
-import { EditControls } from './EditControls';
+import { SettingsPage } from './SettingsPage';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
-import SectionHeadline from './SectionHeadline';
+
 function GithubIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -13,11 +13,6 @@ function GithubIcon() {
     </svg>
   );
 }
-
-const isMac =
-  typeof navigator !== 'undefined' &&
-  navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-export const altTitle = isMac ? '⌥ Option' : 'Alt';
 
 const Popup = () => {
   const [page, setPage] = createSignal<Page>({ type: 'home' });
@@ -36,41 +31,56 @@ const Popup = () => {
           </div>
         }
       >
-        <Show when={status() === 'connected'} fallback={<NoRuntimeView />}>
-          <Show
-            when={!siteDisabled()}
-            fallback={
-              <div>
-                <SectionHeadline>Disabled</SectionHeadline>
-                <div>You have disabled Locator on this page.</div>
-                <div class="flex justify-end">
-                  <Button onClick={() => setSiteLocal({ disabled: false })}>
-                    Enable
-                  </Button>
-                </div>
-              </div>
-            }
-          >
-            <Switch fallback={<>No page</>}>
-              <Match when={page().type === 'home'}>
+        <Switch>
+          <Match when={page().type === 'settings'}>
+            <SettingsPage setPage={setPage} />
+          </Match>
+          <Match when={page().type === 'home'}>
+            <Show
+              when={status() === 'connected'}
+              fallback={<NoRuntimeView setPage={setPage} />}
+            >
+              <Show
+                when={!siteDisabled()}
+                fallback={
+                  <div>
+                    <SectionHeadline>Disabled</SectionHeadline>
+                    <div class="mt-1 text-sm">
+                      You have disabled Locator on this page.
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                      <Button
+                        variant="primary"
+                        onClick={() => setSiteLocal({ disabled: false })}
+                      >
+                        Enable
+                      </Button>
+                    </div>
+                  </div>
+                }
+              >
                 <Home setPage={setPage} />
-              </Match>
-              <Match when={page().type === 'edit-controls'}>
-                <EditControls setPage={setPage} />
-              </Match>
-            </Switch>
-          </Show>
-        </Show>
+              </Show>
+            </Show>
+          </Match>
+        </Switch>
       </Show>
     </div>
   );
 };
 
-function NoRuntimeView() {
+function NoRuntimeView(props: { setPage: (page: Page) => void }) {
   return (
-    <div class="h-52">
-      <div class="flex justify-between">
+    <div>
+      <div class="flex justify-between items-start gap-2">
         <SectionHeadline>LocatorJS not detected on this page</SectionHeadline>
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() => props.setPage({ type: 'settings' })}
+        >
+          <Settings size={16} /> settings
+        </Button>
       </div>
       <p class="font-medium mt-2">You need one of these:</p>
       <ul class="pl-4 text-sm">
@@ -137,21 +147,21 @@ function NoRuntimeView() {
       </ul>
       <div class="mt-2 pb-4">
         <SectionHeadline>Helpful links:</SectionHeadline>
-        <hope.a
+        <a
           target="_blank"
           class="flex gap-1 items-center"
           href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
         >
           <GithubIcon />{' '}
           <span class="underline">Readme.md: Troubleshooting</span>
-        </hope.a>
-        <hope.a
+        </a>
+        <a
           target="_blank"
           class="flex gap-1 items-center"
           href="https://github.com/infi-pc/locatorjs/issues"
         >
           <GithubIcon /> <span class="underline">GitHub issues</span>
-        </hope.a>
+        </a>
       </div>
     </div>
   );

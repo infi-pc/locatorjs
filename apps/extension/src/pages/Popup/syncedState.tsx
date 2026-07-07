@@ -19,6 +19,7 @@ const USER_OPTIONS_KEY = 'userOptions';
 export type Snapshot = {
   effective: LocatorOptions;
   provenance: Partial<Record<keyof LocatorOptions, LocatorLayer>>;
+  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
   allTargets: Targets;
 };
 
@@ -77,7 +78,11 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         | { ok: false; reason: string }
         | undefined;
       if (response?.ok) {
-        setSnapshot(response.snapshot);
+        // Only swap the snapshot when it actually changed — the poll would
+        // otherwise recreate the settings DOM every 1.5s and drop focus.
+        if (JSON.stringify(response.snapshot) !== JSON.stringify(snapshot())) {
+          setSnapshot(response.snapshot);
+        }
         setStatus('connected');
       } else {
         setStatus('no-runtime');

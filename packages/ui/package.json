@@ -1,14 +1,32 @@
 {
   "name": "@locator/ui",
   "version": "0.5.0",
-  "main": "./index.tsx",
-  "types": "./index.tsx",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "license": "MIT",
-  "devDependencies": {
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
-    "tsconfig": "^0.0.1",
-    "typescript": "^5.9.3"
+  "scripts": {
+    "dev": "concurrently pnpm:dev:*",
+    "dev:babel": "babel src --watch --out-dir dist --extensions .ts,.tsx",
+    "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
+    "build": "concurrently pnpm:build:*",
+    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx",
+    "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
+    "ts": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
   },
-  "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
+  "dependencies": {
+    "@kobalte/core": "^0.13.11",
+    "@locator/shared": "workspace:^",
+    "solid-js": "^1.9.12"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.6",
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.28.6",
+    "@babel/preset-typescript": "^7.28.6",
+    "@locator/dev-config": "workspace:^",
+    "babel-preset-solid": "^1.9.12",
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  }
 }
