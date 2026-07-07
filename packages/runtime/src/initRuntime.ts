@@ -1,17 +1,8 @@
-import { allTargets, Target } from "@locator/shared";
-import { AdapterId, fontFamily } from "./consts";
+import { fontFamily } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
 
-export function initRuntime({
-  adapter,
-  targets,
-  showIntro,
-}: {
-  adapter?: AdapterId;
-  targets?: { [k: string]: Target | string };
-  showIntro?: boolean;
-} = {}) {
+export function initRuntime() {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return;
   }
@@ -77,10 +68,10 @@ export function initRuntime({
   if (typeof require !== "undefined") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { initRender } = require("./components/Runtime");
-    initRender(layer, adapter, targets || allTargets, showIntro);
+    initRender(layer);
   } else {
     import("./components/Runtime").then(({ initRender }) => {
-      initRender(layer, adapter, targets || allTargets, showIntro);
+      initRender(layer);
     });
   }
 }

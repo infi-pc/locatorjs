@@ -4,14 +4,14 @@ const LAYER_LABELS: Record<LocatorLayer, string> = {
   default: 'default',
   team: 'team',
   'user-extension': 'extension',
-  'user-project': 'this site',
+  'user-origin': 'this origin',
 };
 
 const LAYER_CLASSES: Record<LocatorLayer, string> = {
   default: 'bg-gray-100 text-gray-600',
   team: 'bg-blue-100 text-blue-700',
   'user-extension': 'bg-purple-100 text-purple-700',
-  'user-project': 'bg-green-100 text-green-700',
+  'user-origin': 'bg-green-100 text-green-700',
 };
 
 export function ProvenanceBadge(props: { layer?: LocatorLayer }) {

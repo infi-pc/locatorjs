@@ -1,10 +1,7 @@
-import type {
-  LocatorOptions,
-  LocatorUserProjectStored,
-} from "./layeredOptions";
+import type { LocatorOptions, LocatorUserOriginStored } from "./layeredOptions";
 import { cleanupLegacyLocalStorage } from "./cleanupLegacyStorage";
 
-export const USER_PROJECT_STORAGE_KEY = "LOCATOR_USER_OPTIONS";
+export const USER_ORIGIN_STORAGE_KEY = "LOCATOR_USER_OPTIONS";
 
 let reported = false;
 function reportNoLocalStorage() {
@@ -31,27 +28,27 @@ function runLegacyCleanupOnce() {
   cleanupLegacyLocalStorage();
 }
 
-function readStored(): LocatorUserProjectStored {
+function readStored(): LocatorUserOriginStored {
   if (!hasLocalStorage()) return {};
   runLegacyCleanupOnce();
 
   try {
-    const raw = localStorage.getItem(USER_PROJECT_STORAGE_KEY);
+    const raw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
-    return parsed as LocatorUserProjectStored;
+    return parsed as LocatorUserOriginStored;
   } catch {
     return {};
   }
 }
 
-function writeStored(value: LocatorUserProjectStored) {
+function writeStored(value: LocatorUserOriginStored) {
   if (!hasLocalStorage()) {
     return { ok: false as const, reason: "blocked" as const };
   }
   try {
-    localStorage.setItem(USER_PROJECT_STORAGE_KEY, JSON.stringify(value));
+    localStorage.setItem(USER_ORIGIN_STORAGE_KEY, JSON.stringify(value));
     return { ok: true as const };
   } catch (e) {
     const reason =
@@ -63,13 +60,13 @@ function writeStored(value: LocatorUserProjectStored) {
   }
 }
 
-export function getUserProjectOptions(): LocatorOptions {
+export function getUserOriginOptions(): LocatorOptions {
   const { uiState: _uiState, ...rest } = readStored();
   return rest;
 }
 
-export function getUserProjectUiState(): NonNullable<
-  LocatorUserProjectStored["uiState"]
+export function getUserOriginUiState(): NonNullable<
+  LocatorUserOriginStored["uiState"]
 > {
   return readStored().uiState ?? {};
 }
@@ -78,12 +75,12 @@ export type WriteResult =
   | { ok: true }
   | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
 
-export function setUserProjectOptions(
+export function setUserOriginOptions(
   patch: Partial<LocatorOptions>
 ): WriteResult {
   const current = readStored();
   const { uiState, ...currentOpts } = current;
-  const next: LocatorUserProjectStored = {
+  const next: LocatorUserOriginStored = {
     ...currentOpts,
     ...patch,
   };
@@ -91,34 +88,34 @@ export function setUserProjectOptions(
   return writeStored(next);
 }
 
-export function setUserProjectUiState(
-  patch: Partial<NonNullable<LocatorUserProjectStored["uiState"]>>
+export function setUserOriginUiState(
+  patch: Partial<NonNullable<LocatorUserOriginStored["uiState"]>>
 ): WriteResult {
   const current = readStored();
-  const next: LocatorUserProjectStored = {
+  const next: LocatorUserOriginStored = {
     ...current,
     uiState: { ...(current.uiState ?? {}), ...patch },
   };
   return writeStored(next);
 }
 
-export function clearUserProjectOptions() {
+export function clearUserOriginOptions() {
   if (!hasLocalStorage()) return;
   try {
-    localStorage.removeItem(USER_PROJECT_STORAGE_KEY);
+    localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
   } catch {
     // ignore
   }
 }
 
-export function listenOnUserProjectChanges(
-  fn: (stored: LocatorUserProjectStored) => void
+export function listenOnUserOriginChanges(
+  fn: (stored: LocatorUserOriginStored) => void
 ) {
   if (!hasLocalStorage()) return;
-  let currentRaw = localStorage.getItem(USER_PROJECT_STORAGE_KEY);
+  let currentRaw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
   addEventListener("storage", (event) => {
-    if (event.key !== USER_PROJECT_STORAGE_KEY) return;
-    const newRaw = localStorage.getItem(USER_PROJECT_STORAGE_KEY);
+    if (event.key !== USER_ORIGIN_STORAGE_KEY) return;
+    const newRaw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
     if (newRaw !== currentRaw) {
       currentRaw = newRaw;
       fn(readStored());

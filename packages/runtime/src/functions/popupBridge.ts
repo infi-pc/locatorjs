@@ -10,7 +10,7 @@ type RuntimeBridge = {
   };
   applySiteLocal: (
     patch: Partial<LocatorOptions>
-  ) => ReturnType<OptionsStore["setUserProject"]>;
+  ) => ReturnType<OptionsStore["setUserOrigin"]>;
 };
 
 declare global {
@@ -28,7 +28,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
       provenance: options.provenance(),
       allTargets: options.allTargets(),
     }),
-    applySiteLocal: (patch) => options.setUserProject(patch),
+    applySiteLocal: (patch) => options.setUserOrigin(patch),
   };
 
   window.__LOCATOR_RUNTIME__ = bridge;

@@ -6,7 +6,7 @@ import { setTeamTargets, updateTeamLayer } from "./functions/teamLayerStore";
 export * from "./adapters/jsx/runtimeStore";
 
 if (typeof window !== "undefined" && isExtension()) {
-  setTimeout(() => initRuntime({}), 0);
+  setTimeout(() => initRuntime(), 0);
 }
 
 export const MAX_ZINDEX = 2147483647;
@@ -37,7 +37,7 @@ export function setup({
     setTeamTargets(normalised);
   }
 
-  setTimeout(() => initRuntime({ adapter, targets, showIntro }), 0);
+  setTimeout(() => initRuntime(), 0);
 }
 
 export default setup;

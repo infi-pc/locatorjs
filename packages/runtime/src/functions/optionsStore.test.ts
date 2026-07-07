@@ -75,21 +75,21 @@ describe("optionsStore integration", () => {
     expect(options.provenance().mouseModifiers).toBe("user-extension");
   });
 
-  test("user-project layer overrides user-extension and team layers", async () => {
+  test("user-origin layer overrides user-extension and team layers", async () => {
     updateTeamLayer({ targetId: "vscode" });
     setUserExtensionGlobal({ targetId: "cursor" });
 
     const options = withRoot(() => initOptions());
-    await options.setUserProject({ targetId: "webstorm" });
+    await options.setUserOrigin({ targetId: "webstorm" });
 
     expect(options.effective().targetId).toBe("webstorm");
-    expect(options.provenance().targetId).toBe("user-project");
+    expect(options.provenance().targetId).toBe("user-origin");
   });
 
-  test("window.enableLocator() writes to user-project layer only", async () => {
+  test("window.enableLocator() writes to user-origin layer only", async () => {
     const options = withRoot(() => initOptions());
 
-    await options.setUserProject({ disabled: true });
+    await options.setUserOrigin({ disabled: true });
     expect(options.effective().disabled).toBe(true);
 
     type WinWithEnable = { enableLocator?: () => string };
@@ -97,7 +97,7 @@ describe("optionsStore integration", () => {
 
     expect(result).toBe("Locator enabled");
     expect(options.effective().disabled).toBe(false);
-    expect(options.provenance().disabled).toBe("user-project");
+    expect(options.provenance().disabled).toBe("user-origin");
   });
 
   test("atomic replacePath merge across layers (later layer fully replaces)", async () => {
@@ -106,7 +106,7 @@ describe("optionsStore integration", () => {
     });
 
     const options = withRoot(() => initOptions());
-    await options.setUserProject({
+    await options.setUserOrigin({
       replacePath: { from: "/user/from", to: "/user/to" },
     });
 
@@ -169,7 +169,7 @@ describe("mountRuntimePopupBridge", () => {
 
     await runtime!.applySiteLocal({ targetId: "zed" });
     expect(options.effective().targetId).toBe("zed");
-    expect(options.provenance().targetId).toBe("user-project");
+    expect(options.provenance().targetId).toBe("user-origin");
   });
 
   test("responds to LOCATOR_PAGE_SNAPSHOT_REQUEST with matching requestId", async () => {
@@ -178,7 +178,7 @@ describe("mountRuntimePopupBridge", () => {
       mountRuntimePopupBridge(o);
       return o;
     });
-    await options.setUserProject({ mouseModifiers: "meta" });
+    await options.setUserOrigin({ mouseModifiers: "meta" });
     expect(options.effective().mouseModifiers).toBe("meta");
 
     const response = await new Promise<Record<string, unknown>>((resolve) => {

@@ -57,37 +57,37 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     }
   });
 
-  function requestSnapshot() {
-    browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  async function requestSnapshot() {
+    try {
+      const tabs = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       const currentTab = tabs[0];
       if (!currentTab?.id) {
         setStatus('no-runtime');
+        setSnapshot(null);
         return;
       }
-      browser.tabs.sendMessage(
-        currentTab.id,
-        { from: 'popup', subject: 'requestSnapshot' },
-        (
-          response:
-            | { ok: true; snapshot: Snapshot }
-            | { ok: false; reason: string }
-            | undefined
-        ) => {
-          if (chrome.runtime.lastError || !response) {
-            setStatus('no-runtime');
-            setSnapshot(null);
-            return;
-          }
-          if (response.ok) {
-            setSnapshot(response.snapshot);
-            setStatus('connected');
-          } else {
-            setStatus('no-runtime');
-            setSnapshot(null);
-          }
-        }
-      );
-    });
+      const response = (await browser.tabs.sendMessage(currentTab.id, {
+        from: 'popup',
+        subject: 'requestSnapshot',
+      })) as
+        | { ok: true; snapshot: Snapshot }
+        | { ok: false; reason: string }
+        | undefined;
+      if (response?.ok) {
+        setSnapshot(response.snapshot);
+        setStatus('connected');
+      } else {
+        setStatus('no-runtime');
+        setSnapshot(null);
+      }
+    } catch {
+      // no content script in the active tab (chrome:// pages etc.)
+      setStatus('no-runtime');
+      setSnapshot(null);
+    }
   }
 
   requestSnapshot();
@@ -115,27 +115,28 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       }
     },
     setSiteLocal: async (patch) => {
-      return new Promise((resolve) => {
-        browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const currentTab = tabs[0];
-          if (!currentTab?.id) {
-            resolve({ ok: false, reason: 'blocked' });
-            return;
-          }
-          browser.tabs.sendMessage(
-            currentTab.id,
-            { from: 'popup', subject: 'applySiteLocal', patch },
-            (response: WriteResult | undefined) => {
-              if (chrome.runtime.lastError || !response) {
-                resolve({ ok: false, reason: 'blocked' });
-                return;
-              }
-              resolve(response);
-              requestSnapshot();
-            }
-          );
+      try {
+        const tabs = await browser.tabs.query({
+          active: true,
+          currentWindow: true,
         });
-      });
+        const currentTab = tabs[0];
+        if (!currentTab?.id) {
+          return { ok: false, reason: 'blocked' };
+        }
+        const response = (await browser.tabs.sendMessage(currentTab.id, {
+          from: 'popup',
+          subject: 'applySiteLocal',
+          patch,
+        })) as WriteResult | undefined;
+        if (!response) {
+          return { ok: false, reason: 'blocked' };
+        }
+        requestSnapshot();
+        return response;
+      } catch {
+        return { ok: false, reason: 'blocked' };
+      }
     },
     refresh: requestSnapshot,
   };

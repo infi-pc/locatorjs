@@ -9,7 +9,7 @@ function createMockOptions(effective: LocatorOptions): OptionsStore {
     provenance: () => ({}),
     uiState: () => ({}),
     allTargets: () => ({}),
-    setUserProject: async () => ({ ok: true as const }),
+    setUserOrigin: async () => ({ ok: true as const }),
     setUiState: async () => ({ ok: true as const }),
   };
 }

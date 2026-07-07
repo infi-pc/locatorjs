@@ -13,18 +13,18 @@ const layerCombos: LocatorLayer[][] = [
   ["default"],
   ["team"],
   ["user-extension"],
-  ["user-project"],
+  ["user-origin"],
   ["default", "team"],
   ["default", "user-extension"],
-  ["default", "user-project"],
+  ["default", "user-origin"],
   ["team", "user-extension"],
-  ["team", "user-project"],
-  ["user-extension", "user-project"],
+  ["team", "user-origin"],
+  ["user-extension", "user-origin"],
   ["default", "team", "user-extension"],
-  ["default", "team", "user-project"],
-  ["default", "user-extension", "user-project"],
-  ["team", "user-extension", "user-project"],
-  ["default", "team", "user-extension", "user-project"],
+  ["default", "team", "user-origin"],
+  ["default", "user-extension", "user-origin"],
+  ["team", "user-extension", "user-origin"],
+  ["default", "team", "user-extension", "user-origin"],
 ];
 
 describe("resolve – 16 layer presence permutations", () => {
@@ -33,7 +33,7 @@ describe("resolve – 16 layer presence permutations", () => {
       default: { targetId: "default-t" },
       team: { targetId: "team-t" },
       "user-extension": { targetId: "user-ext-t" },
-      "user-project": { targetId: "user-proj-t" },
+      "user-origin": { targetId: "user-proj-t" },
     };
     const layers: Partial<Record<LocatorLayer, LocatorOptions>> = {};
     for (const l of present) layers[l] = optionPerLayer[l];
@@ -55,16 +55,16 @@ describe("resolve – value semantics", () => {
   test("boolean false in later layer overrides true in earlier layer", () => {
     const { effective, provenance } = resolve({
       team: { disabled: true },
-      "user-project": { disabled: false },
+      "user-origin": { disabled: false },
     });
     expect(effective.disabled).toBe(false);
-    expect(provenance.disabled).toBe("user-project");
+    expect(provenance.disabled).toBe("user-origin");
   });
 
   test("undefined in later layer does not override earlier layer", () => {
     const { effective, provenance } = resolve({
       team: { disabled: true },
-      "user-project": { disabled: undefined },
+      "user-origin": { disabled: undefined },
     });
     expect(effective.disabled).toBe(true);
     expect(provenance.disabled).toBe("team");
@@ -73,7 +73,7 @@ describe("resolve – value semantics", () => {
   test("replacePath merges atomically (later layer wins whole object)", () => {
     const { effective, provenance } = resolve({
       team: { replacePath: { from: "/team-from", to: "/team-to" } },
-      "user-project": {
+      "user-origin": {
         replacePath: { from: "/user-from", to: "/user-to" },
       },
     });
@@ -81,13 +81,60 @@ describe("resolve – value semantics", () => {
       from: "/user-from",
       to: "/user-to",
     });
-    expect(provenance.replacePath).toBe("user-project");
+    expect(provenance.replacePath).toBe("user-origin");
   });
 
   test("DEFAULT_LAYER provides mouseModifiers fallback", () => {
     const { effective, provenance } = resolve({ default: DEFAULT_LAYER });
     expect(effective.mouseModifiers).toBe("alt");
     expect(provenance.mouseModifiers).toBe("default");
+  });
+});
+
+describe("resolve – atomic target slot", () => {
+  test("user targetId overrides team targetTemplate", () => {
+    const { effective, provenance } = resolve({
+      team: { targetTemplate: "team://${filePath}" },
+      "user-origin": { targetId: "vscode" },
+    });
+    expect(effective.targetTemplate).toBeUndefined();
+    expect(effective.targetId).toBe("vscode");
+    expect(provenance.targetTemplate).toBeUndefined();
+    expect(provenance.targetId).toBe("user-origin");
+  });
+
+  test("user targetTemplate overrides team targetId", () => {
+    const { effective, provenance } = resolve({
+      team: { targetId: "webstorm" },
+      "user-origin": { targetTemplate: "custom://${filePath}" },
+    });
+    expect(effective.targetId).toBeUndefined();
+    expect(effective.targetTemplate).toBe("custom://${filePath}");
+    expect(provenance.targetTemplate).toBe("user-origin");
+  });
+
+  test("layer without any target field leaves lower target intact", () => {
+    const { effective, provenance } = resolve({
+      team: { targetTemplate: "team://${filePath}" },
+      "user-origin": { projectPath: "/repo/" },
+    });
+    expect(effective.targetTemplate).toBe("team://${filePath}");
+    expect(provenance.targetTemplate).toBe("team");
+    expect(provenance.projectPath).toBe("user-origin");
+  });
+
+  test("layer setting both target fields carries both (template wins in resolveTarget)", () => {
+    const { effective, provenance } = resolve({
+      team: { targetId: "webstorm" },
+      "user-origin": {
+        targetId: "vscode",
+        targetTemplate: "custom://${filePath}",
+      },
+    });
+    expect(effective.targetId).toBe("vscode");
+    expect(effective.targetTemplate).toBe("custom://${filePath}");
+    expect(provenance.targetId).toBe("user-origin");
+    expect(provenance.targetTemplate).toBe("user-origin");
   });
 });
 
@@ -131,12 +178,22 @@ describe("resolveTarget – split-field semantics", () => {
     }
   });
 
-  test("empty effective falls back to first target with empty reason", () => {
+  test("no target selected falls back to first target with none-selected reason", () => {
     const r = resolveTarget({}, targets);
     expect(r.kind).toBe("fallback");
     if (r.kind === "fallback") {
-      expect(r.reason).toBe("empty");
+      expect(r.reason).toBe("none-selected");
       expect(r.id).toBe("vscode");
+    }
+  });
+
+  test("no targets at all falls back with empty reason", () => {
+    const r = resolveTarget({}, {});
+    expect(r.kind).toBe("fallback");
+    if (r.kind === "fallback") {
+      expect(r.reason).toBe("empty");
+      expect(r.id).toBe("");
+      expect(r.url).toBe("");
     }
   });
 });

@@ -15,7 +15,7 @@ export type LocatorOptions = {
   showIntro?: boolean;
 };
 
-export type LocatorUserProjectStored = LocatorOptions & {
+export type LocatorUserOriginStored = LocatorOptions & {
   uiState?: { welcomeScreenDismissed?: boolean };
 };
 
@@ -23,13 +23,13 @@ export type LocatorLayer =
   | "default"
   | "team"
   | "user-extension"
-  | "user-project";
+  | "user-origin";
 
 export const LAYER_ORDER: LocatorLayer[] = [
   "default",
   "team",
   "user-extension",
-  "user-project",
+  "user-origin",
 ];
 
 export const DEFAULT_LAYER: LocatorOptions = {
@@ -45,6 +45,11 @@ export type ResolveResult = {
   provenance: Partial<Record<keyof LocatorOptions, LocatorLayer>>;
 };
 
+// targetId and targetTemplate are two forms of one choice ("which target"),
+// so a layer that sets either one overrides both from lower layers — otherwise
+// a team-set template could never be overridden by a user picking a targetId.
+const TARGET_KEYS = ["targetId", "targetTemplate"] as const;
+
 export function resolve(
   layers: Partial<Record<LocatorLayer, LocatorOptions>>
 ): ResolveResult {
@@ -54,6 +59,14 @@ export function resolve(
   for (const layer of LAYER_ORDER) {
     const source = layers[layer];
     if (!source) continue;
+
+    if (TARGET_KEYS.some((key) => source[key] !== undefined)) {
+      for (const key of TARGET_KEYS) {
+        delete effective[key];
+        delete provenance[key];
+      }
+    }
+
     for (const rawKey of Object.keys(source) as (keyof LocatorOptions)[]) {
       const value = source[rawKey];
       if (value === undefined) continue;
@@ -72,7 +85,7 @@ export type ResolvedTarget =
       kind: "fallback";
       id: string;
       url: string;
-      reason: "unknown-id" | "empty";
+      reason: "unknown-id" | "none-selected" | "empty";
     };
 
 export function resolveTarget(
@@ -98,6 +111,6 @@ export function resolveTarget(
     kind: "fallback",
     id: firstId,
     url: firstTarget.url,
-    reason: effective.targetId ? "unknown-id" : "empty",
+    reason: effective.targetId ? "unknown-id" : "none-selected",
   };
 }

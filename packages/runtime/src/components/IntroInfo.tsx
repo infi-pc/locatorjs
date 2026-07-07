@@ -63,7 +63,7 @@ export function IntroInfo(props: {
         <a
           class="underline cursor-pointer"
           onClick={() => {
-            options.setUserProject({ showIntro: false });
+            options.setUserOrigin({ showIntro: false });
           }}
         >
           Stop showing this popup

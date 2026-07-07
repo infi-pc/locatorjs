@@ -23,16 +23,16 @@ export function LinkOptions(props: {
   }
   function selectTarget(val: string | undefined) {
     if (!val) {
-      options.setUserProject({
+      options.setUserOrigin({
         targetId: undefined,
         targetTemplate: undefined,
       });
       return;
     }
     if (val.includes("://")) {
-      options.setUserProject({ targetTemplate: val, targetId: undefined });
+      options.setUserOrigin({ targetTemplate: val, targetId: undefined });
     } else {
-      options.setUserProject({ targetId: val, targetTemplate: undefined });
+      options.setUserOrigin({ targetId: val, targetTemplate: undefined });
     }
   }
 
@@ -54,14 +54,14 @@ export function LinkOptions(props: {
       <ProjectLinkForm
         value={options.effective().projectPath}
         onChange={function (newValue) {
-          options.setUserProject({ projectPath: newValue });
+          options.setUserOrigin({ projectPath: newValue });
         }}
       />
 
       <TransformLinkForm
         value={options.effective().replacePath}
         onChange={(newValue) => {
-          options.setUserProject({ replacePath: newValue });
+          options.setUserOrigin({ replacePath: newValue });
         }}
       />
 
@@ -75,7 +75,7 @@ export function LinkOptions(props: {
         <TmuxSessionForm
           value={options.effective().tmuxSession}
           onChange={(newValue) => {
-            options.setUserProject({ tmuxSession: newValue });
+            options.setUserOrigin({ tmuxSession: newValue });
           }}
           onTemplateSwitch={(useCustom, tmuxSession) => {
             if (useCustom) {
@@ -94,7 +94,7 @@ export function LinkOptions(props: {
       <LinkHrefTarget
         value={options.effective().hrefTarget}
         onChange={(newValue) => {
-          options.setUserProject({ hrefTarget: newValue });
+          options.setUserOrigin({ hrefTarget: newValue });
         }}
       />
 

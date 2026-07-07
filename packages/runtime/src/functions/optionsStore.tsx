@@ -9,15 +9,15 @@ import {
 } from "solid-js";
 import {
   DEFAULT_LAYER,
-  getUserProjectOptions,
-  getUserProjectUiState,
-  listenOnUserProjectChanges,
+  getUserOriginOptions,
+  getUserOriginUiState,
+  listenOnUserOriginChanges,
   LocatorLayer,
   LocatorOptions,
-  LocatorUserProjectStored,
+  LocatorUserOriginStored,
   resolve,
-  setUserProjectOptions,
-  setUserProjectUiState,
+  setUserOriginOptions,
+  setUserOriginUiState,
   Targets,
   WriteResult,
   allTargets,
@@ -26,14 +26,14 @@ import { setDebugMode } from "../adapters/react/debug";
 import { getTeamLayerSignal, getTeamTargetsSignal } from "./teamLayerStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
 
-export type UiState = NonNullable<LocatorUserProjectStored["uiState"]>;
+export type UiState = NonNullable<LocatorUserOriginStored["uiState"]>;
 
 export type OptionsStore = {
   effective: () => LocatorOptions;
   provenance: () => Partial<Record<keyof LocatorOptions, LocatorLayer>>;
   uiState: () => UiState;
   allTargets: () => Targets;
-  setUserProject: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  setUserOrigin: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   setUiState: (patch: Partial<UiState>) => Promise<WriteResult>;
 };
 
@@ -59,17 +59,17 @@ export function initOptions(): OptionsStore {
   const [userExtension, setUserExtension] = createSignal<
     LocatorOptions | undefined
   >(readUserExtensionGlobal());
-  const [userProject, setUserProject] = createSignal<LocatorOptions>(
-    getUserProjectOptions()
+  const [userOrigin, setUserOrigin] = createSignal<LocatorOptions>(
+    getUserOriginOptions()
   );
-  const [uiState, setUiState] = createSignal<UiState>(getUserProjectUiState());
+  const [uiState, setUiState] = createSignal<UiState>(getUserOriginUiState());
 
   const resolved = createMemo(() =>
     resolve({
       default: DEFAULT_LAYER,
       team: teamLayer(),
       "user-extension": userExtension(),
-      "user-project": userProject(),
+      "user-origin": userOrigin(),
     })
   );
 
@@ -80,9 +80,9 @@ export function initOptions(): OptionsStore {
     setDebugMode(effective().debugMode ?? false);
   });
 
-  listenOnUserProjectChanges(() => {
-    setUserProject(getUserProjectOptions());
-    setUiState(getUserProjectUiState());
+  listenOnUserOriginChanges(() => {
+    setUserOrigin(getUserOriginOptions());
+    setUiState(getUserOriginUiState());
   });
 
   if (typeof window !== "undefined") {
@@ -94,8 +94,8 @@ export function initOptions(): OptionsStore {
         setUserExtension(readUserExtensionGlobal());
       }
       if (data.type === "LOCATOR_EXTENSION_UPDATED_OPTIONS") {
-        setUserProject(getUserProjectOptions());
-        setUiState(getUserProjectUiState());
+        setUserOrigin(getUserOriginOptions());
+        setUiState(getUserOriginUiState());
       }
     };
     window.addEventListener("message", onMessage, false);
@@ -111,17 +111,17 @@ export function initOptions(): OptionsStore {
     provenance,
     uiState,
     allTargets: () => teamTargets() ?? allTargets,
-    setUserProject: async (patch) => {
-      const result = setUserProjectOptions(patch);
+    setUserOrigin: async (patch) => {
+      const result = setUserOriginOptions(patch);
       if (result.ok) {
-        setUserProject(getUserProjectOptions());
+        setUserOrigin(getUserOriginOptions());
       }
       return result;
     },
     setUiState: async (patch) => {
-      const result = setUserProjectUiState(patch);
+      const result = setUserOriginUiState(patch);
       if (result.ok) {
-        setUiState(getUserProjectUiState());
+        setUiState(getUserOriginUiState());
       }
       return result;
     },
@@ -131,7 +131,7 @@ export function initOptions(): OptionsStore {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     window.enableLocator = () => {
-      store.setUserProject({ disabled: false });
+      store.setUserOrigin({ disabled: false });
       return "Locator enabled";
     };
   }

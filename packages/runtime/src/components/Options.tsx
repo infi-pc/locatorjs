@@ -1,4 +1,4 @@
-import { clearUserProjectOptions, Targets } from "@locator/shared";
+import { clearUserOriginOptions, Targets } from "@locator/shared";
 import { createMemo, createSignal, createEffect } from "solid-js";
 import { bannerClasses } from "../functions/bannerClasses";
 import { isExtension } from "../functions/isExtension";
@@ -81,7 +81,7 @@ export function Options(props: {
   const toggleDebugMode = () => {
     const newValue = !debugEnabled();
     setDebugEnabled(newValue);
-    options.setUserProject({ debugMode: newValue });
+    options.setUserOrigin({ debugMode: newValue });
   };
 
   return (
@@ -132,7 +132,7 @@ export function Options(props: {
           <button
             class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
             onClick={() => {
-              clearUserProjectOptions();
+              clearUserOriginOptions();
               setDebugEnabled(false);
               props.onClose();
             }}
@@ -143,7 +143,7 @@ export function Options(props: {
             class="bg-red-50 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs text-red-800 flex gap-1"
             onClick={() => {
               if (isExtension()) {
-                options.setUserProject({ disabled: true });
+                options.setUserOrigin({ disabled: true });
                 props.onClose();
               } else {
                 props.showDisableDialog();

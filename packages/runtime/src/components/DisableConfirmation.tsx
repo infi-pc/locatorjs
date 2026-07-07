@@ -23,7 +23,7 @@ export function DisableConfirmation(props: { onClose: () => void }) {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           on:click={() => {
-            options.setUserProject({ disabled: true });
+            options.setUserOrigin({ disabled: true });
           }}
           class="bg-slate-100 py-2 px-4 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-sm"
         >
