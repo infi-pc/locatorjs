@@ -1,4 +1,6 @@
 import { JSX } from "solid-js";
+import { css, cx } from "@locator/styled-system/css";
+import { kbd, spinner } from "@locator/styled-system/recipes";
 
 export function SectionHeadline(props: {
   children: JSX.Element;
@@ -6,9 +8,14 @@ export function SectionHeadline(props: {
 }) {
   return (
     <label
-      class={`text-base font-medium text-gray-900 dark:text-gray-200${
-        props.class ? ` ${props.class}` : ""
-      }`}
+      class={cx(
+        css({
+          color: "fg.default",
+          fontSize: "md",
+          fontWeight: "medium",
+        }),
+        props.class
+      )}
     >
       {props.children}
     </label>
@@ -17,18 +24,18 @@ export function SectionHeadline(props: {
 
 export function Kbd(props: { children: JSX.Element }) {
   return (
-    <kbd class="rounded border border-b-2 border-gray-300 bg-gray-50 px-1.5 py-0.5 font-sans text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200">
-      {props.children}
-    </kbd>
+    <kbd class={kbd({ variant: "surface", size: "sm" })}>{props.children}</kbd>
   );
 }
 
 export function Spinner(props: { class?: string }) {
   return (
     <div
-      class={`h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600${
-        props.class ? ` ${props.class}` : ""
-      }`}
+      class={cx(
+        spinner({ size: "lg" }),
+        css({ color: "green.9" }),
+        props.class
+      )}
       role="status"
       aria-label="Loading"
     />

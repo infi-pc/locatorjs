@@ -1,5 +1,6 @@
-import { Tabs as KTabs } from "@kobalte/core/tabs";
 import { For, JSX } from "solid-js";
+import { css, cx } from "@locator/styled-system/css";
+import * as TabsPrimitive from "./components/ui/tabs";
 
 export type TabItem = {
   id: string;
@@ -13,32 +14,66 @@ export function Tabs(props: {
   value?: string;
   onChange?: (id: string) => void;
 }) {
+  const styles = {
+    list: css({
+      alignItems: "center",
+      bg: "gray.subtle.bg",
+      borderRadius: "l3",
+      display: "flex",
+      gap: "1",
+      p: "1",
+      width: "100%",
+    }),
+    trigger: css({
+      borderRadius: "l2",
+      color: "fg.muted",
+      flexShrink: 0,
+      fontSize: "sm",
+      fontWeight: "medium",
+      minH: "8",
+      px: "3",
+      py: "1",
+      whiteSpace: "nowrap",
+      _hover: {
+        bg: "gray.plain.bg.hover",
+        color: "fg.default",
+      },
+      "&[data-selected]": {
+        bg: "green.surface.bg",
+        color: "green.surface.fg",
+        boxShadow: "xs",
+      },
+    }),
+    content: css({ pt: "3", width: "100%" }),
+  };
+
   return (
-    <KTabs
+    <TabsPrimitive.Root
       defaultValue={props.defaultId}
       value={props.value}
-      onChange={props.onChange}
-      class="flex flex-col"
+      onValueChange={(details: { value: string }) =>
+        props.onChange?.(details.value)
+      }
+      variant="line"
+      size="sm"
+      colorPalette="green"
     >
-      <KTabs.List class="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+      <TabsPrimitive.List class={styles.list}>
         <For each={props.items}>
           {(item) => (
-            <KTabs.Trigger
-              value={item.id}
-              class="px-3 py-1.5 text-sm text-gray-500 border-b-2 border-transparent -mb-px cursor-pointer hover:text-gray-800 data-[selected]:border-blue-600 data-[selected]:text-blue-700 data-[selected]:font-medium dark:text-gray-400 dark:hover:text-gray-200 dark:data-[selected]:text-blue-300"
-            >
+            <TabsPrimitive.Trigger value={item.id} class={styles.trigger}>
               {item.label}
-            </KTabs.Trigger>
+            </TabsPrimitive.Trigger>
           )}
         </For>
-      </KTabs.List>
+      </TabsPrimitive.List>
       <For each={props.items}>
         {(item) => (
-          <KTabs.Content value={item.id} class="pt-3">
+          <TabsPrimitive.Content value={item.id} class={cx(styles.content)}>
             {item.content}
-          </KTabs.Content>
+          </TabsPrimitive.Content>
         )}
       </For>
-    </KTabs>
+    </TabsPrimitive.Root>
   );
 }

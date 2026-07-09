@@ -6,11 +6,22 @@ import {
   LayerTabConfig,
   SectionHeadline,
 } from '@locator/ui';
+import { css } from '@locator/styled-system/css';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 
 type Props = {
   setPage: (page: Page) => void;
+};
+
+const styles = {
+  header: css({
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    mb: '2',
+  }),
+  note: css({ color: 'fg.subtle', fontSize: 'xs', mt: '2' }),
 };
 
 export function SettingsPage(props: Props) {
@@ -62,7 +73,7 @@ export function SettingsPage(props: Props) {
 
   return (
     <div>
-      <div class="mb-2 flex items-center justify-between">
+      <div class={styles.header}>
         <SectionHeadline>Settings</SectionHeadline>
         <Button
           size="xs"
@@ -78,7 +89,7 @@ export function SettingsPage(props: Props) {
         provenance={provenance()}
         targets={targets()}
       />
-      <div class="mt-2 text-[11px] text-gray-400">
+      <div class={styles.note}>
         {status() === 'connected'
           ? 'Later layers override earlier ones: defaults < team < extension < this origin.'
           : 'Connect to a page running LocatorJS to edit per-origin and see team settings.'}

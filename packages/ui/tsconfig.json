@@ -8,7 +8,7 @@
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
     "lib": ["ESNext", "dom", "DOM.Iterable"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,

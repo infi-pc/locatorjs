@@ -1,6 +1,7 @@
 import { createSignal, Show, Switch, Match } from 'solid-js';
 import { Button, SectionHeadline, Spinner } from '@locator/ui';
 import { Settings } from 'lucide-solid';
+import { css } from '@locator/styled-system/css';
 import { Home } from './Home';
 import { SettingsPage } from './SettingsPage';
 import { useSyncedState } from './syncedState';
@@ -14,6 +15,33 @@ function GithubIcon() {
   );
 }
 
+const styles = {
+  shell: css({ p: '4' }),
+  loading: css({
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2',
+    height: '80',
+    justifyContent: 'center',
+    textAlign: 'center',
+  }),
+  loadingText: css({ fontSize: 'lg' }),
+  bodyText: css({ fontSize: 'sm', mt: '1' }),
+  actionRow: css({ display: 'flex', justifyContent: 'flex-end', mt: '3' }),
+  header: css({
+    alignItems: 'flex-start',
+    display: 'flex',
+    gap: '2',
+    justifyContent: 'space-between',
+  }),
+  paragraphTitle: css({ fontWeight: 'medium', mt: '2' }),
+  list: css({ fontSize: 'sm', pl: '4' }),
+  link: css({ textDecoration: 'underline' }),
+  helpful: css({ mt: '2', pb: '4' }),
+  iconLink: css({ alignItems: 'center', display: 'flex', gap: '1' }),
+};
+
 const Popup = () => {
   const [page, setPage] = createSignal<Page>({ type: 'home' });
   const { status, snapshot, setSiteLocal } = useSyncedState();
@@ -21,13 +49,13 @@ const Popup = () => {
   const siteDisabled = () => !!snapshot()?.effective.disabled;
 
   return (
-    <div class="p-4">
+    <div class={styles.shell}>
       <Show
         when={status() !== 'loading'}
         fallback={
-          <div class="flex flex-col h-80 justify-center items-center gap-2 text-center">
+          <div class={styles.loading}>
             <Spinner />
-            <div class="text-lg">Loading...</div>
+            <div class={styles.loadingText}>Loading...</div>
           </div>
         }
       >
@@ -45,10 +73,10 @@ const Popup = () => {
                 fallback={
                   <div>
                     <SectionHeadline>Disabled</SectionHeadline>
-                    <div class="mt-1 text-sm">
+                    <div class={styles.bodyText}>
                       You have disabled Locator on this page.
                     </div>
-                    <div class="mt-3 flex justify-end">
+                    <div class={styles.actionRow}>
                       <Button
                         variant="primary"
                         onClick={() => setSiteLocal({ disabled: false })}
@@ -72,7 +100,7 @@ const Popup = () => {
 function NoRuntimeView(props: { setPage: (page: Page) => void }) {
   return (
     <div>
-      <div class="flex justify-between items-start gap-2">
+      <div class={styles.header}>
         <SectionHeadline>LocatorJS not detected on this page</SectionHeadline>
         <Button
           size="xs"
@@ -82,12 +110,12 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
           <Settings size={16} /> settings
         </Button>
       </div>
-      <p class="font-medium mt-2">You need one of these:</p>
-      <ul class="pl-4 text-sm">
+      <p class={styles.paragraphTitle}>You need one of these:</p>
+      <ul class={styles.list}>
         <li>
           Working React in development mode, with{' '}
           <a
-            class="underline"
+            class={styles.link}
             href="https://babeljs.io/docs/en/babel-preset-react"
             target="_blank"
           >
@@ -97,11 +125,11 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
         <li>Vue3 or Svelte in development mode</li>
         <li>React, SolidJS or Preact with Locator Babel plugin</li>
       </ul>
-      <p class="font-medium mt-2">Setup manually:</p>
-      <ul class="pl-4 text-sm">
+      <p class={styles.paragraphTitle}>Setup manually:</p>
+      <ul class={styles.list}>
         <li>
           <a
-            class="underline"
+            class={styles.link}
             href="https://www.locatorjs.com/install/react-data-id"
             target="_blank"
           >
@@ -110,7 +138,7 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
         </li>
         <li>
           <a
-            class="underline"
+            class={styles.link}
             href="https://www.locatorjs.com/install/preact"
             target="_blank"
           >
@@ -119,7 +147,7 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
         </li>
         <li>
           <a
-            class="underline"
+            class={styles.link}
             href="https://www.locatorjs.com/install/solidjs"
             target="_blank"
           >
@@ -128,7 +156,7 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
         </li>
         <li>
           <a
-            class="underline"
+            class={styles.link}
             href="https://www.locatorjs.com/install/svelte"
             target="_blank"
           >
@@ -137,7 +165,7 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
         </li>
         <li>
           <a
-            class="underline"
+            class={styles.link}
             href="https://www.locatorjs.com/install/vue"
             target="_blank"
           >
@@ -145,22 +173,22 @@ function NoRuntimeView(props: { setPage: (page: Page) => void }) {
           </a>
         </li>
       </ul>
-      <div class="mt-2 pb-4">
+      <div class={styles.helpful}>
         <SectionHeadline>Helpful links:</SectionHeadline>
         <a
           target="_blank"
-          class="flex gap-1 items-center"
+          class={styles.iconLink}
           href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
         >
           <GithubIcon />{' '}
-          <span class="underline">Readme.md: Troubleshooting</span>
+          <span class={styles.link}>Readme.md: Troubleshooting</span>
         </a>
         <a
           target="_blank"
-          class="flex gap-1 items-center"
+          class={styles.iconLink}
           href="https://github.com/infi-pc/locatorjs/issues"
         >
-          <GithubIcon /> <span class="underline">GitHub issues</span>
+          <GithubIcon /> <span class={styles.link}>GitHub issues</span>
         </a>
       </div>
     </div>

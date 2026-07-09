@@ -15,8 +15,9 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "@kobalte/core": "^0.13.11",
+    "@ark-ui/solid": "^5.37.1",
     "@locator/shared": "workspace:^",
+    "@locator/styled-system": "workspace:^",
     "solid-js": "^1.9.12"
   },
   "devDependencies": {

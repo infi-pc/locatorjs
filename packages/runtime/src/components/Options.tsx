@@ -4,7 +4,8 @@ import {
   Targets,
 } from "@locator/shared";
 import { createMemo, createSignal, createEffect } from "solid-js";
-import { LayeredOptionsEditor, LayerTabConfig } from "@locator/ui";
+import { Button, LayeredOptionsEditor, LayerTabConfig } from "@locator/ui";
+import { css, cx } from "@locator/styled-system/css";
 import { bannerClasses } from "../functions/bannerClasses";
 import { isExtension } from "../functions/isExtension";
 import LogoIcon from "./LogoIcon";
@@ -17,6 +18,35 @@ import {
   getElementInfoAsync,
 } from "../adapters/getElementInfo";
 import { LinkProps } from "../types/types";
+
+const styles = {
+  panel: css({
+    maxWidth: "100%",
+    width: "560px",
+  }),
+  inner: css({ p: "1" }),
+  header: css({
+    alignItems: "center",
+    display: "flex",
+    justifyContent: "space-between",
+  }),
+  details: css({ mt: "4", mb: "2" }),
+  summary: css({
+    color: "fg.default",
+    cursor: "pointer",
+    fontSize: "sm",
+    fontWeight: "medium",
+    userSelect: "none",
+  }),
+  detailsContent: css({ mt: "2" }),
+  footer: css({
+    display: "flex",
+    gap: "2",
+    justifyContent: "space-between",
+    mt: "2",
+  }),
+  disableIcon: css({ width: "16px", height: "16px" }),
+};
 
 export function Options(props: {
   targets: Targets;
@@ -103,7 +133,7 @@ export function Options(props: {
 
   return (
     <div
-      class={bannerClasses() + " w-[560px] max-w-full"}
+      class={cx(bannerClasses(), styles.panel)}
       style={{
         "max-height": "calc(100vh - 32px)",
         "overflow-y": "auto",
@@ -112,8 +142,8 @@ export function Options(props: {
       }}
       onWheel={(e) => e.stopPropagation()}
     >
-      <div class="p-1">
-        <div class="flex justify-between items-center">
+      <div class={styles.inner}>
+        <div class={styles.header}>
           <LogoIcon />
           <OptionsCloseButton onClick={() => props.onClose()} />
         </div>
@@ -124,11 +154,9 @@ export function Options(props: {
           targets={props.targets}
         />
 
-        <details class="mt-4 mb-2">
-          <summary class="cursor-pointer text-sm font-medium text-gray-800 select-none">
-            All settings by layer
-          </summary>
-          <div class="mt-2">
+        <details class={styles.details}>
+          <summary class={styles.summary}>All settings by layer</summary>
+          <div class={styles.detailsContent}>
             <LayeredOptionsEditor
               tabs={layerTabs()}
               effective={options.effective()}
@@ -138,18 +166,20 @@ export function Options(props: {
           </div>
         </details>
 
-        <div class="flex gap-2 justify-between mt-2">
-          <button
-            class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
+        <div class={styles.footer}>
+          <Button
+            size="xs"
+            variant="outline"
             onClick={() => {
               clearUserOriginOptions();
               props.onClose();
             }}
           >
             Reset settings
-          </button>
-          <button
-            class="bg-red-50 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs text-red-800 flex gap-1"
+          </Button>
+          <Button
+            size="xs"
+            variant="danger-ghost"
             onClick={() => {
               if (isExtension()) {
                 options.setUserOrigin({ disabled: true });
@@ -159,14 +189,14 @@ export function Options(props: {
               }
             }}
           >
-            <svg style={{ width: "16px", height: "16px" }} viewBox="0 0 24 24">
+            <svg class={styles.disableIcon} viewBox="0 0 24 24">
               <path
                 fill="currentColor"
                 d="M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"
               />
             </svg>{" "}
             Disable Locator
-          </button>
+          </Button>
         </div>
       </div>
     </div>

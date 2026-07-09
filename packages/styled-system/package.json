@@ -1,0 +1,62 @@
+{
+  "name": "@locator/styled-system",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "panda codegen",
+    "dev": "panda codegen --watch"
+  },
+  "exports": {
+    "./css": {
+      "types": "./dist/css/index.d.ts",
+      "import": "./dist/css/index.mjs"
+    },
+    "./jsx": {
+      "types": "./dist/jsx/index.d.ts",
+      "import": "./dist/jsx/index.mjs"
+    },
+    "./patterns": {
+      "types": "./dist/patterns/index.d.ts",
+      "import": "./dist/patterns/index.mjs"
+    },
+    "./recipes": {
+      "types": "./dist/recipes/index.d.ts",
+      "import": "./dist/recipes/index.mjs"
+    },
+    "./tokens": {
+      "types": "./dist/tokens/index.d.ts",
+      "import": "./dist/tokens/index.mjs"
+    },
+    "./types": "./dist/types/index.d.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "css": [
+        "dist/css/index.d.ts"
+      ],
+      "jsx": [
+        "dist/jsx/index.d.ts"
+      ],
+      "patterns": [
+        "dist/patterns/index.d.ts"
+      ],
+      "recipes": [
+        "dist/recipes/index.d.ts"
+      ],
+      "tokens": [
+        "dist/tokens/index.d.ts"
+      ],
+      "types": [
+        "dist/types/index.d.ts"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@pandacss/dev": "^1.11.4",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@ark-ui/solid": "^5.37.1",
+    "solid-js": "^1.9.12"
+  }
+}

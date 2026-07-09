@@ -15,6 +15,7 @@ import { Switch } from "./Switch";
 import { Tabs } from "./Tabs";
 import { TextInput } from "./TextInput";
 import { ProvenanceBadge, LAYER_LABELS } from "./ProvenanceBadge";
+import { css, cx } from "@locator/styled-system/css";
 
 export type LayerTabConfig = {
   layer: LocatorLayer;
@@ -24,6 +25,77 @@ export type LayerTabConfig = {
   write?: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   /** Shown at the top of the tab, e.g. why the layer is read-only or unavailable. */
   note?: string;
+};
+
+const styles = {
+  stack: css({ display: "flex", flexDirection: "column", gap: "4" }),
+  note: css({
+    borderRadius: "l2",
+    bg: "green.subtle.bg",
+    color: "green.subtle.fg",
+    fontSize: "xs",
+    px: "3",
+    py: "2",
+  }),
+  rowHeader: css({
+    alignItems: "center",
+    display: "flex",
+    gap: "2",
+    justifyContent: "space-between",
+  }),
+  fieldLabel: css({
+    color: "fg.default",
+    fontSize: "sm",
+    fontWeight: "medium",
+  }),
+  rowActions: css({ alignItems: "center", display: "flex", gap: "2" }),
+  resetButton: css({
+    color: "fg.subtle",
+    cursor: "pointer",
+    fontSize: "xs",
+    textDecoration: "underline",
+    _hover: { color: "fg.muted" },
+  }),
+  controlWrap: css({ mt: "1" }),
+  inherited: css({
+    alignItems: "center",
+    bg: "gray.surface.bg",
+    borderColor: "gray.surface.border",
+    borderRadius: "l2",
+    borderWidth: "1px",
+    display: "flex",
+    gap: "2",
+    justifyContent: "space-between",
+    minH: "10",
+    px: "3",
+    py: "2",
+    _hover: {
+      borderColor: "gray.surface.border.hover",
+    },
+  }),
+  mutedText: css({ color: "fg.subtle", fontSize: "sm" }),
+  optionStack: css({ display: "flex", flexDirection: "column", gap: "1" }),
+  optionLabel: css({
+    alignItems: "center",
+    color: "fg.default",
+    cursor: "pointer",
+    display: "flex",
+    fontSize: "sm",
+    gap: "2",
+  }),
+  radio: css({
+    accentColor: "var(--colors-green-9)",
+    cursor: "pointer",
+    flexShrink: 0,
+  }),
+  helperText: css({ color: "fg.muted", fontSize: "xs" }),
+  fadedInput: css({ color: "fg.subtle", _focus: { color: "fg.default" } }),
+  switchStack: css({
+    alignItems: "flex-start",
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.5",
+  }),
 };
 
 export function LayeredOptionsEditor(props: {
@@ -64,11 +136,9 @@ function LayerForm(props: {
   const write = (patch: Partial<LocatorOptions>) => props.tab.write?.(patch);
 
   return (
-    <div class="flex flex-col gap-4">
+    <div class={styles.stack}>
       <Show when={props.tab.note}>
-        <div class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-          {props.tab.note}
-        </div>
+        <div class={styles.note}>{props.tab.note}</div>
       </Show>
 
       <TargetField
@@ -161,15 +231,13 @@ function FieldRow(props: {
 }) {
   return (
     <div>
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-sm font-medium text-gray-900 dark:text-gray-200">
-          {props.label}
-        </span>
-        <div class="flex items-center gap-2">
+      <div class={styles.rowHeader}>
+        <span class={styles.fieldLabel}>{props.label}</span>
+        <div class={styles.rowActions}>
           <ProvenanceBadge layer={props.provenance} />
           <Show when={props.setHere && props.editable}>
             <button
-              class="text-[11px] text-gray-400 underline hover:text-gray-600 cursor-pointer"
+              class={styles.resetButton}
               onClick={() => props.onClear?.()}
             >
               reset to inherited
@@ -177,16 +245,14 @@ function FieldRow(props: {
           </Show>
         </div>
       </div>
-      <div class="mt-1">
+      <div class={styles.controlWrap}>
         <Show
           when={props.setHere}
           fallback={
-            <div class="flex items-center justify-between gap-2 rounded border border-dashed border-gray-200 px-2 py-1.5 dark:border-gray-700">
-              <span class="text-sm text-gray-400">
-                {props.inheritedPreview}
-              </span>
+            <div class={styles.inherited}>
+              <span class={styles.mutedText}>{props.inheritedPreview}</span>
               <Show when={props.editable}>
-                <Button size="xs" variant="ghost" onClick={props.onOverride}>
+                <Button size="xs" variant="outline" onClick={props.onOverride}>
                   Override here
                 </Button>
               </Show>
@@ -253,14 +319,14 @@ function TargetField(props: {
         props.write({ targetId: undefined, targetTemplate: undefined })
       }
     >
-      <div class="flex flex-col gap-1">
+      <div class={styles.optionStack}>
         <For each={Object.entries(props.targets)}>
           {([key, target]) => (
-            <label class="flex cursor-pointer items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
+            <label class={styles.optionLabel}>
               <input
                 type="radio"
                 name={`target-${props.tab.layer}`}
-                class="text-blue-600 focus:ring-blue-500"
+                class={styles.radio}
                 checked={key === selected()}
                 disabled={!props.editable}
                 onChange={() => select(key)}
@@ -269,11 +335,11 @@ function TargetField(props: {
             </label>
           )}
         </For>
-        <label class="flex cursor-pointer items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
+        <label class={styles.optionLabel}>
           <input
             type="radio"
             name={`target-${props.tab.layer}`}
-            class="text-blue-600 focus:ring-blue-500"
+            class={styles.radio}
             checked={isCustom()}
             disabled={!props.editable}
             onChange={() => {
@@ -293,13 +359,11 @@ function TargetField(props: {
               : selected()
           }
           disabled={!props.editable}
-          class={
-            props.targets[selected()] ? "text-gray-400 focus:text-gray-800" : ""
-          }
+          class={cx(props.targets[selected()] ? styles.fadedInput : undefined)}
           onChange={(e) => select(e.currentTarget.value)}
         />
         <Show when={isCustom()}>
-          <div class="text-xs text-gray-500">
+          <div class={styles.helperText}>
             Available variables: projectPath, filePath, line, column
           </div>
         </Show>
@@ -347,7 +411,7 @@ function ModifiersField(props: {
       }
       onClear={() => props.write({ mouseModifiers: undefined })}
     >
-      <div class="flex flex-col items-start gap-1.5">
+      <div class={styles.switchStack}>
         <For each={Object.entries(modifiersTitles)}>
           {([key, title]) => (
             <Switch

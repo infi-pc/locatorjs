@@ -1,6 +1,4 @@
-/* @tailwind base; */
-/* @tailwind components; */
-@tailwind utilities;
+@layer reset, base, tokens, recipes, utilities;
 
 body {
   width: 450px;

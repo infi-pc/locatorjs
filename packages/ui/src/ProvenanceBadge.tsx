@@ -1,4 +1,6 @@
 import type { LocatorLayer } from "@locator/shared";
+import { css, cx } from "@locator/styled-system/css";
+import { badge } from "@locator/styled-system/recipes";
 
 export const LAYER_LABELS: Record<LocatorLayer, string> = {
   default: "default",
@@ -7,20 +9,21 @@ export const LAYER_LABELS: Record<LocatorLayer, string> = {
   "user-origin": "this origin",
 };
 
-const LAYER_CLASSES: Record<LocatorLayer, string> = {
-  default: "bg-gray-100 text-gray-600",
-  team: "bg-blue-100 text-blue-700",
-  "user-extension": "bg-purple-100 text-purple-700",
-  "user-origin": "bg-green-100 text-green-700",
+const LAYER_PALETTES: Record<LocatorLayer, "gray" | "green" | "red"> = {
+  default: "gray",
+  team: "green",
+  "user-extension": "red",
+  "user-origin": "green",
 };
 
 export function ProvenanceBadge(props: { layer?: LocatorLayer }) {
   if (!props.layer) return null;
   return (
     <span
-      class={`inline-block text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap ${
-        LAYER_CLASSES[props.layer]
-      }`}
+      class={cx(
+        badge({ variant: "subtle", size: "sm" }),
+        css({ colorPalette: LAYER_PALETTES[props.layer] })
+      )}
       title={`Setting comes from: ${props.layer}`}
     >
       {LAYER_LABELS[props.layer]}

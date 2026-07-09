@@ -1,4 +1,5 @@
 import { detectSvelte } from "@locator/shared";
+import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
@@ -461,9 +462,11 @@ function RuntimeWrapper() {
 export function initRender(solidLayer: HTMLDivElement) {
   render(
     () => (
-      <OptionsProvider>
-        <RuntimeWrapper />
-      </OptionsProvider>
+      <EnvironmentProvider value={() => solidLayer.getRootNode() as ShadowRoot}>
+        <OptionsProvider>
+          <RuntimeWrapper />
+        </OptionsProvider>
+      </EnvironmentProvider>
     ),
     solidLayer
   );
