@@ -4,6 +4,7 @@ import { defineSlotRecipe } from "@pandacss/dev";
 export const switchRecipe = defineSlotRecipe({
   className: "switch",
   jsx: ["Switch", /Switch\.+/],
+  staticCss: [{ size: ["sm"], variant: ["solid"] }],
   slots: switchAnatomy.extendWith("indicator").keys(),
   base: {
     root: {

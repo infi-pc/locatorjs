@@ -33,7 +33,7 @@ export function Spinner(props: { class?: string }) {
     <div
       class={cx(
         spinner({ size: "lg" }),
-        css({ color: "green.9" }),
+        css({ color: "accent.9" }),
         props.class
       )}
       role="status"

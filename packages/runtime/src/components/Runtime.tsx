@@ -37,7 +37,7 @@ type UiMode =
   | ["context", ContextMenuState]
   | ["disable-confirmation"];
 
-function Runtime() {
+function Runtime(props: { portalMount: HTMLDivElement }) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -393,6 +393,7 @@ function Runtime() {
         <Options
           adapterId={adapterId()}
           targets={targets()}
+          portalMount={props.portalMount}
           onClose={() => {
             setUiMode(["off"]);
           }}
@@ -428,6 +429,7 @@ function Runtime() {
             <WelcomeScreen
               targets={targets()}
               originalLinkProps={dialog()![1]!}
+              portalMount={props.portalMount}
               onClose={() => {
                 setDialog(null);
               }}
@@ -439,7 +441,7 @@ function Runtime() {
   );
 }
 
-function RuntimeWrapper() {
+function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
   const options = useOptions();
 
   const isDisabled = () => options.effective().disabled || false;
@@ -454,7 +456,7 @@ function RuntimeWrapper() {
 
   return (
     <Show when={!isDisabled()}>
-      <Runtime />
+      <Runtime portalMount={props.portalMount} />
     </Show>
   );
 }
@@ -464,7 +466,7 @@ export function initRender(solidLayer: HTMLDivElement) {
     () => (
       <EnvironmentProvider value={() => solidLayer.getRootNode() as ShadowRoot}>
         <OptionsProvider>
-          <RuntimeWrapper />
+          <RuntimeWrapper portalMount={solidLayer} />
         </OptionsProvider>
       </EnvironmentProvider>
     ),

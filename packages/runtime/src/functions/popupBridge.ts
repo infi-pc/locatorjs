@@ -53,7 +53,9 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     }
 
     if (data.type === "LOCATOR_PAGE_SITE_LOCAL_WRITE") {
-      const result = await bridge.applySiteLocal(data.patch ?? {});
+      const result = await bridge.applySiteLocal(
+        deserializePatch(data.patch ?? {}, data.unset)
+      );
       window.postMessage(
         {
           type: "LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT",
@@ -76,4 +78,19 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
       }
     });
   }
+}
+
+function deserializePatch(
+  patch: Record<string, unknown>,
+  unset: unknown
+): Partial<LocatorOptions> {
+  const next = { ...patch } as Partial<LocatorOptions>;
+  if (!Array.isArray(unset)) return next;
+
+  for (const key of unset) {
+    if (typeof key === "string") {
+      next[key as keyof LocatorOptions] = undefined;
+    }
+  }
+  return next;
 }

@@ -12,13 +12,7 @@ async function run() {
 ${legacy}
 }
 ${panda}`;
-  const wrapped = `export default \`${content
-    .replaceAll("`", "\\`")
-    .replaceAll("\\:", "\\\\:")
-    .replaceAll("\\[", "\\\\[")
-    .replaceAll("\\]", "\\\\]")
-    .replaceAll("\\.", "\\\\.")
-    .replaceAll("\\/", "\\\\/")}\``;
+  const wrapped = `export default ${JSON.stringify(content)}`;
 
   await fs.writeFile("./src/_generated_styles.ts", wrapped);
   console.log("CSS file generated");

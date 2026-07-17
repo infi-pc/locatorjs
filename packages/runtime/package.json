@@ -12,12 +12,12 @@
     "dev:tailwind": "tailwindcss -i ./src/main.css -o ./dist/output.css --watch",
     "dev:panda": "panda cssgen --outfile dist/panda.css --watch",
     "dev:wrapCSS": "WATCH=true node ./scripts/wrapCSS.js",
-    "build": "concurrently pnpm:build:babel pnpm:build:ts pnpm:build:tailwind pnpm:build:panda && pnpm build:wrapCSS",
+    "build": "concurrently pnpm:build:tailwind pnpm:build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts",
     "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx",
     "//build:babel-cjs": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
     "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
     "build:tailwind": "tailwindcss -i ./src/main.css -o ./dist/output.css",
-    "build:panda": "panda cssgen --outfile dist/panda.css",
+    "build:panda": "panda cssgen --clean --outfile dist/panda.css",
     "build:wrapCSS": "node ./scripts/wrapCSS.js",
     "ts": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx"
@@ -29,6 +29,7 @@
     "@locator/styled-system": "workspace:^",
     "@locator/ui": "workspace:^",
     "@tailwindcss/forms": "^0.5.11",
+    "lucide-solid": "^1.14.0",
     "solid-js": "^1.9.12",
     "tailwindcss": "^3.4.19"
   },

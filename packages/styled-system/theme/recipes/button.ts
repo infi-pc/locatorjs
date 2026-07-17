@@ -113,8 +113,8 @@ export const button = defineRecipe({
         _icon: { boxSize: "4" },
       },
       sm: {
-        h: "9",
-        minW: "9",
+        h: "8",
+        minW: "8",
         textStyle: "sm",
         px: "3",
         _icon: { boxSize: "4" },

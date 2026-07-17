@@ -1,7 +1,7 @@
 import { LinkProps } from "../types/types";
-import { Targets } from "@locator/shared";
+import { DEFAULT_LAYER, Targets } from "@locator/shared";
+import { LayeredOptionsEditor, LayerTabConfig } from "@locator/ui";
 import { useOptions } from "../functions/optionsStore";
-import { LinkOptions } from "./LinkOptions";
 import { AdapterId, HREF_TARGET } from "../consts";
 import { buildLink } from "../functions/buildLink";
 
@@ -10,8 +10,29 @@ export function WelcomeScreen(props: {
   targets: Targets;
   onClose: () => void;
   adapterId?: AdapterId;
+  portalMount: HTMLDivElement;
 }) {
   const options = useOptions();
+  const tabs = (): LayerTabConfig[] => [
+    {
+      layer: "user-origin",
+      label: "This origin",
+      values: options.layers()["user-origin"] ?? {},
+      write: options.setUserOrigin,
+      note: "Adjust this origin until the test link opens the correct source file.",
+    },
+    {
+      layer: "user-extension",
+      label: "Extension",
+      values: options.layers()["user-extension"] ?? {},
+    },
+    { layer: "team", label: "Team", values: options.layers().team ?? {} },
+    {
+      layer: "default",
+      label: "Defaults",
+      values: options.layers().default ?? DEFAULT_LAYER,
+    },
+  ];
 
   const currentLink = () => {
     const eff = options.effective();
@@ -34,10 +55,13 @@ export function WelcomeScreen(props: {
           needed.
         </span>
       </div>
-      <LinkOptions
-        linkProps={props.originalLinkProps}
-        adapterId={props.adapterId}
-        targets={props.targets}
+      <LayeredOptionsEditor
+        tabs={tabs()}
+        effective={options.effective()}
+        provenance={options.provenance()}
+        targets={options.allTargets()}
+        defaultId="user-origin"
+        portalMount={props.portalMount}
       />
 
       <div class="mt-4 flex gap-2 justify-between items-center">
@@ -46,7 +70,7 @@ export function WelcomeScreen(props: {
           <a
             href={currentLink()}
             target={options.effective().hrefTarget || HREF_TARGET}
-            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded"
           >
             Test link
           </a>

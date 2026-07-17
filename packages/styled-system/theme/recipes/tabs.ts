@@ -4,6 +4,7 @@ import { defineSlotRecipe } from "@pandacss/dev";
 export const tabs = defineSlotRecipe({
   slots: tabsAnatomy.keys(),
   className: "tabs",
+  staticCss: [{ size: ["sm"], variant: ["line", "connected"], fitted: true }],
   base: {
     root: {
       position: "relative",
@@ -124,6 +125,45 @@ export const tabs = defineSlotRecipe({
           bg: "colorPalette.subtle.bg",
           color: "colorPalette.subtle.fg",
           borderRadius: "l2",
+        },
+      },
+      connected: {
+        root: {
+          alignItems: "stretch",
+        },
+        list: {
+          bg: "bg.default",
+          borderColor: "border",
+          _horizontal: {
+            borderBottomWidth: "1px",
+          },
+        },
+        trigger: {
+          bg: "transparent",
+          borderWidth: "1px",
+          borderColor: "transparent",
+          // keeps the baseline visible when a hovered tab paints its own bg
+          borderBottomColor: "border",
+          borderTopRadius: "l2",
+          color: "fg.muted",
+          // overlap the list baseline so the selected tab can mask it
+          marginBottom: "-1px",
+          _hover: {
+            bg: "bg.subtle",
+            color: "fg.default",
+          },
+          _selected: {
+            bg: "bg.subtle",
+            borderColor: "border",
+            borderBottomColor: "transparent",
+            color: "fg.default",
+          },
+        },
+        content: {
+          bg: "bg.subtle",
+          borderColor: "border",
+          borderWidth: "0 1px 1px",
+          borderBottomRadius: "l3",
         },
       },
       enclosed: {

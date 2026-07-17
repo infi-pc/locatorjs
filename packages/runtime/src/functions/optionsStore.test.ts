@@ -241,4 +241,44 @@ describe("mountRuntimePopupBridge", () => {
     expect(result.result).toEqual({ ok: true });
     expect(options.effective().mouseModifiers).toBe("alt+ctrl");
   });
+
+  test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies explicit unsets", async () => {
+    setUserExtensionGlobal({ mouseModifiers: "ctrl" });
+    const options = withRoot(() => {
+      const o = initOptions();
+      mountRuntimePopupBridge(o);
+      return o;
+    });
+    await options.setUserOrigin({ mouseModifiers: "shift" });
+    expect(options.effective().mouseModifiers).toBe("shift");
+
+    const result = await new Promise<Record<string, unknown>>((resolve) => {
+      const handler = (event: MessageEvent) => {
+        const data = event.data as Record<string, unknown> | undefined;
+        if (
+          data?.type === "LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT" &&
+          data.requestId === "req-3"
+        ) {
+          window.removeEventListener("message", handler);
+          resolve(data);
+        }
+      };
+      window.addEventListener("message", handler);
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            type: "LOCATOR_PAGE_SITE_LOCAL_WRITE",
+            requestId: "req-3",
+            patch: {},
+            unset: ["mouseModifiers"],
+          },
+          source: window,
+        })
+      );
+    });
+
+    expect(result.result).toEqual({ ok: true });
+    expect(options.effective().mouseModifiers).toBe("ctrl");
+    expect(options.provenance().mouseModifiers).toBe("user-extension");
+  });
 });

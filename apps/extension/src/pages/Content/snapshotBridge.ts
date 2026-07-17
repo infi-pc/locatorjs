@@ -8,6 +8,7 @@ type PopupMessage =
       from: 'popup';
       subject: 'applySiteLocal';
       patch: Record<string, unknown>;
+      unset?: string[];
     };
 
 export function mountSnapshotBridge() {
@@ -39,6 +40,7 @@ export function mountSnapshotBridge() {
           {
             type: 'LOCATOR_PAGE_SITE_LOCAL_WRITE',
             patch: msg.patch,
+            unset: msg.unset ?? [],
           },
           'LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT',
           (payload) => {

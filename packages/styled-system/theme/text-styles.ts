@@ -24,4 +24,10 @@ export const textStyles = defineTextStyles({
   label: {
     value: { fontSize: "sm", lineHeight: "1.25rem", fontWeight: "medium" },
   },
+  caption: {
+    value: { color: "fg.muted", fontSize: "xs", lineHeight: "1.125rem" },
+  },
+  mono: {
+    value: { fontFamily: "mono", fontSize: "sm", lineHeight: "1.25rem" },
+  },
 });

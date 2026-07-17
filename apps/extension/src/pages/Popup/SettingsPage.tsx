@@ -1,27 +1,17 @@
-import { ArrowLeft } from 'lucide-solid';
 import { allTargets, DEFAULT_LAYER, resolve } from '@locator/shared';
-import {
-  Button,
-  LayeredOptionsEditor,
-  LayerTabConfig,
-  SectionHeadline,
-} from '@locator/ui';
+import { LayeredOptionsEditor, LayerTabConfig } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 
 type Props = {
   setPage: (page: Page) => void;
+  page: Extract<Page, { type: 'settings' }>;
 };
 
 const styles = {
-  header: css({
-    alignItems: 'center',
-    display: 'flex',
-    justifyContent: 'space-between',
-    mb: '2',
-  }),
-  note: css({ color: 'fg.subtle', fontSize: 'xs', mt: '2' }),
+  root: css({ mx: '-4' }),
+  note: css({ color: 'fg.subtle', fontSize: 'xs', mt: '2', px: '4' }),
 };
 
 export function SettingsPage(props: Props) {
@@ -44,6 +34,9 @@ export function SettingsPage(props: Props) {
       label: 'This origin',
       values: snapshot()?.layers['user-origin'] ?? {},
       write: snapshot() ? setSiteLocal : undefined,
+      disabled: !snapshot(),
+      disabledReason:
+        'Connect to a page running LocatorJS to edit this origin.',
       note: snapshot()
         ? 'Stored in this page’s origin — applies to everyone opening it in this browser profile.'
         : 'No LocatorJS runtime detected on this page — per-origin settings are unavailable.',
@@ -59,6 +52,9 @@ export function SettingsPage(props: Props) {
       layer: 'team',
       label: 'Team',
       values: snapshot()?.layers.team ?? {},
+      disabled: !snapshot(),
+      disabledReason:
+        'Connect to a page running LocatorJS to inspect team settings.',
       note: snapshot()
         ? 'Defined by setup() in the app’s code — change it in the repository.'
         : 'No LocatorJS runtime detected on this page.',
@@ -72,22 +68,13 @@ export function SettingsPage(props: Props) {
   ];
 
   return (
-    <div>
-      <div class={styles.header}>
-        <SectionHeadline>Settings</SectionHeadline>
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => props.setPage({ type: 'home' })}
-        >
-          <ArrowLeft size={14} /> back
-        </Button>
-      </div>
+    <div class={styles.root}>
       <LayeredOptionsEditor
         tabs={tabs()}
         effective={effective()}
         provenance={provenance()}
         targets={targets()}
+        defaultId={props.page.tab ?? 'user-extension'}
       />
       <div class={styles.note}>
         {status() === 'connected'

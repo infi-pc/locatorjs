@@ -3,16 +3,21 @@ import {
   DEFAULT_LAYER,
   Targets,
 } from "@locator/shared";
-import { createMemo, createSignal, createEffect } from "solid-js";
-import { Button, LayeredOptionsEditor, LayerTabConfig } from "@locator/ui";
-import { css, cx } from "@locator/styled-system/css";
-import { bannerClasses } from "../functions/bannerClasses";
+import { Show, createMemo, createSignal, createEffect } from "solid-js";
+import {
+  Button,
+  IconButton,
+  LayeredOptionsEditor,
+  LayerTabConfig,
+  LocatorBrand,
+} from "@locator/ui";
+import { css } from "@locator/styled-system/css";
+import { Power, RotateCcw, X } from "lucide-solid";
 import { isExtension } from "../functions/isExtension";
-import LogoIcon from "./LogoIcon";
-import { OptionsCloseButton } from "./OptionsCloseButton";
 import { useOptions } from "../functions/optionsStore";
 import { AdapterId } from "../consts";
-import { LinkOptions } from "./LinkOptions";
+import { LinkPreview } from "./LinkPreview";
+import { NvimSetupGuide } from "./NvimSetupGuide";
 import {
   getElementInfo,
   getElementInfoAsync,
@@ -21,31 +26,44 @@ import { LinkProps } from "../types/types";
 
 const styles = {
   panel: css({
-    maxWidth: "100%",
+    bg: "bg.default",
+    borderColor: "border",
+    borderRadius: "l3",
+    borderWidth: "1px",
+    bottom: "3",
+    boxShadow: "xl",
+    color: "fg.default",
+    left: "3",
+    maxH: "calc(100vh - 24px)",
+    maxW: "calc(100vw - 24px)",
+    overflowX: "hidden",
+    overflowY: "auto",
+    overscrollBehavior: "contain",
+    pointerEvents: "auto",
+    position: "fixed",
     width: "560px",
   }),
-  inner: css({ p: "1" }),
+  inner: css({ display: "flex", flexDirection: "column" }),
   header: css({
     alignItems: "center",
+    bg: "bg.default",
+    borderBottomColor: "border",
+    borderBottomWidth: "1px",
     display: "flex",
     justifyContent: "space-between",
+    px: "4",
+    py: "3",
+    position: "sticky",
+    top: "0",
+    zIndex: "sticky",
   }),
-  details: css({ mt: "4", mb: "2" }),
-  summary: css({
-    color: "fg.default",
-    cursor: "pointer",
-    fontSize: "sm",
-    fontWeight: "medium",
-    userSelect: "none",
-  }),
-  detailsContent: css({ mt: "2" }),
+  body: css({ display: "flex", flexDirection: "column", gap: "3", p: "4" }),
+  editor: css({ mx: "-4" }),
   footer: css({
     display: "flex",
     gap: "2",
     justifyContent: "space-between",
-    mt: "2",
   }),
-  disableIcon: css({ width: "16px", height: "16px" }),
 };
 
 export function Options(props: {
@@ -54,6 +72,7 @@ export function Options(props: {
   showDisableDialog: () => void;
   adapterId?: AdapterId;
   currentElement: HTMLElement | null;
+  portalMount: HTMLDivElement;
 }) {
   const options = useOptions();
 
@@ -100,6 +119,14 @@ export function Options(props: {
 
   // Prefer sync result, fallback to async result
   const elLinkProps = () => syncLinkProps() || asyncLinkProps();
+  const isNvimTarget = () => {
+    const selected =
+      options.effective().targetTemplate ?? options.effective().targetId;
+    return (
+      selected === "nvim" ||
+      (typeof selected === "string" && selected.includes("nvim://"))
+    );
+  };
 
   const layerTabs = (): LayerTabConfig[] => [
     {
@@ -133,70 +160,65 @@ export function Options(props: {
 
   return (
     <div
-      class={cx(bannerClasses(), styles.panel)}
-      style={{
-        "max-height": "calc(100vh - 32px)",
-        "overflow-y": "auto",
-        "overflow-x": "hidden",
-        "overscroll-behavior": "contain",
-      }}
+      class={styles.panel}
+      style={{ "--locator-settings-tabs-top": "49px" }}
       onWheel={(e) => e.stopPropagation()}
     >
       <div class={styles.inner}>
         <div class={styles.header}>
-          <LogoIcon />
-          <OptionsCloseButton onClick={() => props.onClose()} />
+          <LocatorBrand />
+          <IconButton
+            aria-label="Close settings"
+            onClick={() => props.onClose()}
+          >
+            <X size={16} />
+          </IconButton>
         </div>
 
-        <LinkOptions
-          linkProps={elLinkProps()}
-          adapterId={props.adapterId}
-          targets={props.targets}
-        />
-
-        <details class={styles.details}>
-          <summary class={styles.summary}>All settings by layer</summary>
-          <div class={styles.detailsContent}>
+        <div class={styles.body}>
+          <LinkPreview linkProps={elLinkProps()} targets={props.targets} />
+          <div class={styles.editor}>
             <LayeredOptionsEditor
               tabs={layerTabs()}
               effective={options.effective()}
               provenance={options.provenance()}
               targets={options.allTargets()}
+              defaultId="user-origin"
+              portalMount={props.portalMount}
             />
           </div>
-        </details>
+          <Show when={isNvimTarget()}>
+            <NvimSetupGuide />
+          </Show>
 
-        <div class={styles.footer}>
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={() => {
-              clearUserOriginOptions();
-              props.onClose();
-            }}
-          >
-            Reset settings
-          </Button>
-          <Button
-            size="xs"
-            variant="danger-ghost"
-            onClick={() => {
-              if (isExtension()) {
-                options.setUserOrigin({ disabled: true });
+          <div class={styles.footer}>
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => {
+                clearUserOriginOptions();
                 props.onClose();
-              } else {
-                props.showDisableDialog();
-              }
-            }}
-          >
-            <svg class={styles.disableIcon} viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"
-              />
-            </svg>{" "}
-            Disable Locator
-          </Button>
+              }}
+            >
+              <RotateCcw size={14} />
+              Reset this origin
+            </Button>
+            <Button
+              size="xs"
+              variant="danger-ghost"
+              onClick={() => {
+                if (isExtension()) {
+                  options.setUserOrigin({ disabled: true });
+                  props.onClose();
+                } else {
+                  props.showDisableDialog();
+                }
+              }}
+            >
+              <Power size={14} />
+              Disable Locator
+            </Button>
+          </div>
         </div>
       </div>
     </div>

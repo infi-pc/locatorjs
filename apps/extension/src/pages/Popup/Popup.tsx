@@ -1,22 +1,17 @@
 import { createSignal, Show, Switch, Match } from 'solid-js';
 import { Button, SectionHeadline, Spinner } from '@locator/ui';
-import { Settings } from 'lucide-solid';
+import { ExternalLink, GitBranch, Power } from 'lucide-solid';
 import { css } from '@locator/styled-system/css';
 import { Home } from './Home';
+import { Header } from './Header';
 import { SettingsPage } from './SettingsPage';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 
-function GithubIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.385.6.113.82-.26.82-.578 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.082-.73.082-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.81 1.305 3.495.998.108-.776.42-1.305.762-1.605-2.665-.305-5.467-1.332-5.467-5.93 0-1.31.467-2.382 1.235-3.222-.135-.302-.54-1.524.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.652.24 2.874.12 3.176.765.84 1.23 1.912 1.23 3.222 0 4.61-2.805 5.62-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12z" />
-    </svg>
-  );
-}
-
 const styles = {
   shell: css({ p: '4' }),
+  stack: css({ display: 'flex', flexDirection: 'column', gap: '3' }),
+  card: css({ layerStyle: 'card', p: '3' }),
   loading: css({
     alignItems: 'center',
     display: 'flex',
@@ -27,19 +22,44 @@ const styles = {
     textAlign: 'center',
   }),
   loadingText: css({ fontSize: 'lg' }),
-  bodyText: css({ fontSize: 'sm', mt: '1' }),
+  bodyText: css({ color: 'fg.muted', fontSize: 'sm', mt: '1' }),
   actionRow: css({ display: 'flex', justifyContent: 'flex-end', mt: '3' }),
-  header: css({
-    alignItems: 'flex-start',
-    display: 'flex',
-    gap: '2',
-    justifyContent: 'space-between',
+  disabledIcon: css({
+    alignItems: 'center',
+    bg: 'red.subtle.bg',
+    borderColor: 'red.subtle.border',
+    borderRadius: 'l2',
+    borderWidth: '1px',
+    color: 'red.subtle.fg',
+    display: 'inline-flex',
+    height: '8',
+    justifyContent: 'center',
+    mb: '2',
+    width: '8',
   }),
-  paragraphTitle: css({ fontWeight: 'medium', mt: '2' }),
-  list: css({ fontSize: 'sm', pl: '4' }),
+  paragraphTitle: css({
+    color: 'fg.default',
+    fontSize: 'sm',
+    fontWeight: 'medium',
+    mt: '3',
+  }),
+  list: css({
+    color: 'fg.muted',
+    display: 'grid',
+    fontSize: 'sm',
+    gap: '1.5',
+    pl: '4',
+  }),
   link: css({ textDecoration: 'underline' }),
-  helpful: css({ mt: '2', pb: '4' }),
-  iconLink: css({ alignItems: 'center', display: 'flex', gap: '1' }),
+  helpful: css({ display: 'grid', gap: '1.5', mt: '3', pb: '1' }),
+  iconLink: css({
+    alignItems: 'center',
+    color: 'accent.plain.fg',
+    display: 'flex',
+    fontSize: 'sm',
+    gap: '1.5',
+    _hover: { color: 'accent.solid.bg.hover' },
+  }),
 };
 
 const Popup = () => {
@@ -49,7 +69,8 @@ const Popup = () => {
   const siteDisabled = () => !!snapshot()?.effective.disabled;
 
   return (
-    <div class={styles.shell}>
+    <div class={styles.shell} style={{ '--locator-settings-tabs-top': '57px' }}>
+      <Header page={page()} setPage={setPage} />
       <Show
         when={status() !== 'loading'}
         fallback={
@@ -61,7 +82,10 @@ const Popup = () => {
       >
         <Switch>
           <Match when={page().type === 'settings'}>
-            <SettingsPage setPage={setPage} />
+            <SettingsPage
+              setPage={setPage}
+              page={page() as Extract<Page, { type: 'settings' }>}
+            />
           </Match>
           <Match when={page().type === 'home'}>
             <Show
@@ -72,17 +96,22 @@ const Popup = () => {
                 when={!siteDisabled()}
                 fallback={
                   <div>
-                    <SectionHeadline>Disabled</SectionHeadline>
-                    <div class={styles.bodyText}>
-                      You have disabled Locator on this page.
-                    </div>
-                    <div class={styles.actionRow}>
-                      <Button
-                        variant="primary"
-                        onClick={() => setSiteLocal({ disabled: false })}
-                      >
-                        Enable
-                      </Button>
+                    <div class={styles.card}>
+                      <span class={styles.disabledIcon}>
+                        <Power size={16} />
+                      </span>
+                      <SectionHeadline>Disabled</SectionHeadline>
+                      <div class={styles.bodyText}>
+                        LocatorJS is disabled on this page.
+                      </div>
+                      <div class={styles.actionRow}>
+                        <Button
+                          variant="primary"
+                          onClick={() => setSiteLocal({ disabled: false })}
+                        >
+                          Enable
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 }
@@ -99,96 +128,109 @@ const Popup = () => {
 
 function NoRuntimeView(props: { setPage: (page: Page) => void }) {
   return (
-    <div>
-      <div class={styles.header}>
+    <div class={styles.stack}>
+      <div class={styles.card}>
         <SectionHeadline>LocatorJS not detected on this page</SectionHeadline>
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => props.setPage({ type: 'settings' })}
-        >
-          <Settings size={16} /> settings
-        </Button>
+        <div class={styles.bodyText}>
+          The extension is installed, but this tab is not exposing LocatorJS
+          runtime data.
+        </div>
+        <div class={styles.actionRow}>
+          <Button
+            variant="ghost"
+            onClick={() =>
+              props.setPage({ type: 'settings', tab: 'user-extension' })
+            }
+          >
+            Settings
+          </Button>
+        </div>
       </div>
-      <p class={styles.paragraphTitle}>You need one of these:</p>
-      <ul class={styles.list}>
-        <li>
-          Working React in development mode, with{' '}
-          <a
-            class={styles.link}
-            href="https://babeljs.io/docs/en/babel-preset-react"
-            target="_blank"
-          >
-            preset-react plugins
-          </a>
-        </li>
-        <li>Vue3 or Svelte in development mode</li>
-        <li>React, SolidJS or Preact with Locator Babel plugin</li>
-      </ul>
-      <p class={styles.paragraphTitle}>Setup manually:</p>
-      <ul class={styles.list}>
-        <li>
-          <a
-            class={styles.link}
-            href="https://www.locatorjs.com/install/react-data-id"
-            target="_blank"
-          >
-            React
-          </a>
-        </li>
-        <li>
-          <a
-            class={styles.link}
-            href="https://www.locatorjs.com/install/preact"
-            target="_blank"
-          >
-            Preact
-          </a>
-        </li>
-        <li>
-          <a
-            class={styles.link}
-            href="https://www.locatorjs.com/install/solidjs"
-            target="_blank"
-          >
-            SolidJS
-          </a>
-        </li>
-        <li>
-          <a
-            class={styles.link}
-            href="https://www.locatorjs.com/install/svelte"
-            target="_blank"
-          >
-            Svelte
-          </a>
-        </li>
-        <li>
-          <a
-            class={styles.link}
-            href="https://www.locatorjs.com/install/vue"
-            target="_blank"
-          >
-            Vue
-          </a>
-        </li>
-      </ul>
+
+      <div class={styles.card}>
+        <p class={styles.paragraphTitle}>Supported setups</p>
+        <ul class={styles.list}>
+          <li>
+            React in development mode with{' '}
+            <a
+              class={styles.link}
+              href="https://babeljs.io/docs/en/babel-preset-react"
+              target="_blank"
+            >
+              preset-react plugins
+            </a>
+          </li>
+          <li>Vue 3 or Svelte in development mode</li>
+          <li>React, SolidJS, or Preact with the Locator Babel plugin</li>
+        </ul>
+        <p class={styles.paragraphTitle}>Manual setup</p>
+        <ul class={styles.list}>
+          <li>
+            <a
+              class={styles.link}
+              href="https://www.locatorjs.com/install/react-data-id"
+              target="_blank"
+            >
+              React
+            </a>
+          </li>
+          <li>
+            <a
+              class={styles.link}
+              href="https://www.locatorjs.com/install/preact"
+              target="_blank"
+            >
+              Preact
+            </a>
+          </li>
+          <li>
+            <a
+              class={styles.link}
+              href="https://www.locatorjs.com/install/solidjs"
+              target="_blank"
+            >
+              SolidJS
+            </a>
+          </li>
+          <li>
+            <a
+              class={styles.link}
+              href="https://www.locatorjs.com/install/svelte"
+              target="_blank"
+            >
+              Svelte
+            </a>
+          </li>
+          <li>
+            <a
+              class={styles.link}
+              href="https://www.locatorjs.com/install/vue"
+              target="_blank"
+            >
+              Vue
+            </a>
+          </li>
+        </ul>
+      </div>
+
       <div class={styles.helpful}>
-        <SectionHeadline>Helpful links:</SectionHeadline>
         <a
           target="_blank"
           class={styles.iconLink}
           href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
         >
-          <GithubIcon />{' '}
-          <span class={styles.link}>Readme.md: Troubleshooting</span>
+          <GitBranch size={16} />
+          <span>Troubleshooting</span>
+          <ExternalLink size={14} />
         </a>
         <a
           target="_blank"
           class={styles.iconLink}
           href="https://github.com/infi-pc/locatorjs/issues"
         >
-          <GithubIcon /> <span class={styles.link}>GitHub issues</span>
+          <GitBranch size={16} />
+          <span>GitHub issues</span>
+          <ExternalLink size={14} />
         </a>
       </div>
     </div>

@@ -25,6 +25,11 @@ export type Snapshot = {
 
 export type ConnectivityStatus = 'loading' | 'connected' | 'no-runtime';
 
+type SerializedPatch = {
+  patch: Record<string, unknown>;
+  unset: (keyof LocatorOptions)[];
+};
+
 type SyncedState = {
   userExtension: Accessor<LocatorOptions>;
   snapshot: Accessor<Snapshot | null>;
@@ -42,12 +47,10 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   );
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
   const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
-  const [ready, setReady] = createSignal(false);
 
   browser.storage.local.get([USER_OPTIONS_KEY]).then((result) => {
     const stored = (result?.[USER_OPTIONS_KEY] ?? {}) as LocatorOptions;
     setUserExtensionSignal(stored);
-    setReady(true);
   });
 
   browser.storage.onChanged.addListener((changes, areaName) => {
@@ -129,10 +132,12 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         if (!currentTab?.id) {
           return { ok: false, reason: 'blocked' };
         }
+        const serialized = serializePatch(patch);
         const response = (await browser.tabs.sendMessage(currentTab.id, {
           from: 'popup',
           subject: 'applySiteLocal',
-          patch,
+          patch: serialized.patch,
+          unset: serialized.unset,
         })) as WriteResult | undefined;
         if (!response) {
           return { ok: false, reason: 'blocked' };
@@ -147,15 +152,9 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   };
 
   return (
-    <>
-      {ready() ? (
-        <SyncedStateContext.Provider value={state}>
-          {props.children}
-        </SyncedStateContext.Provider>
-      ) : (
-        <>Loading...</>
-      )}
-    </>
+    <SyncedStateContext.Provider value={state}>
+      {props.children}
+    </SyncedStateContext.Provider>
   );
 }
 
@@ -163,4 +162,17 @@ export function useSyncedState() {
   const ctx = useContext(SyncedStateContext);
   if (!ctx) throw new Error('SyncedStateContext not provided');
   return ctx;
+}
+
+function serializePatch(patch: Partial<LocatorOptions>): SerializedPatch {
+  const serialized: SerializedPatch = { patch: {}, unset: [] };
+  for (const key of Object.keys(patch) as (keyof LocatorOptions)[]) {
+    const value = patch[key];
+    if (value === undefined) {
+      serialized.unset.push(key);
+    } else {
+      serialized.patch[key] = value;
+    }
+  }
+  return serialized;
 }

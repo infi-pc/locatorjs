@@ -1,7 +1,13 @@
-import { Settings } from 'lucide-solid';
 import { modifiersTitles, getModifiersMap } from '@locator/shared';
-import { Button, Kbd, ProvenanceBadge, SectionHeadline } from '@locator/ui';
+import {
+  Button,
+  Kbd,
+  ProvenanceBadge,
+  SectionHeadline,
+  editorIconFor,
+} from '@locator/ui';
 import { css } from '@locator/styled-system/css';
+import { MousePointerClick, Power } from 'lucide-solid';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
 
@@ -10,35 +16,66 @@ type Props = {
 };
 
 const styles = {
-  header: css({ display: 'flex', justifyContent: 'space-between' }),
-  controls: css({ fontSize: 'sm', py: '1' }),
-  hint: css({ color: 'fg.default', fontSize: 'xs', lineHeight: '5' }),
-  settings: css({ position: 'absolute', right: '4' }),
+  stack: css({ display: 'flex', flexDirection: 'column', gap: '3' }),
+  card: css({ layerStyle: 'card', p: '3' }),
+  controls: css({
+    alignItems: 'center',
+    display: 'flex',
+    fontSize: 'sm',
+    gap: '2',
+    py: '1',
+  }),
+  controlText: css({ minW: '0' }),
+  hint: css({ color: 'fg.muted', fontSize: 'xs', lineHeight: '5', mt: '1' }),
   editorRow: css({
     alignItems: 'center',
-    bg: 'gray.subtle.bg',
-    borderRadius: 'l2',
     display: 'flex',
+    gap: '3',
     justifyContent: 'space-between',
-    mt: '3',
-    px: '3',
-    py: '2',
+  }),
+  editorMain: css({
+    alignItems: 'center',
+    display: 'flex',
+    gap: '2',
+    minW: '0',
+  }),
+  editorIcon: css({
+    alignItems: 'center',
+    bg: 'accent.subtle.bg',
+    borderColor: 'accent.subtle.border',
+    borderRadius: 'l2',
+    borderWidth: '1px',
+    color: 'accent.subtle.fg',
+    display: 'inline-flex',
+    flexShrink: '0',
+    height: '8',
+    justifyContent: 'center',
+    width: '8',
   }),
   editorText: css({ color: 'fg.default', fontSize: 'sm' }),
+  editorMeta: css({
+    alignItems: 'center',
+    color: 'fg.muted',
+    display: 'flex',
+    flexWrap: 'wrap',
+    fontSize: 'xs',
+    gap: '1.5',
+    mt: '0.5',
+  }),
   footer: css({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    mt: '4',
+    gap: '3',
     width: '100%',
   }),
+  footerText: css({ color: 'fg.muted', fontSize: 'xs' }),
   sponsorLink: css({
-    color: 'green.plain.fg',
+    color: 'accent.plain.fg',
     textDecoration: 'underline',
-    _hover: { color: 'green.solid.bg.hover' },
+    _hover: { color: 'accent.solid.bg.hover' },
   }),
-  icon: css({ display: 'inline-block', height: '10px', width: '10px' }),
-  powerIcon: css({ height: '16px', width: '16px' }),
+  pointerIcon: css({ color: 'accent.plain.fg', flexShrink: '0' }),
 };
 
 export function Home(props: Props) {
@@ -53,68 +90,63 @@ export function Home(props: Props) {
     if (selected && s.allTargets[selected]) return s.allTargets[selected].label;
     return selected;
   };
+  const currentEditorId = () => {
+    const s = snapshot();
+    if (!s) return 'custom';
+    return s.effective.targetTemplate
+      ? 'custom'
+      : s.effective.targetId ?? 'custom';
+  };
 
   return (
-    <>
-      <div class={styles.header}>
-        <div>
-          <SectionHeadline>Controls: </SectionHeadline>
+    <div class={styles.stack}>
+      <div class={styles.card}>
+        <SectionHeadline>Controls</SectionHeadline>
 
-          <div class={styles.controls}>
+        <div class={styles.controls}>
+          <MousePointerClick size={18} class={styles.pointerIcon} />
+          <span class={styles.controlText}>
             <b>
-              <Modifiers /> +{' '}
-              <Kbd>
-                <svg
-                  viewBox="0 0 24 24"
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    display: 'inline-block',
-                  }}
-                >
-                  <path
-                    fill="currentColor"
-                    d="M11,1.07C7.05,1.56 4,4.92 4,9H11M4,15A8,8 0 0,0 12,23A8,8 0 0,0 20,15V11H4M13,1.07V9H20C20,4.92 16.94,1.56 13,1.07Z"
-                  />
-                </svg>{' '}
-                click
-              </Kbd>
+              <Modifiers /> + <Kbd>click</Kbd>
             </b>{' '}
-            go to editor
-          </div>
-          <p class={styles.hint}>
-            remember to <b>focus your app</b> (click on any surface)
-          </p>
+            opens your editor
+          </span>
         </div>
-        <div class={styles.settings}>
+        <p class={styles.hint}>
+          Click the page once first so your app has focus.
+        </p>
+      </div>
+
+      <div class={styles.card}>
+        <div class={styles.editorRow}>
+          <div class={styles.editorMain}>
+            <span class={styles.editorIcon}>
+              {editorIconFor(currentEditorId())}
+            </span>
+            <div>
+              <div class={styles.editorText}>
+                Editor: <b>{currentEditor() ?? '—'}</b>
+              </div>
+              <div class={styles.editorMeta}>
+                <span>Resolved setting</span>
+                <ProvenanceBadge layer={targetProvenance()} />
+              </div>
+            </div>
+          </div>
           <Button
-            variant="ghost"
             size="xs"
-            onClick={() => {
-              props.setPage({ type: 'settings' });
-            }}
+            variant="ghost"
+            onClick={() =>
+              props.setPage({ type: 'settings', tab: 'user-extension' })
+            }
           >
-            <Settings size={16} /> settings
+            Change
           </Button>
         </div>
       </div>
 
-      <div class={styles.editorRow}>
-        <div class={styles.editorText}>
-          Editor: <b>{currentEditor() ?? '—'}</b>{' '}
-          <ProvenanceBadge layer={targetProvenance()} />
-        </div>
-        <Button
-          size="xs"
-          variant="ghost"
-          onClick={() => props.setPage({ type: 'settings' })}
-        >
-          change
-        </Button>
-      </div>
-
       <div class={styles.footer}>
-        <div>
+        <div class={styles.footerText}>
           Support me on{' '}
           <a
             class={styles.sponsorLink}
@@ -132,16 +164,11 @@ export function Home(props: Props) {
             setSiteLocal({ disabled: true });
           }}
         >
-          <svg class={styles.powerIcon} viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"
-            />
-          </svg>{' '}
+          <Power size={16} />
           Disable on this page
         </Button>
       </div>
-    </>
+    </div>
   );
 }
 

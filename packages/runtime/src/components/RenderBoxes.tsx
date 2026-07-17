@@ -23,7 +23,7 @@ export function RenderBoxes(props: { allBoxes: AllBoxes }) {
       {Object.entries(props.allBoxes.padding).map(([, box]) => {
         return (
           <div
-            class="fixed flex text-xs font-bold items-center justify-center text-green-500 bg-green-500/30"
+            class="fixed flex text-xs font-bold items-center justify-center text-violet-500 bg-violet-500/30"
             style={{
               left: box.left + "px",
               top: box.top + "px",

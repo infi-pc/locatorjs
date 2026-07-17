@@ -9,12 +9,12 @@ const VARIANT_PROPS: Record<
   Variant,
   {
     variant: "solid" | "outline" | "plain";
-    colorPalette: "green" | "gray" | "red";
+    colorPalette: "accent" | "gray" | "red";
   }
 > = {
-  primary: { variant: "solid", colorPalette: "green" },
+  primary: { variant: "solid", colorPalette: "accent" },
   outline: { variant: "outline", colorPalette: "gray" },
-  ghost: { variant: "plain", colorPalette: "green" },
+  ghost: { variant: "plain", colorPalette: "accent" },
   "danger-ghost": { variant: "plain", colorPalette: "red" },
 };
 
