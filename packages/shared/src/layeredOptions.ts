@@ -11,7 +11,6 @@ export type LocatorOptions = {
   tmuxSession?: string;
   disabled?: boolean;
   debugMode?: boolean;
-  experimentalFeatures?: boolean;
   showIntro?: boolean;
 };
 
@@ -37,7 +36,6 @@ export const DEFAULT_LAYER: LocatorOptions = {
   hrefTarget: "_self",
   disabled: false,
   debugMode: false,
-  experimentalFeatures: false,
 };
 
 export type ResolveResult = {

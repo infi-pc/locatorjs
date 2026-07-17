@@ -11,6 +11,7 @@ function createMockOptions(effective: LocatorOptions): OptionsStore {
     uiState: () => ({}),
     allTargets: () => ({}),
     setUserOrigin: async () => ({ ok: true as const }),
+    clearUserOrigin: () => undefined,
     setUiState: async () => ({ ok: true as const }),
   };
 }

@@ -39,9 +39,7 @@ const FIELD_LABELS: Partial<Record<FieldKey, string>> = {
   mouseModifiers: "Mouse-click modifiers",
   hrefTarget: "Open links in a new tab",
   tmuxSession: "Tmux session",
-  experimentalFeatures: "Experimental features",
   debugMode: "Debug mode",
-  disabled: "Disable LocatorJS",
   showIntro: "Show intro again",
 };
 
@@ -128,8 +126,6 @@ const styles = {
 
 export function LayeredOptionsEditor(props: {
   tabs: LayerTabConfig[];
-  effective: LocatorOptions;
-  provenance: Partial<Record<FieldKey, LocatorLayer>>;
   targets: Targets;
   defaultId?: LocatorLayer;
   portalMount?: Node;
@@ -310,29 +306,27 @@ function LayerForm(props: {
           />
         </Section>
         <Section title="Advanced">
-          <For
-            each={
-              [
-                ["Experimental features", "experimentalFeatures"],
-                ["Debug mode", "debugMode"],
-                ["Disable LocatorJS", "disabled"],
-                ["Show intro again", "showIntro"],
-              ] as const
-            }
-          >
-            {([label, fieldKey]) => (
-              <BooleanSetting
-                label={label}
-                fieldKey={fieldKey}
-                tab={props.tab}
-                tabs={props.tabs}
-                setActive={props.setActive}
-                portalMount={props.portalMount}
-                error={errors()[fieldKey]}
-                write={(patch) => write(fieldKey, patch)}
-              />
-            )}
-          </For>
+          <BooleanSetting
+            label="Debug mode"
+            fieldKey="debugMode"
+            tab={props.tab}
+            tabs={props.tabs}
+            setActive={props.setActive}
+            portalMount={props.portalMount}
+            error={errors().debugMode}
+            write={(patch) => write("debugMode", patch)}
+          />
+          <BooleanSetting
+            label="Show intro again"
+            fieldKey="showIntro"
+            tab={props.tab}
+            tabs={props.tabs}
+            setActive={props.setActive}
+            toChecked={(value) => value !== false}
+            portalMount={props.portalMount}
+            error={errors().showIntro}
+            write={(patch) => write("showIntro", patch)}
+          />
         </Section>
       </Show>
     </div>
@@ -588,12 +582,7 @@ function ModifiersSetting(props: {
 
 function BooleanSetting(props: {
   label: string;
-  fieldKey:
-    | "experimentalFeatures"
-    | "debugMode"
-    | "disabled"
-    | "hrefTarget"
-    | "showIntro";
+  fieldKey: "debugMode" | "hrefTarget" | "showIntro";
   tab: LayerTabConfig;
   tabs: LayerTabConfig[];
   setActive: (layer: LocatorLayer) => void;
@@ -691,12 +680,7 @@ function readonlyRows(values: LocatorOptions, targets: Targets) {
     { label: "Tmux session", value: values.tmuxSession },
     { label: "Mouse-click modifiers", value: values.mouseModifiers },
     { label: "Open links in new tab", value: values.hrefTarget },
-    {
-      label: "Experimental features",
-      value: booleanLabel(values.experimentalFeatures),
-    },
     { label: "Debug mode", value: booleanLabel(values.debugMode) },
-    { label: "Disable LocatorJS", value: booleanLabel(values.disabled) },
     { label: "Show intro again", value: booleanLabel(values.showIntro) },
   ];
 }

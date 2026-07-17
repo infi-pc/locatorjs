@@ -57,8 +57,6 @@ export function WelcomeScreen(props: {
       </div>
       <LayeredOptionsEditor
         tabs={tabs()}
-        effective={options.effective()}
-        provenance={options.provenance()}
         targets={options.allTargets()}
         defaultId="user-origin"
         portalMount={props.portalMount}

@@ -1,4 +1,8 @@
-import { modifiersTitles, getModifiersMap } from '@locator/shared';
+import {
+  modifiersTitles,
+  getModifiersMap,
+  resolveTarget,
+} from '@locator/shared';
 import {
   Button,
   Kbd,
@@ -86,16 +90,16 @@ export function Home(props: Props) {
   const currentEditor = () => {
     const s = snapshot();
     if (!s) return undefined;
-    const selected = s.effective.targetTemplate ?? s.effective.targetId;
-    if (selected && s.allTargets[selected]) return s.allTargets[selected].label;
-    return selected;
+    const target = resolveTarget(s.effective, s.allTargets);
+    return target.kind === 'template'
+      ? target.url
+      : s.allTargets[target.id]?.label ?? target.id;
   };
   const currentEditorId = () => {
     const s = snapshot();
     if (!s) return 'custom';
-    return s.effective.targetTemplate
-      ? 'custom'
-      : s.effective.targetId ?? 'custom';
+    const target = resolveTarget(s.effective, s.allTargets);
+    return target.kind === 'template' ? 'custom' : target.id || 'custom';
   };
 
   return (

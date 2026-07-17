@@ -1,4 +1,4 @@
-import { allTargets, DEFAULT_LAYER, resolve } from '@locator/shared';
+import { allTargets, DEFAULT_LAYER } from '@locator/shared';
 import { LayeredOptionsEditor, LayerTabConfig } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { useSyncedState } from './syncedState';
@@ -18,14 +18,6 @@ export function SettingsPage(props: Props) {
   const { snapshot, status, userExtension, setUserExtension, setSiteLocal } =
     useSyncedState();
 
-  // Without a runtime on the page we can still edit the extension layer;
-  // resolve locally so effective values and provenance stay meaningful.
-  const resolvedOffline = () =>
-    resolve({ default: DEFAULT_LAYER, 'user-extension': userExtension() });
-
-  const effective = () => snapshot()?.effective ?? resolvedOffline().effective;
-  const provenance = () =>
-    snapshot()?.provenance ?? resolvedOffline().provenance;
   const targets = () => snapshot()?.allTargets ?? allTargets;
 
   const tabs = (): LayerTabConfig[] => [
@@ -71,8 +63,6 @@ export function SettingsPage(props: Props) {
     <div class={styles.root}>
       <LayeredOptionsEditor
         tabs={tabs()}
-        effective={effective()}
-        provenance={provenance()}
         targets={targets()}
         defaultId={props.page.tab ?? 'user-extension'}
       />

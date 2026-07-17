@@ -25,8 +25,6 @@ describe("LayeredOptionsEditor", () => {
           },
           { layer: "default", label: "Defaults", values: DEFAULT_LAYER },
         ]}
-        effective={DEFAULT_LAYER}
-        provenance={{}}
         targets={{}}
         defaultId="user-origin"
       />
@@ -60,8 +58,6 @@ describe("LayeredOptionsEditor", () => {
             write,
           },
         ]}
-        effective={{ ...DEFAULT_LAYER, projectPath: "/repo/custom" }}
-        provenance={{ projectPath: "user-extension" }}
         targets={{}}
         defaultId="user-extension"
       />
@@ -93,8 +89,6 @@ describe("LayeredOptionsEditor", () => {
             write,
           },
         ]}
-        effective={DEFAULT_LAYER}
-        provenance={{}}
         targets={{}}
         defaultId="user-extension"
       />
@@ -106,5 +100,31 @@ describe("LayeredOptionsEditor", () => {
     expect(
       await screen.findByText("From must be a valid regular expression.")
     ).toBeTruthy();
+  });
+
+  test("shows the intro switch on when the inherited value is unset", () => {
+    render(() => (
+      <LayeredOptionsEditor
+        tabs={[
+          { layer: "default", label: "Defaults", values: DEFAULT_LAYER },
+          {
+            layer: "user-origin",
+            label: "This origin",
+            values: {},
+            write: async () => ({ ok: true as const }),
+          },
+        ]}
+        targets={{}}
+        defaultId="user-origin"
+      />
+    ));
+
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: "Show intro again",
+        }) as HTMLInputElement
+      ).checked
+    ).toBe(true);
   });
 });

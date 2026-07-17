@@ -11,21 +11,14 @@ if (typeof window !== "undefined" && isExtension()) {
 
 export const MAX_ZINDEX = 2147483647;
 
-export function setup({
-  adapter,
-  targets,
-  projectPath,
-  showIntro,
-}: {
+export type SetupOptions = LocatorOptions & {
   adapter?: AdapterId;
   targets?: { [k: string]: Target | string };
-  projectPath?: string;
-  showIntro?: boolean;
-} = {}) {
-  const teamOptions: Partial<LocatorOptions> = {};
-  if (adapter) teamOptions.adapterId = adapter;
-  if (projectPath !== undefined) teamOptions.projectPath = projectPath;
-  if (showIntro !== undefined) teamOptions.showIntro = showIntro;
+};
+
+export function setup({ adapter, targets, ...options }: SetupOptions = {}) {
+  const teamOptions: Partial<LocatorOptions> = { ...options };
+  if (adapter !== undefined) teamOptions.adapterId = adapter;
   updateTeamLayer(teamOptions);
 
   if (targets) {

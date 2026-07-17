@@ -9,6 +9,13 @@ cleanupLegacyExtensionStorage();
 browser.storage.local.get([USER_OPTIONS_KEY], (result) => {
   const options = result?.[USER_OPTIONS_KEY] ?? {};
   injectUserExtensionGlobal(options);
+  window.postMessage(
+    {
+      type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
+      options,
+    },
+    '*'
+  );
 });
 
 browser.storage.onChanged.addListener((changes, areaName) => {

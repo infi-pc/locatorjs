@@ -1,8 +1,4 @@
-import {
-  clearUserOriginOptions,
-  DEFAULT_LAYER,
-  Targets,
-} from "@locator/shared";
+import { DEFAULT_LAYER, Targets } from "@locator/shared";
 import { Show, createMemo, createSignal, createEffect } from "solid-js";
 import {
   Button,
@@ -180,8 +176,6 @@ export function Options(props: {
           <div class={styles.editor}>
             <LayeredOptionsEditor
               tabs={layerTabs()}
-              effective={options.effective()}
-              provenance={options.provenance()}
               targets={options.allTargets()}
               defaultId="user-origin"
               portalMount={props.portalMount}
@@ -196,7 +190,7 @@ export function Options(props: {
               size="xs"
               variant="outline"
               onClick={() => {
-                clearUserOriginOptions();
+                options.clearUserOrigin();
                 props.onClose();
               }}
             >

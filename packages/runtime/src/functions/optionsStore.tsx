@@ -9,6 +9,7 @@ import {
 } from "solid-js";
 import {
   DEFAULT_LAYER,
+  clearUserOriginOptions,
   getUserOriginOptions,
   getUserOriginUiState,
   listenOnUserOriginChanges,
@@ -35,6 +36,7 @@ export type OptionsStore = {
   uiState: () => UiState;
   allTargets: () => Targets;
   setUserOrigin: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  clearUserOrigin: () => void;
   setUiState: (patch: Partial<UiState>) => Promise<WriteResult>;
 };
 
@@ -96,10 +98,6 @@ export function initOptions(): OptionsStore {
       if (data.type === "LOCATOR_USER_EXTENSION_OPTIONS_UPDATED") {
         setUserExtension(readUserExtensionGlobal());
       }
-      if (data.type === "LOCATOR_EXTENSION_UPDATED_OPTIONS") {
-        setUserOrigin(getUserOriginOptions());
-        setUiState(getUserOriginUiState());
-      }
     };
     window.addEventListener("message", onMessage, false);
     if (getOwner()) {
@@ -121,6 +119,11 @@ export function initOptions(): OptionsStore {
         setUserOrigin(getUserOriginOptions());
       }
       return result;
+    },
+    clearUserOrigin: () => {
+      clearUserOriginOptions();
+      setUserOrigin({});
+      setUiState({});
     },
     setUiState: async (patch) => {
       const result = setUserOriginUiState(patch);

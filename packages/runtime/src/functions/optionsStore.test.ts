@@ -127,6 +127,22 @@ describe("optionsStore integration", () => {
     ).toBeUndefined();
   });
 
+  test("clearUserOrigin clears storage and live option state", async () => {
+    setUserExtensionGlobal({ mouseModifiers: "ctrl" });
+    const options = withRoot(() => initOptions());
+
+    await options.setUserOrigin({ mouseModifiers: "shift" });
+    await options.setUiState({ welcomeScreenDismissed: true });
+    expect(options.effective().mouseModifiers).toBe("shift");
+
+    options.clearUserOrigin();
+
+    expect(localStorage.getItem("LOCATOR_USER_OPTIONS")).toBeNull();
+    expect(options.effective().mouseModifiers).toBe("ctrl");
+    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(options.uiState()).toEqual({});
+  });
+
   test("team targets signal overrides default allTargets", async () => {
     const custom = { myEd: { url: "my-ed://${filePath}", label: "MyEd" } };
     setTeamTargets(custom);

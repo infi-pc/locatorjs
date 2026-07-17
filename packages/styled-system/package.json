@@ -1,7 +1,13 @@
 {
   "name": "@locator/styled-system",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.5.1",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "panda codegen",
     "dev": "panda codegen --watch"
