@@ -109,6 +109,22 @@ const config: PlaywrightTestConfig = {
    */
   webServer: [
     {
+      command: "pnpm --filter vite-react-clean-project dev",
+      port: 3348,
+      reuseExistingServer: true,
+      timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      command: "pnpm --filter vite-svelte-clean-project dev",
+      port: 3349,
+      reuseExistingServer: true,
+      timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
       command: "pnpm --filter next-16 dev",
       port: 3352,
       reuseExistingServer: true,

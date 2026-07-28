@@ -31,7 +31,7 @@ export const allTargets: Targets = {
     label: "Antigravity",
   },
   nvim: {
-    url: "nvim://file/${projectPath}${filePath}:${line}:${column}",
+    url: "nvim://file/${projectPath}${filePath}:${line}:${column}?tmux-session=${tmuxSession}",
     label: "Neovim (macOS only)",
   },
 };
@@ -155,3 +155,6 @@ export type FileStorage = {
 };
 
 export * from "./sharedOptionsStore";
+export * from "./layeredOptions";
+export * from "./cleanupLegacyStorage";
+export * from "./patchCodec";

@@ -1,5 +1,4 @@
 import type { Targets } from "@locator/shared";
-import { createEffect } from "solid-js";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { getParentsPaths } from "../adapters/getParentsPath";
 import { Button } from "./Button";
@@ -7,6 +6,33 @@ import { ClipboardButton } from "./ClipboardButton";
 import { ComponentOutline } from "./ComponentOutline";
 import { RenderBoxes } from "./RenderBoxes";
 import Tooltip from "./Tooltip";
+import { css } from "@locator/styled-system/css";
+
+const styles = {
+  outline: css({
+    alignItems: "center",
+    borderColor: "blue.9",
+    borderRadius: "l2",
+    borderStyle: "solid",
+    borderWidth: "1px",
+    color: "blue.9",
+    display: "flex",
+    fontSize: "xs",
+    fontWeight: "bold",
+    justifyContent: "center",
+    position: "fixed",
+  }),
+  actions: css({
+    bg: "black/60",
+    borderRadius: "l2",
+    color: "white",
+    display: "flex",
+    fontWeight: "bold",
+    position: "absolute",
+    px: "1",
+    py: "1",
+  }),
+};
 
 type Box = {
   top: number;
@@ -165,7 +191,7 @@ export function Outline(props: {
       <div>
         {domElementInfo() && <RenderBoxes allBoxes={domElementInfo()!} />}
         <div
-          class="fixed flex text-xs font-bold items-center justify-center text-sky-500 rounded border border-solid border-sky-500"
+          class={styles.outline}
           style={{
             "z-index": 2,
             left: box().x + "px",
@@ -178,7 +204,7 @@ export function Outline(props: {
           }}
         >
           <div
-            class="absolute bg-black/60 text-white font-bold rounded-md px-1 py-1 flex"
+            class={styles.actions}
             style={{
               "text-shadow": "none",
               "pointer-events": "auto",

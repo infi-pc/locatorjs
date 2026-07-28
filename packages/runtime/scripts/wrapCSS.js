@@ -5,21 +5,15 @@
 const fs = require("fs-extra");
 
 async function run() {
-  const content = await fs.readFile("./dist/output.css", "utf-8");
-  const wrapped = `export default \`${content
-    .replaceAll("`", "\\`")
-    .replaceAll("\\:", "\\\\:")
-    .replaceAll("\\[", "\\\\[")
-    .replaceAll("\\]", "\\\\]")
-    .replaceAll("\\.", "\\\\.")
-    .replaceAll("\\/", "\\\\/")}\``;
+  const panda = await fs.readFile("./dist/panda.css", "utf-8");
+  const wrapped = `export default ${JSON.stringify(panda)}`;
 
   await fs.writeFile("./src/_generated_styles.ts", wrapped);
   console.log("CSS file generated");
 }
 
 if (process.env.WATCH) {
-  fs.watchFile("./dist/output.css", run);
+  fs.watchFile("./dist/panda.css", run);
 }
 
 run();

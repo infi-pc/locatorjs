@@ -1,6 +1,16 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "worker": "./dist/index.server.js",
+      "node": "./dist/index.server.js",
+      "deno": "./dist/index.server.js",
+      "default": "./dist/index.js"
+    },
+    "./dist/*": "./dist/*"
+  },
   "version": "0.5.1",
   "scripts": {
     "test": "vitest run",
@@ -9,26 +19,31 @@
     "dev:babel": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx",
     "//dev:babel-cjs": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
-    "dev:tailwind": "tailwindcss -i ./src/main.css -o ./dist/output.css --watch",
+    "dev:panda": "panda cssgen --outfile dist/panda.css --watch",
     "dev:wrapCSS": "WATCH=true node ./scripts/wrapCSS.js",
-    "build": "concurrently pnpm:build:*",
+    "build": "pnpm build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts",
     "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx",
     "//build:babel-cjs": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
     "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
-    "build:tailwind": "tailwindcss -i ./src/main.css -o ./dist/output.css",
+    "build:panda": "panda cssgen --clean --outfile dist/panda.css",
+    "build:wrapCSS": "node ./scripts/wrapCSS.js",
     "ts": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@ark-ui/solid": "^5.37.1",
     "@floating-ui/dom": "^1.7.6",
     "@locator/shared": "workspace:^",
-    "solid-js": "^1.9.12",
-    "tailwindcss": "^3.4.19"
+    "@locator/styled-system": "workspace:^",
+    "@locator/ui": "workspace:^",
+    "lucide-solid": "^1.14.0",
+    "solid-js": "^1.9.12"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.6",
     "@babel/core": "^7.29.0",
     "@locator/dev-config": "workspace:^",
+    "@pandacss/dev": "^1.11.4",
     "@types/jsdom": "^21.1.7",
     "babel-preset-solid": "^1.9.12",
     "concurrently": "^9.2.1",

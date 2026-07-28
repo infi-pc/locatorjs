@@ -31,6 +31,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",
     "@babel/preset-typescript": "^7.28.5",
+    "@pandacss/dev": "^1.11.4",
     "check-dependency-version-consistency": "5.0.1",
     "husky": "^9.1.7",
     "lerna": "^7.4.2",

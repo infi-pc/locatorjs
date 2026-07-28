@@ -1,10 +1,29 @@
 import { modifiersTitles } from "@locator/shared";
 import { createEffect, createSignal, For } from "solid-js";
-import { bannerClasses } from "../functions/bannerClasses";
+import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
 import { getMouseModifiers } from "../functions/isCombinationModifiersPressed";
 import { useOptions } from "../functions/optionsStore";
+import { css, cx } from "@locator/styled-system/css";
+import { kbd } from "@locator/styled-system/recipes";
+
+const styles = {
+  instruction: css({ fontSize: "sm", mb: "1", mt: "2" }),
+  key: cx(
+    kbd({ size: "sm", variant: "outline" }),
+    css({ colorPalette: "gray" })
+  ),
+  links: css({
+    color: "fg.muted",
+    display: "flex",
+    fontSize: "xs",
+    gap: "1",
+    mb: "1",
+    mt: "2",
+  }),
+  link: css({ cursor: "pointer", textDecoration: "underline" }),
+};
 
 export function IntroInfo(props: {
   openOptions: () => void;
@@ -24,46 +43,39 @@ export function IntroInfo(props: {
     }
   });
 
-  const modifiers = () => getMouseModifiers();
+  const modifiers = () => getMouseModifiers(options);
   return (
     <div
-      class={bannerClasses()}
+      class={bannerClass}
       style={{
         bottom: showIntro() ? "12px" : "-120px",
       }}
     >
       <BannerHeader openOptions={props.openOptions} adapter={props.adapter} />
-      <div class="text-sm mt-2 mb-1">
+      <div class={styles.instruction}>
         Go to component code with{" "}
         <For each={Object.keys(modifiers())}>
           {(key, i) => {
             return (
               <>
                 {i() === 0 ? "" : " + "}
-                <div class="inline-block px-1 py-0.5 border border-slate-200 rounded">
+                <div class={styles.key}>
                   {modifiersTitles[key as keyof typeof modifiersTitles]}
                 </div>
               </>
             );
           }}
         </For>{" "}
-        +{" "}
-        <div class="inline-block px-1 py-0.5 border border-slate-200 rounded">
-          click
-        </div>{" "}
+        + <div class={styles.key}>click</div>{" "}
       </div>
-      <div class="text-xs mt-2 mb-1 text-gray-600 flex gap-1">
-        <a
-          class="underline cursor-pointer"
-          href="https://www.locatorjs.com"
-          target="_blank"
-        >
+      <div class={styles.links}>
+        <a class={styles.link} href="https://www.locatorjs.com" target="_blank">
           What is Locator?
         </a>
         <a
-          class="underline cursor-pointer"
+          class={styles.link}
           onClick={() => {
-            options.setOptions({ showIntro: false });
+            options.setUserOrigin({ showIntro: false });
           }}
         >
           Stop showing this popup

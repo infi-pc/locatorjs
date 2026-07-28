@@ -1,20 +1,17 @@
-import { detectSvelte, Targets } from "@locator/shared";
+import { detectSvelte } from "@locator/shared";
+import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
 import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
 import { trackClickStats } from "../functions/trackClickStats";
-import {
-  ContextMenuState,
-  LinkProps,
-  Targets as SetupTargets,
-} from "../types/types";
+import { ContextMenuState, LinkProps } from "../types/types";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
 
 import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
-import { bannerClasses } from "../functions/bannerClasses";
+import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { isExtension } from "../functions/isExtension";
 import { NoLinkDialog } from "./NoLinkDialog";
@@ -32,6 +29,28 @@ import { TreeView } from "./TreeView";
 import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
+import { css } from "@locator/styled-system/css";
+
+const styles = {
+  sponsorText: css({ color: "fg.muted", fontSize: "xs", mt: "2" }),
+  sponsorLink: css({
+    color: "blue.11",
+    textDecoration: "underline",
+    _hover: { color: "blue.12" },
+  }),
+  dialogBackdrop: css({
+    alignItems: "center",
+    bg: "black/70",
+    display: "flex",
+    height: "100vh",
+    justifyContent: "center",
+    left: "0",
+    pointerEvents: "auto",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+  }),
+};
 
 type UiMode =
   | ["off"]
@@ -40,13 +59,7 @@ type UiMode =
   | ["context", ContextMenuState]
   | ["disable-confirmation"];
 
-type RuntimeProps = {
-  adapterId?: AdapterId;
-  targets: Targets;
-  showIntro?: boolean;
-};
-
-function Runtime(props: RuntimeProps) {
+function Runtime(props: { portalMount: HTMLDivElement }) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
@@ -62,6 +75,9 @@ function Runtime(props: RuntimeProps) {
   );
 
   const options = useOptions();
+  const adapterId = () =>
+    options.effective().adapterId as AdapterId | undefined;
+  const targets = () => options.allTargets();
 
   createEffect(() => {
     if (holdingModKey() && currentElement()) {
@@ -80,11 +96,11 @@ function Runtime(props: RuntimeProps) {
     //   }
     // }
 
-    setHoldingModKey(isCombinationModifiersPressed(e));
+    setHoldingModKey(isCombinationModifiersPressed(options, e));
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(e, true));
+    setHoldingModKey(isCombinationModifiersPressed(options, e, true));
   }
 
   function mouseOverListener(e: MouseEvent) {
@@ -95,7 +111,7 @@ function Runtime(props: RuntimeProps) {
         return;
       }
 
-      setHoldingModKey(isCombinationModifiersPressed(e, true));
+      setHoldingModKey(isCombinationModifiersPressed(options, e, true));
 
       batch(() => {
         setCurrentElement(target);
@@ -119,7 +135,7 @@ function Runtime(props: RuntimeProps) {
   }
 
   function mouseDownUpListener(e: MouseEvent) {
-    if (isCombinationModifiersPressed(e)) {
+    if (isCombinationModifiersPressed(options, e)) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -137,7 +153,7 @@ function Runtime(props: RuntimeProps) {
   }
 
   function copyToClipboard(target: HTMLElement) {
-    const elInfo = getElementInfo(target, props.adapterId);
+    const elInfo = getElementInfo(target, adapterId());
 
     if (elInfo) {
       const linkProps = elInfo.thisElement.link;
@@ -148,7 +164,7 @@ function Runtime(props: RuntimeProps) {
   }
 
   function rightClickListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(e, true)) {
+    if (!isCombinationModifiersPressed(options, e, true)) {
       return;
     }
 
@@ -166,7 +182,10 @@ function Runtime(props: RuntimeProps) {
   }
 
   async function clickListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(e) && uiMode()[0] !== "options") {
+    if (
+      !isCombinationModifiersPressed(options, e) &&
+      uiMode()[0] !== "options"
+    ) {
       return;
     }
 
@@ -181,7 +200,7 @@ function Runtime(props: RuntimeProps) {
       }
 
       // Try sync resolution first
-      let elInfo = getElementInfo(target, props.adapterId);
+      let elInfo = getElementInfo(target, adapterId());
 
       if (elInfo?.thisElement.link) {
         // Sync found a link — prevent default and navigate
@@ -191,11 +210,11 @@ function Runtime(props: RuntimeProps) {
 
         if (
           (!isExtension() || detectSvelte()) &&
-          !options.getOptions().welcomeScreenDismissed
+          !options.uiState().welcomeScreenDismissed
         ) {
           setDialog(["choose-editor", elInfo.thisElement.link]);
         } else {
-          goToLinkProps(elInfo.thisElement.link, props.targets, options);
+          goToLinkProps(elInfo.thisElement.link, targets(), options);
         }
         return;
       }
@@ -207,7 +226,7 @@ function Runtime(props: RuntimeProps) {
 
       // Try async resolution (source-map, Turbopack, etc.)
       if (!elInfo?.thisElement.link) {
-        elInfo = await getElementInfoAsync(target, props.adapterId);
+        elInfo = await getElementInfoAsync(target, adapterId());
       }
 
       if (elInfo) {
@@ -217,11 +236,11 @@ function Runtime(props: RuntimeProps) {
 
           if (
             (!isExtension() || detectSvelte()) &&
-            !options.getOptions().welcomeScreenDismissed
+            !options.uiState().welcomeScreenDismissed
           ) {
             setDialog(["choose-editor", linkProps]);
           } else {
-            goToLinkProps(linkProps, props.targets, options);
+            goToLinkProps(linkProps, targets(), options);
           }
         } else {
           // eslint-disable-next-line no-console
@@ -338,8 +357,8 @@ function Runtime(props: RuntimeProps) {
           treeState={uiMode()[1]! as TreeState}
           close={() => setUiMode(["off"])}
           setTreeState={(newState) => setUiMode(["tree", newState])}
-          adapterId={props.adapterId}
-          targets={props.targets}
+          adapterId={adapterId()}
+          targets={targets()}
           setHighlightedNode={setHighlightedNode}
         />
       ) : null}
@@ -347,28 +366,28 @@ function Runtime(props: RuntimeProps) {
         <ContextView
           contextMenuState={uiMode()[1]! as ContextMenuState}
           close={() => setUiMode(["off"])}
-          adapterId={props.adapterId}
-          targets={props.targets}
+          adapterId={adapterId()}
+          targets={targets()}
           setHighlightedNode={setHighlightedNode}
         />
       ) : null}
       {(holdingModKey() || uiMode()[0] === "options") && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
-          adapterId={props.adapterId}
-          targets={props.targets}
+          adapterId={adapterId()}
+          targets={targets()}
           showTreeFromElement={showTreeFromElement}
           showParentsPath={showContextMenu}
           copyToClipboard={copyToClipboard}
         />
       ) : null}
       {holdingModKey() ? (
-        <div class={bannerClasses()}>
-          <BannerHeader openOptions={openOptions} adapter={props.adapterId} />
-          <div class="mt-2 text-xs text-gray-600">
+        <div class={bannerClass}>
+          <BannerHeader openOptions={openOptions} adapter={adapterId()} />
+          <div class={styles.sponsorText}>
             Support me on{" "}
             <a
-              class="underline hover:text-sky-900 text-sky-700"
+              class={styles.sponsorLink}
               href="https://github.com/sponsors/infi-pc"
               target="_blank"
               onClick={(e) => {
@@ -385,19 +404,18 @@ function Runtime(props: RuntimeProps) {
       {highlightedNode() ? (
         <SimpleNodeOutline node={highlightedNode()!} />
       ) : null}
-      {props.showIntro !== false &&
-      !isExtension() &&
-      options.getOptions().showIntro !== false ? (
+      {!isExtension() && options.effective().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
           hide={!!holdingModKey() || uiMode()[0] !== "off"}
-          adapter={props.adapterId}
+          adapter={adapterId()}
         />
       ) : null}
       {uiMode()[0] === "options" ? (
         <Options
-          adapterId={props.adapterId}
-          targets={props.targets}
+          adapterId={adapterId()}
+          targets={targets()}
+          portalMount={props.portalMount}
           onClose={() => {
             setUiMode(["off"]);
           }}
@@ -421,7 +439,7 @@ function Runtime(props: RuntimeProps) {
       ) : null} */}
       {dialog() && (
         <div
-          class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center bg-black/70 pointer-events-auto"
+          class={styles.dialogBackdrop}
           onClick={(e) => {
             if (e.currentTarget === e.target) {
               setDialog(null);
@@ -431,8 +449,9 @@ function Runtime(props: RuntimeProps) {
           {dialog()![0] === "no-link" && <NoLinkDialog />}
           {dialog()![0] === "choose-editor" && (
             <WelcomeScreen
-              targets={props.targets}
+              targets={targets()}
               originalLinkProps={dialog()![1]!}
+              portalMount={props.portalMount}
               onClose={() => {
                 setDialog(null);
               }}
@@ -444,10 +463,10 @@ function Runtime(props: RuntimeProps) {
   );
 }
 
-function RuntimeWrapper(props: RuntimeProps) {
+function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
   const options = useOptions();
 
-  const isDisabled = () => options.getOptions().disabled || false;
+  const isDisabled = () => options.effective().disabled || false;
 
   createEffect(() => {
     if (isDisabled() && isExtension()) {
@@ -459,30 +478,19 @@ function RuntimeWrapper(props: RuntimeProps) {
 
   return (
     <Show when={!isDisabled()}>
-      <Runtime {...props} />
+      <Runtime portalMount={props.portalMount} />
     </Show>
   );
 }
 
-export function initRender(
-  solidLayer: HTMLDivElement,
-  adapter: AdapterId | undefined,
-  targets: SetupTargets,
-  showIntro?: boolean
-) {
+export function initRender(solidLayer: HTMLDivElement) {
   render(
     () => (
-      <OptionsProvider>
-        <RuntimeWrapper
-          targets={Object.fromEntries(
-            Object.entries(targets).map(([key, t]) => {
-              return [key, typeof t == "string" ? { url: t, label: key } : t];
-            })
-          )}
-          adapterId={adapter}
-          showIntro={showIntro}
-        />
-      </OptionsProvider>
+      <EnvironmentProvider value={() => solidLayer.getRootNode() as ShadowRoot}>
+        <OptionsProvider>
+          <RuntimeWrapper portalMount={solidLayer} />
+        </OptionsProvider>
+      </EnvironmentProvider>
     ),
     solidLayer
   );

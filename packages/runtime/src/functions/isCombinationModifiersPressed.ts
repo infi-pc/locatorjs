@@ -1,20 +1,22 @@
-export function getMouseModifiers() {
-  const mouseModifiers =
-    document.documentElement.dataset.locatorMouseModifiers || "alt";
+import type { OptionsStore } from "./optionsStore";
+
+export function getMouseModifiers(options: OptionsStore) {
+  const mouseModifiers = options.effective().mouseModifiers ?? "alt";
   const mouseModifiersArray = mouseModifiers.split("+");
   const modifiers: { [key: string]: true } = {};
   mouseModifiersArray.forEach((modifier) => {
     modifiers[modifier] = true;
-  }, {});
+  });
 
   return modifiers;
 }
 
 export function isCombinationModifiersPressed(
+  options: OptionsStore,
   e: MouseEvent | KeyboardEvent,
   rightClick = false
 ) {
-  const modifiers = getMouseModifiers();
+  const modifiers = getMouseModifiers(options);
 
   if (rightClick) {
     return (

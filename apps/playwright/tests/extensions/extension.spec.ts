@@ -11,7 +11,7 @@ import { locateElement } from "../locateElement";
 
 export const test = base.extend<{
   context: BrowserContext;
-  // extensionId: string;
+  extensionId: string;
 }>({
   context: async ({}, use) => {
     const pathToExtension = path.join(
@@ -29,18 +29,13 @@ export const test = base.extend<{
     await use(context);
     await context.close();
   },
-  // extensionId: async ({ context }, use) => {
-  //   // for manifest v2:
-  //   // let [background] = context.backgroundPages();
-  //   // if (!background) background = await context.waitForEvent("backgroundpage");
+  extensionId: async ({ context }, use) => {
+    let [background] = context.serviceWorkers();
+    if (!background) background = await context.waitForEvent("serviceworker");
 
-  //   // for manifest v3:
-  //   let [background] = context.serviceWorkers();
-  //   if (!background) background = await context.waitForEvent("serviceworker");
-
-  //   const extensionId = background.url().split("/")[2];
-  //   await use(extensionId);
-  // },
+    const extensionId = background.url().split("/")[2];
+    await use(extensionId);
+  },
 });
 
 test("react", async ({ page }) => {
@@ -74,7 +69,30 @@ test("svelte", async ({ page }) => {
   await expect(initialButton).toBeVisible();
 });
 
-// test("popup page", async ({ page, extensionId }) => {
-//   await page.goto(`chrome-extension://${extensionId}/popup.html`);
-//   await expect(page.locator("body")).toHaveText("my-extension popup");
-// });
+test("popup renders layer tabs and persists an extension setting", async ({
+  page,
+  extensionId,
+}) => {
+  await page.goto(`chrome-extension://${extensionId}/popup.html`);
+  await page.getByRole("button", { name: "Settings" }).first().click();
+  const extensionTab = page.getByRole("tab", { name: /Extension/ });
+  const originTab = page.getByRole("tab", { name: /This origin/ });
+
+  await expect(extensionTab).toHaveAttribute("aria-selected", "true");
+  await expect(originTab).toBeDisabled();
+
+  const debugMode = page.getByRole("checkbox", { name: "Debug mode" });
+  await debugMode.locator("..").click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean | undefined>((resolve) => {
+            chrome.storage.local.get(["userOptions"], (result) => {
+              resolve(result.userOptions?.debugMode);
+            });
+          })
+      )
+    )
+    .toBe(true);
+});

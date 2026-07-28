@@ -5,6 +5,31 @@ import { TreeState } from "../adapters/adapterApi";
 import { TreeNodeElementView } from "./TreeNodeElementView";
 import { createEffect, createSignal } from "solid-js";
 import { computePosition, flip, shift, offset } from "@floating-ui/dom";
+import { css } from "@locator/styled-system/css";
+import { expandPill } from "@locator/styled-system/recipes";
+
+const styles = {
+  backdrop: css({
+    bg: "black/10",
+    height: "100vh",
+    left: "0",
+    pointerEvents: "auto",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+    zIndex: "popover",
+  }),
+  panel: css({
+    bg: "bg.default",
+    borderRadius: "l2",
+    boxShadow: "xl",
+    fontSize: "xs",
+    m: "2",
+    overflow: "auto",
+    p: "4",
+  }),
+  parent: css({ mb: "2" }),
+};
 
 export function TreeView(props: {
   treeState: TreeState;
@@ -43,14 +68,8 @@ export function TreeView(props: {
   });
   return (
     <div
+      class={styles.backdrop}
       style={{
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100vw",
-        height: "100vh",
-        "pointer-events": "auto",
-        "background-color": "rgba(0,0,0,0.1)",
         "z-index": 1001,
       }}
       onClick={(e) => {
@@ -69,7 +88,7 @@ export function TreeView(props: {
         ref={contentRef}
       >
         <div
-          class={"m-2 bg-white rounded-md p-4 shadow-xl text-xs overflow-auto"}
+          class={styles.panel}
           style={{
             "max-height": "calc(100vh - 16px)",
           }}
@@ -77,9 +96,9 @@ export function TreeView(props: {
           {props.treeState ? (
             <div>
               {props.treeState?.root.getParent() ? (
-                <div class="mb-2">
+                <div class={styles.parent}>
                   <button
-                    class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2 "
+                    class={expandPill()}
                     onClick={() => {
                       const state = props.treeState;
                       const parent = state.root.getParent();

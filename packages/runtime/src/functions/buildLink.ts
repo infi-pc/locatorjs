@@ -5,24 +5,15 @@ import { linkTemplateUrl } from "./linkTemplateUrl";
 import type { OptionsStore } from "./optionsStore";
 import { transformPath } from "./transformPath";
 
-let internalProjectPath: string | null = null;
-export function setInternalProjectPath(projectPath: string) {
-  internalProjectPath = projectPath;
-}
-
-export function getSavedProjectPath(options: OptionsStore) {
-  return options.getOptions().projectPath || internalProjectPath;
-}
-
 export function buildLink(
   linkProps: LinkProps,
   targets: Targets,
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): string {
-  const tmuxSession = options.getOptions().tmuxSession;
-  const savedProjectPath =
-    getSavedProjectPath(options) || linkProps.projectPath;
+  const effective = options.effective();
+  const tmuxSession = effective.tmuxSession;
+  const savedProjectPath = effective.projectPath || linkProps.projectPath;
 
   // Handle Turbopack [project]/ prefix
   let resolvedFilePath = linkProps.filePath;
@@ -46,8 +37,9 @@ export function buildLink(
   };
 
   const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
-  const replacePathObj = options.getOptions().replacePath;
+  const replacePathObj = effective.replacePath;
   let evaluated = evalTemplate(template, params);
+  evaluated = stripUnresolvedQueryParams(evaluated);
 
   if (replacePathObj) {
     evaluated = transformPath(
@@ -57,6 +49,24 @@ export function buildLink(
     );
   }
   return evaluated;
+}
+
+function stripUnresolvedQueryParams(url: string): string {
+  const hashIndex = url.indexOf("#");
+  const hash = hashIndex >= 0 ? url.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+  const queryIndex = withoutHash.indexOf("?");
+  if (queryIndex < 0) return url;
+
+  const base = withoutHash.slice(0, queryIndex);
+  const query = withoutHash.slice(queryIndex + 1);
+  const resolvedParams = query
+    .split("&")
+    .filter((param) => param && !/\$\{[^}]+\}/.test(param));
+
+  return `${base}${
+    resolvedParams.length ? `?${resolvedParams.join("&")}` : ""
+  }${hash}`;
 }
 
 export function buildLinkFromSource(

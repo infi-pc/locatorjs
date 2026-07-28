@@ -8,6 +8,9 @@
     "default_popup": "popup.html",
     "default_icon": "icon-34.png"
   },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

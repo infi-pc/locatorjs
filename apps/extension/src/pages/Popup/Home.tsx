@@ -1,106 +1,188 @@
-import { Editor } from './Editor';
-import { Button, Kbd } from '@hope-ui/solid';
-import { HiSolidCog } from 'solid-icons/hi';
-import { modifiersTitles } from '@locator/shared';
+import {
+  modifiersTitles,
+  getModifiersMap,
+  resolveTarget,
+} from '@locator/shared';
+import {
+  Button,
+  Kbd,
+  ProvenanceBadge,
+  SectionHeadline,
+  editorIconFor,
+} from '@locator/ui';
+import { css } from '@locator/styled-system/css';
+import { MousePointerClick, Power } from 'lucide-solid';
 import { useSyncedState } from './syncedState';
 import { Page } from './Page';
-import SectionHeadline from './SectionHeadline';
-import { requestEnable } from './requestEnable';
 
 type Props = {
   setPage: (page: Page) => void;
 };
 
-export function Home(props: Props) {
-  return (
-    <>
-      <div class="flex justify-between">
-        <div>
-          <SectionHeadline>Controls: </SectionHeadline>
+const styles = {
+  stack: css({ display: 'flex', flexDirection: 'column', gap: '3' }),
+  card: css({ layerStyle: 'card', p: '3' }),
+  controls: css({
+    alignItems: 'center',
+    display: 'flex',
+    fontSize: 'sm',
+    gap: '2',
+    py: '1',
+  }),
+  controlText: css({ minW: '0' }),
+  hint: css({ color: 'fg.muted', fontSize: 'xs', lineHeight: '5', mt: '1' }),
+  editorRow: css({
+    alignItems: 'center',
+    display: 'flex',
+    gap: '3',
+    justifyContent: 'space-between',
+  }),
+  editorMain: css({
+    alignItems: 'center',
+    display: 'flex',
+    gap: '2',
+    minW: '0',
+  }),
+  editorIcon: css({
+    alignItems: 'center',
+    bg: 'accent.subtle.bg',
+    borderColor: 'accent.surface.border',
+    borderRadius: 'l2',
+    borderWidth: '1px',
+    color: 'accent.subtle.fg',
+    display: 'inline-flex',
+    flexShrink: '0',
+    height: '8',
+    justifyContent: 'center',
+    width: '8',
+  }),
+  editorText: css({ color: 'fg.default', fontSize: 'sm' }),
+  editorMeta: css({
+    alignItems: 'center',
+    color: 'fg.muted',
+    display: 'flex',
+    flexWrap: 'wrap',
+    fontSize: 'xs',
+    gap: '1.5',
+    mt: '0.5',
+  }),
+  footer: css({
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '3',
+    width: '100%',
+  }),
+  footerText: css({ color: 'fg.muted', fontSize: 'xs' }),
+  sponsorLink: css({
+    color: 'accent.plain.fg',
+    textDecoration: 'underline',
+    _hover: { color: 'accent.solid.bg.hover' },
+  }),
+  pointerIcon: css({ color: 'accent.plain.fg', flexShrink: '0' }),
+};
 
-          <div class="py-1 text-sm">
+export function Home(props: Props) {
+  const { setSiteLocal, snapshot } = useSyncedState();
+
+  const targetProvenance = () =>
+    snapshot()?.provenance.targetTemplate ?? snapshot()?.provenance.targetId;
+  const currentEditor = () => {
+    const s = snapshot();
+    if (!s) return undefined;
+    const target = resolveTarget(s.effective, s.allTargets);
+    return target.kind === 'template'
+      ? target.url
+      : s.allTargets[target.id]?.label ?? target.id;
+  };
+  const currentEditorId = () => {
+    const s = snapshot();
+    if (!s) return 'custom';
+    const target = resolveTarget(s.effective, s.allTargets);
+    return target.kind === 'template' ? 'custom' : target.id || 'custom';
+  };
+
+  return (
+    <div class={styles.stack}>
+      <div class={styles.card}>
+        <SectionHeadline>Controls</SectionHeadline>
+
+        <div class={styles.controls}>
+          <MousePointerClick size={18} class={styles.pointerIcon} />
+          <span class={styles.controlText}>
             <b>
-              <Modifiers /> +{' '}
-              <Kbd>
-                <svg
-                  viewBox="0 0 24 24"
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    display: 'inline-block',
-                  }}
-                >
-                  <path
-                    fill="currentColor"
-                    d="M11,1.07C7.05,1.56 4,4.92 4,9H11M4,15A8,8 0 0,0 12,23A8,8 0 0,0 20,15V11H4M13,1.07V9H20C20,4.92 16.94,1.56 13,1.07Z"
-                  />
-                </svg>{' '}
-                click
-              </Kbd>
+              <Modifiers /> + <Kbd>click</Kbd>
             </b>{' '}
-            go to editor
-          </div>
-          {/* <div class="py-1 text-sm">
-            <b>
-              <Modifiers /> + <Kbd>D</Kbd>
-            </b>{' '}
-            toggle select mode
-          </div> */}
-          <p class="text-xs leading-5 text-gray-800 dark:text-gray-200">
-            remember to <b>focus your app</b> (click on any surface)
-          </p>
+            opens your editor
+          </span>
         </div>
-        <div class="absolute right-4">
+        <p class={styles.hint}>
+          Click the page once first so your app has focus.
+        </p>
+      </div>
+
+      <div class={styles.card}>
+        <div class={styles.editorRow}>
+          <div class={styles.editorMain}>
+            <span class={styles.editorIcon}>
+              {editorIconFor(currentEditorId())}
+            </span>
+            <div>
+              <div class={styles.editorText}>
+                Editor: <b>{currentEditor() ?? '—'}</b>
+              </div>
+              <div class={styles.editorMeta}>
+                <span>Resolved setting</span>
+                <ProvenanceBadge layer={targetProvenance()} />
+              </div>
+            </div>
+          </div>
           <Button
-            colorScheme="neutral"
-            variant="subtle"
             size="xs"
-            class="gap-1"
-            onClick={() => {
-              props.setPage({ type: 'edit-controls' });
-            }}
+            variant="ghost"
+            onClick={() =>
+              props.setPage({ type: 'settings', tab: 'user-extension' })
+            }
           >
-            <HiSolidCog /> settings
+            Change
           </Button>
         </div>
       </div>
-      <Editor />
 
-      <div class="mt-2 w-full flex justify-between items-center">
-        <div>
+      <div class={styles.footer}>
+        <div class={styles.footerText}>
           Support me on{' '}
           <a
-            class="underline hover:text-sky-900 text-sky-700"
+            class={styles.sponsorLink}
             href="https://github.com/sponsors/infi-pc"
             target="_blank"
           >
             GitHub sponsors
           </a>
         </div>
-        <button
-          class="bg-gray-50 text-gray-800 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs hover:text-red-800 flex gap-1"
+        <Button
+          variant="danger-ghost"
+          size="xs"
+          disabled={!snapshot()}
           onClick={() => {
-            requestEnable(false);
+            setSiteLocal({ disabled: true });
           }}
         >
-          <svg style={{ width: '16px', height: '16px' }} viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"
-            />
-          </svg>{' '}
+          <Power size={16} />
           Disable on this page
-        </button>
+        </Button>
       </div>
-    </>
+    </div>
   );
 }
 
 function Modifiers() {
-  const { controls } = useSyncedState();
+  const { snapshot } = useSyncedState();
+  const map = () =>
+    getModifiersMap(snapshot()?.effective.mouseModifiers ?? 'alt');
   return (
     <>
-      {Object.keys(controls.getMap()).map((key, i) => {
+      {Object.keys(map()).map((key, i) => {
         return (
           <>
             {i === 0 ? '' : ' + '}

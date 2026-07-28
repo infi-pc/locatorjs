@@ -1,76 +1,155 @@
-import { createContext, createSignal, useContext } from "solid-js";
 import {
-  getStoredOptions,
-  listenOnOptionsChanges,
-  ProjectOptions,
-  setStoredOptions,
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  getOwner,
+  onCleanup,
+  useContext,
+} from "solid-js";
+import {
+  DEFAULT_LAYER,
+  clearUserOriginOptions,
+  getUserOriginOptions,
+  getUserOriginUiState,
+  listenOnUserOriginChanges,
+  LocatorLayer,
+  LocatorOptions,
+  LocatorUserOriginStored,
+  resolve,
+  setUserOriginOptions,
+  setUserOriginUiState,
+  Targets,
+  WriteResult,
+  allTargets,
 } from "@locator/shared";
 import { setDebugMode } from "../adapters/react/debug";
+import { getTeamLayerSignal, getTeamTargetsSignal } from "./teamLayerStore";
+import { mountRuntimePopupBridge } from "./popupBridge";
+
+export type UiState = NonNullable<LocatorUserOriginStored["uiState"]>;
 
 export type OptionsStore = {
-  setOptions: (options: ProjectOptions) => void;
-  getOptions: () => ProjectOptions;
+  effective: () => LocatorOptions;
+  provenance: () => Partial<Record<keyof LocatorOptions, LocatorLayer>>;
+  layers: () => Partial<Record<LocatorLayer, LocatorOptions>>;
+  uiState: () => UiState;
+  allTargets: () => Targets;
+  setUserOrigin: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  clearUserOrigin: () => void;
+  setUiState: (patch: Partial<UiState>) => Promise<WriteResult>;
 };
 
-export function initOptions(): OptionsStore {
-  const initialOptions = getStoredOptions();
-  const [signalOptions, setSignalOptions] = createSignal(initialOptions);
-
-  // Sync debug state on initialization
-  if (initialOptions.debugMode) {
-    setDebugMode(true);
+function readUserExtensionGlobal(): LocatorOptions | undefined {
+  if (typeof document === "undefined") return undefined;
+  const raw = document.documentElement?.dataset?.locatorUserExtensionOptions;
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      return parsed as LocatorOptions;
+    }
+  } catch {
+    // ignore corrupt JSON
   }
+  return undefined;
+}
 
-  // This listens on localStorage changes, but the changes go only from scripts other than the current one and current one's content scripts
-  listenOnOptionsChanges((newOptions) => {
-    setSignalOptions(newOptions);
-    // Sync debug state
-    setDebugMode(newOptions.debugMode ?? false);
-  });
+export function initOptions(): OptionsStore {
+  const teamLayer = getTeamLayerSignal();
+  const teamTargets = getTeamTargetsSignal();
 
-  // This listens only on changes from the contents script for this current page
-  window.addEventListener(
-    "message",
-    (event) => {
-      // We only accept messages from ourselves
-      if (event.source != window) {
-        return;
-      }
+  const [userExtension, setUserExtension] = createSignal<
+    LocatorOptions | undefined
+  >(readUserExtensionGlobal());
+  const [userOrigin, setUserOrigin] = createSignal<LocatorOptions>(
+    getUserOriginOptions()
+  );
+  const [uiState, setUiState] = createSignal<UiState>(getUserOriginUiState());
 
-      if (
-        event.data.type &&
-        event.data.type == "LOCATOR_EXTENSION_UPDATED_OPTIONS"
-      ) {
-        const newOptions = getStoredOptions();
-        setSignalOptions(newOptions);
-        // Sync debug state
-        setDebugMode(newOptions.debugMode ?? false);
-      }
-    },
-    false
+  const layers = createMemo(
+    (): Partial<Record<LocatorLayer, LocatorOptions>> => ({
+      default: DEFAULT_LAYER,
+      team: teamLayer(),
+      "user-extension": userExtension(),
+      "user-origin": userOrigin(),
+    })
   );
 
-  function setOptions(newOptions: Partial<ProjectOptions>) {
-    const savedOptions = getStoredOptions();
-    const optionsToSave = { ...savedOptions, ...newOptions };
-    setStoredOptions(optionsToSave);
-    setSignalOptions(optionsToSave);
+  const resolved = createMemo(() => resolve(layers()));
+
+  const effective = () => resolved().effective;
+  const provenance = () => resolved().provenance;
+
+  createEffect(() => {
+    setDebugMode(effective().debugMode ?? false);
+  });
+
+  listenOnUserOriginChanges(() => {
+    setUserOrigin(getUserOriginOptions());
+    setUiState(getUserOriginUiState());
+  });
+
+  if (typeof window !== "undefined") {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window) return;
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "LOCATOR_USER_EXTENSION_OPTIONS_UPDATED") {
+        setUserExtension(readUserExtensionGlobal());
+      }
+    };
+    window.addEventListener("message", onMessage, false);
+    if (getOwner()) {
+      onCleanup(() => {
+        window.removeEventListener("message", onMessage, false);
+      });
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  window.enableLocator = () => {
-    setOptions({ disabled: false });
-    return "Locator enabled";
+  const store: OptionsStore = {
+    effective,
+    provenance,
+    layers,
+    uiState,
+    allTargets: () => teamTargets() ?? allTargets,
+    setUserOrigin: async (patch) => {
+      const result = setUserOriginOptions(patch);
+      if (result.ok) {
+        setUserOrigin(getUserOriginOptions());
+      }
+      return result;
+    },
+    clearUserOrigin: () => {
+      clearUserOriginOptions();
+      setUserOrigin({});
+    },
+    setUiState: async (patch) => {
+      const result = setUserOriginUiState(patch);
+      if (result.ok) {
+        setUiState(getUserOriginUiState());
+      }
+      return result;
+    },
   };
 
-  return { setOptions, getOptions: signalOptions };
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    window.enableLocator = () => {
+      store.setUserOrigin({ disabled: false });
+      return "Locator enabled";
+    };
+  }
+
+  return store;
 }
 
 const OptionsContext = createContext<OptionsStore>();
 
 export function OptionsProvider(props: { children: any }) {
   const options = initOptions();
+  mountRuntimePopupBridge(options);
 
   return (
     <OptionsContext.Provider value={options}>
