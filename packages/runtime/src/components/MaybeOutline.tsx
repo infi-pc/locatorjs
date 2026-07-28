@@ -1,4 +1,4 @@
-import { Targets } from "@locator/shared";
+import { Binding, BindingAction, Targets } from "@locator/shared";
 import { createMemo } from "solid-js";
 import { AdapterId } from "../consts";
 import { getElementInfo } from "../adapters/getElementInfo";
@@ -27,9 +27,15 @@ export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
   showParentsPath: (element: HTMLElement, x: number, y: number) => void;
-  copyToClipboard: (element: HTMLElement) => void;
+  bindings: Binding[];
+  performAction: (
+    action: BindingAction,
+    element: import("../adapters/adapterApi").FullElementInfo,
+    position: { x: number; y: number }
+  ) => Promise<boolean>;
   adapterId?: AdapterId;
   targets: Targets;
+  defaultEditorId?: string;
 }) {
   const elInfo = createMemo(() =>
     getElementInfo(props.currentElement, props.adapterId)
@@ -42,8 +48,10 @@ export function MaybeOutline(props: {
           element={elInfo()!}
           showTreeFromElement={props.showTreeFromElement}
           showParentsPath={props.showParentsPath}
-          copyToClipboard={props.copyToClipboard}
+          bindings={props.bindings}
+          performAction={props.performAction}
           targets={props.targets}
+          defaultEditorId={props.defaultEditorId}
         />
       ) : (
         <div class={styles.viewport}>

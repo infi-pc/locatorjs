@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
   clearUserOriginOptions,
+  getUserOriginOptions,
   USER_ORIGIN_STORAGE_KEY,
 } from "./sharedOptionsStore";
 
@@ -61,4 +62,28 @@ describe("clearUserOriginOptions", () => {
       expect(localStorage.getItem(USER_ORIGIN_STORAGE_KEY)).toBeNull();
     }
   );
+
+  test("lazily writes legacy mouse modifiers back as bindings", () => {
+    localStorage.setItem(
+      USER_ORIGIN_STORAGE_KEY,
+      JSON.stringify({
+        mouseModifiers: "meta",
+        uiState: { onboarding: { step: "editor" } },
+      })
+    );
+
+    expect(getUserOriginOptions().bindings?.[0]).toEqual({
+      modifiers: "meta",
+      action: { kind: "open-editor" },
+    });
+    expect(JSON.parse(localStorage.getItem(USER_ORIGIN_STORAGE_KEY)!)).toEqual({
+      bindings: [
+        { modifiers: "meta", action: { kind: "open-editor" } },
+        { icon: true, action: { kind: "show-tree" } },
+        { icon: true, action: { kind: "show-parents" } },
+        { icon: true, action: { kind: "copy-path" } },
+      ],
+      uiState: { onboarding: { step: "editor" } },
+    });
+  });
 });

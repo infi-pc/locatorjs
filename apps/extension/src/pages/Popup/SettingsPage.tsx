@@ -1,5 +1,5 @@
 import { allTargets, DEFAULT_LAYER } from '@locator/shared';
-import { LayeredOptionsEditor, LayerTabConfig } from '@locator/ui';
+import { LayeredOptionsEditor } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { useSyncedState } from './syncedState';
 
@@ -18,51 +18,38 @@ export function SettingsPage(props: Props) {
 
   const targets = () => snapshot()?.allTargets ?? allTargets;
 
-  const tabs = (): LayerTabConfig[] => [
-    {
-      layer: 'user-origin',
-      label: 'This origin',
-      values: snapshot()?.layers['user-origin'] ?? {},
-      write: snapshot() ? setSiteLocal : undefined,
-      disabled: !snapshot(),
-      disabledReason:
-        'Connect to a page running LocatorJS to edit this origin.',
-      note: snapshot()
-        ? 'Stored in this page’s origin — applies to everyone opening it in this browser profile.'
-        : 'No LocatorJS runtime detected on this page — per-origin settings are unavailable.',
-    },
-    {
-      layer: 'user-extension',
-      label: 'Extension',
-      values: userExtension(),
-      write: setUserExtension,
-      note: 'Your defaults — apply on every site where the extension runs.',
-    },
-    {
-      layer: 'team',
-      label: 'Team',
-      values: snapshot()?.layers.team ?? {},
-      disabled: !snapshot(),
-      disabledReason:
-        'Connect to a page running LocatorJS to inspect team settings.',
-      note: snapshot()
-        ? 'Defined by setup() in the app’s code — change it in the repository.'
-        : 'No LocatorJS runtime detected on this page.',
-    },
-    {
-      layer: 'default',
-      label: 'Defaults',
-      values: snapshot()?.layers.default ?? DEFAULT_LAYER,
-      note: 'Built-in LocatorJS defaults.',
-    },
-  ];
-
   return (
     <div class={styles.root}>
       <LayeredOptionsEditor
-        tabs={tabs()}
+        layers={{
+          default: snapshot()?.layers.default ?? DEFAULT_LAYER,
+          team: snapshot()?.layers.team ?? {},
+          'user-extension': userExtension(),
+          'user-origin': snapshot()?.layers['user-origin'] ?? {},
+        }}
+        writeScopes={[
+          {
+            layer: 'user-origin',
+            label: 'This site',
+            write: setSiteLocal,
+            disabled: !snapshot(),
+            disabledReason:
+              'Connect to a page running LocatorJS to edit this site.',
+            note: snapshot()
+              ? 'Overrides stored only for the current site.'
+              : 'No LocatorJS runtime detected on this page.',
+          },
+          {
+            layer: 'user-extension',
+            label: 'All sites',
+            write: setUserExtension,
+            note: 'Personal defaults used on every LocatorJS site.',
+          },
+        ]}
         targets={targets()}
-        defaultId={props.page.tab ?? 'user-extension'}
+        defaultId={
+          props.page.tab === 'user-origin' ? 'user-origin' : 'user-extension'
+        }
       />
       <div class={styles.note}>
         {status() === 'connected'

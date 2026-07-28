@@ -9,6 +9,7 @@ import { Tooltip } from "./Tooltip";
 import { editorIconFor } from "./editorIcons";
 
 const CUSTOM_VALUE = "__custom__";
+const DEFAULT_VALUE = "__default__";
 
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
@@ -41,6 +42,7 @@ export function EditorPicker(props: {
   targetId?: string;
   targetTemplate?: string;
   disabled?: boolean;
+  allowDefault?: boolean;
   portalMount?: Node;
   onChange: (
     patch: Pick<LocatorOptions, "targetId" | "targetTemplate">
@@ -51,6 +53,15 @@ export function EditorPicker(props: {
   const [saving, setSaving] = createSignal(false);
   let input: HTMLInputElement | undefined;
   const items = createMemo<SelectItem[]>(() => [
+    ...(props.allowDefault
+      ? [
+          {
+            value: DEFAULT_VALUE,
+            label: "Default editor",
+            icon: editorIconFor("default"),
+          },
+        ]
+      : []),
     ...Object.entries(props.targets).map(([value, target]) => ({
       value,
       label: target.label,
@@ -65,7 +76,7 @@ export function EditorPicker(props: {
   const value = () =>
     props.targetTemplate || (props.targetId && !props.targets[props.targetId])
       ? CUSTOM_VALUE
-      : props.targetId;
+      : props.targetId ?? (props.allowDefault ? DEFAULT_VALUE : undefined);
   const selectedTemplate = () =>
     props.targetTemplate ??
     (props.targetId
@@ -114,7 +125,13 @@ export function EditorPicker(props: {
         disabled={props.disabled}
         portalMount={props.portalMount}
         onChange={(next) => {
-          if (next === CUSTOM_VALUE) {
+          if (next === DEFAULT_VALUE) {
+            setEditing(false);
+            props.onChange({
+              targetId: undefined,
+              targetTemplate: undefined,
+            });
+          } else if (next === CUSTOM_VALUE) {
             beginEditing();
           } else {
             setEditing(false);

@@ -10,6 +10,12 @@ import {
 import { initOptions } from "./optionsStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
 
+function primaryModifiers(options: {
+  bindings?: Array<{ modifiers?: string }>;
+}) {
+  return options.bindings?.find((binding) => binding.modifiers)?.modifiers;
+}
+
 const disposers: (() => void)[] = [];
 
 function withRoot<T>(fn: () => T): T {
@@ -54,14 +60,14 @@ describe("optionsStore integration", () => {
 
     const options = withRoot(() => initOptions());
 
-    expect(options.effective().mouseModifiers).toBe("ctrl");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("ctrl");
+    expect(options.provenance().bindings).toBe("user-extension");
   });
 
   test("postMessage updates user-extension layer after runtime mount", async () => {
     const options = withRoot(() => initOptions());
 
-    expect(options.provenance().mouseModifiers).toBe("default");
+    expect(options.provenance().bindings).toBe("default");
 
     setUserExtensionGlobal({ mouseModifiers: "shift" });
     window.dispatchEvent(
@@ -71,8 +77,8 @@ describe("optionsStore integration", () => {
       })
     );
 
-    expect(options.effective().mouseModifiers).toBe("shift");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("shift");
+    expect(options.provenance().bindings).toBe("user-extension");
   });
 
   test("user-origin layer overrides user-extension and team layers", async () => {
@@ -133,15 +139,15 @@ describe("optionsStore integration", () => {
 
     await options.setUserOrigin({ mouseModifiers: "shift" });
     await options.setUiState({ welcomeScreenDismissed: true });
-    expect(options.effective().mouseModifiers).toBe("shift");
+    expect(primaryModifiers(options.effective())).toBe("shift");
 
     options.clearUserOrigin();
 
     expect(JSON.parse(localStorage.getItem("LOCATOR_USER_OPTIONS")!)).toEqual({
       uiState: { welcomeScreenDismissed: true },
     });
-    expect(options.effective().mouseModifiers).toBe("ctrl");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("ctrl");
+    expect(options.provenance().bindings).toBe("user-extension");
     expect(options.uiState()).toEqual({ welcomeScreenDismissed: true });
   });
 
@@ -197,7 +203,7 @@ describe("mountRuntimePopupBridge", () => {
       return o;
     });
     await options.setUserOrigin({ mouseModifiers: "meta" });
-    expect(options.effective().mouseModifiers).toBe("meta");
+    expect(primaryModifiers(options.effective())).toBe("meta");
 
     const response = await new Promise<Record<string, unknown>>((resolve) => {
       const handler = (event: MessageEvent) => {
@@ -220,9 +226,9 @@ describe("mountRuntimePopupBridge", () => {
     });
 
     const snapshot = response.snapshot as {
-      effective: { mouseModifiers?: string };
+      effective: { bindings?: Array<{ modifiers?: string }> };
     };
-    expect(snapshot.effective.mouseModifiers).toBe("meta");
+    expect(primaryModifiers(snapshot.effective)).toBe("meta");
   });
 
   test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies patch", async () => {
@@ -257,7 +263,7 @@ describe("mountRuntimePopupBridge", () => {
     });
 
     expect(result.result).toEqual({ ok: true });
-    expect(options.effective().mouseModifiers).toBe("alt+ctrl");
+    expect(primaryModifiers(options.effective())).toBe("alt+ctrl");
   });
 
   test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies explicit unsets", async () => {
@@ -268,7 +274,7 @@ describe("mountRuntimePopupBridge", () => {
       return o;
     });
     await options.setUserOrigin({ mouseModifiers: "shift" });
-    expect(options.effective().mouseModifiers).toBe("shift");
+    expect(primaryModifiers(options.effective())).toBe("shift");
 
     const result = await new Promise<Record<string, unknown>>((resolve) => {
       const handler = (event: MessageEvent) => {
@@ -296,7 +302,7 @@ describe("mountRuntimePopupBridge", () => {
     });
 
     expect(result.result).toEqual({ ok: true });
-    expect(options.effective().mouseModifiers).toBe("ctrl");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("ctrl");
+    expect(options.provenance().bindings).toBe("user-extension");
   });
 });

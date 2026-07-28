@@ -4,6 +4,9 @@ import {
   LocatorLayer,
   LocatorOptions,
   resolve,
+  normalizeLayer,
+  primaryEditorBinding,
+  resolveBindingTarget,
   resolveTarget,
 } from "./layeredOptions";
 import type { Targets } from "./index";
@@ -84,10 +87,14 @@ describe("resolve – value semantics", () => {
     expect(provenance.replacePath).toBe("user-origin");
   });
 
-  test("DEFAULT_LAYER provides mouseModifiers fallback", () => {
+  test("DEFAULT_LAYER provides the legacy-equivalent bindings", () => {
     const { effective, provenance } = resolve({ default: DEFAULT_LAYER });
-    expect(effective.mouseModifiers).toBe("alt");
-    expect(provenance.mouseModifiers).toBe("default");
+    expect(effective.bindings?.[0]).toEqual({
+      modifiers: "alt",
+      action: { kind: "open-editor" },
+    });
+    expect(effective.bindings).toHaveLength(4);
+    expect(provenance.bindings).toBe("default");
   });
 });
 
@@ -135,6 +142,74 @@ describe("resolve – atomic target slot", () => {
     expect(effective.targetTemplate).toBe("custom://${filePath}");
     expect(provenance.targetId).toBe("user-origin");
     expect(provenance.targetTemplate).toBe("user-origin");
+  });
+});
+
+describe("bindings compatibility", () => {
+  test("normalizes an absent optional layer to an empty layer", () => {
+    expect(normalizeLayer()).toEqual({});
+  });
+
+  test("normalizes a legacy modifier with the three legacy hover actions", () => {
+    const normalized = normalizeLayer({ mouseModifiers: "alt+shift" });
+    expect(normalized.mouseModifiers).toBeUndefined();
+    expect(normalized.bindings).toEqual([
+      { modifiers: "alt+shift", action: { kind: "open-editor" } },
+      { icon: true, action: { kind: "show-tree" } },
+      { icon: true, action: { kind: "show-parents" } },
+      { icon: true, action: { kind: "copy-path" } },
+    ]);
+  });
+
+  test("explicit bindings beat a legacy key in the same layer", () => {
+    const bindings = [
+      { modifiers: "meta", action: { kind: "copy-path" } },
+    ] as const;
+    expect(
+      normalizeLayer({
+        mouseModifiers: "alt",
+        bindings: [...bindings],
+      })
+    ).toEqual({ bindings });
+  });
+
+  test("a legacy higher layer atomically replaces lower bindings", () => {
+    const result = resolve({
+      team: {
+        bindings: [{ modifiers: "alt", action: { kind: "copy-prompt" } }],
+      },
+      "user-origin": { mouseModifiers: "ctrl" },
+    });
+    expect(result.effective.bindings?.[0]).toEqual({
+      modifiers: "ctrl",
+      action: { kind: "open-editor" },
+    });
+    expect(result.effective.bindings).toHaveLength(4);
+    expect(result.provenance.bindings).toBe("user-origin");
+  });
+
+  test("finds the primary modifier-triggered editor binding", () => {
+    expect(
+      primaryEditorBinding([
+        { icon: true, action: { kind: "open-editor" } },
+        { modifiers: "shift", action: { kind: "copy-path" } },
+        { modifiers: "meta", action: { kind: "open-editor" } },
+      ])?.modifiers
+    ).toBe("meta");
+  });
+
+  test("binding target overrides the default editor", () => {
+    const targets: Targets = {
+      vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
+      cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
+    };
+    expect(
+      resolveBindingTarget(
+        { kind: "open-editor", targetId: "cursor" },
+        { targetId: "vscode" },
+        targets
+      )
+    ).toMatchObject({ kind: "targetId", id: "cursor" });
   });
 });
 

@@ -4,7 +4,6 @@ import {
   Button,
   IconButton,
   LayeredOptionsEditor,
-  LayerTabConfig,
   LocatorBrand,
 } from "@locator/ui";
 import { css } from "@locator/styled-system/css";
@@ -69,6 +68,7 @@ export function Options(props: {
   adapterId?: AdapterId;
   currentElement: HTMLElement | null;
   portalMount: HTMLDivElement;
+  onTry: () => void;
 }) {
   const options = useOptions();
 
@@ -124,34 +124,26 @@ export function Options(props: {
     );
   };
 
-  const layerTabs = (): LayerTabConfig[] => [
-    {
-      layer: "user-origin",
-      label: "This origin",
-      values: options.layers()["user-origin"] ?? {},
-      write: options.setUserOrigin,
-      note: "Stored in this page’s origin — applies to everyone opening it in this browser profile.",
-    },
-    {
-      layer: "user-extension",
-      label: "Extension",
-      values: options.layers()["user-extension"] ?? {},
-      note: isExtension()
-        ? "Your extension defaults — change them in the extension popup."
-        : "Install the browser extension to set personal cross-site defaults.",
-    },
-    {
-      layer: "team",
-      label: "Team",
-      values: options.layers().team ?? {},
-      note: "Defined by setup() in the app’s code — change it in the repository.",
-    },
-    {
-      layer: "default",
-      label: "Defaults",
-      values: options.layers().default ?? DEFAULT_LAYER,
-      note: "Built-in LocatorJS defaults.",
-    },
+  const promos = () => [
+    ...(!isExtension()
+      ? [
+          {
+            text: "Keep these settings on every site.",
+            href: "https://www.locatorjs.com/install",
+            linkLabel: "Install the browser extension",
+          },
+        ]
+      : []),
+    ...(!options.layers().team ||
+    Object.keys(options.layers().team ?? {}).length === 0
+      ? [
+          {
+            text: "Share Locator defaults with your team.",
+            href: "https://www.locatorjs.com/docs",
+            linkLabel: "Set up Locator via setup()",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -175,10 +167,21 @@ export function Options(props: {
           <LinkPreview linkProps={elLinkProps()} targets={props.targets} />
           <div class={styles.editor}>
             <LayeredOptionsEditor
-              tabs={layerTabs()}
+              layers={{
+                ...options.layers(),
+                default: options.layers().default ?? DEFAULT_LAYER,
+              }}
+              writeScopes={[
+                {
+                  layer: "user-origin",
+                  label: "This origin",
+                  write: options.setUserOrigin,
+                  note: "Changes are stored for this site in your browser profile.",
+                },
+              ]}
               targets={options.allTargets()}
-              defaultId="user-origin"
               portalMount={props.portalMount}
+              promos={promos()}
             />
           </div>
           <Show when={isNvimTarget()}>
@@ -186,6 +189,9 @@ export function Options(props: {
           </Show>
 
           <div class={styles.footer}>
+            <Button size="xs" variant="primary" onClick={props.onTry}>
+              Try Locator
+            </Button>
             <Button
               size="xs"
               variant="outline"

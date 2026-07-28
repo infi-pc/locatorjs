@@ -101,6 +101,30 @@ describe('SyncedStateProvider', () => {
     });
   });
 
+  test('migrates legacy extension modifiers in storage changes', async () => {
+    const listener = mocks.storageChangedAddListener.mock.calls[0][0];
+    listener(
+      {
+        userOptions: {
+          newValue: { mouseModifiers: 'meta' },
+        },
+      },
+      'local'
+    );
+    await flushPromises();
+
+    expect(syncedState.userExtension().mouseModifiers).toBeUndefined();
+    expect(syncedState.userExtension().bindings?.[0]).toEqual({
+      modifiers: 'meta',
+      action: { kind: 'open-editor' },
+    });
+    expect(mocks.storageSet).toHaveBeenCalledWith({
+      userOptions: expect.objectContaining({
+        bindings: expect.any(Array),
+      }),
+    });
+  });
+
   test('polling marks the popup disconnected when sendMessage rejects', async () => {
     expect(syncedState.status()).toBe('connected');
     mocks.tabsSendMessage.mockRejectedValue(new Error('no content script'));

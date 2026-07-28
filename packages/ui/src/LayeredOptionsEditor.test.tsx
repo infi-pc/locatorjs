@@ -6,73 +6,88 @@ import { LayeredOptionsEditor } from "./LayeredOptionsEditor";
 
 afterEach(cleanup);
 
+const ok = async () => ({ ok: true as const });
+
 describe("LayeredOptionsEditor", () => {
-  test("falls back to the first available layer when the requested tab is disabled", () => {
+  test("renders a single writable scope without tabs", () => {
     render(() => (
       <LayeredOptionsEditor
-        tabs={[
+        layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
+        writeScopes={[
+          { layer: "user-origin", label: "This origin", write: ok },
+        ]}
+        targets={{}}
+      />
+    ));
+
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getAllByText("Default editor").length).toBeGreaterThan(0);
+  });
+
+  test("renders exactly the two writable scopes as tabs", () => {
+    render(() => (
+      <LayeredOptionsEditor
+        layers={{
+          default: DEFAULT_LAYER,
+          "user-extension": {},
+          "user-origin": {},
+        }}
+        writeScopes={[
           {
             layer: "user-origin",
-            label: "This origin",
-            values: {},
+            label: "This site",
+            write: ok,
             disabled: true,
-            disabledReason: "Connect to a page running LocatorJS.",
+            disabledReason: "Connect first.",
           },
-          {
-            layer: "user-extension",
-            label: "Extension",
-            values: {},
-          },
-          { layer: "default", label: "Defaults", values: DEFAULT_LAYER },
+          { layer: "user-extension", label: "All sites", write: ok },
         ]}
         targets={{}}
         defaultId="user-origin"
       />
     ));
 
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
     expect(
       screen
-        .getByRole("tab", { name: "Extension" })
+        .getByRole("tab", { name: "All sites" })
         .getAttribute("aria-selected")
     ).toBe("true");
-    expect(
-      screen.getByRole("tab", { name: "This origin" }).hasAttribute("disabled")
-    ).toBe(true);
-    expect(screen.queryByRole("tab", { name: /Defaults/ })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /Team/ })).toBeNull();
   });
 
-  test("reverts an override with a source-aware accessible action", async () => {
-    const write = vi.fn(async () => ({ ok: true as const }));
-    render(() => (
+  test("shows provenance and reverts the current scope override", async () => {
+    const write = vi.fn(ok);
+    const { unmount } = render(() => (
       <LayeredOptionsEditor
-        tabs={[
-          {
-            layer: "default",
-            label: "Defaults",
-            values: { ...DEFAULT_LAYER, projectPath: "/repo/default" },
-          },
-          {
-            layer: "user-extension",
-            label: "Extension",
-            values: { projectPath: "/repo/custom" },
-            write,
-          },
-        ]}
+        layers={{
+          default: DEFAULT_LAYER,
+          team: { projectPath: "/repo/team" },
+          "user-origin": {},
+        }}
+        writeScopes={[{ layer: "user-origin", label: "This origin", write }]}
         targets={{}}
-        defaultId="user-extension"
       />
     ));
+    expect(screen.getAllByText("Team").length).toBeGreaterThan(0);
+    unmount();
 
-    const revert = screen.getByRole("button", {
-      name: "Revert Project path to default: /repo/default",
-    });
-    expect(screen.queryByText("from defaults")).toBeNull();
-    expect(screen.getByRole("checkbox", { name: "Debug mode" })).toBeTruthy();
-    await revert.click();
+    render(() => (
+      <LayeredOptionsEditor
+        layers={{
+          default: DEFAULT_LAYER,
+          team: { projectPath: "/repo/team" },
+          "user-origin": { projectPath: "/repo/custom" },
+        }}
+        writeScopes={[{ layer: "user-origin", label: "This origin", write }]}
+        targets={{}}
+      />
+    ));
+    await screen.getByRole("button", { name: "Revert Project path" }).click();
     expect(write).toHaveBeenCalledWith({ projectPath: undefined });
   });
 
-  test("shows inline feedback for an invalid path replacement regex", async () => {
+  test("shows path validation and layer inspector", async () => {
     const [values, setValues] = createSignal({});
     const write = async (patch: Record<string, unknown>) => {
       setValues((current) => ({ ...current, ...patch }));
@@ -80,17 +95,9 @@ describe("LayeredOptionsEditor", () => {
     };
     render(() => (
       <LayeredOptionsEditor
-        tabs={[
-          { layer: "default", label: "Defaults", values: DEFAULT_LAYER },
-          {
-            layer: "user-extension",
-            label: "Extension",
-            values: values(),
-            write,
-          },
-        ]}
+        layers={{ default: DEFAULT_LAYER, "user-extension": values() }}
+        writeScopes={[{ layer: "user-extension", label: "All sites", write }]}
         targets={{}}
-        defaultId="user-extension"
       />
     ));
 
@@ -100,31 +107,30 @@ describe("LayeredOptionsEditor", () => {
     expect(
       await screen.findByText("From must be a valid regular expression.")
     ).toBeTruthy();
+    expect(screen.getByText("View layers")).toBeTruthy();
   });
 
-  test("shows the intro switch on when the inherited value is unset", () => {
+  test("renders promotional hints below the form", () => {
     render(() => (
       <LayeredOptionsEditor
-        tabs={[
-          { layer: "default", label: "Defaults", values: DEFAULT_LAYER },
-          {
-            layer: "user-origin",
-            label: "This origin",
-            values: {},
-            write: async () => ({ ok: true as const }),
-          },
+        layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
+        writeScopes={[
+          { layer: "user-origin", label: "This origin", write: ok },
         ]}
         targets={{}}
-        defaultId="user-origin"
+        promos={[
+          {
+            text: "Keep settings everywhere.",
+            href: "https://example.com",
+            linkLabel: "Install extension",
+          },
+        ]}
       />
     ));
 
+    expect(screen.getByText("Keep settings everywhere.")).toBeTruthy();
     expect(
-      (
-        screen.getByRole("checkbox", {
-          name: "Show intro again",
-        }) as HTMLInputElement
-      ).checked
-    ).toBe(true);
+      screen.getByRole("link", { name: "Install extension" })
+    ).toBeTruthy();
   });
 });

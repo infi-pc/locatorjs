@@ -1,6 +1,7 @@
 import {
   modifiersTitles,
   getModifiersMap,
+  primaryEditorBinding,
   resolveTarget,
 } from '@locator/shared';
 import {
@@ -179,7 +180,9 @@ export function Home(props: Props) {
 function Modifiers() {
   const { snapshot } = useSyncedState();
   const map = () =>
-    getModifiersMap(snapshot()?.effective.mouseModifiers ?? 'alt');
+    getModifiersMap(
+      primaryEditorBinding(snapshot()?.effective.bindings)?.modifiers ?? 'alt'
+    );
   return (
     <>
       {Object.keys(map()).map((key, i) => {

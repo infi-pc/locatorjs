@@ -1,9 +1,12 @@
-import { modifiersTitles } from "@locator/shared";
+import {
+  getModifiersMap,
+  modifiersTitles,
+  primaryEditorBinding,
+} from "@locator/shared";
 import { createEffect, createSignal, For } from "solid-js";
 import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
-import { getMouseModifiers } from "../functions/isCombinationModifiersPressed";
 import { useOptions } from "../functions/optionsStore";
 import { css, cx } from "@locator/styled-system/css";
 import { kbd } from "@locator/styled-system/recipes";
@@ -43,7 +46,10 @@ export function IntroInfo(props: {
     }
   });
 
-  const modifiers = () => getMouseModifiers(options);
+  const modifiers = () =>
+    getModifiersMap(
+      primaryEditorBinding(options.effective().bindings)?.modifiers ?? "alt"
+    );
   return (
     <div
       class={bannerClass}

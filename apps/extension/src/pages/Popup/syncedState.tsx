@@ -9,6 +9,7 @@ import {
 } from 'solid-js';
 import {
   serializePatch,
+  normalizeLayer,
   type LocatorOptions,
   type LocatorLayer,
   type Targets,
@@ -46,14 +47,22 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
 
   browser.storage.local.get([USER_OPTIONS_KEY]).then((result) => {
     const stored = (result?.[USER_OPTIONS_KEY] ?? {}) as LocatorOptions;
-    setUserExtensionSignal(stored);
+    const normalized = normalizeLayer(stored);
+    setUserExtensionSignal(normalized);
+    if (stored.mouseModifiers !== undefined && stored.bindings === undefined) {
+      browser.storage.local.set({ [USER_OPTIONS_KEY]: normalized });
+    }
   });
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
     if (USER_OPTIONS_KEY in changes) {
       const next = (changes[USER_OPTIONS_KEY].newValue ?? {}) as LocatorOptions;
-      setUserExtensionSignal(next);
+      const normalized = normalizeLayer(next);
+      setUserExtensionSignal(normalized);
+      if (next.mouseModifiers !== undefined && next.bindings === undefined) {
+        browser.storage.local.set({ [USER_OPTIONS_KEY]: normalized });
+      }
     }
   });
 

@@ -12,6 +12,10 @@
     "default_icon": "icon-32.png",
     "default_title": "LocatorJS"
   },
+  "background": {
+    "scripts": ["background.bundle.js"],
+    "persistent": false
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

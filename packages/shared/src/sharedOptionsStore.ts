@@ -1,4 +1,8 @@
-import type { LocatorOptions, LocatorUserOriginStored } from "./layeredOptions";
+import {
+  normalizeLayer,
+  type LocatorOptions,
+  type LocatorUserOriginStored,
+} from "./layeredOptions";
 import { cleanupLegacyLocalStorage } from "./cleanupLegacyStorage";
 
 export const USER_ORIGIN_STORAGE_KEY = "LOCATOR_USER_OPTIONS";
@@ -37,7 +41,17 @@ function readStored(): LocatorUserOriginStored {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
-    return parsed as LocatorUserOriginStored;
+    const stored = parsed as LocatorUserOriginStored;
+    if (stored.mouseModifiers !== undefined && stored.bindings === undefined) {
+      const { uiState, ...options } = stored;
+      const migrated: LocatorUserOriginStored = {
+        ...normalizeLayer(options),
+        ...(uiState ? { uiState } : {}),
+      };
+      writeStored(migrated);
+      return migrated;
+    }
+    return stored;
   } catch {
     return {};
   }
@@ -85,6 +99,15 @@ export function setUserOriginOptions(
     ...currentOpts,
     ...patch,
   };
+  if (
+    Object.prototype.hasOwnProperty.call(patch, "mouseModifiers") &&
+    !Object.prototype.hasOwnProperty.call(patch, "bindings")
+  ) {
+    delete next.bindings;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "bindings")) {
+    delete next.mouseModifiers;
+  }
   if (uiState) next.uiState = uiState;
   return writeStored(next);
 }

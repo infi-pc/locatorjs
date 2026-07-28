@@ -1,7 +1,8 @@
-import { ArrowLeft, Settings } from 'lucide-solid';
+import { ArrowLeft, CircleHelp, Settings } from 'lucide-solid';
 import { IconButton, LocatorBrand } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { Page } from './Page';
+import browser from '../../browser';
 
 const styles = {
   header: css({
@@ -19,6 +20,7 @@ const styles = {
     top: '0',
     zIndex: 'sticky',
   }),
+  actions: css({ alignItems: 'center', display: 'flex', gap: '1' }),
 };
 
 export function Header(props: { page: Page; setPage: (page: Page) => void }) {
@@ -26,18 +28,30 @@ export function Header(props: { page: Page; setPage: (page: Page) => void }) {
   return (
     <div class={styles.header}>
       <LocatorBrand />
-      <IconButton
-        aria-label={settings() ? 'Back' : 'Settings'}
-        onClick={() =>
-          props.setPage(
-            settings()
-              ? { type: 'home' }
-              : { type: 'settings', tab: 'user-extension' }
-          )
-        }
-      >
-        {settings() ? <ArrowLeft size={16} /> : <Settings size={16} />}
-      </IconButton>
+      <div class={styles.actions}>
+        <IconButton
+          aria-label="Setup guide"
+          onClick={() =>
+            browser.tabs.create({
+              url: browser.runtime.getURL('onboarding.html'),
+            })
+          }
+        >
+          <CircleHelp size={16} />
+        </IconButton>
+        <IconButton
+          aria-label={settings() ? 'Back' : 'Settings'}
+          onClick={() =>
+            props.setPage(
+              settings()
+                ? { type: 'home' }
+                : { type: 'settings', tab: 'user-extension' }
+            )
+          }
+        >
+          {settings() ? <ArrowLeft size={16} /> : <Settings size={16} />}
+        </IconButton>
+      </div>
     </div>
   );
 }
