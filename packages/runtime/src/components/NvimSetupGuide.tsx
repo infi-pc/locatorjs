@@ -15,7 +15,7 @@ const TERMINALS = [
 const styles = {
   root: css({
     bg: "amber.subtle.bg",
-    borderColor: "amber.subtle.border",
+    borderColor: "amber.outline.border",
     borderRadius: "l3",
     borderWidth: "1px",
     colorPalette: "amber",

@@ -123,7 +123,6 @@ export function initOptions(): OptionsStore {
     clearUserOrigin: () => {
       clearUserOriginOptions();
       setUserOrigin({});
-      setUiState({});
     },
     setUiState: async (patch) => {
       const result = setUserOriginUiState(patch);

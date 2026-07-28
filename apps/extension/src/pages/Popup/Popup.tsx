@@ -27,7 +27,7 @@ const styles = {
   disabledIcon: css({
     alignItems: 'center',
     bg: 'red.subtle.bg',
-    borderColor: 'red.subtle.border',
+    borderColor: 'red.surface.border',
     borderRadius: 'l2',
     borderWidth: '1px',
     color: 'red.subtle.fg',
@@ -83,7 +83,6 @@ const Popup = () => {
         <Switch>
           <Match when={page().type === 'settings'}>
             <SettingsPage
-              setPage={setPage}
               page={page() as Extract<Page, { type: 'settings' }>}
             />
           </Match>

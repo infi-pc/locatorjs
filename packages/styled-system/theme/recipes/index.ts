@@ -1,6 +1,7 @@
 import { absoluteCenter } from "./absolute-center";
 import { badge } from "./badge";
 import { button } from "./button";
+import { expandPill } from "./expand-pill";
 import { group } from "./group";
 import { input } from "./input";
 import { kbd } from "./kbd";
@@ -12,6 +13,7 @@ export const recipes = {
   absoluteCenter,
   badge,
   button,
+  expandPill,
   group,
   input,
   kbd,

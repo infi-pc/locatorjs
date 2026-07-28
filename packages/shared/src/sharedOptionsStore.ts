@@ -61,8 +61,9 @@ function writeStored(value: LocatorUserOriginStored) {
 }
 
 export function getUserOriginOptions(): LocatorOptions {
-  const { uiState: _uiState, ...rest } = readStored();
-  return rest;
+  const stored = readStored();
+  delete stored.uiState;
+  return stored;
 }
 
 export function getUserOriginUiState(): NonNullable<
@@ -101,8 +102,16 @@ export function setUserOriginUiState(
 
 export function clearUserOriginOptions() {
   if (!hasLocalStorage()) return;
+  const { uiState } = readStored();
   try {
-    localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
+    if (uiState && Object.keys(uiState).length > 0) {
+      localStorage.setItem(
+        USER_ORIGIN_STORAGE_KEY,
+        JSON.stringify({ uiState })
+      );
+    } else {
+      localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
+    }
   } catch {
     // ignore
   }

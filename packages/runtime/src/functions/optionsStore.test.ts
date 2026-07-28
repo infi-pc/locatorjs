@@ -127,7 +127,7 @@ describe("optionsStore integration", () => {
     ).toBeUndefined();
   });
 
-  test("clearUserOrigin clears storage and live option state", async () => {
+  test("clearUserOrigin clears options while preserving uiState", async () => {
     setUserExtensionGlobal({ mouseModifiers: "ctrl" });
     const options = withRoot(() => initOptions());
 
@@ -137,10 +137,12 @@ describe("optionsStore integration", () => {
 
     options.clearUserOrigin();
 
-    expect(localStorage.getItem("LOCATOR_USER_OPTIONS")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("LOCATOR_USER_OPTIONS")!)).toEqual({
+      uiState: { welcomeScreenDismissed: true },
+    });
     expect(options.effective().mouseModifiers).toBe("ctrl");
     expect(options.provenance().mouseModifiers).toBe("user-extension");
-    expect(options.uiState()).toEqual({});
+    expect(options.uiState()).toEqual({ welcomeScreenDismissed: true });
   });
 
   test("team targets signal overrides default allTargets", async () => {

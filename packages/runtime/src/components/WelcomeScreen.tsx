@@ -4,6 +4,43 @@ import { LayeredOptionsEditor, LayerTabConfig } from "@locator/ui";
 import { useOptions } from "../functions/optionsStore";
 import { AdapterId, HREF_TARGET } from "../consts";
 import { buildLink } from "../functions/buildLink";
+import { css, cx } from "@locator/styled-system/css";
+import { button } from "@locator/styled-system/recipes";
+
+const styles = {
+  dialog: css({
+    bg: "bg.default",
+    borderColor: "red.9",
+    borderRadius: "l3",
+    borderWidth: "2px",
+    boxShadow: "xl",
+    cursor: "auto",
+    maxH: "100%",
+    maxW: "xl",
+    overflow: "auto",
+    p: "4",
+    pointerEvents: "auto",
+    zIndex: "popover",
+  }),
+  intro: css({ mb: "4", mt: "2" }),
+  title: css({ fontSize: "2xl", fontWeight: "bold" }),
+  description: css({ fontSize: "sm" }),
+  footer: css({
+    alignItems: "center",
+    display: "flex",
+    gap: "2",
+    justifyContent: "flex-end",
+    mt: "4",
+  }),
+  testLink: cx(
+    button({ variant: "solid", size: "sm" }),
+    css({ colorPalette: "violet" })
+  ),
+  confirm: cx(
+    button({ variant: "solid", size: "sm" }),
+    css({ colorPalette: "blue" })
+  ),
+};
 
 export function WelcomeScreen(props: {
   originalLinkProps: LinkProps | null;
@@ -47,10 +84,10 @@ export function WelcomeScreen(props: {
   };
 
   return (
-    <div class="bg-white p-4 rounded-xl border-2 border-red-500 shadow-xl cursor-auto pointer-events-auto z-10 max-w-xl max-h-full overflow-auto">
-      <div class="mt-2 mb-4">
-        <h1 class="text-2xl font-bold">Welcome to Locator!</h1>
-        <span class="text-sm">
+    <div class={styles.dialog}>
+      <div class={styles.intro}>
+        <h1 class={styles.title}>Welcome to Locator!</h1>
+        <span class={styles.description}>
           Before using Locator, let's try links in your project and fix them if
           needed.
         </span>
@@ -62,26 +99,23 @@ export function WelcomeScreen(props: {
         portalMount={props.portalMount}
       />
 
-      <div class="mt-4 flex gap-2 justify-between items-center">
-        <div class="text-sm text-gray-600" />
-        <div class="flex gap-2">
-          <a
-            href={currentLink()}
-            target={options.effective().hrefTarget || HREF_TARGET}
-            class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Test link
-          </a>
-          <button
-            onClick={() => {
-              options.setUiState({ welcomeScreenDismissed: true });
-              props.onClose();
-            }}
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Confirm
-          </button>
-        </div>
+      <div class={styles.footer}>
+        <a
+          href={currentLink()}
+          target={options.effective().hrefTarget || HREF_TARGET}
+          class={styles.testLink}
+        >
+          Test link
+        </a>
+        <button
+          onClick={() => {
+            options.setUiState({ welcomeScreenDismissed: true });
+            props.onClose();
+          }}
+          class={styles.confirm}
+        >
+          Confirm
+        </button>
       </div>
     </div>
   );

@@ -39,6 +39,7 @@ export function buildLink(
   const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
   const replacePathObj = effective.replacePath;
   let evaluated = evalTemplate(template, params);
+  evaluated = stripUnresolvedQueryParams(evaluated);
 
   if (replacePathObj) {
     evaluated = transformPath(
@@ -48,6 +49,24 @@ export function buildLink(
     );
   }
   return evaluated;
+}
+
+function stripUnresolvedQueryParams(url: string): string {
+  const hashIndex = url.indexOf("#");
+  const hash = hashIndex >= 0 ? url.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+  const queryIndex = withoutHash.indexOf("?");
+  if (queryIndex < 0) return url;
+
+  const base = withoutHash.slice(0, queryIndex);
+  const query = withoutHash.slice(queryIndex + 1);
+  const resolvedParams = query
+    .split("&")
+    .filter((param) => param && !/\$\{[^}]+\}/.test(param));
+
+  return `${base}${
+    resolvedParams.length ? `?${resolvedParams.join("&")}` : ""
+  }${hash}`;
 }
 
 export function buildLinkFromSource(

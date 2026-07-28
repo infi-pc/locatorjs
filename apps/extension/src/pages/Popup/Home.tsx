@@ -46,7 +46,7 @@ const styles = {
   editorIcon: css({
     alignItems: 'center',
     bg: 'accent.subtle.bg',
-    borderColor: 'accent.subtle.border',
+    borderColor: 'accent.surface.border',
     borderRadius: 'l2',
     borderWidth: '1px',
     color: 'accent.subtle.fg',

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { LocatorOptions } from "@locator/shared";
+import { allTargets, type LocatorOptions } from "@locator/shared";
 import { buildLink } from "./buildLink";
 import type { OptionsStore } from "./optionsStore";
 
@@ -102,5 +102,59 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
     );
 
     expect(result).toContain("[project]/src/page.tsx");
+  });
+});
+
+describe("buildLink - optional query parameters", () => {
+  const linkProps = {
+    filePath: "/src/page.tsx",
+    projectPath: "/repo",
+    line: 10,
+    column: 5,
+  };
+
+  test("includes the nvim tmux session when configured", () => {
+    const result = buildLink(
+      linkProps,
+      allTargets,
+      createMockOptions({ targetId: "nvim", tmuxSession: "work" })
+    );
+
+    expect(result).toBe(
+      "nvim://file//repo/src/page.tsx:10:5?tmux-session=work"
+    );
+  });
+
+  test("removes the unresolved nvim query parameter when unset", () => {
+    const result = buildLink(
+      linkProps,
+      allTargets,
+      createMockOptions({ targetId: "nvim" })
+    );
+
+    expect(result).toBe("nvim://file//repo/src/page.tsx:10:5");
+    expect(result).not.toContain("?");
+  });
+
+  test("does not alter targets without optional query parameters", () => {
+    const result = buildLink(
+      linkProps,
+      allTargets,
+      createMockOptions({ targetId: "vscode" })
+    );
+
+    expect(result).toBe("vscode://file//repo/src/page.tsx:10:5");
+  });
+
+  test("preserves fully resolved query parameters", () => {
+    const result = buildLink(
+      linkProps,
+      allTargets,
+      createMockOptions({ targetId: "webstorm" })
+    );
+
+    expect(result).toBe(
+      "webstorm://open?file=/repo/src/page.tsx&line=10&column=5"
+    );
   });
 });

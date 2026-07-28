@@ -5,12 +5,14 @@ import {
   useContext,
   Accessor,
   JSX,
+  onCleanup,
 } from 'solid-js';
-import type {
-  LocatorOptions,
-  LocatorLayer,
-  Targets,
-  WriteResult,
+import {
+  serializePatch,
+  type LocatorOptions,
+  type LocatorLayer,
+  type Targets,
+  type WriteResult,
 } from '@locator/shared';
 import browser from '../../browser';
 
@@ -25,18 +27,12 @@ export type Snapshot = {
 
 export type ConnectivityStatus = 'loading' | 'connected' | 'no-runtime';
 
-type SerializedPatch = {
-  patch: Record<string, unknown>;
-  unset: (keyof LocatorOptions)[];
-};
-
 type SyncedState = {
   userExtension: Accessor<LocatorOptions>;
   snapshot: Accessor<Snapshot | null>;
   status: Accessor<ConnectivityStatus>;
   setUserExtension: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   setSiteLocal: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
-  refresh: () => void;
 };
 
 const SyncedStateContext = createContext<SyncedState>();
@@ -100,8 +96,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
 
   requestSnapshot();
   const refreshInterval = setInterval(requestSnapshot, 1500);
-  // cleanup isn't critical here — popup window closes and state is gone
-  void refreshInterval;
+  onCleanup(() => clearInterval(refreshInterval));
 
   const state: SyncedState = {
     userExtension,
@@ -148,7 +143,6 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         return { ok: false, reason: 'blocked' };
       }
     },
-    refresh: requestSnapshot,
   };
 
   return (
@@ -162,17 +156,4 @@ export function useSyncedState() {
   const ctx = useContext(SyncedStateContext);
   if (!ctx) throw new Error('SyncedStateContext not provided');
   return ctx;
-}
-
-function serializePatch(patch: Partial<LocatorOptions>): SerializedPatch {
-  const serialized: SerializedPatch = { patch: {}, unset: [] };
-  for (const key of Object.keys(patch) as (keyof LocatorOptions)[]) {
-    const value = patch[key];
-    if (value === undefined) {
-      serialized.unset.push(key);
-    } else {
-      serialized.patch[key] = value;
-    }
-  }
-  return serialized;
 }

@@ -4,6 +4,53 @@ import cropPath from "../functions/cropPath";
 import { goToSource } from "../functions/goTo";
 import { useOptions } from "../functions/optionsStore";
 import { TreeNodeComponent, TreeNodeElement } from "../types/TreeNode";
+import { css, cx } from "@locator/styled-system/css";
+import { expandPill } from "@locator/styled-system/recipes";
+
+const styles = {
+  componentLink: css({
+    borderRadius: "l1",
+    color: "fg.default",
+    cursor: "pointer",
+    fontWeight: "bold",
+    _hover: { bg: "gray.subtle.bg" },
+  }),
+  componentLabel: css({ fontWeight: "bold" }),
+  node: css({ fontSize: "xs", pl: "2" }),
+  highlighted: css({ bg: "amber.subtle.bg" }),
+  bordered: css({
+    borderColor: "border",
+    borderWidth: "1px",
+    pr: "2",
+    py: "2",
+  }),
+  source: css({ color: "fg.default" }),
+  noSource: css({ color: "fg.muted" }),
+  componentHeader: css({
+    display: "flex",
+    gap: "2",
+    justifyContent: "space-between",
+    pb: "1",
+  }),
+  ellipsis: css({
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }),
+  nested: css({ pl: "2" }),
+  sourceRow: css({
+    alignItems: "center",
+    display: "flex",
+    gap: "4",
+    justifyContent: "space-between",
+  }),
+  clickable: css({
+    cursor: "pointer",
+    _hover: { bg: "accent.subtle.bg" },
+  }),
+  tag: css({ display: "flex", fontFamily: "mono", gap: "1" }),
+  expand: css({ ml: "2" }),
+};
 
 export function TreeNodeElementView(props: {
   node: TreeNodeElement;
@@ -62,7 +109,7 @@ export function TreeNodeElementView(props: {
   function componentLink() {
     return props.node.getComponent()?.callLink ? (
       <div
-        class="font-bold cursor-pointer text-black hover:bg-gray-100 rounded"
+        class={styles.componentLink}
         onClick={() => {
           const callLink = props.node.getComponent()?.callLink;
           if (callLink) {
@@ -73,17 +120,19 @@ export function TreeNodeElementView(props: {
         {props.node.getComponent()?.label}
       </div>
     ) : (
-      <div class="font-bold">{props.node.getComponent()?.label}</div>
+      <div class={styles.componentLabel}>
+        {props.node.getComponent()?.label}
+      </div>
     );
   }
   return (
     <div
-      class={
-        "text-xs pl-2 " +
-        (props.highlightedId === props.node.uniqueId ? "bg-yellow-100 " : " ") +
-        (showBorder() ? "border border-gray-300 py-2 pr-2 " : " ") +
-        (props.node.getSource() ? "text-black " : "text-gray-500 ")
-      }
+      class={cx(
+        styles.node,
+        props.highlightedId === props.node.uniqueId && styles.highlighted,
+        showBorder() && styles.bordered,
+        props.node.getSource() ? styles.source : styles.noSource
+      )}
       onMouseEnter={() => {
         props.setHighlightedBoundingBox(props.node);
       }}
@@ -92,21 +141,21 @@ export function TreeNodeElementView(props: {
       }}
     >
       {showComponentWrapper() && (
-        <div class="flex gap-2 justify-between pb-1">
+        <div class={styles.componentHeader}>
           {componentLink()}
-          <div class="whitespace-nowrap text-ellipsis overflow-hidden">
+          <div class={styles.ellipsis}>
             {cropPath(
               props.node.getComponent()?.definitionLink?.fileName || ""
             )}
           </div>
         </div>
       )}
-      <div class={showComponentWrapper() ? "pl-2" : ""}>
+      <div class={showComponentWrapper() ? styles.nested : undefined}>
         <div
-          class={
-            "flex justify-between items-center gap-4 " +
-            (props.node.getSource() ? " cursor-pointer hover:bg-sky-100" : "")
-          }
+          class={cx(
+            styles.sourceRow,
+            props.node.getSource() && styles.clickable
+          )}
           onClick={() => {
             const source = props.node.getSource();
             if (source) {
@@ -114,14 +163,14 @@ export function TreeNodeElementView(props: {
             }
           }}
         >
-          <div class="font-mono flex gap-1">
+          <div class={styles.tag}>
             {"<"}
             {props.node.name}
             {">"}
 
             {preferInlineComponent() && componentLink()}
           </div>
-          <div class="whitespace-nowrap text-ellipsis overflow-hidden">
+          <div class={styles.ellipsis}>
             {isDifferentFilePath() && !showComponentWrapper()
               ? cropPath(props.node.getSource()?.fileName || "")
               : null}
@@ -133,7 +182,7 @@ export function TreeNodeElementView(props: {
             renderChildren()
           ) : props.node.getChildren().length ? (
             <button
-              class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2 ml-2"
+              class={cx(expandPill(), styles.expand)}
               onClick={() => {
                 props.expandId(props.node.uniqueId);
               }}

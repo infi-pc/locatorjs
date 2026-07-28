@@ -3,6 +3,25 @@ import { createMemo } from "solid-js";
 import { AdapterId } from "../consts";
 import { getElementInfo } from "../adapters/getElementInfo";
 import { Outline } from "./Outline";
+import { css } from "@locator/styled-system/css";
+
+const styles = {
+  viewport: css({
+    alignItems: "center",
+    display: "flex",
+    height: "100vh",
+    justifyContent: "center",
+    left: "0",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+  }),
+  missing: css({
+    alignItems: "center",
+    display: "flex",
+    justifyContent: "center",
+  }),
+};
 
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
@@ -27,9 +46,9 @@ export function MaybeOutline(props: {
           targets={props.targets}
         />
       ) : (
-        <div class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center">
+        <div class={styles.viewport}>
           <div
-            class="flex items-center justify-center"
+            class={styles.missing}
             style={{
               position: "absolute",
               left: box().x + "px",

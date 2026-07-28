@@ -165,7 +165,7 @@ export function EditorPicker(props: {
           }}
         />
         <div class={styles.helper}>
-          Available variables: projectPath, filePath, line, column
+          Available variables: projectPath, filePath, line, column, tmuxSession
         </div>
       </Show>
     </div>

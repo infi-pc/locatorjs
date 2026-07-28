@@ -1,5 +1,5 @@
 import { getOwner, onCleanup } from "solid-js";
-import type { LocatorOptions } from "@locator/shared";
+import { deserializePatch, type LocatorOptions } from "@locator/shared";
 import type { OptionsStore } from "./optionsStore";
 
 type RuntimeBridge = {
@@ -78,19 +78,4 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
       }
     });
   }
-}
-
-function deserializePatch(
-  patch: Record<string, unknown>,
-  unset: unknown
-): Partial<LocatorOptions> {
-  const next = { ...patch } as Partial<LocatorOptions>;
-  if (!Array.isArray(unset)) return next;
-
-  for (const key of unset) {
-    if (typeof key === "string") {
-      next[key as keyof LocatorOptions] = undefined;
-    }
-  }
-  return next;
 }

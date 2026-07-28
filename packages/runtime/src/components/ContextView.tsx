@@ -8,6 +8,40 @@ import { goToLinkProps } from "../functions/goTo";
 import { useOptions } from "../functions/optionsStore";
 import type { TreeNode } from "../types/TreeNode";
 import type { ContextMenuState } from "../types/types";
+import { css, cx } from "@locator/styled-system/css";
+
+const styles = {
+  backdrop: css({
+    bg: "black/10",
+    height: "100vh",
+    left: "0",
+    pointerEvents: "auto",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+  }),
+  menu: css({
+    bg: "bg.default",
+    borderRadius: "l2",
+    boxShadow: "xl",
+    display: "flex",
+    flexDirection: "column",
+    fontSize: "xs",
+    overflow: "auto",
+    py: "2",
+  }),
+  item: css({
+    fontSize: "sm",
+    fontWeight: "medium",
+    px: "4",
+    py: "2",
+    textAlign: "left",
+    width: "60",
+    _hover: { bg: "gray.subtle.bg" },
+  }),
+  focused: css({ bg: "gray.subtle.bg" }),
+  path: css({ color: "fg.muted", fontSize: "xs" }),
+};
 
 export function ContextView(props: {
   contextMenuState: ContextMenuState;
@@ -104,15 +138,9 @@ export function ContextView(props: {
 
   return (
     <div
+      class={styles.backdrop}
       ref={root}
       style={{
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100vw",
-        height: "100vh",
-        "pointer-events": "auto",
-        "background-color": "rgba(0,0,0,0.1)",
         "z-index": 1001,
       }}
       tabIndex={0}
@@ -132,9 +160,7 @@ export function ContextView(props: {
         ref={contentRef}
       >
         <div
-          class={
-            "bg-white rounded-md py-2 shadow-xl text-xs overflow-auto flex flex-col"
-          }
+          class={styles.menu}
           style={{
             "max-height": "calc(100vh - 16px)",
           }}
@@ -148,10 +174,10 @@ export function ContextView(props: {
               }
               return (
                 <a
-                  class={
-                    "px-4 py-2 w-60 hover:bg-slate-50 text-left text-sm font-medium " +
-                    (index() === focusedIndex() ? "bg-slate-100" : "")
-                  }
+                  class={cx(
+                    styles.item,
+                    index() === focusedIndex() && styles.focused
+                  )}
                   href={buildLink(link, props.targets, options)}
                   onClick={(e) => {
                     e.preventDefault();
@@ -161,7 +187,7 @@ export function ContextView(props: {
                   }}
                 >
                   {path.title}
-                  <div class="text-xs text-gray-500">
+                  <div class={styles.path}>
                     {getUsableFileName(link.filePath || "")}
                   </div>
                 </a>

@@ -2,11 +2,9 @@ import { allTargets, DEFAULT_LAYER } from '@locator/shared';
 import { LayeredOptionsEditor, LayerTabConfig } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { useSyncedState } from './syncedState';
-import { Page } from './Page';
 
 type Props = {
-  setPage: (page: Page) => void;
-  page: Extract<Page, { type: 'settings' }>;
+  page: Extract<import('./Page').Page, { type: 'settings' }>;
 };
 
 const styles = {

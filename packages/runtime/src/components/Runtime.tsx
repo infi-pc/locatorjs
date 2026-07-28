@@ -11,7 +11,7 @@ import { SimpleNodeOutline } from "./SimpleNodeOutline";
 
 import { IntroInfo } from "./IntroInfo";
 import { Options } from "./Options";
-import { bannerClasses } from "../functions/bannerClasses";
+import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { isExtension } from "../functions/isExtension";
 import { NoLinkDialog } from "./NoLinkDialog";
@@ -29,6 +29,28 @@ import { TreeView } from "./TreeView";
 import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
+import { css } from "@locator/styled-system/css";
+
+const styles = {
+  sponsorText: css({ color: "fg.muted", fontSize: "xs", mt: "2" }),
+  sponsorLink: css({
+    color: "blue.11",
+    textDecoration: "underline",
+    _hover: { color: "blue.12" },
+  }),
+  dialogBackdrop: css({
+    alignItems: "center",
+    bg: "black/70",
+    display: "flex",
+    height: "100vh",
+    justifyContent: "center",
+    left: "0",
+    pointerEvents: "auto",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+  }),
+};
 
 type UiMode =
   | ["off"]
@@ -360,12 +382,12 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
         />
       ) : null}
       {holdingModKey() ? (
-        <div class={bannerClasses()}>
+        <div class={bannerClass}>
           <BannerHeader openOptions={openOptions} adapter={adapterId()} />
-          <div class="mt-2 text-xs text-gray-600">
+          <div class={styles.sponsorText}>
             Support me on{" "}
             <a
-              class="underline hover:text-sky-900 text-sky-700"
+              class={styles.sponsorLink}
               href="https://github.com/sponsors/infi-pc"
               target="_blank"
               onClick={(e) => {
@@ -417,7 +439,7 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
       ) : null} */}
       {dialog() && (
         <div
-          class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center bg-black/70 pointer-events-auto"
+          class={styles.dialogBackdrop}
           onClick={(e) => {
             if (e.currentTarget === e.target) {
               setDialog(null);

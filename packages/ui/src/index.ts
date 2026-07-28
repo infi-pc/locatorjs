@@ -1,5 +1,4 @@
 export * from "./Button";
-export * from "./Collapsible";
 export * from "./EditorPicker";
 export * from "./Field";
 export * from "./IconButton";

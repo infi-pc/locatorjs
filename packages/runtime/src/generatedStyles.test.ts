@@ -14,5 +14,11 @@ describe("generated shadow-root styles", () => {
   it("does not contain unexpanded token literals", () => {
     expect(generatedStyles).not.toMatch(/font-size:\s*(?:xs|sm|md);/);
     expect(generatedStyles).not.toMatch(/border-radius:\s*l[123](?:\s|;)/);
+    expect(generatedStyles).not.toMatch(/:\s*[a-z][a-z0-9-]*\.[a-z0-9.-]+;/);
+  });
+
+  it("does not contain the removed Tailwind legacy layer", () => {
+    expect(generatedStyles).not.toContain("@layer legacy");
+    expect(generatedStyles).not.toContain("--tw-");
   });
 });
