@@ -1,7 +1,6 @@
-import { ArrowLeft, CircleHelp, Settings } from 'lucide-solid';
+import { CircleHelp } from 'lucide-solid';
 import { IconButton, LocatorBrand } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
-import { Page } from './Page';
 import browser from '../../browser';
 
 const styles = {
@@ -12,19 +11,18 @@ const styles = {
     borderBottomWidth: '1px',
     display: 'flex',
     justifyContent: 'space-between',
-    mb: '4',
-    mx: '-4',
+    mb: '2',
+    mx: '-3',
     position: 'sticky',
-    px: '4',
-    py: '3',
+    px: '3',
+    py: '2',
     top: '0',
     zIndex: 'sticky',
   }),
   actions: css({ alignItems: 'center', display: 'flex', gap: '1' }),
 };
 
-export function Header(props: { page: Page; setPage: (page: Page) => void }) {
-  const settings = () => props.page.type === 'settings';
+export function Header() {
   return (
     <div class={styles.header}>
       <LocatorBrand />
@@ -38,18 +36,6 @@ export function Header(props: { page: Page; setPage: (page: Page) => void }) {
           }
         >
           <CircleHelp size={16} />
-        </IconButton>
-        <IconButton
-          aria-label={settings() ? 'Back' : 'Settings'}
-          onClick={() =>
-            props.setPage(
-              settings()
-                ? { type: 'home' }
-                : { type: 'settings', tab: 'user-extension' }
-            )
-          }
-        >
-          {settings() ? <ArrowLeft size={16} /> : <Settings size={16} />}
         </IconButton>
       </div>
     </div>

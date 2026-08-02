@@ -78,22 +78,22 @@ describe('SyncedStateProvider', () => {
     mocks.tabsSendMessage.mockResolvedValue({ ok: true });
 
     await syncedState.setSiteLocal({
-      targetId: undefined,
-      targetTemplate: 'zed://file/${filePath}',
+      projectPath: undefined,
+      tmuxSession: 'work',
     });
 
     expect(mocks.tabsSendMessage).toHaveBeenCalledWith(42, {
       from: 'popup',
       subject: 'applySiteLocal',
-      patch: { targetTemplate: 'zed://file/${filePath}' },
-      unset: ['targetId'],
+      patch: { tmuxSession: 'work' },
+      unset: ['projectPath'],
     });
   });
 
   test('strips undefined values before writing extension storage', async () => {
     await syncedState.setUserExtension({
       debugMode: true,
-      targetId: undefined,
+      projectPath: undefined,
     });
 
     expect(mocks.storageSet).toHaveBeenCalledWith({
@@ -115,8 +115,8 @@ describe('SyncedStateProvider', () => {
 
     expect(syncedState.userExtension().mouseModifiers).toBeUndefined();
     expect(syncedState.userExtension().bindings?.[0]).toEqual({
-      modifiers: 'meta',
-      action: { kind: 'open-editor' },
+      trigger: { kind: 'modifier-click', modifiers: 'meta' },
+      action: { kind: 'open-editor', targetId: 'vscode' },
     });
     expect(mocks.storageSet).toHaveBeenCalledWith({
       userOptions: expect.objectContaining({

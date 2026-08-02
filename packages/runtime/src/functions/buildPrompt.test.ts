@@ -37,6 +37,15 @@ describe("buildPrompt", () => {
     expect(prompt).not.toContain("data-locatorjs");
   });
 
+  test("ignores a deprecated global prompt when an action has no template", () => {
+    const prompt = buildPrompt(elementInfo(), {
+      promptTemplate: "legacy global",
+    } as never);
+
+    expect(prompt).toContain("Please help me update this UI element.");
+    expect(prompt).not.toContain("legacy global");
+  });
+
   test("builds guarded Cursor and Windsurf deeplinks", () => {
     expect(buildPromptDeeplink("cursor", "fix this")).toBe(
       "cursor://anysphere.cursor-deeplink/prompt?text=fix%20this"

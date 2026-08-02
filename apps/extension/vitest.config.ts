@@ -11,5 +11,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
+    server: {
+      deps: {
+        inline: ['@locator/ui', '@ark-ui/solid'],
+      },
+    },
   },
 });

@@ -16,6 +16,8 @@
     "e2e": "turbo run e2e --filter=./apps/playwright",
     "test-apps:dev": "turbo run dev --parallel --filter=./test-apps/*",
     "test-apps:build": "turbo run build --filter=./test-apps/*",
+    "ui:lab": "pnpm --dir apps/ui-lab dev",
+    "ui:lab:build": "pnpm --dir apps/ui-lab build",
     "format": "prettier --write \"{packages,apps}/**/*.{ts,tsx,md}\"",
     "format:check": "prettier --check \"{packages,apps}/**/*.{ts,tsx,md}\"",
     "prepare": "husky",

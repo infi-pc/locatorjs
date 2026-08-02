@@ -31,19 +31,16 @@ export function buildPrompt(
     .slice(-MAX_COMPONENTS)
     .join(" > ");
 
-  return evalTemplate(
-    template ?? effective.promptTemplate ?? DEFAULT_PROMPT_TEMPLATE,
-    {
-      filePath,
-      projectPath,
-      line: link ? String(link.line) : "",
-      column: link ? String(link.column) : "",
-      componentName: componentLabels[0] ?? "",
-      componentTree,
-      htmlSnippet: cleanHtmlSnippet(element.htmlElement),
-      elementLabel: element.thisElement.label,
-    }
-  );
+  return evalTemplate(template ?? DEFAULT_PROMPT_TEMPLATE, {
+    filePath,
+    projectPath,
+    line: link ? String(link.line) : "",
+    column: link ? String(link.column) : "",
+    componentName: componentLabels[0] ?? "",
+    componentTree,
+    htmlSnippet: cleanHtmlSnippet(element.htmlElement),
+    elementLabel: element.thisElement.label,
+  });
 }
 
 export function buildPromptDeeplink(app: PromptApp, prompt: string): string {
@@ -51,7 +48,7 @@ export function buildPromptDeeplink(app: PromptApp, prompt: string): string {
     app === "cursor"
       ? "cursor://anysphere.cursor-deeplink/prompt?text="
       : "windsurf://cascade/newChat?prompt=";
-  let value = prompt;
+  const value = prompt;
   let result = prefix + encodeURIComponent(value);
   if (result.length <= MAX_DEEPLINK_LENGTH) return result;
 

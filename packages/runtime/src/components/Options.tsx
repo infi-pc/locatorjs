@@ -1,10 +1,11 @@
-import { DEFAULT_LAYER, Targets } from "@locator/shared";
+import { DEFAULT_LAYER, type Targets } from "@locator/shared";
 import { Show, createMemo, createSignal, createEffect } from "solid-js";
 import {
+  ActionSettings,
   Button,
   IconButton,
-  LayeredOptionsEditor,
   LocatorBrand,
+  PromoFooter,
 } from "@locator/ui";
 import { css } from "@locator/styled-system/css";
 import { Power, RotateCcw, X } from "lucide-solid";
@@ -52,12 +53,13 @@ const styles = {
     top: "0",
     zIndex: "sticky",
   }),
+  headerLeft: css({ alignItems: "center", display: "flex", gap: "2" }),
   body: css({ display: "flex", flexDirection: "column", gap: "3", p: "4" }),
-  editor: css({ mx: "-4" }),
   footer: css({
     display: "flex",
     gap: "2",
     justifyContent: "space-between",
+    pb: "10",
   }),
 };
 
@@ -116,12 +118,14 @@ export function Options(props: {
   // Prefer sync result, fallback to async result
   const elLinkProps = () => syncLinkProps() || asyncLinkProps();
   const isNvimTarget = () => {
-    const selected =
-      options.effective().targetTemplate ?? options.effective().targetId;
-    return (
-      selected === "nvim" ||
-      (typeof selected === "string" && selected.includes("nvim://"))
-    );
+    return (options.effective().bindings ?? []).some((binding) => {
+      const action = binding.action;
+      return (
+        action.kind === "open-editor" &&
+        (action.targetId === "nvim" ||
+          action.targetTemplate?.includes("nvim://"))
+      );
+    });
   };
 
   const promos = () => [
@@ -154,7 +158,9 @@ export function Options(props: {
     >
       <div class={styles.inner}>
         <div class={styles.header}>
-          <LocatorBrand />
+          <div class={styles.headerLeft}>
+            <LocatorBrand />
+          </div>
           <IconButton
             aria-label="Close settings"
             onClick={() => props.onClose()}
@@ -164,32 +170,44 @@ export function Options(props: {
         </div>
 
         <div class={styles.body}>
-          <LinkPreview linkProps={elLinkProps()} targets={props.targets} />
-          <div class={styles.editor}>
-            <LayeredOptionsEditor
-              layers={{
-                ...options.layers(),
-                default: options.layers().default ?? DEFAULT_LAYER,
-              }}
-              writeScopes={[
-                {
-                  layer: "user-origin",
-                  label: "This origin",
-                  write: options.setUserOrigin,
-                  note: "Changes are stored for this site in your browser profile.",
-                },
-              ]}
-              targets={options.allTargets()}
-              portalMount={props.portalMount}
-              promos={promos()}
-            />
-          </div>
-          <Show when={isNvimTarget()}>
-            <NvimSetupGuide />
-          </Show>
+          <ActionSettings
+            layers={{
+              ...options.layers(),
+              default: options.layers().default ?? DEFAULT_LAYER,
+            }}
+            scopes={[
+              {
+                layer: "user-origin",
+                label: "This origin",
+                write: options.setUserOrigin,
+                note: "Changes are stored for this site in your browser profile.",
+              },
+            ]}
+            defaultScope="user-origin"
+            targets={options.allTargets()}
+            surface="panel"
+            portalMount={props.portalMount}
+            renderPreview={(action) => (
+              <LinkPreview
+                linkProps={elLinkProps()}
+                targets={props.targets}
+                action={action}
+              />
+            )}
+            advancedExtras={
+              <>
+                <Show when={isNvimTarget()}>
+                  <NvimSetupGuide />
+                </Show>
+                <Show when={promos().length > 0}>
+                  <PromoFooter promos={promos()} />
+                </Show>
+              </>
+            }
+          />
 
           <div class={styles.footer}>
-            <Button size="xs" variant="primary" onClick={props.onTry}>
+            <Button size="xs" variant="primary" onClick={() => props.onTry()}>
               Try Locator
             </Button>
             <Button

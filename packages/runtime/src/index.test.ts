@@ -20,7 +20,12 @@ describe("setup", () => {
 
     setup({
       adapter: "react",
-      targetId: "vscode",
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: "ctrl" },
+          action: { kind: "open-editor", targetId: "vscode" },
+        },
+      ],
       mouseModifiers: "ctrl",
       debugMode: true,
       targets: { custom: "custom://file/${filePath}" },
@@ -28,7 +33,12 @@ describe("setup", () => {
 
     expect(getTeamLayerSignal()()).toMatchObject({
       adapterId: "react",
-      targetId: "vscode",
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: "ctrl" },
+          action: { kind: "open-editor", targetId: "vscode" },
+        },
+      ],
       mouseModifiers: "ctrl",
       debugMode: true,
     });

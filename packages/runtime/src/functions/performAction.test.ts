@@ -41,7 +41,12 @@ function context() {
     },
     options: {
       effective: () => ({
-        targetId: "vscode",
+        bindings: [
+          {
+            trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+            action: { kind: "open-editor", targetId: "vscode" as const },
+          },
+        ],
         projectPath: "/workspace",
         hrefTarget: "_self" as const,
       }),
@@ -72,6 +77,30 @@ describe("performAction", () => {
     await performAction({ kind: "open-editor", targetId: "cursor" }, context());
     expect(open).toHaveBeenCalledWith(
       "cursor://file//workspace/src/Button.tsx:7:3",
+      "_self"
+    );
+  });
+
+  test("defaults an older editor action without a destination to VS Code", async () => {
+    const ctx = context();
+    ctx.options = {
+      effective: () => ({
+        bindings: [
+          {
+            trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+            action: { kind: "open-editor", targetId: "cursor" },
+          },
+        ],
+        projectPath: "/workspace",
+        hrefTarget: "_self",
+      }),
+    } as OptionsStore;
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    await performAction({ kind: "open-editor" }, ctx);
+
+    expect(open).toHaveBeenCalledWith(
+      "vscode://file//workspace/src/Button.tsx:7:3",
       "_self"
     );
   });

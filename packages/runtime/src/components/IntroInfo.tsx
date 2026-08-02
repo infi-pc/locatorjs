@@ -46,10 +46,12 @@ export function IntroInfo(props: {
     }
   });
 
-  const modifiers = () =>
-    getModifiersMap(
-      primaryEditorBinding(options.effective().bindings)?.modifiers ?? "alt"
+  const modifiers = () => {
+    const trigger = primaryEditorBinding(options.effective().bindings)?.trigger;
+    return getModifiersMap(
+      trigger?.kind === "modifier-click" ? trigger.modifiers : "alt"
     );
+  };
   return (
     <div
       class={bannerClass}

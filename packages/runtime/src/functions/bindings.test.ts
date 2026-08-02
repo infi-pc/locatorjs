@@ -16,8 +16,14 @@ const event = (
 describe("bindings", () => {
   test("uses exact modifier matching and first-match wins", () => {
     const bindings = [
-      { modifiers: "alt", action: { kind: "copy-path" as const } },
-      { modifiers: "alt", action: { kind: "show-tree" as const } },
+      {
+        trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+        action: { kind: "copy-path" as const },
+      },
+      {
+        trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+        action: { kind: "show-tree" as const },
+      },
     ];
     expect(matchBinding(bindings, event({ altKey: true }))).toBe(bindings[0]);
     expect(
@@ -27,7 +33,7 @@ describe("bindings", () => {
 
   test("can ignore ctrl for macOS contextmenu matching", () => {
     const binding = {
-      modifiers: "alt",
+      trigger: { kind: "modifier-click" as const, modifiers: "alt" },
       action: { kind: "open-editor" as const },
     };
     expect(

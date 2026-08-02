@@ -1,4 +1,5 @@
 import {
+  resolveBindingTarget,
   resolveFilePath,
   type BindingAction,
   type Targets,
@@ -29,11 +30,12 @@ export async function performAction(
   switch (action.kind) {
     case "open-editor": {
       if (!link) return false;
+      const target = resolveBindingTarget(action, targets);
       const destination = buildLink(
         link,
         targets,
         options,
-        action.targetTemplate ?? action.targetId
+        target.kind === "template" ? target.url : target.id
       );
       window.open(destination, options.effective().hrefTarget || HREF_TARGET);
       return true;

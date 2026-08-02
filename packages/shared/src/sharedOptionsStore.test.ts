@@ -73,15 +73,27 @@ describe("clearUserOriginOptions", () => {
     );
 
     expect(getUserOriginOptions().bindings?.[0]).toEqual({
-      modifiers: "meta",
-      action: { kind: "open-editor" },
+      trigger: { kind: "modifier-click", modifiers: "meta" },
+      action: { kind: "open-editor", targetId: "vscode" },
     });
     expect(JSON.parse(localStorage.getItem(USER_ORIGIN_STORAGE_KEY)!)).toEqual({
       bindings: [
-        { modifiers: "meta", action: { kind: "open-editor" } },
-        { icon: true, action: { kind: "show-tree" } },
-        { icon: true, action: { kind: "show-parents" } },
-        { icon: true, action: { kind: "copy-path" } },
+        {
+          trigger: { kind: "modifier-click", modifiers: "meta" },
+          action: { kind: "open-editor", targetId: "vscode" },
+        },
+        {
+          trigger: { kind: "hover-toolbar" },
+          action: { kind: "show-tree" },
+        },
+        {
+          trigger: { kind: "hover-toolbar" },
+          action: { kind: "show-parents" },
+        },
+        {
+          trigger: { kind: "hover-toolbar" },
+          action: { kind: "copy-path" },
+        },
       ],
       uiState: { onboarding: { step: "editor" } },
     });

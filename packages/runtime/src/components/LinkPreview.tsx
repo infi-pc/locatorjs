@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import type { Targets } from "@locator/shared";
+import type { BindingAction, Targets } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { HREF_TARGET } from "../consts";
 import { buildLink } from "../functions/buildLink";
@@ -35,10 +35,11 @@ const styles = {
 export function LinkPreview(props: {
   linkProps: LinkProps | null;
   targets: Targets;
+  action: Extract<BindingAction, { kind: "open-editor" }>;
 }) {
   const options = useOptions();
   const selectedTarget = () =>
-    options.effective().targetTemplate ?? options.effective().targetId;
+    props.action.targetTemplate ?? props.action.targetId;
   const link = () =>
     props.linkProps
       ? buildLink(props.linkProps, props.targets, options, selectedTarget())

@@ -1,4 +1,8 @@
-import type { Targets } from "@locator/shared";
+import {
+  primaryEditorBinding,
+  type Binding,
+  type Targets,
+} from "@locator/shared";
 import {
   BindingsEditor,
   Button,
@@ -69,6 +73,27 @@ export function WelcomeScreen(props: {
     props.originalLinkProps
       ? buildLink(props.originalLinkProps, props.targets, options)
       : undefined;
+  const editorAction = () => {
+    const action = primaryEditorBinding(options.effective().bindings)?.action;
+    return action?.kind === "open-editor" ? action : undefined;
+  };
+  const updatePrimaryEditor = async (
+    patch: Pick<
+      Extract<Binding["action"], { kind: "open-editor" }>,
+      "targetId" | "targetTemplate"
+    >
+  ) => {
+    const bindings = effectiveBindings(options.effective());
+    const primary = primaryEditorBinding(bindings);
+    const index = primary ? bindings.indexOf(primary) : -1;
+    if (index < 0) return false;
+    const next = bindings.map((binding, bindingIndex) =>
+      bindingIndex === index
+        ? { ...binding, action: { kind: "open-editor" as const, ...patch } }
+        : binding
+    );
+    return (await options.setUserOrigin({ bindings: next })).ok;
+  };
 
   const steps = (): WizardStep[] => [
     {
@@ -95,10 +120,10 @@ export function WelcomeScreen(props: {
       content: () => (
         <EditorPicker
           targets={options.allTargets()}
-          targetId={options.effective().targetId}
-          targetTemplate={options.effective().targetTemplate}
+          targetId={editorAction()?.targetId}
+          targetTemplate={editorAction()?.targetTemplate}
           portalMount={props.portalMount}
-          onChange={async (patch) => (await options.setUserOrigin(patch)).ok}
+          onChange={updatePrimaryEditor}
         />
       ),
     },

@@ -49,14 +49,32 @@ describe('mountSnapshotBridge', () => {
         data: {
           type: 'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
           requestId: request.requestId,
-          snapshot: { effective: { targetId: 'vscode' } },
+          snapshot: {
+            effective: {
+              bindings: [
+                {
+                  trigger: { kind: 'modifier-click', modifiers: 'alt' },
+                  action: { kind: 'open-editor', targetId: 'vscode' },
+                },
+              ],
+            },
+          },
         },
       })
     );
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
-      snapshot: { effective: { targetId: 'vscode' } },
+      snapshot: {
+        effective: {
+          bindings: [
+            {
+              trigger: { kind: 'modifier-click', modifiers: 'alt' },
+              action: { kind: 'open-editor', targetId: 'vscode' },
+            },
+          ],
+        },
+      },
     });
   });
 

@@ -1,7 +1,7 @@
 import {
   detectSvelte,
   primaryEditorBinding,
-  resolveTarget,
+  resolveBindingTarget,
   type Binding,
   type BindingAction,
 } from "@locator/shared";
@@ -108,7 +108,13 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   const targets = () => options.allTargets();
   const bindings = () => effectiveBindings(options.effective());
   const defaultEditorId = () => {
-    const target = resolveTarget(options.effective(), targets());
+    const action = primaryEditorBinding(bindings())?.action;
+    if (!action || action.kind !== "open-editor") {
+      return targets().vscode
+        ? "vscode"
+        : Object.keys(targets())[0] ?? "default";
+    }
+    const target = resolveBindingTarget(action, targets());
     return target.kind === "template" ? "custom" : target.id;
   };
 

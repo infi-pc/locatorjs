@@ -33,10 +33,10 @@ const layerCombos: LocatorLayer[][] = [
 describe("resolve – 16 layer presence permutations", () => {
   test.each(layerCombos)("layers %j", (...present) => {
     const optionPerLayer: Record<LocatorLayer, LocatorOptions> = {
-      default: { targetId: "default-t" },
-      team: { targetId: "team-t" },
-      "user-extension": { targetId: "user-ext-t" },
-      "user-origin": { targetId: "user-proj-t" },
+      default: { projectPath: "/default" },
+      team: { projectPath: "/team" },
+      "user-extension": { projectPath: "/user-extension" },
+      "user-origin": { projectPath: "/user-origin" },
     };
     const layers: Partial<Record<LocatorLayer, LocatorOptions>> = {};
     for (const l of present) layers[l] = optionPerLayer[l];
@@ -44,12 +44,12 @@ describe("resolve – 16 layer presence permutations", () => {
     const { effective, provenance } = resolve(layers);
 
     if (present.length === 0) {
-      expect(effective.targetId).toBeUndefined();
-      expect(provenance.targetId).toBeUndefined();
+      expect(effective.projectPath).toBeUndefined();
+      expect(provenance.projectPath).toBeUndefined();
     } else {
       const winner = present[present.length - 1]!;
-      expect(effective.targetId).toBe(optionPerLayer[winner].targetId);
-      expect(provenance.targetId).toBe(winner);
+      expect(effective.projectPath).toBe(optionPerLayer[winner].projectPath);
+      expect(provenance.projectPath).toBe(winner);
     }
   });
 });
@@ -90,58 +90,27 @@ describe("resolve – value semantics", () => {
   test("DEFAULT_LAYER provides the legacy-equivalent bindings", () => {
     const { effective, provenance } = resolve({ default: DEFAULT_LAYER });
     expect(effective.bindings?.[0]).toEqual({
-      modifiers: "alt",
-      action: { kind: "open-editor" },
+      trigger: { kind: "modifier-click", modifiers: "alt" },
+      action: { kind: "open-editor", targetId: "vscode" },
     });
     expect(effective.bindings).toHaveLength(4);
     expect(provenance.bindings).toBe("default");
   });
 });
 
-describe("resolve – atomic target slot", () => {
-  test("user targetId overrides team targetTemplate", () => {
+describe("resolve – action-owned editor and prompt settings", () => {
+  test("ignores deprecated global editor and prompt values", () => {
     const { effective, provenance } = resolve({
-      team: { targetTemplate: "team://${filePath}" },
-      "user-origin": { targetId: "vscode" },
+      team: {
+        targetId: "webstorm",
+        targetTemplate: "team://${filePath}",
+        promptTemplate: "legacy prompt",
+        projectPath: "/repo",
+      } as LocatorOptions,
     });
-    expect(effective.targetTemplate).toBeUndefined();
-    expect(effective.targetId).toBe("vscode");
-    expect(provenance.targetTemplate).toBeUndefined();
-    expect(provenance.targetId).toBe("user-origin");
-  });
 
-  test("user targetTemplate overrides team targetId", () => {
-    const { effective, provenance } = resolve({
-      team: { targetId: "webstorm" },
-      "user-origin": { targetTemplate: "custom://${filePath}" },
-    });
-    expect(effective.targetId).toBeUndefined();
-    expect(effective.targetTemplate).toBe("custom://${filePath}");
-    expect(provenance.targetTemplate).toBe("user-origin");
-  });
-
-  test("layer without any target field leaves lower target intact", () => {
-    const { effective, provenance } = resolve({
-      team: { targetTemplate: "team://${filePath}" },
-      "user-origin": { projectPath: "/repo/" },
-    });
-    expect(effective.targetTemplate).toBe("team://${filePath}");
-    expect(provenance.targetTemplate).toBe("team");
-    expect(provenance.projectPath).toBe("user-origin");
-  });
-
-  test("layer setting both target fields carries both (template wins in resolveTarget)", () => {
-    const { effective, provenance } = resolve({
-      team: { targetId: "webstorm" },
-      "user-origin": {
-        targetId: "vscode",
-        targetTemplate: "custom://${filePath}",
-      },
-    });
-    expect(effective.targetId).toBe("vscode");
-    expect(effective.targetTemplate).toBe("custom://${filePath}");
-    expect(provenance.targetId).toBe("user-origin");
-    expect(provenance.targetTemplate).toBe("user-origin");
+    expect(effective).toEqual({ projectPath: "/repo" });
+    expect(provenance).toEqual({ projectPath: "team" });
   });
 });
 
@@ -154,16 +123,25 @@ describe("bindings compatibility", () => {
     const normalized = normalizeLayer({ mouseModifiers: "alt+shift" });
     expect(normalized.mouseModifiers).toBeUndefined();
     expect(normalized.bindings).toEqual([
-      { modifiers: "alt+shift", action: { kind: "open-editor" } },
-      { icon: true, action: { kind: "show-tree" } },
-      { icon: true, action: { kind: "show-parents" } },
-      { icon: true, action: { kind: "copy-path" } },
+      {
+        trigger: { kind: "modifier-click", modifiers: "alt+shift" },
+        action: { kind: "open-editor", targetId: "vscode" },
+      },
+      { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
+      {
+        trigger: { kind: "hover-toolbar" },
+        action: { kind: "show-parents" },
+      },
+      { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
     ]);
   });
 
   test("explicit bindings beat a legacy key in the same layer", () => {
     const bindings = [
-      { modifiers: "meta", action: { kind: "copy-path" } },
+      {
+        trigger: { kind: "modifier-click", modifiers: "meta" },
+        action: { kind: "copy-path" },
+      },
     ] as const;
     expect(
       normalizeLayer({
@@ -176,13 +154,18 @@ describe("bindings compatibility", () => {
   test("a legacy higher layer atomically replaces lower bindings", () => {
     const result = resolve({
       team: {
-        bindings: [{ modifiers: "alt", action: { kind: "copy-prompt" } }],
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: "alt" },
+            action: { kind: "copy-prompt" },
+          },
+        ],
       },
       "user-origin": { mouseModifiers: "ctrl" },
     });
     expect(result.effective.bindings?.[0]).toEqual({
-      modifiers: "ctrl",
-      action: { kind: "open-editor" },
+      trigger: { kind: "modifier-click", modifiers: "ctrl" },
+      action: { kind: "open-editor", targetId: "vscode" },
     });
     expect(result.effective.bindings).toHaveLength(4);
     expect(result.provenance.bindings).toBe("user-origin");
@@ -191,11 +174,31 @@ describe("bindings compatibility", () => {
   test("finds the primary modifier-triggered editor binding", () => {
     expect(
       primaryEditorBinding([
-        { icon: true, action: { kind: "open-editor" } },
-        { modifiers: "shift", action: { kind: "copy-path" } },
-        { modifiers: "meta", action: { kind: "open-editor" } },
-      ])?.modifiers
-    ).toBe("meta");
+        {
+          trigger: { kind: "hover-toolbar" },
+          action: { kind: "open-editor" },
+        },
+        {
+          trigger: { kind: "modifier-click", modifiers: "shift" },
+          action: { kind: "copy-path" },
+        },
+        {
+          trigger: { kind: "modifier-click", modifiers: "meta" },
+          action: { kind: "open-editor" },
+        },
+      ])?.trigger
+    ).toEqual({ kind: "modifier-click", modifiers: "meta" });
+  });
+
+  test("falls back to an icon-only editor binding", () => {
+    expect(
+      primaryEditorBinding([
+        {
+          trigger: { kind: "hover-toolbar" },
+          action: { kind: "open-editor", targetId: "cursor" },
+        },
+      ])?.action
+    ).toEqual({ kind: "open-editor", targetId: "cursor" });
   });
 
   test("binding target overrides the default editor", () => {
@@ -204,12 +207,18 @@ describe("bindings compatibility", () => {
       cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
     };
     expect(
-      resolveBindingTarget(
-        { kind: "open-editor", targetId: "cursor" },
-        { targetId: "vscode" },
-        targets
-      )
+      resolveBindingTarget({ kind: "open-editor", targetId: "cursor" }, targets)
     ).toMatchObject({ kind: "targetId", id: "cursor" });
+  });
+
+  test("an editor binding without a target prefers VSCode", () => {
+    const targets: Targets = {
+      cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
+      vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
+    };
+    expect(
+      resolveBindingTarget({ kind: "open-editor" }, targets)
+    ).toMatchObject({ kind: "targetId", id: "vscode" });
   });
 });
 
@@ -239,7 +248,7 @@ describe("resolveTarget – split-field semantics", () => {
     expect(r.kind).toBe("targetId");
     if (r.kind === "targetId") {
       expect(r.id).toBe("webstorm");
-      expect(r.url).toBe(targets.webstorm!.url);
+      expect(r.url).toBe(targets.webstorm?.url);
     }
   });
 
@@ -249,7 +258,7 @@ describe("resolveTarget – split-field semantics", () => {
     if (r.kind === "fallback") {
       expect(r.reason).toBe("unknown-id");
       expect(r.id).toBe("vscode");
-      expect(r.url).toBe(targets.vscode!.url);
+      expect(r.url).toBe(targets.vscode?.url);
     }
   });
 

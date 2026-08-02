@@ -10,20 +10,20 @@ export type BindingAction =
   | { kind: "show-tree" }
   | { kind: "show-parents" };
 
+export type BindingTrigger =
+  | { kind: "modifier-click"; modifiers: string }
+  | { kind: "hover-toolbar" };
+
 export type Binding = {
-  modifiers?: string;
-  icon?: boolean;
+  trigger: BindingTrigger;
   action: BindingAction;
 };
 
 export type LocatorOptions = {
-  targetId?: string;
-  targetTemplate?: string;
   adapterId?: string;
   projectPath?: string;
   replacePath?: { from: string; to: string };
   bindings?: Binding[];
-  promptTemplate?: string;
   /** @deprecated Use bindings instead. Kept as an input for compatibility. */
   mouseModifiers?: string;
   hrefTarget?: "_blank" | "_self";
@@ -55,10 +55,16 @@ export const LAYER_ORDER: LocatorLayer[] = [
 
 export const DEFAULT_LAYER: LocatorOptions = {
   bindings: [
-    { modifiers: "alt", action: { kind: "open-editor" } },
-    { icon: true, action: { kind: "show-tree" } },
-    { icon: true, action: { kind: "show-parents" } },
-    { icon: true, action: { kind: "copy-path" } },
+    {
+      trigger: { kind: "modifier-click", modifiers: "alt" },
+      action: { kind: "open-editor", targetId: "vscode" },
+    },
+    { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
+    {
+      trigger: { kind: "hover-toolbar" },
+      action: { kind: "show-parents" },
+    },
+    { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
   ],
   hrefTarget: "_self",
   disabled: false,
@@ -90,16 +96,15 @@ export type ResolveResult = {
   provenance: Partial<Record<keyof LocatorOptions, LocatorLayer>>;
 };
 
-// targetId and targetTemplate are two forms of one choice ("which target"),
-// so a layer that sets either one overrides both from lower layers — otherwise
-// a team-set template could never be overridden by a user picking a targetId.
-const TARGET_KEYS = ["targetId", "targetTemplate"] as const;
 const BINDING_KEYS = ["bindings", "mouseModifiers"] as const;
 
 const DEFAULT_ICON_BINDINGS: Binding[] = [
-  { icon: true, action: { kind: "show-tree" } },
-  { icon: true, action: { kind: "show-parents" } },
-  { icon: true, action: { kind: "copy-path" } },
+  { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
+  {
+    trigger: { kind: "hover-toolbar" },
+    action: { kind: "show-parents" },
+  },
+  { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
 ];
 
 /**
@@ -107,22 +112,38 @@ const DEFAULT_ICON_BINDINGS: Binding[] = [
  * so it can be used for in-memory resolution as well as lazy persistence.
  */
 export function normalizeLayer(options: LocatorOptions = {}): LocatorOptions {
-  if (options.bindings !== undefined) {
-    if (options.mouseModifiers === undefined) return options;
-    const { mouseModifiers: _legacy, ...normalized } = options;
+  const actionOwnedOptions = { ...options } as LocatorOptions & {
+    targetId?: string;
+    targetTemplate?: string;
+    promptTemplate?: string;
+  };
+  delete actionOwnedOptions.targetId;
+  delete actionOwnedOptions.targetTemplate;
+  delete actionOwnedOptions.promptTemplate;
+
+  if (actionOwnedOptions.bindings !== undefined) {
+    if (actionOwnedOptions.mouseModifiers === undefined) {
+      return actionOwnedOptions;
+    }
+    const normalized = { ...actionOwnedOptions };
+    delete normalized.mouseModifiers;
     return normalized;
   }
-  if (options.mouseModifiers === undefined) return options;
+  if (actionOwnedOptions.mouseModifiers === undefined)
+    return actionOwnedOptions;
 
-  const { mouseModifiers, ...normalized } = options;
+  const { mouseModifiers, ...normalized } = actionOwnedOptions;
   return {
     ...normalized,
     bindings: [
       ...(mouseModifiers
         ? [
             {
-              modifiers: mouseModifiers,
-              action: { kind: "open-editor" } as const,
+              trigger: {
+                kind: "modifier-click" as const,
+                modifiers: mouseModifiers,
+              },
+              action: { kind: "open-editor", targetId: "vscode" } as const,
             },
           ]
         : []),
@@ -145,13 +166,6 @@ export function resolve(
     if (!rawSource) continue;
     const source = normalizeLayer(rawSource);
 
-    if (TARGET_KEYS.some((key) => source[key] !== undefined)) {
-      for (const key of TARGET_KEYS) {
-        delete effective[key];
-        delete provenance[key];
-      }
-    }
-
     if (BINDING_KEYS.some((key) => source[key] !== undefined)) {
       for (const key of BINDING_KEYS) {
         delete effective[key];
@@ -172,16 +186,15 @@ export function resolve(
 
 export function resolveBindingTarget(
   action: Extract<BindingAction, { kind: "open-editor" }>,
-  effective: LocatorOptions,
   targets: Targets
 ): ResolvedTarget {
-  if (action.targetId === undefined && action.targetTemplate === undefined) {
-    return resolveTarget(effective, targets);
-  }
   return resolveTarget(
     {
-      ...effective,
-      targetId: action.targetId,
+      targetId:
+        action.targetId ??
+        (action.targetTemplate === undefined && targets.vscode
+          ? "vscode"
+          : undefined),
       targetTemplate: action.targetTemplate,
     },
     targets
@@ -191,8 +204,12 @@ export function resolveBindingTarget(
 export function primaryEditorBinding(
   bindings: Binding[] | undefined
 ): Binding | undefined {
-  return bindings?.find(
-    (binding) => !!binding.modifiers && binding.action.kind === "open-editor"
+  return (
+    bindings?.find(
+      (binding) =>
+        binding.trigger.kind === "modifier-click" &&
+        binding.action.kind === "open-editor"
+    ) ?? bindings?.find((binding) => binding.action.kind === "open-editor")
   );
 }
 
@@ -218,17 +235,20 @@ export type ResolvedTarget =
     };
 
 export function resolveTarget(
-  effective: LocatorOptions,
+  effective: { targetId?: string; targetTemplate?: string },
   targets: Targets
 ): ResolvedTarget {
   if (effective.targetTemplate) {
     return { kind: "template", url: effective.targetTemplate };
   }
-  if (effective.targetId && targets[effective.targetId]) {
+  const selectedTarget = effective.targetId
+    ? targets[effective.targetId]
+    : undefined;
+  if (effective.targetId && selectedTarget) {
     return {
       kind: "targetId",
       id: effective.targetId,
-      url: targets[effective.targetId]!.url,
+      url: selectedTarget.url,
     };
   }
   const firstEntry = Object.entries(targets)[0];

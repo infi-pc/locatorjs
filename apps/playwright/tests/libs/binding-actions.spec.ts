@@ -37,7 +37,10 @@ test("copy-path binding writes the resolved source location", async ({
     {
       options: {
         bindings: [
-          { modifiers: "alt", action: { kind: "copy-path" as const } },
+          {
+            trigger: { kind: "modifier-click", modifiers: "alt" },
+            action: { kind: "copy-path" as const },
+          },
         ],
         uiState: dismissedUiState,
       },
@@ -104,7 +107,7 @@ test("legacy mouseModifiers still dispatch and migrate to bindings", async ({
         const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
         const stored = raw ? JSON.parse(raw) : {};
         return {
-          modifiers: stored.bindings?.[0]?.modifiers,
+          trigger: stored.bindings?.[0]?.trigger,
           hasLegacyKey: Object.prototype.hasOwnProperty.call(
             stored,
             "mouseModifiers"
@@ -112,5 +115,8 @@ test("legacy mouseModifiers still dispatch and migrate to bindings", async ({
         };
       })
     )
-    .toEqual({ modifiers: "ctrl", hasLegacyKey: false });
+    .toEqual({
+      trigger: { kind: "modifier-click", modifiers: "ctrl" },
+      hasLegacyKey: false,
+    });
 });

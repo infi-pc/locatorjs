@@ -6,16 +6,16 @@ describe("patch codec", () => {
     const wireValue = JSON.parse(
       JSON.stringify(
         serializePatch({
-          targetId: undefined,
-          targetTemplate: "zed://file/${filePath}",
+          projectPath: undefined,
+          tmuxSession: "work",
           debugMode: false,
         })
       )
     );
 
     expect(deserializePatch(wireValue.patch, wireValue.unset)).toEqual({
-      targetId: undefined,
-      targetTemplate: "zed://file/${filePath}",
+      projectPath: undefined,
+      tmuxSession: "work",
       debugMode: false,
     });
   });
@@ -27,11 +27,11 @@ describe("patch codec", () => {
     });
   });
 
-  test.each([undefined, null, "targetId", { 0: "targetId" }])(
+  test.each([undefined, null, "projectPath", { 0: "projectPath" }])(
     "tolerates a missing or non-array unset value",
     (unset) => {
-      expect(deserializePatch({ targetId: "vscode" }, unset)).toEqual({
-        targetId: "vscode",
+      expect(deserializePatch({ projectPath: "/repo" }, unset)).toEqual({
+        projectPath: "/repo",
       });
     }
   );

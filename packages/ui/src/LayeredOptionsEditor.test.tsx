@@ -1,105 +1,50 @@
-import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { DEFAULT_LAYER } from "@locator/shared";
+import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { LayeredOptionsEditor } from "./LayeredOptionsEditor";
+import { AdvancedSettings, SettingsSources } from "./LayeredOptionsEditor";
 
 afterEach(cleanup);
 
 const ok = async () => ({ ok: true as const });
 
-describe("LayeredOptionsEditor", () => {
-  test("renders a single writable scope without tabs", () => {
+describe("AdvancedSettings", () => {
+  test("shows project, link, and diagnostic settings without global editor or prompt controls", () => {
     render(() => (
-      <LayeredOptionsEditor
+      <AdvancedSettings
+        scope={{ layer: "user-origin", label: "This origin", write: ok }}
         layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
-        writeScopes={[
-          { layer: "user-origin", label: "This origin", write: ok },
-        ]}
         targets={{}}
       />
     ));
 
-    expect(screen.queryByRole("tab")).toBeNull();
-    expect(screen.getAllByText("Default editor").length).toBeGreaterThan(0);
+    expect(screen.getByText("Project path")).toBeTruthy();
+    expect(screen.getByText("Path replace")).toBeTruthy();
+    expect(screen.getAllByText("Debug mode").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Default editor")).toBeNull();
+    expect(screen.queryByText("AI prompt template")).toBeNull();
   });
 
-  test("renders exactly the two writable scopes as tabs", () => {
-    render(() => (
-      <LayeredOptionsEditor
-        layers={{
-          default: DEFAULT_LAYER,
-          "user-extension": {},
-          "user-origin": {},
-        }}
-        writeScopes={[
-          {
-            layer: "user-origin",
-            label: "This site",
-            write: ok,
-            disabled: true,
-            disabledReason: "Connect first.",
-          },
-          { layer: "user-extension", label: "All sites", write: ok },
-        ]}
-        targets={{}}
-        defaultId="user-origin"
-      />
-    ));
-
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
-    expect(
-      screen
-        .getByRole("tab", { name: "All sites" })
-        .getAttribute("aria-selected")
-    ).toBe("true");
-    expect(screen.queryByRole("tab", { name: /Team/ })).toBeNull();
-  });
-
-  test("shows provenance and reverts the current scope override", async () => {
-    const write = vi.fn(ok);
-    const { unmount } = render(() => (
-      <LayeredOptionsEditor
-        layers={{
-          default: DEFAULT_LAYER,
-          team: { projectPath: "/repo/team" },
-          "user-origin": {},
-        }}
-        writeScopes={[{ layer: "user-origin", label: "This origin", write }]}
-        targets={{}}
-      />
-    ));
-    expect(screen.getAllByText("Team").length).toBeGreaterThan(0);
-    unmount();
-
-    render(() => (
-      <LayeredOptionsEditor
-        layers={{
-          default: DEFAULT_LAYER,
-          team: { projectPath: "/repo/team" },
-          "user-origin": { projectPath: "/repo/custom" },
-        }}
-        writeScopes={[{ layer: "user-origin", label: "This origin", write }]}
-        targets={{}}
-      />
-    ));
-    await screen.getByRole("button", { name: "Revert Project path" }).click();
-    expect(write).toHaveBeenCalledWith({ projectPath: undefined });
-  });
-
-  test("shows path validation and layer inspector", async () => {
-    const [values, setValues] = createSignal({});
-    const write = async (patch: Record<string, unknown>) => {
+  test("shows provenance, reverts the current scope, and validates path replacement", async () => {
+    const [values, setValues] = createSignal({ projectPath: "/custom" });
+    const write = vi.fn(async (patch: Record<string, unknown>) => {
       setValues((current) => ({ ...current, ...patch }));
       return { ok: true as const };
-    };
+    });
     render(() => (
-      <LayeredOptionsEditor
-        layers={{ default: DEFAULT_LAYER, "user-extension": values() }}
-        writeScopes={[{ layer: "user-extension", label: "All sites", write }]}
+      <AdvancedSettings
+        scope={{ layer: "user-origin", label: "This origin", write }}
+        layers={{
+          default: DEFAULT_LAYER,
+          team: { projectPath: "/team" },
+          "user-origin": values(),
+        }}
         targets={{}}
       />
     ));
+
+    await screen.getByRole("button", { name: "Revert Project path" }).click();
+    expect(write).toHaveBeenCalledWith({ projectPath: undefined });
 
     await fireEvent.change(screen.getByPlaceholderText("From"), {
       target: { value: "[" },
@@ -107,30 +52,33 @@ describe("LayeredOptionsEditor", () => {
     expect(
       await screen.findByText("From must be a valid regular expression.")
     ).toBeTruthy();
-    expect(screen.getByText("View layers")).toBeTruthy();
   });
+});
 
-  test("renders promotional hints below the form", () => {
+describe("SettingsSources", () => {
+  test("renders action-owned configuration and unavailable layers", () => {
     render(() => (
-      <LayeredOptionsEditor
-        layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
-        writeScopes={[
-          { layer: "user-origin", label: "This origin", write: ok },
-        ]}
-        targets={{}}
-        promos={[
-          {
-            text: "Keep settings everywhere.",
-            href: "https://example.com",
-            linkLabel: "Install extension",
+      <SettingsSources
+        layers={{
+          default: DEFAULT_LAYER,
+          "user-extension": {
+            bindings: [
+              {
+                trigger: { kind: "modifier-click", modifiers: "alt" },
+                action: { kind: "open-editor", targetId: "vscode" },
+              },
+            ],
           },
-        ]}
+        }}
+        targets={{ vscode: { label: "VS Code", url: "vscode://file" } }}
+        unavailableLayers={["team", "user-origin"]}
       />
     ));
 
-    expect(screen.getByText("Keep settings everywhere.")).toBeTruthy();
+    expect(screen.getByText("Configuration sources")).toBeTruthy();
+    expect(screen.getAllByText(/open VS Code/).length).toBeGreaterThan(0);
     expect(
-      screen.getByRole("link", { name: "Install extension" })
-    ).toBeTruthy();
+      screen.getAllByText("Unavailable without a connected LocatorJS page")
+    ).toHaveLength(2);
   });
 });

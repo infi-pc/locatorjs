@@ -22,6 +22,13 @@ async function openSettings(page: Page) {
   }
   await visibleSettings.click();
   await page.keyboard.up("Alt");
+  await expect(
+    page.getByRole("button", { name: /^Edit action 1:/ })
+  ).toBeVisible();
+}
+
+async function openAdvanced(page: Page) {
+  await page.getByRole("button", { name: "Advanced settings" }).click();
   await expect(page.getByText("Project path", { exact: true })).toBeVisible();
 }
 
@@ -48,17 +55,45 @@ test.beforeEach(async ({ page }) => {
   await page.goto(projects.solid);
 });
 
-test("settings popover uses one effective form and persists origin values", async ({
+test("action settings persist editor-owned and advanced origin values", async ({
   page,
 }) => {
   await openSettings(page);
 
   await expect(
-    page.getByRole("tablist", { name: "Settings layers" })
-  ).toHaveCount(0);
-  await expect(
-    page.getByText("Default", { exact: true }).first()
+    page.getByRole("heading", { name: "Modifier + click" })
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Hover toolbar" })
+  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Cards" })).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Edit action 1: Open in VSCode" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Open in VSCode" })
+  ).toBeFocused();
+  await expect(
+    page.getByText("Live link preview", { exact: true })
+  ).toBeVisible();
+
+  const editor = page.getByRole("combobox", { name: "Editor" });
+  await editor.click();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
+        const binding = raw ? JSON.parse(raw).bindings?.[0] : undefined;
+        return binding?.action?.targetId;
+      })
+    )
+    .toBe("webstorm");
+
+  await page.getByRole("button", { name: "Back to actions" }).click();
+  await openAdvanced(page);
 
   const projectPath = page.getByPlaceholder("/Users/me/project/");
   await projectPath.fill("/tmp/locator-project");
@@ -75,21 +110,113 @@ test("settings popover uses one effective form and persists origin values", asyn
 
   await page.reload();
   await openSettings(page);
+  await openAdvanced(page);
   await expect(page.getByPlaceholder("/Users/me/project/")).toHaveValue(
     "/tmp/locator-project"
   );
 });
 
-test("layer inspector explains extension and team semantics", async ({
+test("separate trigger sections share action editing and navigation state", async ({
   page,
 }) => {
   await openSettings(page);
 
-  await page.getByText("View layers", { exact: true }).click();
+  await page.getByRole("button", { name: "Add hover toolbar action" }).click();
+  await expect(page.getByRole("button", { name: "Confirm" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Copy AI prompt", exact: true })
+  ).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Action" }).click();
+  await page.getByRole("option", { name: "Copy AI prompt" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Copy AI prompt" })
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Prompt template" })
+    .fill("Explain ${filePath} at ${line}");
+  await page.getByRole("textbox", { name: "Prompt template" }).blur();
+
+  await expect(page.getByText("When", { exact: true })).toBeVisible();
+  await expect(page.getByText("Then", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Prompt template" })
+  ).toHaveValue("Explain ${filePath} at ${line}");
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
+        const bindings = raw ? JSON.parse(raw).bindings : undefined;
+        return bindings?.length ?? 0;
+      })
+    )
+    .toBe(0);
+
+  await page.getByRole("button", { name: "Confirm" }).click();
+  await expect(
+    page.getByRole("button", { name: "Edit action 5: Copy AI prompt" })
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Edit action 5: Copy AI prompt" })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Prompt template" })
+  ).toHaveValue("Explain ${filePath} at ${line}");
+  await page.getByRole("button", { name: "Back to actions" }).click();
+  await expect(
+    page.getByRole("button", { name: "Edit action 5: Copy AI prompt" })
+  ).toBeFocused();
+
+  await page
+    .getByRole("button", { name: "Add modifier + click action" })
+    .click();
+  await page.getByRole("combobox", { name: "Action" }).click();
+  await page.getByRole("option", { name: "Copy path" }).click();
+  await expect(page.getByRole("heading", { name: "Copy path" })).toBeVisible();
+  await expect(
+    page.getByText(/(Option|Alt) \+ (Shift|⇧ Shift) \+ Click/)
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Confirm" }).click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
+        const bindings = raw ? JSON.parse(raw).bindings : [];
+        return bindings?.map(
+          (binding: { trigger?: { kind?: string } }) => binding.trigger?.kind
+        );
+      })
+    )
+    .toEqual([
+      "modifier-click",
+      "modifier-click",
+      "hover-toolbar",
+      "hover-toolbar",
+      "hover-toolbar",
+      "hover-toolbar",
+    ]);
+});
+
+test("Advanced contains source inspection and infrequent settings", async ({
+  page,
+}) => {
+  await openSettings(page);
+  await openAdvanced(page);
+
+  await expect(
+    page.getByRole("button", { name: "Back to actions" })
+  ).toBeVisible();
   await expect(page.getByText("This origin", { exact: true })).toBeVisible();
   await expect(page.getByText("Extension", { exact: true })).toBeVisible();
   await expect(page.getByText("Team", { exact: true })).toBeVisible();
   await expect(page.getByText("Default", { exact: true }).last()).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Debug mode" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Show intro again" })
+  ).toBeVisible();
 });
 
 test("welcome dismissal survives resetting origin settings", async ({

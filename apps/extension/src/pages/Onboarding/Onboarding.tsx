@@ -1,4 +1,10 @@
-import { DEFAULT_LAYER, allTargets, resolve } from '@locator/shared';
+import {
+  DEFAULT_LAYER,
+  allTargets,
+  primaryEditorBinding,
+  resolve,
+  type Binding,
+} from '@locator/shared';
 import {
   BindingsEditor,
   EditorPicker,
@@ -34,6 +40,27 @@ export function Onboarding() {
       default: DEFAULT_LAYER,
       'user-extension': userExtension(),
     }).effective;
+  const editorAction = () => {
+    const action = primaryEditorBinding(effective().bindings)?.action;
+    return action?.kind === 'open-editor' ? action : undefined;
+  };
+  const updatePrimaryEditor = async (
+    patch: Pick<
+      Extract<Binding['action'], { kind: 'open-editor' }>,
+      'targetId' | 'targetTemplate'
+    >
+  ) => {
+    const bindings = effective().bindings ?? [];
+    const primary = primaryEditorBinding(bindings);
+    const index = primary ? bindings.indexOf(primary) : -1;
+    if (index < 0) return false;
+    const next = bindings.map((binding, bindingIndex) =>
+      bindingIndex === index
+        ? { ...binding, action: { kind: 'open-editor' as const, ...patch } }
+        : binding
+    );
+    return (await setUserExtension({ bindings: next })).ok;
+  };
 
   const steps = (): WizardStep[] => [
     {
@@ -52,14 +79,14 @@ export function Onboarding() {
     },
     {
       id: 'editor',
-      title: 'Pick your default editor',
-      description: 'You can override it per action or per site later.',
+      title: 'Pick your editor',
+      description: 'This updates your primary Open in editor action.',
       content: () => (
         <EditorPicker
           targets={allTargets}
-          targetId={effective().targetId}
-          targetTemplate={effective().targetTemplate}
-          onChange={async (patch) => (await setUserExtension(patch)).ok}
+          targetId={editorAction()?.targetId}
+          targetTemplate={editorAction()?.targetTemplate}
+          onChange={updatePrimaryEditor}
         />
       ),
     },

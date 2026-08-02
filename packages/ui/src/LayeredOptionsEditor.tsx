@@ -1,7 +1,5 @@
 import {
-  DEFAULT_PROMPT_TEMPLATE,
   LAYER_ORDER,
-  PROMPT_TEMPLATE_VARIABLES,
   normalizeLayer,
   resolve,
   type Binding,
@@ -12,47 +10,30 @@ import {
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { RotateCcw } from "lucide-solid";
-import { For, JSX, Show, createEffect, createSignal } from "solid-js";
-import { BindingsEditor } from "./BindingsEditor";
-import { EditorPicker } from "./EditorPicker";
+import { For, Show, createSignal } from "solid-js";
 import { Field } from "./Field";
 import { IconButton } from "./IconButton";
-import { PromoFooter, type PromoHint } from "./PromoFooter";
 import { LAYER_LABELS, ProvenanceBadge } from "./ProvenanceBadge";
 import { Switch } from "./Switch";
-import { Tabs } from "./Tabs";
-import { TextArea } from "./TextArea";
 import { TextInput } from "./TextInput";
 import { Tooltip } from "./Tooltip";
 
-export type WriteScope = {
-  layer: LocatorLayer;
-  label: string;
-  write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
-  disabled?: boolean;
-  disabledReason?: string;
-  note?: string;
-};
-
 type FieldKey = keyof LocatorOptions;
-type FieldWriter = (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
 
 const FIELD_LABELS: Partial<Record<FieldKey, string>> = {
-  targetId: "Default editor",
-  targetTemplate: "Default editor",
   projectPath: "Project path",
   replacePath: "Path replace",
-  bindings: "Shortcuts",
-  promptTemplate: "AI prompt template",
+  bindings: "Actions",
   hrefTarget: "Open links in a new tab",
   tmuxSession: "Tmux session",
   debugMode: "Debug mode",
   showIntro: "Show intro again",
+  adapterId: "Adapter",
+  disabled: "Disabled",
 };
 
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "3" }),
-  note: css({ color: "fg.muted", fontSize: "xs" }),
   section: css({
     display: "flex",
     flexDirection: "column",
@@ -63,11 +44,13 @@ const styles = {
   sectionTitle: css({
     borderBottomColor: "border",
     borderBottomWidth: "1px",
-    color: "fg.default",
     fontSize: "sm",
     fontWeight: "semibold",
     pb: "2",
   }),
+  note: css({ color: "fg.muted", fontSize: "xs" }),
+  pair: css({ display: "grid", gap: "2", gridTemplateColumns: "1fr 1fr" }),
+  switchLine: css({ alignItems: "center", display: "flex", minH: "8" }),
   meta: css({
     alignItems: "center",
     display: "inline-flex",
@@ -79,20 +62,6 @@ const styles = {
     opacity: "0.72",
     _hover: { color: "fg.default", opacity: "1" },
   }),
-  tabLabel: css({ alignItems: "center", display: "inline-flex", gap: "1.5" }),
-  tabCount: css({
-    alignItems: "center",
-    bg: "gray.subtle.bg",
-    borderRadius: "full",
-    color: "fg.muted",
-    display: "inline-flex",
-    fontSize: "xs",
-    justifyContent: "center",
-    minW: "5",
-    px: "1.5",
-  }),
-  pair: css({ display: "grid", gap: "2", gridTemplateColumns: "1fr 1fr" }),
-  switchLine: css({ alignItems: "center", display: "flex", minH: "8" }),
   inspector: css({
     borderColor: "border",
     borderRadius: "l2",
@@ -101,12 +70,6 @@ const styles = {
     fontSize: "xs",
     overflow: "hidden",
   }),
-  inspectorSummary: css({
-    cursor: "pointer",
-    fontWeight: "medium",
-    p: "3",
-    _hover: { bg: "gray.subtle.bg" },
-  }),
   layer: css({
     borderTopColor: "border",
     borderTopWidth: "1px",
@@ -114,87 +77,21 @@ const styles = {
     gap: "2",
     gridTemplateColumns: "7rem minmax(0, 1fr)",
     p: "3",
+    _first: { borderTopWidth: "0" },
   }),
   layerName: css({ color: "fg.default", fontWeight: "medium" }),
-  layerValue: css({
-    color: "fg.muted",
-    fontFamily: "mono",
-    overflowWrap: "anywhere",
-  }),
-  promptVariables: css({ color: "fg.muted", fontSize: "xs" }),
+  layerValue: css({ fontFamily: "mono", overflowWrap: "anywhere" }),
 };
 
-export function LayeredOptionsEditor(props: {
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
-  writeScopes: WriteScope[];
-  targets: Targets;
-  defaultId?: LocatorLayer;
-  portalMount?: Node;
-  promos?: PromoHint[];
-}) {
-  const firstEnabled = () =>
-    props.writeScopes.find((scope) => !scope.disabled)?.layer ??
-    props.writeScopes[0]?.layer ??
-    "user-origin";
-  const requested = () =>
-    props.writeScopes.find(
-      (scope) => scope.layer === props.defaultId && !scope.disabled
-    )?.layer ?? firstEnabled();
-  const [active, setActive] = createSignal(requested());
-
-  createEffect(() => {
-    const current = props.writeScopes.find((scope) => scope.layer === active());
-    if (!current || current.disabled) setActive(requested());
-  });
-
-  const content = (scope: WriteScope) => (
-    <LayerForm
-      scope={scope}
-      layers={props.layers}
-      targets={props.targets}
-      portalMount={props.portalMount}
-      promos={props.promos}
-    />
-  );
-
-  return (
-    <Show
-      when={props.writeScopes.length > 1}
-      fallback={props.writeScopes[0] ? content(props.writeScopes[0]) : <div />}
-    >
-      <Tabs
-        value={active()}
-        onChange={(id) => setActive(id as LocatorLayer)}
-        defaultId={requested()}
-        ariaLabel="Settings scopes"
-        portalMount={props.portalMount}
-        items={props.writeScopes.map((scope) => ({
-          id: scope.layer,
-          label: (
-            <span class={styles.tabLabel}>
-              <span>{scope.label}</span>
-              <Show when={overrideCount(props.layers[scope.layer] ?? {}) > 0}>
-                <span class={styles.tabCount}>
-                  {overrideCount(props.layers[scope.layer] ?? {})}
-                </span>
-              </Show>
-            </span>
-          ),
-          disabled: scope.disabled,
-          disabledReason: scope.disabledReason,
-          content: content(scope),
-        }))}
-      />
-    </Show>
-  );
-}
-
-function LayerForm(props: {
-  scope: WriteScope;
+export function AdvancedSettings(props: {
+  scope: {
+    layer: LocatorLayer;
+    label: string;
+    write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  };
   layers: Partial<Record<LocatorLayer, LocatorOptions>>;
   targets: Targets;
   portalMount?: Node;
-  promos?: PromoHint[];
 }) {
   const [errors, setErrors] = createSignal<Partial<Record<FieldKey, string>>>(
     {}
@@ -214,129 +111,103 @@ function LayerForm(props: {
     }
     return true;
   };
-  const effective = () => resolve(normalizedLayers(props.layers)).effective;
 
   return (
     <div class={styles.stack}>
-      <Show when={props.scope.note}>
-        <div class={styles.note}>{props.scope.note}</div>
-      </Show>
-
-      <Section title="Link">
-        <EditorField
-          {...props}
-          error={errors().targetId}
-          write={(patch) => write("targetId", patch)}
-        />
+      <section class={styles.section}>
+        <div class={styles.sectionTitle}>Project & links</div>
         <TextSetting
-          {...props}
           label="Project path"
           fieldKey="projectPath"
           placeholder="/Users/me/project/"
+          layers={props.layers}
+          scope={props.scope}
           error={errors().projectPath}
           write={(patch) => write("projectPath", patch)}
+          portalMount={props.portalMount}
         />
         <ReplacePathField
-          {...props}
+          layers={props.layers}
+          scope={props.scope}
           error={errors().replacePath}
           write={(patch) => write("replacePath", patch)}
-        />
-        <Show when={effective().targetId === "nvim"}>
-          <TextSetting
-            {...props}
-            label="Tmux session"
-            fieldKey="tmuxSession"
-            placeholder="work"
-            error={errors().tmuxSession}
-            write={(patch) => write("tmuxSession", patch)}
-          />
-        </Show>
-      </Section>
-
-      <Section title="Controls">
-        <BindingsSetting
-          {...props}
-          error={errors().bindings}
-          write={(patch) => write("bindings", patch)}
-        />
-        <PromptTemplateSetting
-          {...props}
-          error={errors().promptTemplate}
-          write={(patch) => write("promptTemplate", patch)}
+          portalMount={props.portalMount}
         />
         <BooleanSetting
-          {...props}
           label="Open links in a new tab"
           fieldKey="hrefTarget"
+          layers={props.layers}
+          scope={props.scope}
           toChecked={(value) => value === "_blank"}
           toValue={(checked) => (checked ? "_blank" : "_self")}
           error={errors().hrefTarget}
           write={(patch) => write("hrefTarget", patch)}
+          portalMount={props.portalMount}
         />
-      </Section>
-
-      <Section title="Advanced">
+        <TextSetting
+          label="Tmux session"
+          fieldKey="tmuxSession"
+          placeholder="work"
+          layers={props.layers}
+          scope={props.scope}
+          error={errors().tmuxSession}
+          write={(patch) => write("tmuxSession", patch)}
+          portalMount={props.portalMount}
+        />
+      </section>
+      <section class={styles.section}>
+        <div class={styles.sectionTitle}>Diagnostics</div>
         <BooleanSetting
-          {...props}
           label="Debug mode"
           fieldKey="debugMode"
+          layers={props.layers}
+          scope={props.scope}
           error={errors().debugMode}
           write={(patch) => write("debugMode", patch)}
+          portalMount={props.portalMount}
         />
         <BooleanSetting
-          {...props}
           label="Show intro again"
           fieldKey="showIntro"
+          layers={props.layers}
+          scope={props.scope}
           toChecked={(value) => value !== false}
           error={errors().showIntro}
           write={(patch) => write("showIntro", patch)}
+          portalMount={props.portalMount}
         />
-      </Section>
-
-      <LayersInspector layers={props.layers} targets={props.targets} />
-      <Show when={(props.promos?.length ?? 0) > 0}>
-        <PromoFooter promos={props.promos ?? []} />
-      </Show>
+      </section>
     </div>
   );
 }
 
-type CommonSettingProps = {
-  scope: WriteScope;
+type CommonProps = {
+  scope: {
+    layer: LocatorLayer;
+    write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  };
   layers: Partial<Record<LocatorLayer, LocatorOptions>>;
   portalMount?: Node;
 };
 
-function Section(props: { title: string; children: JSX.Element }) {
-  return (
-    <section class={styles.section}>
-      <div class={styles.sectionTitle}>{props.title}</div>
-      {props.children}
-    </section>
-  );
-}
-
 function FieldMeta(
-  props: CommonSettingProps & {
-    fieldKey: FieldKey;
-    onReset: () => void;
-  }
+  props: CommonProps & { fieldKey: FieldKey; onReset: () => void }
 ) {
   const state = () =>
     fieldState(props.layers, props.scope.layer, props.fieldKey);
-  const resetLabel = () =>
+  const label = () =>
     `Revert ${FIELD_LABELS[props.fieldKey] ?? String(props.fieldKey)}`;
   return (
     <span class={styles.meta}>
       <Show when={state().source && state().source !== props.scope.layer}>
-        <ProvenanceBadge layer={state().source} />
+        <ProvenanceBadge layer={state().source!} />
       </Show>
       <Show when={state().setHere}>
-        <Tooltip label={resetLabel()} portalMount={props.portalMount}>
+        <Tooltip label={label()} portalMount={props.portalMount}>
           <IconButton
-            aria-label={resetLabel()}
+            aria-label={label()}
             class={styles.reset}
-            onClick={props.onReset}
+            onClick={() => props.onReset()}
           >
             <RotateCcw size={14} />
           </IconButton>
@@ -346,46 +217,13 @@ function FieldMeta(
   );
 }
 
-function EditorField(
-  props: CommonSettingProps & {
-    targets: Targets;
-    error?: string;
-    write: FieldWriter;
-  }
-) {
-  const effective = () => resolve(normalizedLayers(props.layers)).effective;
-  return (
-    <Field
-      label="Default editor"
-      meta={
-        <FieldMeta
-          {...props}
-          fieldKey="targetId"
-          onReset={() =>
-            props.write({ targetId: undefined, targetTemplate: undefined })
-          }
-        />
-      }
-      error={props.error}
-    >
-      <EditorPicker
-        targets={props.targets}
-        targetId={effective().targetId}
-        targetTemplate={effective().targetTemplate}
-        portalMount={props.portalMount}
-        onChange={props.write}
-      />
-    </Field>
-  );
-}
-
 function TextSetting(
-  props: CommonSettingProps & {
+  props: CommonProps & {
     label: string;
     fieldKey: "projectPath" | "tmuxSession";
     placeholder?: string;
     error?: string;
-    write: FieldWriter;
+    write: (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
   }
 ) {
   const state = () =>
@@ -396,7 +234,6 @@ function TextSetting(
       meta={
         <FieldMeta
           {...props}
-          fieldKey={props.fieldKey}
           onReset={() => props.write({ [props.fieldKey]: undefined })}
         />
       }
@@ -416,9 +253,9 @@ function TextSetting(
 }
 
 function ReplacePathField(
-  props: CommonSettingProps & {
+  props: CommonProps & {
     error?: string;
-    write: FieldWriter;
+    write: (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
   }
 ) {
   const state = () =>
@@ -427,9 +264,7 @@ function ReplacePathField(
     (state().value as LocatorOptions["replacePath"]) ?? { from: "", to: "" };
   const commit = (key: "from" | "to", next: string) => {
     const merged = { ...value(), [key]: next.trim() };
-    props.write({
-      replacePath: merged.from || merged.to ? merged : undefined,
-    });
+    props.write({ replacePath: merged.from || merged.to ? merged : undefined });
   };
   return (
     <Field
@@ -447,16 +282,19 @@ function ReplacePathField(
           ? "From must be a valid regular expression."
           : undefined)
       }
+      helper="Rewrites paths after resolving the project path."
     >
       <div class={styles.pair}>
         <TextInput
           mono
+          aria-label="Path replace from"
           value={value().from}
           placeholder="From"
           onChange={(event) => commit("from", event.currentTarget.value)}
         />
         <TextInput
           mono
+          aria-label="Path replace to"
           value={value().to}
           placeholder="To"
           onChange={(event) => commit("to", event.currentTarget.value)}
@@ -466,88 +304,14 @@ function ReplacePathField(
   );
 }
 
-function BindingsSetting(
-  props: CommonSettingProps & {
-    targets: Targets;
-    error?: string;
-    write: FieldWriter;
-  }
-) {
-  const state = () => fieldState(props.layers, props.scope.layer, "bindings");
-  return (
-    <Field
-      label="Shortcuts & hover actions"
-      meta={
-        <FieldMeta
-          {...props}
-          fieldKey="bindings"
-          onReset={() =>
-            props.write({ bindings: undefined, mouseModifiers: undefined })
-          }
-        />
-      }
-      error={props.error}
-    >
-      <BindingsEditor
-        value={(state().value as Binding[] | undefined) ?? []}
-        targets={props.targets}
-        portalMount={props.portalMount}
-        onChange={(bindings) =>
-          props.write({ bindings, mouseModifiers: undefined })
-        }
-      />
-    </Field>
-  );
-}
-
-function PromptTemplateSetting(
-  props: CommonSettingProps & {
-    error?: string;
-    write: FieldWriter;
-  }
-) {
-  const state = () =>
-    fieldState(props.layers, props.scope.layer, "promptTemplate");
-  return (
-    <Field
-      label="AI prompt template"
-      meta={
-        <FieldMeta
-          {...props}
-          fieldKey="promptTemplate"
-          onReset={() => props.write({ promptTemplate: undefined })}
-        />
-      }
-      helper={
-        <div class={styles.promptVariables}>
-          Variables:{" "}
-          {PROMPT_TEMPLATE_VARIABLES.map((name) => `\${${name}}`).join(", ")}
-        </div>
-      }
-      error={props.error}
-    >
-      <TextArea
-        aria-label="AI prompt template"
-        value={(state().value as string | undefined) ?? ""}
-        placeholder={DEFAULT_PROMPT_TEMPLATE}
-        onChange={(event) =>
-          props.write({
-            promptTemplate: event.currentTarget.value.trim() || undefined,
-          })
-        }
-      />
-    </Field>
-  );
-}
-
 function BooleanSetting(
-  props: CommonSettingProps & {
+  props: CommonProps & {
     label: string;
     fieldKey: "debugMode" | "hrefTarget" | "showIntro";
     toChecked?: (value: unknown) => boolean;
     toValue?: (checked: boolean) => LocatorOptions[keyof LocatorOptions];
     error?: string;
-    write: FieldWriter;
+    write: (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
   }
 ) {
   const state = () =>
@@ -560,7 +324,6 @@ function BooleanSetting(
       meta={
         <FieldMeta
           {...props}
-          fieldKey={props.fieldKey}
           onReset={() => props.write({ [props.fieldKey]: undefined })}
         />
       }
@@ -583,24 +346,32 @@ function BooleanSetting(
   );
 }
 
-function LayersInspector(props: {
+export function SettingsSources(props: {
   layers: Partial<Record<LocatorLayer, LocatorOptions>>;
   targets: Targets;
+  unavailableLayers?: LocatorLayer[];
 }) {
   return (
-    <details class={styles.inspector}>
-      <summary class={styles.inspectorSummary}>View layers</summary>
-      <For each={LAYER_ORDER}>
-        {(layer) => (
-          <div class={styles.layer}>
-            <div class={styles.layerName}>{LAYER_LABELS[layer]}</div>
-            <div class={styles.layerValue}>
-              {formatLayer(props.layers[layer], props.targets)}
+    <section class={styles.section}>
+      <div class={styles.sectionTitle}>Configuration sources</div>
+      <div class={styles.note}>
+        Later sources override earlier ones for each setting.
+      </div>
+      <div class={styles.inspector}>
+        <For each={LAYER_ORDER}>
+          {(layer) => (
+            <div class={styles.layer}>
+              <div class={styles.layerName}>{LAYER_LABELS[layer]}</div>
+              <div class={styles.layerValue}>
+                {props.unavailableLayers?.includes(layer)
+                  ? "Unavailable without a connected LocatorJS page"
+                  : formatLayer(props.layers[layer], props.targets)}
+              </div>
             </div>
-          </div>
-        )}
-      </For>
-    </details>
+          )}
+        </For>
+      </div>
+    </section>
   );
 }
 
@@ -612,21 +383,11 @@ function fieldState(
   const normalized = normalizedLayers(layers);
   const resolved = resolve(normalized);
   const layerValues = normalized[layer] ?? {};
-  const keys =
-    fieldKey === "targetId" || fieldKey === "targetTemplate"
-      ? (["targetId", "targetTemplate"] as FieldKey[])
-      : fieldKey === "bindings" || fieldKey === "mouseModifiers"
-      ? (["bindings", "mouseModifiers"] as FieldKey[])
-      : [fieldKey];
-  const setHere = keys.some((key) => layerValues[key] !== undefined);
-  const source = keys
-    .map((key) => resolved.provenance[key])
-    .find((value) => value !== undefined);
-  const value =
-    fieldKey === "bindings"
-      ? resolved.effective.bindings
-      : resolved.effective[fieldKey];
-  return { setHere, source, value };
+  return {
+    setHere: layerValues[fieldKey] !== undefined,
+    source: resolved.provenance[fieldKey],
+    value: resolved.effective[fieldKey],
+  };
 }
 
 function normalizedLayers(
@@ -640,41 +401,15 @@ function normalizedLayers(
   ) as Partial<Record<LocatorLayer, LocatorOptions>>;
 }
 
-function overrideCount(values: LocatorOptions) {
-  const keys = new Set(
-    (Object.keys(values) as FieldKey[]).filter(
-      (key) => values[key] !== undefined
-    )
-  );
-  if (keys.has("targetId") || keys.has("targetTemplate")) {
-    keys.delete("targetId");
-    keys.delete("targetTemplate");
-    keys.add("targetId");
-  }
-  if (keys.has("bindings") || keys.has("mouseModifiers")) {
-    keys.delete("bindings");
-    keys.delete("mouseModifiers");
-    keys.add("bindings");
-  }
-  return keys.size;
-}
-
 function formatLayer(values: LocatorOptions | undefined, targets: Targets) {
-  if (!values || Object.keys(values).length === 0) return "No overrides";
+  if (!values || Object.keys(normalizeLayer(values)).length === 0)
+    return "No overrides";
   const normalized = normalizeLayer(values);
   return (Object.keys(normalized) as FieldKey[])
     .filter((key) => normalized[key] !== undefined)
     .map((key) => {
-      if (key === "targetTemplate") {
-        return `editor: ${normalized.targetTemplate}`;
-      }
-      if (key === "targetId") {
-        return `editor: ${
-          targets[normalized.targetId!]?.label ?? normalized.targetId
-        }`;
-      }
       if (key === "bindings") {
-        return `shortcuts: ${normalized.bindings
+        return `actions: ${normalized.bindings
           ?.map((binding) => bindingSummary(binding, targets))
           .join(", ")}`;
       }
@@ -687,19 +422,19 @@ function formatLayer(values: LocatorOptions | undefined, targets: Targets) {
 }
 
 function bindingSummary(binding: Binding, targets: Targets) {
-  const trigger = [
-    binding.modifiers ? `${binding.modifiers}+click` : "",
-    binding.icon ? "icon" : "",
-  ]
-    .filter(Boolean)
-    .join("/");
+  const trigger =
+    binding.trigger.kind === "modifier-click"
+      ? `${binding.trigger.modifiers}+click`
+      : "hover toolbar";
   const action =
     binding.action.kind === "open-editor"
       ? binding.action.targetId
         ? `open ${
             targets[binding.action.targetId]?.label ?? binding.action.targetId
           }`
-        : "open default editor"
+        : binding.action.targetTemplate
+        ? "open custom editor"
+        : "open VSCode"
       : binding.action.kind.replaceAll("-", " ");
   return `${trigger} → ${action}`;
 }

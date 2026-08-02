@@ -1,66 +1,47 @@
 import { JSX } from "solid-js";
 import { Link, SquareCode } from "lucide-solid";
+import cursorIcon from "./assets/editor-icons/cursor.svg";
+import neovimIcon from "./assets/editor-icons/neovim.svg";
+import vscodeIcon from "./assets/editor-icons/vscode.svg";
+import webstormIcon from "./assets/editor-icons/webstorm.png";
+import windsurfIcon from "./assets/editor-icons/windsurf.svg";
 
-// Brand paths are attributed in ../ICON-LICENSES.md.
 const styles = {
   icon: {
     width: "16px",
     height: "16px",
     display: "inline-block",
     "flex-shrink": 0,
+    "object-fit": "contain",
   } satisfies JSX.CSSProperties,
 };
 
-function BrandIcon(props: { path: string; title: string; scale?: number }) {
+const editorIcons = {
+  vscode: { src: vscodeIcon, label: "Visual Studio Code" },
+  cursor: { src: cursorIcon, label: "Cursor" },
+  webstorm: { src: webstormIcon, label: "WebStorm" },
+  windsurf: { src: windsurfIcon, label: "Windsurf" },
+  nvim: { src: neovimIcon, label: "Neovim" },
+} as const;
+
+function BrandIcon(props: { src: string; label: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      role="img"
-      aria-label={props.title}
+    <img
+      src={props.src}
+      alt={props.label}
+      draggable={false}
+      width="16"
+      height="16"
       style={styles.icon}
-    >
-      <path
-        fill="currentColor"
-        d={props.path}
-        transform={props.scale ? `scale(${props.scale})` : undefined}
-      />
-    </svg>
+    />
   );
 }
 
-const paths = {
-  cursor:
-    "M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23",
-  windsurf:
-    "M23.55 5.067c-1.2038-.002-2.1806.973-2.1806 2.1765v4.8676c0 .972-.8035 1.7594-1.7597 1.7594-.568 0-1.1352-.286-1.4718-.7659l-4.9713-7.1003c-.4125-.5896-1.0837-.941-1.8103-.941-1.1334 0-2.1533.9635-2.1533 2.153v4.8957c0 .972-.7969 1.7594-1.7596 1.7594-.57 0-1.1363-.286-1.4728-.7658L.4076 5.1598C.2822 4.9798 0 5.0688 0 5.2882v4.2452c0 .2147.0656.4228.1884.599l5.4748 7.8183c.3234.462.8006.8052 1.3509.9298 1.3771.313 2.6446-.747 2.6446-2.0977v-4.893c0-.972.7875-1.7593 1.7596-1.7593h.003a1.798 1.798 0 0 1 1.4718.7658l4.9723 7.0994c.4135.5905 1.05.941 1.8093.941 1.1587 0 2.1515-.9645 2.1515-2.153v-4.8948c0-.972.7875-1.7594 1.7596-1.7594h.194a.22.22 0 0 0 .2204-.2202v-4.622a.22.22 0 0 0-.2203-.2203Z",
-  webstorm:
-    "M0 0v24h24V0H0zm17.889 2.889c1.444 0 2.667.444 3.667 1.278l-1.111 1.667c-.889-.611-1.722-1-2.556-1s-1.278.389-1.278.889v.056c0 .667.444.889 2.111 1.333 2 .556 3.111 1.278 3.111 3v.056c0 2-1.5 3.111-3.611 3.111-1.5-.056-3-.611-4.167-1.667l1.278-1.556c.889.722 1.833 1.222 2.944 1.222.889 0 1.389-.333 1.389-.944v-.056c0-.556-.333-.833-2-1.278-2-.5-3.222-1.056-3.222-3.056v-.056c0-1.833 1.444-3 3.444-3zm-16.111.222h2.278l1.5 5.778 1.722-5.778h1.667l1.667 5.778 1.5-5.778h2.333l-2.833 9.944H9.723L8.112 7.277l-1.667 5.778H4.612L1.779 3.111zm.5 16.389h9V21h-9v-1.5z",
-  nvim: "M2.214 4.954v13.615L7.655 24V10.314L3.312 3.845 2.214 4.954zm4.999 17.98l-4.557-4.548V5.136l.59-.596 3.967 5.908v12.485zm14.573-4.457l-.862.937-4.24-6.376V0l5.068 5.092.034 13.385zM7.431.001l12.998 19.835-3.637 3.637L3.787 3.683 7.43 0z",
-  vscode:
-    "M70.9119 99.5723C72.4869 100.189 74.2828 100.15 75.8725 99.3807L96.4604 89.4231C98.624 88.3771 100 86.1762 100 83.7616V16.2392C100 13.8247 98.624 11.6238 96.4604 10.5774L75.8725.619067C73.7862-.389991 71.3446-.142885 69.5135 1.19527 69.252 1.38636 69.0028 1.59985 68.769 1.83502L29.3551 37.9795 12.1872 24.88C10.5891 23.6607 8.35365 23.7606 6.86938 25.1178L1.36302 30.1525C-.452603 31.8127-.454583 34.6837 1.35854 36.3466L16.2471 50.0001 1.35854 63.6536C-.454583 65.3164-.452603 68.1876 1.36302 69.8477L6.86938 74.8824C8.35365 76.2395 10.5891 76.34 12.1872 75.1201L29.3551 62.0207 68.769 98.1651C69.3925 98.7923 70.1246 99.2645 70.9119 99.5723ZM75.0152 27.1813 45.1092 50.0001 75.0152 72.8189V27.1813Z",
-};
-
 export function editorIconFor(id: string): JSX.Element {
-  switch (id) {
-    case "vscode":
-      return (
-        <BrandIcon
-          title="Visual Studio Code"
-          path={paths.vscode}
-          scale={0.24}
-        />
-      );
-    case "cursor":
-      return <BrandIcon title="Cursor" path={paths.cursor} />;
-    case "webstorm":
-      return <BrandIcon title="WebStorm" path={paths.webstorm} />;
-    case "windsurf":
-      return <BrandIcon title="Windsurf" path={paths.windsurf} />;
-    case "nvim":
-      return <BrandIcon title="Neovim" path={paths.nvim} />;
-    case "custom":
-      return <Link size={16} />;
-    default:
-      return <SquareCode size={16} />;
-  }
+  if (id === "custom") return <Link size={16} />;
+
+  const icon = editorIcons[id as keyof typeof editorIcons];
+  if (!icon) return <SquareCode size={16} />;
+
+  return <BrandIcon src={icon.src} label={icon.label} />;
 }

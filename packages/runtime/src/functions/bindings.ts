@@ -15,7 +15,7 @@ export function effectiveBindings(options: LocatorOptions): Binding[] {
 }
 
 export function iconBindings(bindings: Binding[]): Binding[] {
-  return bindings.filter((binding) => binding.icon);
+  return bindings.filter((binding) => binding.trigger.kind === "hover-toolbar");
 }
 
 export function matchBinding(
@@ -25,9 +25,9 @@ export function matchBinding(
 ): Binding | null {
   return (
     bindings.find((binding) => {
-      if (!binding.modifiers) return false;
+      if (binding.trigger.kind !== "modifier-click") return false;
       const expected = new Set(
-        binding.modifiers
+        binding.trigger.modifiers
           .split("+")
           .map((item) => item.trim())
           .filter(Boolean)

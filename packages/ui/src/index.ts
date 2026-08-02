@@ -12,6 +12,7 @@ export * from "./Tooltip";
 export * from "./ProvenanceBadge";
 export * from "./misc";
 export * from "./LayeredOptionsEditor";
+export * from "./ActionSettings";
 export * from "./LocatorBrand";
 export * from "./editorIcons";
 export * from "./actionIcons";

@@ -1,4 +1,4 @@
-import { For, JSX, Show, createMemo, splitProps } from "solid-js";
+import { For, JSX, createMemo, splitProps } from "solid-js";
 import { Portal } from "solid-js/web";
 import {
   Select as ArkSelect,
@@ -11,7 +11,7 @@ import { button } from "@locator/styled-system/recipes";
 export type SelectItem = {
   value: string;
   label: string;
-  icon?: JSX.Element;
+  icon?: () => JSX.Element;
 };
 
 const styles = {
@@ -129,7 +129,7 @@ export function Select(
           {...triggerProps}
         >
           <span class={styles.triggerLabel}>
-            <span class={styles.icon}>{selected()?.icon}</span>
+            <span class={styles.icon}>{selected()?.icon?.()}</span>
             {selected()?.label ?? local.placeholder ?? "Select"}
           </span>
           <ArkSelect.Indicator>
@@ -149,7 +149,7 @@ export function Select(
                     item={item}
                     class={cx("locatorjs-select-item", styles.item)}
                   >
-                    <span class={styles.icon}>{item.icon}</span>
+                    <span class={styles.icon}>{item.icon?.()}</span>
                     <ArkSelect.ItemText>{item.label}</ArkSelect.ItemText>
                     <ArkSelect.ItemIndicator>
                       <Check class={styles.check} />

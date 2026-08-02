@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, test, beforeEach } from "vitest";
 import { createRoot } from "solid-js";
-import { allTargets } from "@locator/shared";
+import { allTargets, type Binding, type LocatorOptions } from "@locator/shared";
 import {
   updateTeamLayer,
   setTeamTargets,
@@ -10,10 +10,29 @@ import {
 import { initOptions } from "./optionsStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
 
-function primaryModifiers(options: {
-  bindings?: Array<{ modifiers?: string }>;
-}) {
-  return options.bindings?.find((binding) => binding.modifiers)?.modifiers;
+function primaryModifiers(options: LocatorOptions) {
+  const trigger = options.bindings?.find(
+    (binding) => binding.trigger.kind === "modifier-click"
+  )?.trigger;
+  return trigger?.kind === "modifier-click" ? trigger.modifiers : undefined;
+}
+
+function editorBindings(targetId: string): Binding[] {
+  return [
+    {
+      trigger: { kind: "modifier-click", modifiers: "alt" },
+      action: { kind: "open-editor" as const, targetId },
+    },
+  ];
+}
+
+function primaryEditorTarget(options: LocatorOptions) {
+  const action = options.bindings?.find(
+    (binding) =>
+      binding.trigger.kind === "modifier-click" &&
+      binding.action.kind === "open-editor"
+  )?.action;
+  return action?.kind === "open-editor" ? action.targetId : undefined;
 }
 
 const disposers: (() => void)[] = [];
@@ -82,14 +101,14 @@ describe("optionsStore integration", () => {
   });
 
   test("user-origin layer overrides user-extension and team layers", async () => {
-    updateTeamLayer({ targetId: "vscode" });
-    setUserExtensionGlobal({ targetId: "cursor" });
+    updateTeamLayer({ bindings: editorBindings("vscode") });
+    setUserExtensionGlobal({ bindings: editorBindings("cursor") });
 
     const options = withRoot(() => initOptions());
-    await options.setUserOrigin({ targetId: "webstorm" });
+    await options.setUserOrigin({ bindings: editorBindings("webstorm") });
 
-    expect(options.effective().targetId).toBe("webstorm");
-    expect(options.provenance().targetId).toBe("user-origin");
+    expect(primaryEditorTarget(options.effective())).toBe("webstorm");
+    expect(options.provenance().bindings).toBe("user-origin");
   });
 
   test("window.enableLocator() writes to user-origin layer only", async () => {
@@ -168,7 +187,7 @@ describe("mountRuntimePopupBridge", () => {
   });
 
   test("exposes __LOCATOR_RUNTIME__ bridge with snapshot + applySiteLocal", async () => {
-    updateTeamLayer({ targetId: "vscode" });
+    updateTeamLayer({ bindings: editorBindings("vscode") });
     const options = withRoot(() => {
       const o = initOptions();
       mountRuntimePopupBridge(o);
@@ -178,8 +197,8 @@ describe("mountRuntimePopupBridge", () => {
     type WinWithRuntime = {
       __LOCATOR_RUNTIME__?: {
         getSnapshot: () => {
-          effective: { targetId?: string };
-          provenance: { targetId?: string };
+          effective: LocatorOptions;
+          provenance: { bindings?: string };
         };
         applySiteLocal: (p: Record<string, unknown>) => Promise<unknown>;
       };
@@ -188,12 +207,12 @@ describe("mountRuntimePopupBridge", () => {
     expect(runtime).toBeDefined();
 
     const snap = runtime!.getSnapshot();
-    expect(snap.effective.targetId).toBe("vscode");
-    expect(snap.provenance.targetId).toBe("team");
+    expect(primaryEditorTarget(snap.effective)).toBe("vscode");
+    expect(snap.provenance.bindings).toBe("team");
 
-    await runtime!.applySiteLocal({ targetId: "zed" });
-    expect(options.effective().targetId).toBe("zed");
-    expect(options.provenance().targetId).toBe("user-origin");
+    await runtime!.applySiteLocal({ bindings: editorBindings("zed") });
+    expect(primaryEditorTarget(options.effective())).toBe("zed");
+    expect(options.provenance().bindings).toBe("user-origin");
   });
 
   test("responds to LOCATOR_PAGE_SNAPSHOT_REQUEST with matching requestId", async () => {
@@ -225,9 +244,7 @@ describe("mountRuntimePopupBridge", () => {
       );
     });
 
-    const snapshot = response.snapshot as {
-      effective: { bindings?: Array<{ modifiers?: string }> };
-    };
+    const snapshot = response.snapshot as { effective: LocatorOptions };
     expect(primaryModifiers(snapshot.effective)).toBe("meta");
   });
 
