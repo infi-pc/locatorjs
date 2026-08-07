@@ -458,6 +458,7 @@ export function App() {
                     "cursor",
                     "webstorm",
                     "windsurf",
+                    "zed",
                     "nvim",
                     "custom",
                   ]}

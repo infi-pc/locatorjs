@@ -5,6 +5,7 @@ import neovimIcon from "./assets/editor-icons/neovim.svg";
 import vscodeIcon from "./assets/editor-icons/vscode.svg";
 import webstormIcon from "./assets/editor-icons/webstorm.png";
 import windsurfIcon from "./assets/editor-icons/windsurf.svg";
+import zedIcon from "./assets/editor-icons/zed.svg";
 
 const styles = {
   icon: {
@@ -21,6 +22,7 @@ const editorIcons = {
   cursor: { src: cursorIcon, label: "Cursor" },
   webstorm: { src: webstormIcon, label: "WebStorm" },
   windsurf: { src: windsurfIcon, label: "Windsurf" },
+  zed: { src: zedIcon, label: "Zed" },
   nvim: { src: neovimIcon, label: "Neovim" },
 } as const;
 

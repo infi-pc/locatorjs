@@ -3,10 +3,10 @@
 The assets in `src/assets/editor-icons` are displayed only to identify the
 editor targeted by an action.
 
-- Visual Studio Code, Cursor, Windsurf, and Neovim are vendored from
+- Visual Studio Code, Cursor, Windsurf, Zed, and Neovim are vendored from
   [TheSVG](https://thesvg.org/). Visual Studio Code and Neovim use the default
-  color variants; Cursor and Windsurf use the dark-mark variants for Locator's
-  light settings surfaces. TheSVG's code and tooling are MIT-licensed;
+  color variants; Cursor, Windsurf, and Zed use the dark-mark variants for
+  Locator's light settings surfaces. TheSVG's code and tooling are MIT-licensed;
   individual brand marks remain the property of their respective owners.
 - WebStorm is a resized PNG of the official product icon from
   [JetBrains Brand Assets](https://www.jetbrains.com/company/brand/).

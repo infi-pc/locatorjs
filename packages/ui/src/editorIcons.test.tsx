@@ -12,6 +12,7 @@ describe("editorIconFor", () => {
       ["cursor", "Cursor", "svg"],
       ["webstorm", "WebStorm", "png"],
       ["windsurf", "Windsurf", "svg"],
+      ["zed", "Zed", "svg"],
       ["nvim", "Neovim", "svg"],
     ] as const;
 
