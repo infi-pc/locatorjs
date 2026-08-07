@@ -88,12 +88,12 @@ export function Onboarding() {
     {
       id: 'shortcuts',
       title: 'Choose your controls',
-      description:
-        'Modifier-click shortcuts and hover icons can run different actions.',
+      description: 'Modifier-click shortcuts can run different actions.',
       content: () => (
         <BindingsEditor
           value={effective().bindings ?? []}
           targets={allTargets}
+          triggers={['modifier-click']}
           onChange={(bindings) =>
             setUserExtension({ bindings, mouseModifiers: undefined })
           }

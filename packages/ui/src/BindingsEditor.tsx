@@ -80,9 +80,13 @@ export function BindingsEditor(props: {
   value: Binding[];
   targets: Targets;
   portalMount?: Node;
+  /** Trigger groups to show. Defaults to all of them. */
+  triggers?: BindingTrigger["kind"][];
   onChange: (next: Binding[] | undefined) => void;
 }) {
   const [draft, setDraft] = createSignal<Binding>();
+  const shows = (kind: BindingTrigger["kind"]) =>
+    !props.triggers || props.triggers.includes(kind);
   const duplicates = createMemo(() => duplicateShortcutModifiers(props.value));
 
   const update = (index: number, next: Binding) => {
@@ -109,36 +113,44 @@ export function BindingsEditor(props: {
 
   return (
     <div class={styles.stack}>
-      <BindingGroup
-        title="Modifier + click"
-        triggerKind="modifier-click"
-        value={props.value}
-        targets={props.targets}
-        portalMount={props.portalMount}
-        draft={draft()?.trigger.kind === "modifier-click" ? draft() : undefined}
-        duplicates={duplicates()}
-        onAdd={() => beginAdd("modifier-click")}
-        onDraftChange={setDraft}
-        onDraftConfirm={confirmDraft}
-        onDraftCancel={() => setDraft(undefined)}
-        onUpdate={update}
-        onRemove={remove}
-      />
-      <BindingGroup
-        title="Hover toolbar"
-        triggerKind="hover-toolbar"
-        value={props.value}
-        targets={props.targets}
-        portalMount={props.portalMount}
-        draft={draft()?.trigger.kind === "hover-toolbar" ? draft() : undefined}
-        duplicates={duplicates()}
-        onAdd={() => beginAdd("hover-toolbar")}
-        onDraftChange={setDraft}
-        onDraftConfirm={confirmDraft}
-        onDraftCancel={() => setDraft(undefined)}
-        onUpdate={update}
-        onRemove={remove}
-      />
+      <Show when={shows("modifier-click")}>
+        <BindingGroup
+          title="Modifier + click"
+          triggerKind="modifier-click"
+          value={props.value}
+          targets={props.targets}
+          portalMount={props.portalMount}
+          draft={
+            draft()?.trigger.kind === "modifier-click" ? draft() : undefined
+          }
+          duplicates={duplicates()}
+          onAdd={() => beginAdd("modifier-click")}
+          onDraftChange={setDraft}
+          onDraftConfirm={confirmDraft}
+          onDraftCancel={() => setDraft(undefined)}
+          onUpdate={update}
+          onRemove={remove}
+        />
+      </Show>
+      <Show when={shows("hover-toolbar")}>
+        <BindingGroup
+          title="Hover toolbar"
+          triggerKind="hover-toolbar"
+          value={props.value}
+          targets={props.targets}
+          portalMount={props.portalMount}
+          draft={
+            draft()?.trigger.kind === "hover-toolbar" ? draft() : undefined
+          }
+          duplicates={duplicates()}
+          onAdd={() => beginAdd("hover-toolbar")}
+          onDraftChange={setDraft}
+          onDraftConfirm={confirmDraft}
+          onDraftCancel={() => setDraft(undefined)}
+          onUpdate={update}
+          onRemove={remove}
+        />
+      </Show>
 
       <div class={styles.footer}>
         <Show when={props.value.length > 0}>

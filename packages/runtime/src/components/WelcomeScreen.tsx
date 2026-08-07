@@ -124,12 +124,12 @@ export function WelcomeScreen(props: {
     {
       id: "shortcuts",
       title: "Choose your controls",
-      description:
-        "Map modifier-click shortcuts and hover icons to different actions.",
+      description: "Map modifier-click shortcuts to different actions.",
       content: () => (
         <BindingsEditor
           value={effectiveBindings(options.effective())}
           targets={options.allTargets()}
+          triggers={["modifier-click"]}
           portalMount={props.portalMount}
           onChange={(bindings) =>
             options.setUserOrigin({ bindings, mouseModifiers: undefined })
