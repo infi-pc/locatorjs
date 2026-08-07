@@ -1,7 +1,12 @@
-import { allTargets, DEFAULT_LAYER } from '@locator/shared';
-import { ActionSettings, Button } from '@locator/ui';
+import { allTargets, DEFAULT_LAYER, type LocatorLayer } from '@locator/shared';
+import {
+  ActionSettings,
+  Button,
+  type ActionSettingsSaveStatus,
+} from '@locator/ui';
 import { css } from '@locator/styled-system/css';
-import { Power } from 'lucide-solid';
+import { Power, RotateCcw } from 'lucide-solid';
+import { Show, createEffect, createSignal } from 'solid-js';
 import { useSyncedState } from './syncedState';
 
 const styles = {
@@ -9,12 +14,19 @@ const styles = {
   footer: css({
     alignItems: 'center',
     display: 'flex',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: '3',
+    justifyContent: 'space-between',
+    pt: '3',
     width: '100%',
-    pb: '10',
   }),
   footerText: css({ color: 'fg.muted', fontSize: 'xs' }),
+  footerActions: css({
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1',
+  }),
   advancedExtras: css({ display: 'flex', flexDirection: 'column', gap: '2' }),
   advancedHelp: css({
     layerStyle: 'card',
@@ -31,15 +43,38 @@ const styles = {
 };
 
 export function Home() {
-  const { setSiteLocal, setUserExtension, snapshot, userExtension, status } =
-    useSyncedState();
+  const {
+    setSiteLocal,
+    setUserExtension,
+    clearSiteLocal,
+    clearUserExtension,
+    tryAction,
+    snapshot,
+    userExtension,
+    status,
+  } = useSyncedState();
   const connected = () => status() === 'connected' && !!snapshot();
+  const [activeScope, setActiveScope] = createSignal<LocatorLayer>(
+    connected() ? 'user-origin' : 'user-extension'
+  );
+  const [saveStatus, setSaveStatus] =
+    createSignal<ActionSettingsSaveStatus>('idle');
+  const [confirmReset, setConfirmReset] = createSignal(false);
+  const [actionError, setActionError] = createSignal<string>();
+
+  createEffect(() => {
+    if (!connected() && activeScope() === 'user-origin') {
+      setActiveScope('user-extension');
+      setConfirmReset(false);
+    }
+  });
+
   const layers = () => {
-    const connected = snapshot()?.layers;
-    return connected
+    const connectedLayers = snapshot()?.layers;
+    return connectedLayers
       ? {
-          ...connected,
-          default: connected.default ?? DEFAULT_LAYER,
+          ...connectedLayers,
+          default: connectedLayers.default ?? DEFAULT_LAYER,
           'user-extension': userExtension(),
         }
       : {
@@ -48,13 +83,30 @@ export function Home() {
         };
   };
   const targets = () => snapshot()?.allTargets ?? allTargets;
+  const tryUnavailable = () => !connected() || !!snapshot()?.effective.disabled;
+  const resetLabel = () =>
+    activeScope() === 'user-origin' ? 'This site' : 'All sites';
+  const resetPrompt = () =>
+    activeScope() === 'user-origin'
+      ? 'Reset settings for this site?'
+      : 'Reset your All sites defaults?';
+
+  const reset = async () => {
+    setSaveStatus('saving');
+    const result =
+      activeScope() === 'user-origin'
+        ? await clearSiteLocal()
+        : await clearUserExtension();
+    setSaveStatus(result.ok ? 'saved' : 'error');
+    setActionError(result.ok ? undefined : `Could not reset ${resetLabel()}.`);
+    if (result.ok) setConfirmReset(false);
+  };
 
   return (
     <div class={styles.stack}>
       <ActionSettings
         layers={layers()}
         targets={targets()}
-        surface="popup"
         scopes={[
           {
             layer: 'user-origin',
@@ -63,20 +115,43 @@ export function Home() {
             disabled: !connected(),
             disabledReason:
               'Connect to a page running LocatorJS to edit this site.',
-            note: 'Overrides stored only for the current site.',
           },
           {
             layer: 'user-extension',
             label: 'All sites',
             write: setUserExtension,
-            note: 'Personal defaults used on every LocatorJS site.',
           },
         ]}
-        defaultScope={connected() ? 'user-origin' : 'user-extension'}
+        activeScope={activeScope()}
+        onActiveScopeChange={(layer) => {
+          setActiveScope(layer);
+          setConfirmReset(false);
+          setActionError(undefined);
+        }}
         unavailableLayers={connected() ? [] : ['team', 'user-origin']}
+        tryDisabled={tryUnavailable()}
+        tryDisabledReason={
+          !connected()
+            ? 'Connect to a page running LocatorJS to try this action.'
+            : 'Enable LocatorJS on this page to try this action.'
+        }
+        onTryAction={async (action) => {
+          setActionError(undefined);
+          const result = await tryAction(action);
+          if (result.ok) {
+            window.close();
+          } else {
+            setActionError(
+              result.reason === 'disabled'
+                ? 'Enable LocatorJS on this page before trying an action.'
+                : 'Could not start Try mode. Keep the page open and try again.'
+            );
+          }
+        }}
+        onSaveStatusChange={setSaveStatus}
         advancedExtras={
           <div class={styles.advancedExtras}>
-            {!connected() && (
+            <Show when={!connected()}>
               <div class={styles.advancedHelp}>
                 <div class={styles.footerText}>
                   Connect a page running LocatorJS to inspect team and site
@@ -97,7 +172,7 @@ export function Home() {
                   Extension troubleshooting
                 </a>
               </div>
-            )}
+            </Show>
             <div class={styles.footerText}>
               Share Locator defaults with your team.{' '}
               <a
@@ -122,19 +197,55 @@ export function Home() {
         }
       />
 
+      <Show when={actionError()}>
+        <div class={styles.footerText} role="alert">
+          {actionError()}
+        </div>
+      </Show>
       <div class={styles.footer}>
-        <span />
-        <Button
-          variant="danger-ghost"
-          size="xs"
-          disabled={status() !== 'connected' || !snapshot()}
-          onClick={() => {
-            setSiteLocal({ disabled: true });
-          }}
-        >
-          <Power size={16} />
-          Disable on this page
-        </Button>
+        <span class={styles.footerText} role="status">
+          {saveStatus() === 'saving'
+            ? 'Saving…'
+            : saveStatus() === 'saved'
+            ? 'Saved'
+            : saveStatus() === 'error'
+            ? 'Could not save'
+            : connected()
+            ? 'Connected'
+            : 'Editing All sites offline'}
+        </span>
+        <div class={styles.footerActions}>
+          <Show when={confirmReset()}>
+            <span class={styles.footerText}>{resetPrompt()}</span>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => setConfirmReset(false)}
+            >
+              Cancel
+            </Button>
+            <Button size="xs" variant="danger-ghost" onClick={reset}>
+              Reset {resetLabel()}
+            </Button>
+          </Show>
+          <Show when={!confirmReset()}>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => setConfirmReset(true)}
+            >
+              <RotateCcw size={14} /> Reset
+            </Button>
+          </Show>
+          <Button
+            variant="danger-ghost"
+            size="xs"
+            disabled={!connected()}
+            onClick={() => setSiteLocal({ disabled: true })}
+          >
+            <Power size={16} /> Disable on this page
+          </Button>
+        </div>
       </div>
     </div>
   );

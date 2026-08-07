@@ -8,18 +8,18 @@ export async function writeClipboard(text: string): Promise<boolean> {
     // Fall through to the legacy copy path.
   }
 
+  const textarea = document.createElement("textarea");
   try {
-    const textarea = document.createElement("textarea");
     textarea.value = text;
     textarea.setAttribute("readonly", "");
     textarea.style.position = "fixed";
     textarea.style.opacity = "0";
     document.body.appendChild(textarea);
     textarea.select();
-    const copied = document.execCommand("copy");
-    textarea.remove();
-    return copied;
+    return document.execCommand("copy");
   } catch {
     return false;
+  } finally {
+    textarea.remove();
   }
 }

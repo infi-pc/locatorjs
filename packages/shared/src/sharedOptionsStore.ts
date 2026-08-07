@@ -57,20 +57,28 @@ function readStored(): LocatorUserOriginStored {
   }
 }
 
-function writeStored(value: LocatorUserOriginStored) {
+export type WriteResult =
+  | { ok: true }
+  | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
+
+function storageFailure(error: unknown): WriteResult {
+  const reason =
+    error instanceof DOMException &&
+    (error.name === "QuotaExceededError" || error.code === 22)
+      ? ("quota" as const)
+      : ("blocked" as const);
+  return { ok: false, reason };
+}
+
+function writeStored(value: LocatorUserOriginStored): WriteResult {
   if (!hasLocalStorage()) {
     return { ok: false as const, reason: "blocked" as const };
   }
   try {
     localStorage.setItem(USER_ORIGIN_STORAGE_KEY, JSON.stringify(value));
     return { ok: true as const };
-  } catch (e) {
-    const reason =
-      e instanceof DOMException &&
-      (e.name === "QuotaExceededError" || e.code === 22)
-        ? ("quota" as const)
-        : ("blocked" as const);
-    return { ok: false as const, reason };
+  } catch (error) {
+    return storageFailure(error);
   }
 }
 
@@ -85,10 +93,6 @@ export function getUserOriginUiState(): NonNullable<
 > {
   return readStored().uiState ?? {};
 }
-
-export type WriteResult =
-  | { ok: true }
-  | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
 
 export function setUserOriginOptions(
   patch: Partial<LocatorOptions>
@@ -123,20 +127,17 @@ export function setUserOriginUiState(
   return writeStored(next);
 }
 
-export function clearUserOriginOptions() {
-  if (!hasLocalStorage()) return;
+export function clearUserOriginOptions(): WriteResult {
+  if (!hasLocalStorage()) return { ok: false, reason: "blocked" };
   const { uiState } = readStored();
   try {
     if (uiState && Object.keys(uiState).length > 0) {
-      localStorage.setItem(
-        USER_ORIGIN_STORAGE_KEY,
-        JSON.stringify({ uiState })
-      );
-    } else {
-      localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
+      return writeStored({ uiState });
     }
-  } catch {
-    // ignore
+    localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
+    return { ok: true };
+  } catch (error) {
+    return storageFailure(error);
   }
 }
 

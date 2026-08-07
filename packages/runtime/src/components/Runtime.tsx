@@ -1,7 +1,6 @@
 import {
   detectSvelte,
   primaryEditorBinding,
-  resolveBindingTarget,
   type Binding,
   type BindingAction,
 } from "@locator/shared";
@@ -41,6 +40,7 @@ import {
 } from "../functions/bindings";
 import { performAction } from "../functions/performAction";
 import type { FullElementInfo } from "../adapters/adapterApi";
+import { actionLabel } from "@locator/ui";
 
 const styles = {
   sponsorText: css({ color: "fg.muted", fontSize: "xs", mt: "2" }),
@@ -86,10 +86,13 @@ type UiMode =
   | ["context", ContextMenuState]
   | ["disable-confirmation"];
 
-function Runtime(props: { portalMount: HTMLDivElement }) {
+function Runtime(props: {
+  portalMount: HTMLDivElement;
+  tryAction: BindingAction | null;
+  setTryAction: (action: BindingAction | null) => void;
+}) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   const [activeBinding, setActiveBinding] = createSignal<Binding | null>(null);
-  const [tryMode, setTryMode] = createSignal(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
   );
@@ -107,19 +110,9 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
     options.effective().adapterId as AdapterId | undefined;
   const targets = () => options.allTargets();
   const bindings = () => effectiveBindings(options.effective());
-  const defaultEditorId = () => {
-    const action = primaryEditorBinding(bindings())?.action;
-    if (!action || action.kind !== "open-editor") {
-      return targets().vscode
-        ? "vscode"
-        : Object.keys(targets())[0] ?? "default";
-    }
-    const target = resolveBindingTarget(action, targets());
-    return target.kind === "template" ? "custom" : target.id;
-  };
 
   createEffect(() => {
-    if ((activeBinding() || tryMode()) && currentElement()) {
+    if ((activeBinding() || props.tryAction) && currentElement()) {
       document.body.classList.add("locatorjs-active-pointer");
     } else {
       document.body.classList.remove("locatorjs-active-pointer");
@@ -131,8 +124,8 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    if (e.key === "Escape" && tryMode()) {
-      setTryMode(false);
+    if (e.key === "Escape" && props.tryAction) {
+      props.setTryAction(null);
       return;
     }
     setActiveBinding(matchBinding(bindings(), e));
@@ -170,7 +163,7 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   }
 
   function mouseDownUpListener(e: MouseEvent) {
-    if (matchBinding(bindings(), e) || tryMode()) {
+    if (matchBinding(bindings(), e) || props.tryAction) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -215,8 +208,12 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
 
   async function clickListener(e: MouseEvent) {
     const binding =
-      matchBinding(bindings(), e) ??
-      (tryMode() ? primaryEditorBinding(bindings()) ?? null : null);
+      (props.tryAction
+        ? {
+            trigger: { kind: "hover-toolbar" } as const,
+            action: props.tryAction,
+          }
+        : null) ?? matchBinding(bindings(), e);
     if (!binding) return;
 
     const target = e.target;
@@ -243,13 +240,13 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           binding.action.kind === "open-editor" &&
           (!isExtension() || detectSvelte()) &&
           !onboardingDismissed() &&
-          !tryMode()
+          !props.tryAction
         ) {
           setDialog(["choose-editor", elInfo.thisElement.link!]);
         } else {
           if (binding.action.kind === "open-editor") trackClickStats();
-          await runAction(binding.action, elInfo);
-          if (tryMode()) setTryMode(false);
+          const succeeded = await runAction(binding.action, elInfo);
+          if (props.tryAction && succeeded) props.setTryAction(null);
         }
         return;
       }
@@ -271,13 +268,13 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
             binding.action.kind === "open-editor" &&
             (!isExtension() || detectSvelte()) &&
             !onboardingDismissed() &&
-            !tryMode()
+            !props.tryAction
           ) {
             setDialog(["choose-editor", linkProps!]);
           } else {
             if (binding.action.kind === "open-editor") trackClickStats();
-            await runAction(binding.action, elInfo);
-            if (tryMode()) setTryMode(false);
+            const succeeded = await runAction(binding.action, elInfo);
+            if (props.tryAction && succeeded) props.setTryAction(null);
           }
         } else {
           // eslint-disable-next-line no-console
@@ -423,15 +420,22 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           setHighlightedNode={setHighlightedNode}
         />
       ) : null}
-      {(activeBinding() || tryMode()) && currentElement() ? (
+      {(activeBinding() || props.tryAction) && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
           adapterId={adapterId()}
           targets={targets()}
-          defaultEditorId={defaultEditorId()}
           showTreeFromElement={showTreeFromElement}
-          showParentsPath={showContextMenu}
-          bindings={iconBindings(bindings())}
+          bindings={
+            props.tryAction
+              ? [
+                  {
+                    trigger: { kind: "hover-toolbar" },
+                    action: props.tryAction,
+                  },
+                ]
+              : iconBindings(bindings())
+          }
           performAction={runAction}
         />
       ) : null}
@@ -465,9 +469,8 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           adapter={adapterId()}
         />
       ) : null}
-      {uiMode()[0] === "options" && !tryMode() ? (
+      {uiMode()[0] === "options" && !props.tryAction ? (
         <Options
-          adapterId={adapterId()}
           targets={targets()}
           portalMount={props.portalMount}
           onClose={() => {
@@ -476,13 +479,16 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           showDisableDialog={() => {
             setUiMode(["disable-confirmation"]);
           }}
-          currentElement={currentElement()}
-          onTry={() => setTryMode(true)}
+          onTryAction={(action) => {
+            props.setTryAction(action);
+            setUiMode(["off"]);
+          }}
         />
       ) : null}
-      {tryMode() ? (
+      {props.tryAction ? (
         <div class={styles.tryPill}>
-          Trying Locator — hover an element and click. Esc to return.
+          Trying “{actionLabel(props.tryAction, targets())}” — click a
+          component. Esc to cancel.
         </div>
       ) : null}
       {uiMode()[0] === "disable-confirmation" ? (
@@ -509,7 +515,8 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
               portalMount={props.portalMount}
               onTry={() => {
                 setDialog(null);
-                setTryMode(true);
+                const binding = primaryEditorBinding(bindings());
+                if (binding) props.setTryAction(binding.action);
               }}
               onClose={() => {
                 setDialog(null);
@@ -528,6 +535,7 @@ function actionNeedsSourceLink(action: BindingAction) {
 
 function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
   const options = useOptions();
+  const [tryAction, setTryAction] = createSignal<BindingAction | null>(null);
 
   const isDisabled = () => options.effective().disabled || false;
 
@@ -539,9 +547,22 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
     }
   });
 
+  const onTryAction = (event: Event) => {
+    const action = (event as CustomEvent<BindingAction>).detail;
+    setTryAction(action);
+  };
+  window.addEventListener("locatorjs:try-action", onTryAction);
+  onCleanup(() =>
+    window.removeEventListener("locatorjs:try-action", onTryAction)
+  );
+
   return (
     <Show when={!isDisabled()}>
-      <Runtime portalMount={props.portalMount} />
+      <Runtime
+        portalMount={props.portalMount}
+        tryAction={tryAction()}
+        setTryAction={setTryAction}
+      />
     </Show>
   );
 }

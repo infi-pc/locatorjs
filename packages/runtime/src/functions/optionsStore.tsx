@@ -36,7 +36,7 @@ export type OptionsStore = {
   uiState: () => UiState;
   allTargets: () => Targets;
   setUserOrigin: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
-  clearUserOrigin: () => void;
+  clearUserOrigin: () => Promise<WriteResult>;
   setUiState: (patch: Partial<UiState>) => Promise<WriteResult>;
 };
 
@@ -120,9 +120,12 @@ export function initOptions(): OptionsStore {
       }
       return result;
     },
-    clearUserOrigin: () => {
-      clearUserOriginOptions();
-      setUserOrigin({});
+    clearUserOrigin: async () => {
+      const result = clearUserOriginOptions();
+      if (result.ok) {
+        setUserOrigin({});
+      }
+      return result;
     },
     setUiState: async (patch) => {
       const result = setUserOriginUiState(patch);

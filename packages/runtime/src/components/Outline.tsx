@@ -1,14 +1,18 @@
 import type { Binding, BindingAction, Targets } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { getParentsPaths } from "../adapters/getParentsPath";
-import { Button } from "./Button";
 import { ComponentOutline } from "./ComponentOutline";
 import { RenderBoxes } from "./RenderBoxes";
 import Tooltip from "./Tooltip";
 import { css } from "@locator/styled-system/css";
-import { actionIconFor, actionLabel } from "@locator/ui";
+import {
+  HoverToolbarButton,
+  HoverToolbarFrame,
+  actionIconFor,
+  actionLabel,
+} from "@locator/ui";
 import { Check } from "lucide-solid";
-import { createSignal, For } from "solid-js";
+import { createSignal, For, onCleanup } from "solid-js";
 
 const styles = {
   outline: css({
@@ -25,14 +29,7 @@ const styles = {
     position: "fixed",
   }),
   actions: css({
-    bg: "black/60",
-    borderRadius: "l2",
-    color: "white",
-    display: "flex",
-    fontWeight: "bold",
     position: "absolute",
-    px: "1",
-    py: "1",
   }),
 };
 
@@ -59,7 +56,6 @@ export type AllBoxes = {
 export function Outline(props: {
   element: FullElementInfo;
   showTreeFromElement: (element: HTMLElement) => void;
-  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
   bindings: Binding[];
   performAction: (
     action: BindingAction,
@@ -67,7 +63,6 @@ export function Outline(props: {
     position: { x: number; y: number }
   ) => Promise<boolean>;
   targets: Targets;
-  defaultEditorId?: string;
 }) {
   const box = () => props.element.thisElement.box;
 
@@ -211,7 +206,7 @@ export function Outline(props: {
             "text-overflow": "ellipsis",
           }}
         >
-          <div
+          <HoverToolbarFrame
             class={styles.actions}
             style={{
               "text-shadow": "none",
@@ -231,7 +226,6 @@ export function Outline(props: {
                 <OutlineActionButton
                   binding={binding}
                   targets={props.targets}
-                  defaultEditorId={props.defaultEditorId}
                   onAction={() =>
                     props.performAction(binding.action, props.element, {
                       x: box().x + 2,
@@ -241,7 +235,7 @@ export function Outline(props: {
                 />
               )}
             </For>
-          </div>
+          </HoverToolbarFrame>
           {props.element.thisElement.label}
         </div>
       </div>
@@ -261,34 +255,38 @@ export function Outline(props: {
 function OutlineActionButton(props: {
   binding: Binding;
   targets: Targets;
-  defaultEditorId?: string;
   onAction: () => Promise<boolean>;
 }) {
   const [complete, setComplete] = createSignal(false);
+  let completeTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => {
+    if (completeTimer) clearTimeout(completeTimer);
+  });
   const isCopy = () =>
     props.binding.action.kind === "copy-path" ||
     props.binding.action.kind === "copy-prompt";
   return (
     <Tooltip tooltipText={actionLabel(props.binding.action, props.targets)}>
-      <Button
+      <HoverToolbarButton
+        aria-label={actionLabel(props.binding.action, props.targets)}
         onClick={async () => {
           const succeeded = await props.onAction();
           if (succeeded && isCopy()) {
+            if (completeTimer) clearTimeout(completeTimer);
             setComplete(true);
-            setTimeout(() => setComplete(false), 2000);
+            completeTimer = setTimeout(() => {
+              setComplete(false);
+              completeTimer = undefined;
+            }, 2000);
           }
         }}
       >
         {complete() ? (
           <Check size={16} />
         ) : (
-          actionIconFor(
-            props.binding.action,
-            props.targets,
-            props.defaultEditorId
-          )
+          actionIconFor(props.binding.action, props.targets)
         )}
-      </Button>
+      </HoverToolbarButton>
     </Tooltip>
   );
 }

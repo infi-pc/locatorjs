@@ -14,6 +14,7 @@ import {
   type LocatorLayer,
   type Targets,
   type WriteResult,
+  type BindingAction,
 } from '@locator/shared';
 import browser from '../../browser';
 
@@ -34,6 +35,11 @@ type SyncedState = {
   status: Accessor<ConnectivityStatus>;
   setUserExtension: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   setSiteLocal: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  clearSiteLocal: () => Promise<WriteResult>;
+  clearUserExtension: () => Promise<WriteResult>;
+  tryAction: (
+    action: BindingAction
+  ) => Promise<{ ok: true } | { ok: false; reason: string }>;
 };
 
 const SyncedStateContext = createContext<SyncedState>();
@@ -146,11 +152,34 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         if (!response) {
           return { ok: false, reason: 'blocked' };
         }
-        requestSnapshot();
+        await requestSnapshot();
         return response;
       } catch {
         return { ok: false, reason: 'blocked' };
       }
+    },
+    clearSiteLocal: async () => {
+      const response = await sendToActiveTab<WriteResult>({
+        from: 'popup',
+        subject: 'clearSiteLocal',
+      });
+      if (response?.ok) await requestSnapshot();
+      return response ?? { ok: false, reason: 'blocked' };
+    },
+    clearUserExtension: async () => {
+      try {
+        await browser.storage.local.set({ [USER_OPTIONS_KEY]: {} });
+        setUserExtensionSignal({});
+        return { ok: true };
+      } catch {
+        return { ok: false, reason: 'blocked' };
+      }
+    },
+    tryAction: async (action) => {
+      const response = await sendToActiveTab<
+        { ok: true } | { ok: false; reason: string }
+      >({ from: 'popup', subject: 'tryAction', action });
+      return response ?? { ok: false, reason: 'blocked' };
     },
   };
 
@@ -159,6 +188,22 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       {props.children}
     </SyncedStateContext.Provider>
   );
+}
+
+async function sendToActiveTab<T>(message: Record<string, unknown>) {
+  try {
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const currentTab = tabs[0];
+    if (!currentTab?.id) return undefined;
+    return (await browser.tabs.sendMessage(currentTab.id, message)) as
+      | T
+      | undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function useSyncedState() {

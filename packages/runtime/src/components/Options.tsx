@@ -1,7 +1,12 @@
-import { DEFAULT_LAYER, type Targets } from "@locator/shared";
-import { Show, createMemo, createSignal, createEffect } from "solid-js";
+import {
+  DEFAULT_LAYER,
+  type BindingAction,
+  type Targets,
+} from "@locator/shared";
+import { Show, createSignal } from "solid-js";
 import {
   ActionSettings,
+  type ActionSettingsSaveStatus,
   Button,
   IconButton,
   LocatorBrand,
@@ -11,14 +16,7 @@ import { css } from "@locator/styled-system/css";
 import { Power, RotateCcw, X } from "lucide-solid";
 import { isExtension } from "../functions/isExtension";
 import { useOptions } from "../functions/optionsStore";
-import { AdapterId } from "../consts";
-import { LinkPreview } from "./LinkPreview";
 import { NvimSetupGuide } from "./NvimSetupGuide";
-import {
-  getElementInfo,
-  getElementInfoAsync,
-} from "../adapters/getElementInfo";
-import { LinkProps } from "../types/types";
 
 const styles = {
   panel: css({
@@ -32,14 +30,18 @@ const styles = {
     left: "3",
     maxH: "calc(100vh - 24px)",
     maxW: "calc(100vw - 24px)",
-    overflowX: "hidden",
-    overflowY: "auto",
-    overscrollBehavior: "contain",
+    overflow: "clip",
     pointerEvents: "auto",
     position: "fixed",
     width: "560px",
   }),
-  inner: css({ display: "flex", flexDirection: "column" }),
+  inner: css({
+    display: "flex",
+    flexDirection: "column",
+    maxH: "calc(100vh - 24px)",
+    overflowY: "auto",
+    overscrollBehavior: "contain",
+  }),
   header: css({
     alignItems: "center",
     bg: "bg.default",
@@ -53,70 +55,37 @@ const styles = {
     top: "0",
     zIndex: "sticky",
   }),
-  headerLeft: css({ alignItems: "center", display: "flex", gap: "2" }),
   body: css({ display: "flex", flexDirection: "column", gap: "3", p: "4" }),
   footer: css({
+    alignItems: "center",
     display: "flex",
+    flexWrap: "wrap",
     gap: "2",
     justifyContent: "space-between",
-    pb: "10",
+    pt: "3",
   }),
+  footerStatus: css({ color: "fg.muted", fontSize: "xs" }),
+  footerActions: css({
+    alignItems: "center",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "1",
+  }),
+  confirm: css({ color: "fg.muted", fontSize: "xs" }),
 };
 
 export function Options(props: {
   targets: Targets;
   onClose: () => void;
   showDisableDialog: () => void;
-  adapterId?: AdapterId;
-  currentElement: HTMLElement | null;
   portalMount: HTMLDivElement;
-  onTry: () => void;
+  onTryAction: (action: BindingAction) => void;
 }) {
   const options = useOptions();
-
-  // Synchronously fetched linkProps
-  const syncLinkProps = createMemo(() =>
-    props.currentElement
-      ? getElementInfo(props.currentElement, props.adapterId)?.thisElement
-          .link || null
-      : null
-  );
-
-  // Async fetched linkProps (for Turbopack jsxDEV source)
-  const [asyncLinkProps, setAsyncLinkProps] = createSignal<LinkProps | null>(
-    null
-  );
-
-  // When currentElement changes and sync fails, try async
-  createEffect(() => {
-    const element = props.currentElement;
-    const syncResult = syncLinkProps();
-
-    // If sync succeeded, use sync result directly
-    if (syncResult) {
-      setAsyncLinkProps(null);
-      return;
-    }
-
-    // Sync failed, try async
-    if (element) {
-      getElementInfoAsync(element, props.adapterId)
-        .then((elInfo) => {
-          // Ensure element is still the current element
-          if (props.currentElement === element) {
-            setAsyncLinkProps(elInfo?.thisElement.link || null);
-          }
-        })
-        .catch(() => {
-          // Async resolution failed — leave as null
-        });
-    } else {
-      setAsyncLinkProps(null);
-    }
-  });
-
-  // Prefer sync result, fallback to async result
-  const elLinkProps = () => syncLinkProps() || asyncLinkProps();
+  const [saveStatus, setSaveStatus] =
+    createSignal<ActionSettingsSaveStatus>("idle");
+  const [confirmReset, setConfirmReset] = createSignal(false);
+  const [inspectorMount, setInspectorMount] = createSignal<HTMLDivElement>();
   const isNvimTarget = () => {
     return (options.effective().bindings ?? []).some((binding) => {
       const action = binding.action;
@@ -152,15 +121,14 @@ export function Options(props: {
 
   return (
     <div
+      ref={setInspectorMount}
       class={styles.panel}
       style={{ "--locator-settings-tabs-top": "49px" }}
       onWheel={(e) => e.stopPropagation()}
     >
       <div class={styles.inner}>
         <div class={styles.header}>
-          <div class={styles.headerLeft}>
-            <LocatorBrand />
-          </div>
+          <LocatorBrand />
           <IconButton
             aria-label="Close settings"
             onClick={() => props.onClose()}
@@ -185,15 +153,10 @@ export function Options(props: {
             ]}
             defaultScope="user-origin"
             targets={options.allTargets()}
-            surface="panel"
             portalMount={props.portalMount}
-            renderPreview={(action) => (
-              <LinkPreview
-                linkProps={elLinkProps()}
-                targets={props.targets}
-                action={action}
-              />
-            )}
+            inspectorMount={inspectorMount()}
+            onTryAction={(action) => props.onTryAction?.(action)}
+            onSaveStatusChange={setSaveStatus}
             advancedExtras={
               <>
                 <Show when={isNvimTarget()}>
@@ -207,35 +170,63 @@ export function Options(props: {
           />
 
           <div class={styles.footer}>
-            <Button size="xs" variant="primary" onClick={() => props.onTry()}>
-              Try Locator
-            </Button>
-            <Button
-              size="xs"
-              variant="outline"
-              onClick={() => {
-                options.clearUserOrigin();
-                props.onClose();
-              }}
-            >
-              <RotateCcw size={14} />
-              Reset this origin
-            </Button>
-            <Button
-              size="xs"
-              variant="danger-ghost"
-              onClick={() => {
-                if (isExtension()) {
-                  options.setUserOrigin({ disabled: true });
-                  props.onClose();
-                } else {
-                  props.showDisableDialog();
-                }
-              }}
-            >
-              <Power size={14} />
-              Disable Locator
-            </Button>
+            <span class={styles.footerStatus} role="status">
+              {saveStatus() === "saving"
+                ? "Saving…"
+                : saveStatus() === "saved"
+                ? "Saved"
+                : saveStatus() === "error"
+                ? "Could not save"
+                : "Changes save automatically"}
+            </span>
+            <div class={styles.footerActions}>
+              <Show when={confirmReset()}>
+                <span class={styles.confirm}>
+                  Reset settings for this site?
+                </span>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setConfirmReset(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="xs"
+                  variant="danger-ghost"
+                  onClick={async () => {
+                    const result = await options.clearUserOrigin();
+                    setSaveStatus(result.ok ? "saved" : "error");
+                    if (result.ok) setConfirmReset(false);
+                  }}
+                >
+                  Reset
+                </Button>
+              </Show>
+              <Show when={!confirmReset()}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setConfirmReset(true)}
+                >
+                  <RotateCcw size={14} /> Reset
+                </Button>
+              </Show>
+              <Button
+                size="xs"
+                variant="danger-ghost"
+                onClick={() => {
+                  if (isExtension()) {
+                    options.setUserOrigin({ disabled: true });
+                    props.onClose();
+                  } else {
+                    props.showDisableDialog();
+                  }
+                }}
+              >
+                <Power size={14} /> Disable
+              </Button>
+            </div>
           </div>
         </div>
       </div>

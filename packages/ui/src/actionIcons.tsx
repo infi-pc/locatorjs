@@ -1,4 +1,8 @@
-import type { BindingAction, Targets } from "@locator/shared";
+import {
+  resolveBindingTarget,
+  type BindingAction,
+  type Targets,
+} from "@locator/shared";
 import {
   Clipboard,
   FileCode2,
@@ -60,17 +64,17 @@ export function actionTypeIconFor(kind: BindingAction["kind"]) {
   }
 }
 
-export function actionIconFor(
-  action: BindingAction,
-  _targets?: Targets,
-  defaultEditorId?: string
-) {
+export function actionIconFor(action: BindingAction, targets?: Targets) {
   switch (action.kind) {
-    case "open-editor":
-      return editorIconFor(
-        action.targetId ??
-          (action.targetTemplate ? "custom" : defaultEditorId ?? "default")
-      );
+    case "open-editor": {
+      if (action.targetTemplate) return editorIconFor("custom");
+      if (targets) {
+        const target = resolveBindingTarget(action, targets);
+        if (target.kind === "template") return editorIconFor("custom");
+        return editorIconFor(target.id || "default");
+      }
+      return editorIconFor(action.targetId ?? "default");
+    }
     case "copy-path":
       return actionTypeIconFor(action.kind);
     case "copy-prompt":
@@ -88,10 +92,17 @@ export function actionIconFor(
 
 export function actionLabel(action: BindingAction, targets?: Targets): string {
   switch (action.kind) {
-    case "open-editor":
-      return action.targetId
-        ? `Open in ${targets?.[action.targetId]?.label ?? action.targetId}`
-        : "Open in editor";
+    case "open-editor": {
+      if (targets) {
+        const target = resolveBindingTarget(action, targets);
+        if (target.kind === "template") return "Open custom editor link";
+        return `Open in ${
+          targets[target.id]?.label ?? (target.id || "editor")
+        }`;
+      }
+      if (action.targetTemplate) return "Open custom editor link";
+      return action.targetId ? `Open in ${action.targetId}` : "Open in editor";
+    }
     case "copy-path":
       return "Copy path";
     case "copy-prompt":

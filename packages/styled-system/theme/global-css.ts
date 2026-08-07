@@ -14,6 +14,9 @@ export const globalCss = {
       color: "fg.default",
       fontFamily: "sans",
     },
+    "small, sub, sup": {
+      fontSize: "xs",
+    },
     ".locatorjs-select-trigger": {
       alignItems: "center",
       appearance: "none",

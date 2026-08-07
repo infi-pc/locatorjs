@@ -134,6 +134,46 @@ describe('mountSnapshotBridge', () => {
     );
   });
 
+  test('relays a selected action and returns its request-matched result', () => {
+    const sendResponse = vi.fn();
+    listener(
+      {
+        from: 'popup',
+        subject: 'tryAction',
+        action: { kind: 'copy-path' },
+      },
+      {},
+      sendResponse
+    );
+
+    const request = postMessage.mock.calls[0][0] as Record<string, unknown>;
+    expect(request).toEqual(
+      expect.objectContaining({
+        type: 'LOCATOR_PAGE_TRY_ACTION',
+        action: { kind: 'copy-path' },
+      })
+    );
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window,
+        data: {
+          type: 'LOCATOR_PAGE_TRY_ACTION_RESULT',
+          requestId: request.requestId,
+          result: { ok: true },
+        },
+      })
+    );
+    expect(sendResponse).toHaveBeenCalledWith({ ok: true });
+  });
+
+  test('relays site-local clear independently from patch writes', () => {
+    listener({ from: 'popup', subject: 'clearSiteLocal' }, {}, vi.fn());
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' }),
+      '*'
+    );
+  });
+
   test('ignores messages not sent by the popup', () => {
     expect(listener({ from: 'page' }, {}, vi.fn())).toBe(false);
     expect(postMessage).not.toHaveBeenCalled();

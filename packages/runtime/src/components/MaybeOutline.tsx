@@ -26,7 +26,6 @@ const styles = {
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
   bindings: Binding[];
   performAction: (
     action: BindingAction,
@@ -35,7 +34,6 @@ export function MaybeOutline(props: {
   ) => Promise<boolean>;
   adapterId?: AdapterId;
   targets: Targets;
-  defaultEditorId?: string;
 }) {
   const elInfo = createMemo(() =>
     getElementInfo(props.currentElement, props.adapterId)
@@ -47,11 +45,9 @@ export function MaybeOutline(props: {
         <Outline
           element={elInfo()!}
           showTreeFromElement={props.showTreeFromElement}
-          showParentsPath={props.showParentsPath}
           bindings={props.bindings}
           performAction={props.performAction}
           targets={props.targets}
-          defaultEditorId={props.defaultEditorId}
         />
       ) : (
         <div class={styles.viewport}>

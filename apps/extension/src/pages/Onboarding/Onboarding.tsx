@@ -2,8 +2,9 @@ import {
   DEFAULT_LAYER,
   allTargets,
   primaryEditorBinding,
+  replacePrimaryEditorBinding,
   resolve,
-  type Binding,
+  type BindingAction,
 } from '@locator/shared';
 import {
   BindingsEditor,
@@ -46,19 +47,13 @@ export function Onboarding() {
   };
   const updatePrimaryEditor = async (
     patch: Pick<
-      Extract<Binding['action'], { kind: 'open-editor' }>,
+      Extract<BindingAction, { kind: 'open-editor' }>,
       'targetId' | 'targetTemplate'
     >
   ) => {
     const bindings = effective().bindings ?? [];
-    const primary = primaryEditorBinding(bindings);
-    const index = primary ? bindings.indexOf(primary) : -1;
-    if (index < 0) return false;
-    const next = bindings.map((binding, bindingIndex) =>
-      bindingIndex === index
-        ? { ...binding, action: { kind: 'open-editor' as const, ...patch } }
-        : binding
-    );
+    const next = replacePrimaryEditorBinding(bindings, patch);
+    if (!next) return false;
     return (await setUserExtension({ bindings: next })).ok;
   };
 

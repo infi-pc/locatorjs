@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import { createRoot } from "solid-js";
 import { allTargets, type Binding, type LocatorOptions } from "@locator/shared";
 import {
@@ -170,6 +170,24 @@ describe("optionsStore integration", () => {
     expect(options.uiState()).toEqual({ welcomeScreenDismissed: true });
   });
 
+  test("clearUserOrigin reports failure and preserves resolved state", async () => {
+    const options = withRoot(() => initOptions());
+    await options.setUserOrigin({ mouseModifiers: "shift" });
+    const removeItem = vi
+      .spyOn(Storage.prototype, "removeItem")
+      .mockImplementation(() => {
+        throw new DOMException("blocked", "SecurityError");
+      });
+
+    await expect(options.clearUserOrigin()).resolves.toEqual({
+      ok: false,
+      reason: "blocked",
+    });
+    expect(primaryModifiers(options.effective())).toBe("shift");
+
+    removeItem.mockRestore();
+  });
+
   test("team targets signal overrides default allTargets", async () => {
     const custom = { myEd: { url: "my-ed://${filePath}", label: "MyEd" } };
     setTeamTargets(custom);
@@ -321,5 +339,47 @@ describe("mountRuntimePopupBridge", () => {
     expect(result.result).toEqual({ ok: true });
     expect(primaryModifiers(options.effective())).toBe("ctrl");
     expect(options.provenance().bindings).toBe("user-extension");
+  });
+
+  test("validates popup Try actions and dispatches only supported actions", async () => {
+    const options = withRoot(() => {
+      const o = initOptions();
+      mountRuntimePopupBridge(o);
+      return o;
+    });
+    const tried = vi.fn();
+    window.addEventListener("locatorjs:try-action", tried);
+
+    const response = await new Promise<Record<string, unknown>>((resolve) => {
+      const handler = (event: MessageEvent) => {
+        const data = event.data as Record<string, unknown> | undefined;
+        if (
+          data?.type === "LOCATOR_PAGE_TRY_ACTION_RESULT" &&
+          data.requestId === "try-1"
+        ) {
+          window.removeEventListener("message", handler);
+          resolve(data);
+        }
+      };
+      window.addEventListener("message", handler);
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            type: "LOCATOR_PAGE_TRY_ACTION",
+            requestId: "try-1",
+            action: { kind: "copy-path" },
+          },
+          source: window,
+        })
+      );
+    });
+
+    expect(response.result).toEqual({ ok: true });
+    expect(tried).toHaveBeenCalledTimes(1);
+    expect((tried.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      kind: "copy-path",
+    });
+    window.removeEventListener("locatorjs:try-action", tried);
+    void options;
   });
 });

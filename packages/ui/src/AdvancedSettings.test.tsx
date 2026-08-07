@@ -2,7 +2,7 @@ import { DEFAULT_LAYER } from "@locator/shared";
 import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { AdvancedSettings, SettingsSources } from "./LayeredOptionsEditor";
+import { AdvancedSettings, SettingsSources } from "./AdvancedSettings";
 
 afterEach(cleanup);
 

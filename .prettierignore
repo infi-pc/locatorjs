@@ -2,5 +2,7 @@
 **/node_modules
 **/.next
 **/build
+**/playwright-report
+**/test-results
 pnpm-lock.yaml
 test-apps

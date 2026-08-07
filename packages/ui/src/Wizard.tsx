@@ -120,7 +120,7 @@ export function Wizard(props: {
       <footer class={styles.footer}>
         <div>
           <Show when={props.onSkip}>
-            <Button size="sm" variant="ghost" onClick={props.onSkip}>
+            <Button size="sm" variant="ghost" onClick={() => props.onSkip?.()}>
               Skip setup
             </Button>
           </Show>
@@ -146,7 +146,11 @@ export function Wizard(props: {
               </Button>
             }
           >
-            <Button size="sm" variant="primary" onClick={props.onFinish}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => props.onFinish()}
+            >
               {props.finishLabel ?? "Finish"}
             </Button>
           </Show>

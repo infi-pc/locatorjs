@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   userExtension: {},
   setUserExtension: vi.fn(async () => ({ ok: true as const })),
   setSiteLocal: vi.fn(async () => ({ ok: true as const })),
+  clearSiteLocal: vi.fn(async () => ({ ok: true as const })),
+  clearUserExtension: vi.fn(async () => ({ ok: true as const })),
+  tryAction: vi.fn(async () => ({ ok: true as const })),
   createTab: vi.fn(),
 }));
 
@@ -19,6 +22,9 @@ vi.mock('./syncedState', () => ({
     userExtension: () => mocks.userExtension,
     setUserExtension: mocks.setUserExtension,
     setSiteLocal: mocks.setSiteLocal,
+    clearSiteLocal: mocks.clearSiteLocal,
+    clearUserExtension: mocks.clearUserExtension,
+    tryAction: mocks.tryAction,
   }),
 }));
 
@@ -54,7 +60,7 @@ describe('Popup settings navigation', () => {
 
   afterEach(cleanup);
 
-  test('opens an action detail and preserves the selected site scope', async () => {
+  test('selects interactions in place and preserves the selected site scope', async () => {
     render(() => <Popup />);
 
     expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
@@ -66,17 +72,16 @@ describe('Popup settings navigation', () => {
     await screen
       .getByRole('button', { name: 'Edit action 1: Open in VSCode' })
       .click();
-    expect(
-      screen.getByRole('button', { name: 'Back to actions' })
-    ).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByLabelText('Selected interaction editor')).toBeTruthy();
     expect(
       screen
         .getByRole('tab', { name: 'This site' })
         .getAttribute('aria-selected')
     ).toBe('true');
-    expect(screen.getByText('Then')).toBeTruthy();
-
-    await screen.getByRole('button', { name: 'Back to actions' }).click();
+    expect(
+      screen.getByRole('heading', { name: 'Open in VSCode' })
+    ).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Advanced settings' })
     ).toBeTruthy();
@@ -115,5 +120,19 @@ describe('Popup settings navigation', () => {
         .getByRole('tab', { name: 'All sites' })
         .getAttribute('aria-selected')
     ).toBe('true');
+  });
+
+  test('resets the selected scope and keeps disable page-specific', async () => {
+    render(() => <Popup />);
+
+    await screen.getByRole('tab', { name: 'All sites' }).click();
+    await screen.getByRole('button', { name: 'Reset' }).click();
+    expect(screen.getByText('Reset your All sites defaults?')).toBeTruthy();
+    await screen.getByRole('button', { name: 'Reset All sites' }).click();
+    expect(mocks.clearUserExtension).toHaveBeenCalledTimes(1);
+    expect(mocks.clearSiteLocal).not.toHaveBeenCalled();
+
+    await screen.getByRole('button', { name: 'Disable on this page' }).click();
+    expect(mocks.setSiteLocal).toHaveBeenCalledWith({ disabled: true });
   });
 });

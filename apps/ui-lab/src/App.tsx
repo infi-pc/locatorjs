@@ -294,6 +294,7 @@ const navItems = [
   ["controls", "Controls"],
   ["composites", "Composites"],
   ["settings", "Settings surface"],
+  ["redesigns", "Redesign proposals"],
   ["flows", "Flows"],
 ] as const;
 
@@ -380,7 +381,10 @@ export function App() {
           <div class={styles.sidebarLabel}>Inventory</div>
           <For each={navItems}>
             {([id, label]) => (
-              <a class={styles.navLink} href={`#${id}`}>
+              <a
+                class={styles.navLink}
+                href={id === "redesigns" ? "/redesigns.html" : `#${id}`}
+              >
                 {label}
               </a>
             )}
@@ -746,22 +750,20 @@ export function App() {
                   <ActionSettings
                     layers={layers()}
                     targets={allTargets}
-                    surface="popup"
                     scopes={[
                       {
                         layer: "user-origin",
                         label: "This site",
                         write: writeLayer("user-origin"),
-                        note: "Stored only for this site.",
                       },
                       {
                         layer: "user-extension",
                         label: "All sites",
                         write: writeLayer("user-extension"),
-                        note: "Personal browser defaults.",
                       },
                     ]}
                     defaultScope="user-origin"
+                    onTryAction={() => undefined}
                     advancedExtras={
                       <PromoFooter
                         promos={[

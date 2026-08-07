@@ -37,16 +37,17 @@ async function getLastResolvedFile(page: Page): Promise<string | null> {
 // (not node_modules / framework internals). Browser-specific _debugOwner traversal
 // means the exact file (page.tsx vs components/Card.tsx) varies, so we only
 // verify the resolver stayed within the user's code.
-function expectFileInAppSource(file: string | null, appPath: RegExp): void {
-  expect(file).not.toBeNull();
-  expect(file!).toMatch(appPath);
+async function expectFileInAppSource(page: Page, appPath: RegExp) {
+  await expect
+    .poll(() => getLastResolvedFile(page), { timeout: ASYNC_TIMEOUT })
+    .toMatch(appPath);
 }
 
 test.describe("Next.js 16 + Webpack (React 19)", () => {
   test("heading", async ({ page }) => {
     await page.goto(projects.next16);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "text=To get started");
 
@@ -55,8 +56,8 @@ test.describe("Next.js 16 + Webpack (React 19)", () => {
 
   test("anchor element", async ({ page }) => {
     await page.goto(projects.next16);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "text=Deploy Now");
 
@@ -67,56 +68,52 @@ test.describe("Next.js 16 + Webpack (React 19)", () => {
 test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
   test("client component - Counter button", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "button >> text=-");
 
     await expectWelcome(page);
-    const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("wrapper component - Card title", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "text=Counter Component");
 
     await expectWelcome(page);
-    const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("native element with id", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "#test-div");
 
     await expectWelcome(page);
-    const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("native element with className", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, ".test-class");
 
     await expectWelcome(page);
-    const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("server component heading", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "text=React 19 + Turbopack");
 
@@ -125,14 +122,13 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
 
   test("nested text element", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
-    await enableDebug(page);
     await expectLocatorReady(page);
+    await enableDebug(page);
 
     await locateElement(page, "text=Nested span inside a div");
 
     await expectWelcome(page);
-    const file = await getLastResolvedFile(page);
-    expectFileInAppSource(file, /test-apps\/next-16-turbopack\/app\//);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 });
 
@@ -147,20 +143,23 @@ test.describe("Turbopack debug diagnostics", () => {
 
     await expectWelcome(page);
 
-    const history = await page.evaluate(
-      () => (window as any).__LOCATORJS_DEBUG_HISTORY__
-    );
-    expect(Array.isArray(history)).toBe(true);
-    expect(history.length).toBeGreaterThan(0);
-
     // Some browser ordering returns Counter.tsx as the first async entry, others
     // return a parent fiber (page.tsx) first. What matters is that async
     // resolution produced *some* entry for a file inside the app source tree.
-    const asyncAppEntry = history.find(
-      (h: any) =>
-        h.async === true &&
-        h.source?.fileName?.match(/test-apps\/next-16-turbopack\/app\//)
-    );
-    expect(asyncAppEntry).toBeTruthy();
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const history = (window as any).__LOCATORJS_DEBUG_HISTORY__;
+            if (!Array.isArray(history)) return undefined;
+            return history.find(
+              (h: any) =>
+                h.async === true &&
+                h.source?.fileName?.match(/test-apps\/next-16-turbopack\/app\//)
+            );
+          }),
+        { timeout: ASYNC_TIMEOUT }
+      )
+      .toBeTruthy();
   });
 });

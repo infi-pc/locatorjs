@@ -3,7 +3,13 @@ import {
   type Binding,
   type LocatorOptions,
 } from "@locator/shared";
-import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { ActionSettings } from "./ActionSettings";
@@ -17,8 +23,9 @@ const targets = {
 
 function Harness(props: {
   initial?: LocatorOptions;
-  preview?: boolean;
+  inspectorMount?: Node;
   onWrite?: (patch: Partial<LocatorOptions>) => void;
+  onTry?: (action: import("@locator/shared").BindingAction) => void;
 }) {
   // The test harness intentionally captures its one-time seed value.
   // eslint-disable-next-line solid/reactivity
@@ -38,11 +45,8 @@ function Harness(props: {
         },
       ]}
       targets={targets}
-      renderPreview={
-        props.preview
-          ? () => <div>Action-specific live preview</div>
-          : undefined
-      }
+      inspectorMount={props.inspectorMount}
+      onTryAction={(action) => props.onTry?.(action)}
     />
   );
 }
@@ -57,31 +61,65 @@ async function chooseDraftAction(arrowDowns: number) {
 }
 
 describe("ActionSettings", () => {
-  test("renders the interaction map as the only experience and opens a readable detail", async () => {
-    render(() => <Harness preview />);
+  test("opens the selected interaction in a dismissible dialog", async () => {
+    render(() => <Harness />);
 
     expect(screen.queryByRole("tab", { name: "Cards" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Matrix" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Map" })).toBeNull();
-    expect(
-      screen.getByRole("heading", { name: "Modifier + click" })
-    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Shortcuts" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Hover toolbar" })).toBeTruthy();
     expect(
       screen.getAllByRole("button", { name: /^Edit action/ })
     ).toHaveLength(4);
-    expect(screen.getByText(/(Option|Alt) \+ Click/)).toBeTruthy();
-    expect(screen.getByText("Open in VS Code")).toBeTruthy();
+    expect(screen.getByLabelText(/(Option|Alt) \+ Click/)).toBeTruthy();
+    expect(screen.getAllByText("Open in VS Code")).toHaveLength(1);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    const firstAction = screen.getByRole("button", {
+      name: "Edit action 1: Open in VS Code",
+    });
+    expect(firstAction.getAttribute("aria-pressed")).toBe("false");
+
+    await firstAction.click();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(firstAction.getAttribute("aria-pressed")).toBe("true");
+    expect(
+      screen.getByRole("heading", { name: "Open in VS Code" })
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Selected interaction editor")).toBeTruthy();
+
+    await fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(firstAction.getAttribute("aria-pressed")).toBe("false");
+
+    await firstAction.click();
+    await screen
+      .getByRole("button", { name: "Close interaction editor" })
+      .click();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(firstAction.getAttribute("aria-pressed")).toBe("false");
+
+    await firstAction.click();
+    const backdrop = screen.getByRole("dialog").parentElement;
+    expect(backdrop).toBeTruthy();
+    await fireEvent.pointerDown(backdrop!);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(firstAction.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("mounts the editor drawer inside a supplied host", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    render(() => <Harness inspectorMount={host} />);
 
     await screen
       .getByRole("button", { name: "Edit action 1: Open in VS Code" })
       .click();
-    expect(
-      screen.getByRole("heading", { name: "Open in VS Code" })
-    ).toBeTruthy();
-    expect(screen.getByText("Action-specific live preview")).toBeTruthy();
-    expect(screen.getByText("When")).toBeTruthy();
-    expect(screen.getByText("Then")).toBeTruthy();
+
+    const dialog = screen.getByRole("dialog");
+    expect(host.contains(dialog)).toBe(true);
+    expect(dialog.parentElement?.parentElement?.parentElement).toBe(host);
   });
 
   test("edits an action-owned editor and never writes a global editor", async () => {
@@ -159,6 +197,21 @@ describe("ActionSettings", () => {
     expect(screen.getByText("Configuration sources")).toBeTruthy();
   });
 
+  test("dismisses the settings menu on an outside pointer down", async () => {
+    render(() => <Harness />);
+
+    const trigger = screen.getByLabelText("Settings menu");
+    const menu = trigger.closest("details") as HTMLDetailsElement;
+    await trigger.click();
+    expect(menu.open).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Advanced settings" })
+    ).toBeTruthy();
+
+    await fireEvent.pointerDown(screen.getByLabelText("Interaction map"));
+    expect(menu.open).toBe(false);
+  });
+
   test("drafts a full hover-only prompt action and only persists it on confirm", async () => {
     const onWrite = vi.fn();
     render(() => <Harness onWrite={onWrite} />);
@@ -167,18 +220,28 @@ describe("ActionSettings", () => {
       .getByRole("button", { name: "Add hover toolbar action" })
       .click();
     expect(screen.getByRole("combobox", { name: "Action" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Confirm" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Copy AI prompt" })).toBeNull();
     expect(onWrite).not.toHaveBeenCalled();
 
     await chooseDraftAction(2);
     await screen.getByRole("textbox", { name: "Prompt template" }).focus();
-    await fireEvent.change(
+    await fireEvent.input(
       screen.getByRole("textbox", { name: "Prompt template" }),
       { target: { value: "Explain ${filePath}" } }
     );
+    await fireEvent.blur(
+      screen.getByRole("textbox", { name: "Prompt template" })
+    );
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Prompt template",
+        }) as HTMLTextAreaElement
+      ).value
+    ).toBe("Explain ${filePath}");
     expect(onWrite).not.toHaveBeenCalled();
-    await screen.getByRole("button", { name: "Confirm" }).click();
+    await screen.getByRole("button", { name: "Add" }).click();
 
     expect(onWrite).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -193,13 +256,12 @@ describe("ActionSettings", () => {
         ]),
       })
     );
-    await (
-      await screen.findByRole("button", {
-        name: "Edit action 5: Copy AI prompt",
-      })
-    ).click();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await screen
+      .getByRole("button", { name: "Edit action 5: Copy AI prompt" })
+      .click();
     expect(
-      await screen.findByRole("heading", { name: "Copy AI prompt" })
+      screen.getByRole("heading", { name: "Copy AI prompt" })
     ).toBeTruthy();
 
     expect(
@@ -213,12 +275,9 @@ describe("ActionSettings", () => {
       ).value
     ).toBe("Explain ${filePath}");
     expect(screen.queryByRole("combobox", { name: "Editor" })).toBeNull();
-    expect(
-      screen.getByText("Show this action as an icon in the hover toolbar.")
-    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: /(Option|Alt)/ })).toBeNull();
 
-    await screen.getByRole("button", { name: "Delete action" }).click();
+    await screen.getByRole("button", { name: "Remove" }).click();
     expect(
       screen.getAllByRole("button", { name: /^Edit action/ })
     ).toHaveLength(4);
@@ -234,7 +293,7 @@ describe("ActionSettings", () => {
     expect(onWrite).not.toHaveBeenCalled();
     await chooseDraftAction(1);
     expect(onWrite).not.toHaveBeenCalled();
-    await screen.getByRole("button", { name: "Confirm" }).click();
+    await screen.getByRole("button", { name: "Add" }).click();
 
     const written = onWrite.mock.calls.at(-1)?.[0].bindings;
     expect(written?.[1]).toEqual({
@@ -243,7 +302,7 @@ describe("ActionSettings", () => {
     });
     expect(written?.[2]?.trigger.kind).toBe("hover-toolbar");
     expect(
-      screen.getByText(/(Option|Alt) \+ (Shift|⇧ Shift) \+ Click/)
+      screen.getByLabelText(/(Option|Alt) \+ (Shift|⇧ Shift) \+ Click/)
     ).toBeTruthy();
   });
 
@@ -298,11 +357,13 @@ describe("ActionSettings", () => {
     expect(
       screen.getAllByRole("button", { name: /^Edit action/ })
     ).toHaveLength(1);
-    await screen.getByRole("button", { name: "Use inherited" }).click();
+    await screen.getByRole("button", { name: "Use inherited actions" }).click();
     expect(
       screen.getAllByRole("button", { name: /^Edit action/ })
     ).toHaveLength(4);
-    expect(screen.queryByRole("button", { name: "Use inherited" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Use inherited actions" })
+    ).toBeNull();
   });
 
   test("enforces six actions per section independently", async () => {
@@ -351,7 +412,26 @@ describe("ActionSettings", () => {
       .getByRole("button", { name: "Add hover toolbar action" })
       .click();
     await chooseDraftAction(2);
-    await screen.getByRole("button", { name: "Confirm" }).click();
+    await screen.getByRole("button", { name: "Add" }).click();
     expect(screen.getByRole("alert").textContent).toContain("storage is full");
+  });
+
+  test("keeps the toolbar add control outside the real toolbar frame", () => {
+    render(() => <Harness />);
+    const toolbar = screen.getByLabelText("Configured hover toolbar");
+    const add = screen.getByRole("button", {
+      name: "Add hover toolbar action",
+    });
+    expect(toolbar.contains(add)).toBe(false);
+  });
+
+  test("tries only the selected action", async () => {
+    const onTry = vi.fn();
+    render(() => <Harness onTry={onTry} />);
+    await screen
+      .getByRole("button", { name: "Edit action 4: Copy path" })
+      .click();
+    await screen.getByRole("button", { name: "Try this action" }).click();
+    expect(onTry).toHaveBeenCalledWith({ kind: "copy-path" });
   });
 });

@@ -6,7 +6,7 @@ const fs = require("fs-extra");
 
 async function run() {
   const panda = await fs.readFile("./dist/panda.css", "utf-8");
-  const wrapped = `export default ${JSON.stringify(panda)}`;
+  const wrapped = `export default ${JSON.stringify(panda)};\n`;
 
   await fs.writeFile("./src/_generated_styles.ts", wrapped);
   console.log("CSS file generated");

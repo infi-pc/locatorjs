@@ -101,6 +101,28 @@ describe('SyncedStateProvider', () => {
     });
   });
 
+  test('clears extension defaults without touching site-local state', async () => {
+    const result = await syncedState.clearUserExtension();
+    expect(result).toEqual({ ok: true });
+    expect(mocks.storageSet).toHaveBeenCalledWith({ userOptions: {} });
+    expect(syncedState.userExtension()).toEqual({});
+  });
+
+  test('sends the selected action to the active page for Try mode', async () => {
+    mocks.tabsSendMessage.mockClear();
+    mocks.tabsSendMessage.mockResolvedValue({ ok: true });
+    await expect(syncedState.tryAction({ kind: 'copy-path' })).resolves.toEqual(
+      {
+        ok: true,
+      }
+    );
+    expect(mocks.tabsSendMessage).toHaveBeenCalledWith(42, {
+      from: 'popup',
+      subject: 'tryAction',
+      action: { kind: 'copy-path' },
+    });
+  });
+
   test('migrates legacy extension modifiers in storage changes', async () => {
     const listener = mocks.storageChangedAddListener.mock.calls[0][0];
     listener(

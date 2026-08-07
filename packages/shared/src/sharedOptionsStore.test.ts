@@ -43,7 +43,7 @@ describe("clearUserOriginOptions", () => {
       })
     );
 
-    clearUserOriginOptions();
+    expect(clearUserOriginOptions()).toEqual({ ok: true });
 
     const stored = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
     expect(stored).not.toBeNull();
@@ -57,11 +57,36 @@ describe("clearUserOriginOptions", () => {
     (stored) => {
       localStorage.setItem(USER_ORIGIN_STORAGE_KEY, JSON.stringify(stored));
 
-      clearUserOriginOptions();
+      expect(clearUserOriginOptions()).toEqual({ ok: true });
 
       expect(localStorage.getItem(USER_ORIGIN_STORAGE_KEY)).toBeNull();
     }
   );
+
+  test("reports unavailable storage instead of claiming success", () => {
+    (globalThis as { localStorage?: Storage }).localStorage = undefined;
+
+    expect(clearUserOriginOptions()).toEqual({
+      ok: false,
+      reason: "blocked",
+    });
+  });
+
+  test("reports storage failures", () => {
+    localStorage.setItem(
+      USER_ORIGIN_STORAGE_KEY,
+      JSON.stringify({ projectPath: "/repo" })
+    );
+    localStorage.removeItem = () => {
+      throw new DOMException("blocked", "SecurityError");
+    };
+
+    expect(clearUserOriginOptions()).toEqual({
+      ok: false,
+      reason: "blocked",
+    });
+    expect(localStorage.getItem(USER_ORIGIN_STORAGE_KEY)).not.toBeNull();
+  });
 
   test("lazily writes legacy mouse modifiers back as bindings", () => {
     localStorage.setItem(

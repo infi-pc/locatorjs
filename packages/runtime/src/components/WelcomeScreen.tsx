@@ -1,6 +1,7 @@
 import {
   primaryEditorBinding,
-  type Binding,
+  replacePrimaryEditorBinding,
+  type BindingAction,
   type Targets,
 } from "@locator/shared";
 import {
@@ -14,7 +15,7 @@ import {
 import { css, cx } from "@locator/styled-system/css";
 import { button } from "@locator/styled-system/recipes";
 import { createSignal } from "solid-js";
-import { AdapterId, HREF_TARGET } from "../consts";
+import { HREF_TARGET } from "../consts";
 import { effectiveBindings } from "../functions/bindings";
 import { buildLink } from "../functions/buildLink";
 import { isExtension } from "../functions/isExtension";
@@ -47,7 +48,6 @@ export function WelcomeScreen(props: {
   targets: Targets;
   onClose: () => void;
   onTry: () => void;
-  adapterId?: AdapterId;
   portalMount: HTMLDivElement;
 }) {
   const options = useOptions();
@@ -79,19 +79,13 @@ export function WelcomeScreen(props: {
   };
   const updatePrimaryEditor = async (
     patch: Pick<
-      Extract<Binding["action"], { kind: "open-editor" }>,
+      Extract<BindingAction, { kind: "open-editor" }>,
       "targetId" | "targetTemplate"
     >
   ) => {
     const bindings = effectiveBindings(options.effective());
-    const primary = primaryEditorBinding(bindings);
-    const index = primary ? bindings.indexOf(primary) : -1;
-    if (index < 0) return false;
-    const next = bindings.map((binding, bindingIndex) =>
-      bindingIndex === index
-        ? { ...binding, action: { kind: "open-editor" as const, ...patch } }
-        : binding
-    );
+    const next = replacePrimaryEditorBinding(bindings, patch);
+    if (!next) return false;
     return (await options.setUserOrigin({ bindings: next })).ok;
   };
 

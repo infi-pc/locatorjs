@@ -1,4 +1,11 @@
 import {
+  MAX_BINDINGS_PER_TRIGGER,
+  canAddBinding,
+  createBindingDraft,
+  defaultBindingAction,
+  duplicateShortcutModifiers,
+  hasShortcutConflict,
+  insertBinding,
   type Binding,
   type BindingAction,
   type BindingTrigger,
@@ -14,16 +21,6 @@ import { ModifierChips } from "./ModifierChips";
 import { Select } from "./Select";
 import { TextArea } from "./TextArea";
 import { actionSelectItems } from "./actionIcons";
-
-const MAX_BINDINGS_PER_TRIGGER = 6;
-const PREFERRED_MODIFIER_COMBINATIONS = [
-  "alt",
-  "alt+shift",
-  "ctrl",
-  "ctrl+shift",
-  "meta",
-  "meta+shift",
-] as const;
 
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
@@ -86,18 +83,7 @@ export function BindingsEditor(props: {
   onChange: (next: Binding[] | undefined) => void;
 }) {
   const [draft, setDraft] = createSignal<Binding>();
-  const duplicates = createMemo(() => {
-    const counts = new Map<string, number>();
-    for (const binding of props.value) {
-      if (binding.trigger.kind === "modifier-click") {
-        const value = binding.trigger.modifiers;
-        counts.set(value, (counts.get(value) ?? 0) + 1);
-      }
-    }
-    return new Set(
-      [...counts].filter(([, count]) => count > 1).map(([combo]) => combo)
-    );
-  });
+  const duplicates = createMemo(() => duplicateShortcutModifiers(props.value));
 
   const update = (index: number, next: Binding) => {
     props.onChange(
@@ -109,42 +95,15 @@ export function BindingsEditor(props: {
   const remove = (index: number) =>
     props.onChange(props.value.filter((_, itemIndex) => itemIndex !== index));
   const beginAdd = (triggerKind: BindingTrigger["kind"]) => {
-    const modifierBindings = bindingsForTrigger(props.value, "modifier-click");
-    const toolbarBindings = bindingsForTrigger(props.value, "hover-toolbar");
-    if (
-      (triggerKind === "modifier-click"
-        ? modifierBindings.length
-        : toolbarBindings.length) >= MAX_BINDINGS_PER_TRIGGER
-    )
-      return;
-    setDraft({
-      trigger:
-        triggerKind === "modifier-click"
-          ? {
-              kind: "modifier-click",
-              modifiers: nextAvailableModifiers(props.value),
-            }
-          : { kind: "hover-toolbar" },
-      action: defaultAction("open-editor"),
-    });
+    if (!canAddBinding(props.value, triggerKind)) return;
+    setDraft(createBindingDraft(triggerKind, props.value, props.targets));
   };
   const confirmDraft = () => {
     const binding = draft();
     if (!binding) return;
-    const triggerKind = binding.trigger.kind;
-    const modifierBindings = bindingsForTrigger(props.value, "modifier-click");
-    const toolbarBindings = bindingsForTrigger(props.value, "hover-toolbar");
-    if (
-      (triggerKind === "modifier-click"
-        ? modifierBindings.length
-        : toolbarBindings.length) >= MAX_BINDINGS_PER_TRIGGER
-    )
-      return;
-    props.onChange(
-      triggerKind === "modifier-click"
-        ? [...modifierBindings, binding, ...toolbarBindings]
-        : [...modifierBindings, ...toolbarBindings, binding]
-    );
+    const next = insertBinding(props.value, binding);
+    if (!next) return;
+    props.onChange(next);
     setDraft(undefined);
   };
 
@@ -264,7 +223,7 @@ function BindingGroup(props: {
             targets={props.targets}
             portalMount={props.portalMount}
             actionLabel="New action"
-            duplicate={hasDuplicateShortcut(draft(), props.value)}
+            duplicate={hasShortcutConflict(draft(), props.value)}
             onChange={props.onDraftChange}
             onConfirm={props.onDraftConfirm}
             onCancel={props.onDraftCancel}
@@ -297,7 +256,9 @@ function BindingRow(props: {
           items={actionSelectItems}
           value={props.binding.action.kind}
           portalMount={props.portalMount}
-          onChange={(kind) => updateAction(defaultAction(kind))}
+          onChange={(kind) =>
+            updateAction(defaultBindingAction(kind, props.targets))
+          }
         />
         <Show when={props.onRemove}>
           <IconButton
@@ -404,7 +365,7 @@ function BindingRow(props: {
                 : ""
             }
             placeholder="Use the built-in AI prompt template"
-            onChange={(event) => {
+            onInput={(event) => {
               const template = event.currentTarget.value.trim() || undefined;
               if (props.binding.action.kind === "copy-prompt") {
                 updateAction({ kind: "copy-prompt", template });
@@ -427,48 +388,4 @@ function BindingRow(props: {
       </Show>
     </div>
   );
-}
-
-function bindingsForTrigger(bindings: Binding[], kind: BindingTrigger["kind"]) {
-  return bindings.filter((binding) => binding.trigger.kind === kind);
-}
-
-function hasDuplicateShortcut(binding: Binding, bindings: Binding[]) {
-  if (binding.trigger.kind !== "modifier-click") return false;
-  const modifiers = binding.trigger.modifiers;
-  return bindings.some(
-    (candidate) =>
-      candidate.trigger.kind === "modifier-click" &&
-      candidate.trigger.modifiers === modifiers
-  );
-}
-
-function nextAvailableModifiers(bindings: Binding[]) {
-  const used = new Set(
-    bindings.flatMap((binding) =>
-      binding.trigger.kind === "modifier-click"
-        ? [binding.trigger.modifiers]
-        : []
-    )
-  );
-  return (
-    PREFERRED_MODIFIER_COMBINATIONS.find((value) => !used.has(value)) ?? "alt"
-  );
-}
-
-function defaultAction(kind: string): BindingAction {
-  switch (kind) {
-    case "copy-path":
-      return { kind: "copy-path" };
-    case "copy-prompt":
-      return { kind: "copy-prompt" };
-    case "open-prompt":
-      return { kind: "open-prompt", app: "cursor" };
-    case "show-tree":
-      return { kind: "show-tree" };
-    case "show-parents":
-      return { kind: "show-parents" };
-    default:
-      return { kind: "open-editor", targetId: "vscode" };
-  }
 }
