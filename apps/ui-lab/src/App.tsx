@@ -294,7 +294,6 @@ const navItems = [
   ["controls", "Controls"],
   ["composites", "Composites"],
   ["settings", "Settings surface"],
-  ["redesigns", "Redesign proposals"],
   ["flows", "Flows"],
 ] as const;
 
@@ -381,10 +380,7 @@ export function App() {
           <div class={styles.sidebarLabel}>Inventory</div>
           <For each={navItems}>
             {([id, label]) => (
-              <a
-                class={styles.navLink}
-                href={id === "redesigns" ? "/redesigns.html" : `#${id}`}
-              >
+              <a class={styles.navLink} href={`#${id}`}>
                 {label}
               </a>
             )}

@@ -25,6 +25,23 @@ describe("AdvancedSettings", () => {
     expect(screen.queryByText("AI prompt template")).toBeNull();
   });
 
+  test("keeps Diagnostics folded until its summary is clicked", async () => {
+    render(() => (
+      <AdvancedSettings
+        scope={{ layer: "user-origin", label: "This origin", write: ok }}
+        layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
+        targets={{}}
+      />
+    ));
+
+    const summary = screen.getByText("Diagnostics");
+    const section = summary.closest("details") as HTMLDetailsElement;
+    expect(section.open).toBe(false);
+
+    await fireEvent.click(summary);
+    expect(section.open).toBe(true);
+  });
+
   test("shows provenance, reverts the current scope, and validates path replacement", async () => {
     const [values, setValues] = createSignal({ projectPath: "/custom" });
     const write = vi.fn(async (patch: Record<string, unknown>) => {
@@ -75,7 +92,8 @@ describe("SettingsSources", () => {
       />
     ));
 
-    expect(screen.getByText("Configuration sources")).toBeTruthy();
+    const summary = screen.getByText("Configuration sources");
+    expect((summary.closest("details") as HTMLDetailsElement).open).toBe(false);
     expect(screen.getAllByText(/open VS Code/).length).toBeGreaterThan(0);
     expect(
       screen.getAllByText("Unavailable without a connected LocatorJS page")

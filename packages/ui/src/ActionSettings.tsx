@@ -20,7 +20,6 @@ import {
 import { css } from "@locator/styled-system/css";
 import { ArrowLeft, Ellipsis, SlidersHorizontal } from "lucide-solid";
 import {
-  For,
   Match,
   Show,
   Switch,
@@ -34,6 +33,7 @@ import {
 } from "solid-js";
 import { ActionInspector } from "./ActionInspector";
 import { Button } from "./Button";
+import { Select } from "./Select";
 import { InspectorDialog } from "./InspectorDialog";
 import { InteractionStudio, type StudioSelection } from "./InteractionStudio";
 import { AdvancedSettings, SettingsSources } from "./AdvancedSettings";
@@ -55,31 +55,17 @@ type InspectorState =
 
 const styles = {
   root: css({ display: "flex", flexDirection: "column", gap: "3", minW: "0" }),
-  scopeTabs: css({
-    bg: "gray.subtle.bg",
-    borderRadius: "l2",
-    display: "grid",
-    gap: "1",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    p: "1",
-  }),
-  scopeTab: css({
-    borderRadius: "l1",
-    color: "fg.muted",
-    cursor: "pointer",
-    fontSize: "xs",
-    fontWeight: "medium",
-    minH: "8",
-    px: "2",
-    _selected: { bg: "bg.default", boxShadow: "xs", color: "fg.default" },
-    _focusVisible: { focusVisibleRing: "outside" },
-    _disabled: { cursor: "not-allowed", opacity: "0.5" },
-  }),
   topRow: css({
     alignItems: "center",
     display: "flex",
     justifyContent: "space-between",
     minH: "7",
+  }),
+  topRowLeft: css({
+    alignItems: "center",
+    display: "flex",
+    gap: "2",
+    minW: "0",
   }),
   note: css({ color: "fg.subtle", fontSize: "xs" }),
   menu: css({ position: "relative" }),
@@ -403,55 +389,29 @@ export function ActionSettings(props: {
         }
       }}
     >
-      <Show when={props.scopes.length > 1}>
-        <div
-          class={styles.scopeTabs}
-          role="tablist"
-          aria-label="Settings scope"
-        >
-          <For each={props.scopes}>
-            {(scope) => (
-              <button
-                type="button"
-                role="tab"
-                class={styles.scopeTab}
-                aria-selected={currentLayer() === scope.layer}
-                tabIndex={currentLayer() === scope.layer ? 0 : -1}
-                disabled={scope.disabled}
-                title={scope.disabled ? scope.disabledReason : undefined}
-                onClick={() => setScope(scope.layer)}
-                onKeyDown={(event) => {
-                  const enabled = props.scopes.filter((item) => !item.disabled);
-                  const currentIndex = enabled.findIndex(
-                    (item) => item.layer === scope.layer
-                  );
-                  const delta =
-                    event.key === "ArrowRight"
-                      ? 1
-                      : event.key === "ArrowLeft"
-                      ? -1
-                      : 0;
-                  if (!delta || currentIndex < 0) return;
-                  event.preventDefault();
-                  const next =
-                    enabled[
-                      (currentIndex + delta + enabled.length) % enabled.length
-                    ];
-                  if (next) setScope(next.layer);
-                }}
-              >
-                {scope.label}
-              </button>
-            )}
-          </For>
-        </div>
-      </Show>
-
       <Show when={route() === "studio"}>
         <div class={styles.topRow}>
-          <Show when={activeScope()?.note} fallback={<span />}>
-            <span class={styles.note}>{activeScope()?.note}</span>
-          </Show>
+          <div class={styles.topRowLeft}>
+            <Show when={props.scopes.length > 1}>
+              <Select
+                aria-label="Settings scope"
+                variant="ghost"
+                size="xs"
+                items={props.scopes.map((scope) => ({
+                  value: scope.layer,
+                  label: scope.label,
+                  disabled: scope.disabled,
+                  title: scope.disabled ? scope.disabledReason : undefined,
+                }))}
+                value={currentLayer()}
+                onChange={(layer) => setScope(layer as LocatorLayer)}
+                portalMount={props.portalMount}
+              />
+            </Show>
+            <Show when={activeScope()?.note}>
+              <span class={styles.note}>{activeScope()?.note}</span>
+            </Show>
+          </div>
           <details ref={menuElement} class={styles.menu}>
             <summary
               class={styles.menuSummary}

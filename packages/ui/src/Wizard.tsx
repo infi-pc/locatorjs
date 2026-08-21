@@ -8,6 +8,10 @@ export type WizardStep = {
   title: string;
   description?: string;
   content: JSX.Element | (() => JSX.Element);
+  /** Overrides the default "go to next step" behavior of the Continue button. */
+  onNext?: () => void;
+  /** Overrides the default "go to previous step" behavior of the Back button. */
+  onBack?: () => void;
 };
 
 const styles = {
@@ -129,8 +133,15 @@ export function Wizard(props: {
           <Button
             size="sm"
             variant="outline"
-            disabled={activeIndex() === 0}
-            onClick={() => go(activeIndex() - 1)}
+            disabled={activeIndex() === 0 && !active()?.onBack}
+            onClick={() => {
+              const back = active()?.onBack;
+              if (back) {
+                back();
+              } else {
+                go(activeIndex() - 1);
+              }
+            }}
           >
             Back
           </Button>
@@ -140,7 +151,14 @@ export function Wizard(props: {
               <Button
                 size="sm"
                 variant="primary"
-                onClick={() => go(activeIndex() + 1)}
+                onClick={() => {
+                  const next = active()?.onNext;
+                  if (next) {
+                    next();
+                  } else {
+                    go(activeIndex() + 1);
+                  }
+                }}
               >
                 Continue
               </Button>

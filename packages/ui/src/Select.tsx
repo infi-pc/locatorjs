@@ -12,14 +12,23 @@ export type SelectItem = {
   value: string;
   label: string;
   icon?: () => JSX.Element;
+  disabled?: boolean;
+  title?: string;
 };
 
 const styles = {
   root: css({ display: "block", width: "100%" }),
+  rootInline: css({ display: "inline-block", width: "auto" }),
   trigger: css({
     colorPalette: "accent",
     justifyContent: "space-between",
     width: "100%",
+  }),
+  triggerGhost: css({
+    colorPalette: "gray",
+    color: "fg.muted",
+    justifyContent: "space-between",
+    _hover: { color: "fg.default" },
   }),
   triggerLabel: css({
     alignItems: "center",
@@ -44,6 +53,7 @@ const styles = {
     width: "var(--reference-width)",
     _open: { animation: "fade-in 100ms ease-out" },
   }),
+  contentInline: css({ minW: "40", width: "auto" }),
   item: css({
     alignItems: "center",
     borderRadius: "l2",
@@ -61,6 +71,7 @@ const styles = {
     width: "100%",
     _highlighted: { bg: "accent.subtle.bg" },
     _selected: { color: "accent.plain.fg" },
+    _disabled: { cursor: "not-allowed", opacity: "0.5" },
   }),
   icon: css({
     alignItems: "center",
@@ -82,6 +93,8 @@ export function Select(
     disabled?: boolean;
     portalMount?: Node;
     class?: string;
+    variant?: "outline" | "ghost";
+    size?: "xs" | "sm";
   } & Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, "onChange" | "value">
 ) {
   const [local, triggerProps] = splitProps(props, [
@@ -92,25 +105,29 @@ export function Select(
     "disabled",
     "portalMount",
     "class",
+    "variant",
+    "size",
   ]);
+  const ghost = () => local.variant === "ghost";
   const collection = createMemo(() =>
     createListCollection<SelectItem>({
       items: local.items,
       itemToString: (item) => item.label,
       itemToValue: (item) => item.value,
+      isItemDisabled: (item) => !!item.disabled,
     })
   );
   const selected = () => local.items.find((item) => item.value === local.value);
 
   return (
     <ArkSelect.Root
-      class={cx(styles.root, local.class)}
+      class={cx(ghost() ? styles.rootInline : styles.root, local.class)}
       collection={collection()}
       value={local.value ? [local.value] : []}
       disabled={local.disabled}
       positioning={{
         placement: "bottom-start",
-        sameWidth: true,
+        sameWidth: !ghost(),
         strategy: "fixed",
       }}
       onValueChange={(details) => {
@@ -123,8 +140,11 @@ export function Select(
         <ArkSelect.Trigger
           class={cx(
             "locatorjs-select-trigger",
-            button({ variant: "outline", size: "sm" }),
-            styles.trigger
+            button({
+              variant: ghost() ? "plain" : "outline",
+              size: local.size ?? "sm",
+            }),
+            ghost() ? styles.triggerGhost : styles.trigger
           )}
           {...triggerProps}
         >
@@ -140,13 +160,18 @@ export function Select(
       <Portal mount={local.portalMount ?? document.body}>
         <ArkSelect.Positioner class={styles.positioner}>
           <ArkSelect.Content
-            class={cx("locatorjs-select-content", styles.content)}
+            class={cx(
+              "locatorjs-select-content",
+              styles.content,
+              ghost() && styles.contentInline
+            )}
           >
             <ArkSelect.List>
               <For each={local.items}>
                 {(item) => (
                   <ArkSelect.Item
                     item={item}
+                    title={item.title}
                     class={cx("locatorjs-select-item", styles.item)}
                   >
                     <span class={styles.icon}>{item.icon?.()}</span>

@@ -1,5 +1,5 @@
 import { allTargets, DEFAULT_LAYER, resolve } from '@locator/shared';
-import { cleanup, render, screen } from '@solidjs/testing-library';
+import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { Snapshot } from './syncedState';
 
@@ -75,10 +75,8 @@ describe('Popup settings navigation', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByLabelText('Selected interaction editor')).toBeTruthy();
     expect(
-      screen
-        .getByRole('tab', { name: 'This site' })
-        .getAttribute('aria-selected')
-    ).toBe('true');
+      screen.getByRole('combobox', { name: 'Settings scope' }).textContent
+    ).toContain('This site');
     expect(
       screen.getByRole('heading', { name: 'Open in VSCode' })
     ).toBeTruthy();
@@ -108,24 +106,32 @@ describe('Popup settings navigation', () => {
       screen.getByRole('button', { name: 'Edit action 2: Tree view' })
     ).toBeTruthy();
 
+    const scopeSelect = screen.getByRole('combobox', {
+      name: 'Settings scope',
+    });
+    expect(scopeSelect.textContent).toContain('All sites');
+    await scopeSelect.click();
+    const listbox = await screen.findByRole('listbox');
+    expect(
+      screen
+        .getByRole('option', { name: 'This site' })
+        .getAttribute('aria-disabled')
+    ).toBe('true');
+    await fireEvent.keyDown(listbox, { key: 'Escape' });
+
     await screen
       .getByRole('button', { name: 'Edit action 1: Open in VSCode' })
       .click();
-    expect(
-      (screen.getByRole('tab', { name: 'This site' }) as HTMLButtonElement)
-        .disabled
-    ).toBe(true);
-    expect(
-      screen
-        .getByRole('tab', { name: 'All sites' })
-        .getAttribute('aria-selected')
-    ).toBe('true');
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
   test('resets the selected scope and keeps disable page-specific', async () => {
     render(() => <Popup />);
 
-    await screen.getByRole('tab', { name: 'All sites' }).click();
+    await screen.getByRole('combobox', { name: 'Settings scope' }).click();
+    const listbox = await screen.findByRole('listbox');
+    await fireEvent.keyDown(listbox, { key: 'ArrowDown' });
+    await fireEvent.keyDown(listbox, { key: 'Enter' });
     await screen.getByRole('button', { name: 'Reset' }).click();
     expect(screen.getByText('Reset your All sites defaults?')).toBeTruthy();
     await screen.getByRole('button', { name: 'Reset All sites' }).click();

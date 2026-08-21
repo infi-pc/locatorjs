@@ -1,5 +1,7 @@
 export * from "./Button";
 export * from "./EditorPicker";
+export * from "./EditorCardPicker";
+export * from "./PrimaryShortcutPicker";
 export * from "./Field";
 export * from "./IconButton";
 export * from "./ModifierChips";
