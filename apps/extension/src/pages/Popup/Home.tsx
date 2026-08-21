@@ -35,7 +35,7 @@ const styles = {
     gap: '2',
     p: '3',
   }),
-  sponsorLink: css({
+  link: css({
     color: 'accent.plain.fg',
     textDecoration: 'underline',
     _hover: { color: 'accent.solid.bg.hover' },
@@ -158,14 +158,14 @@ export function Home() {
                   configuration.
                 </div>
                 <a
-                  class={styles.sponsorLink}
+                  class={styles.link}
                   href="https://www.locatorjs.com/install"
                   target="_blank"
                 >
                   Installation guides
                 </a>
                 <a
-                  class={styles.sponsorLink}
+                  class={styles.link}
                   href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
                   target="_blank"
                 >
@@ -176,21 +176,11 @@ export function Home() {
             <div class={styles.footerText}>
               Share Locator defaults with your team.{' '}
               <a
-                class={styles.sponsorLink}
+                class={styles.link}
                 href="https://www.locatorjs.com/docs"
                 target="_blank"
               >
                 Set up Locator via setup()
-              </a>
-            </div>
-            <div class={styles.footerText}>
-              Support LocatorJS on{' '}
-              <a
-                class={styles.sponsorLink}
-                href="https://github.com/sponsors/infi-pc"
-                target="_blank"
-              >
-                GitHub sponsors
               </a>
             </div>
           </div>

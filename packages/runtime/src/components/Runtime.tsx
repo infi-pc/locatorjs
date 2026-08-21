@@ -43,12 +43,6 @@ import type { FullElementInfo } from "../adapters/adapterApi";
 import { actionLabel } from "@locator/ui";
 
 const styles = {
-  sponsorText: css({ color: "fg.muted", fontSize: "xs", mt: "2" }),
-  sponsorLink: css({
-    color: "blue.11",
-    textDecoration: "underline",
-    _hover: { color: "blue.12" },
-  }),
   dialogBackdrop: css({
     alignItems: "center",
     bg: "black/70",
@@ -442,21 +436,6 @@ function Runtime(props: {
       {activeBinding() ? (
         <div class={bannerClass}>
           <BannerHeader openOptions={openOptions} adapter={adapterId()} />
-          <div class={styles.sponsorText}>
-            Support me on{" "}
-            <a
-              class={styles.sponsorLink}
-              href="https://github.com/sponsors/infi-pc"
-              target="_blank"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open(`https://github.com/sponsors/infi-pc`);
-              }}
-            >
-              GitHub sponsors
-            </a>
-          </div>
         </div>
       ) : null}
       {highlightedNode() ? (
