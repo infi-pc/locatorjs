@@ -78,26 +78,72 @@ describe('SyncedStateProvider', () => {
     mocks.tabsSendMessage.mockResolvedValue({ ok: true });
 
     await syncedState.setSiteLocal({
-      targetId: undefined,
-      targetTemplate: 'zed://file/${filePath}',
+      projectPath: undefined,
+      tmuxSession: 'work',
     });
 
     expect(mocks.tabsSendMessage).toHaveBeenCalledWith(42, {
       from: 'popup',
       subject: 'applySiteLocal',
-      patch: { targetTemplate: 'zed://file/${filePath}' },
-      unset: ['targetId'],
+      patch: { tmuxSession: 'work' },
+      unset: ['projectPath'],
     });
   });
 
   test('strips undefined values before writing extension storage', async () => {
     await syncedState.setUserExtension({
       debugMode: true,
-      targetId: undefined,
+      projectPath: undefined,
     });
 
     expect(mocks.storageSet).toHaveBeenCalledWith({
       userOptions: { debugMode: true },
+    });
+  });
+
+  test('clears extension defaults without touching site-local state', async () => {
+    const result = await syncedState.clearUserExtension();
+    expect(result).toEqual({ ok: true });
+    expect(mocks.storageSet).toHaveBeenCalledWith({ userOptions: {} });
+    expect(syncedState.userExtension()).toEqual({});
+  });
+
+  test('sends the selected action to the active page for Try mode', async () => {
+    mocks.tabsSendMessage.mockClear();
+    mocks.tabsSendMessage.mockResolvedValue({ ok: true });
+    await expect(syncedState.tryAction({ kind: 'copy-path' })).resolves.toEqual(
+      {
+        ok: true,
+      }
+    );
+    expect(mocks.tabsSendMessage).toHaveBeenCalledWith(42, {
+      from: 'popup',
+      subject: 'tryAction',
+      action: { kind: 'copy-path' },
+    });
+  });
+
+  test('migrates legacy extension modifiers in storage changes', async () => {
+    const listener = mocks.storageChangedAddListener.mock.calls[0][0];
+    listener(
+      {
+        userOptions: {
+          newValue: { mouseModifiers: 'meta' },
+        },
+      },
+      'local'
+    );
+    await flushPromises();
+
+    expect(syncedState.userExtension().mouseModifiers).toBeUndefined();
+    expect(syncedState.userExtension().bindings?.[0]).toEqual({
+      trigger: { kind: 'modifier-click', modifiers: 'meta' },
+      action: { kind: 'open-editor', targetId: 'vscode' },
+    });
+    expect(mocks.storageSet).toHaveBeenCalledWith({
+      userOptions: expect.objectContaining({
+        bindings: expect.any(Array),
+      }),
     });
   });
 

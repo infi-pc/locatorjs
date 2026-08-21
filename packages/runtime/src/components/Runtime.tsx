@@ -1,9 +1,13 @@
-import { detectSvelte } from "@locator/shared";
+import {
+  detectSvelte,
+  primaryEditorBinding,
+  type Binding,
+  type BindingAction,
+} from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
-import { isCombinationModifiersPressed } from "../functions/isCombinationModifiersPressed";
 import { trackClickStats } from "../functions/trackClickStats";
 import { ContextMenuState, LinkProps } from "../types/types";
 import { MaybeOutline } from "./MaybeOutline";
@@ -17,7 +21,6 @@ import { isExtension } from "../functions/isExtension";
 import { NoLinkDialog } from "./NoLinkDialog";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { isLocatorsOwnElement } from "../functions/isLocatorsOwnElement";
-import { goToLinkProps } from "../functions/goTo";
 import {
   getElementInfo,
   getElementInfoAsync,
@@ -30,6 +33,14 @@ import { OptionsProvider, useOptions } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
 import { css } from "@locator/styled-system/css";
+import {
+  effectiveBindings,
+  iconBindings,
+  matchBinding,
+} from "../functions/bindings";
+import { performAction } from "../functions/performAction";
+import type { FullElementInfo } from "../adapters/adapterApi";
+import { actionLabel } from "@locator/ui";
 
 const styles = {
   sponsorText: css({ color: "fg.muted", fontSize: "xs", mt: "2" }),
@@ -50,6 +61,22 @@ const styles = {
     top: "0",
     width: "100vw",
   }),
+  tryPill: css({
+    bg: "bg.default",
+    borderColor: "border",
+    borderRadius: "full",
+    borderWidth: "1px",
+    bottom: "3",
+    boxShadow: "lg",
+    color: "fg.default",
+    fontSize: "sm",
+    left: "50%",
+    px: "4",
+    py: "2",
+    pointerEvents: "auto",
+    position: "fixed",
+    transform: "translateX(-50%)",
+  }),
 };
 
 type UiMode =
@@ -59,9 +86,13 @@ type UiMode =
   | ["context", ContextMenuState]
   | ["disable-confirmation"];
 
-function Runtime(props: { portalMount: HTMLDivElement }) {
+function Runtime(props: {
+  portalMount: HTMLDivElement;
+  tryAction: BindingAction | null;
+  setTryAction: (action: BindingAction | null) => void;
+}) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
-  const [holdingModKey, setHoldingModKey] = createSignal<boolean>(false);
+  const [activeBinding, setActiveBinding] = createSignal<Binding | null>(null);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
   );
@@ -78,9 +109,10 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   const adapterId = () =>
     options.effective().adapterId as AdapterId | undefined;
   const targets = () => options.allTargets();
+  const bindings = () => effectiveBindings(options.effective());
 
   createEffect(() => {
-    if (holdingModKey() && currentElement()) {
+    if ((activeBinding() || props.tryAction) && currentElement()) {
       document.body.classList.add("locatorjs-active-pointer");
     } else {
       document.body.classList.remove("locatorjs-active-pointer");
@@ -88,19 +120,15 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   });
 
   function keyUpListener(e: KeyboardEvent) {
-    // if (e.code === "KeyO" && isCombinationModifiersPressed(e)) {
-    //   if (uiMode()[0] === "tree") {
-    //     setUiMode(["off"]);
-    //   } else {
-    //     setUiMode(["tree"]);
-    //   }
-    // }
-
-    setHoldingModKey(isCombinationModifiersPressed(options, e));
+    setActiveBinding(matchBinding(bindings(), e));
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    setHoldingModKey(isCombinationModifiersPressed(options, e, true));
+    if (e.key === "Escape" && props.tryAction) {
+      props.setTryAction(null);
+      return;
+    }
+    setActiveBinding(matchBinding(bindings(), e));
   }
 
   function mouseOverListener(e: MouseEvent) {
@@ -111,7 +139,7 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
         return;
       }
 
-      setHoldingModKey(isCombinationModifiersPressed(options, e, true));
+      setActiveBinding(matchBinding(bindings(), e));
 
       batch(() => {
         setCurrentElement(target);
@@ -135,7 +163,7 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   }
 
   function mouseDownUpListener(e: MouseEvent) {
-    if (isCombinationModifiersPressed(options, e)) {
+    if (matchBinding(bindings(), e) || props.tryAction) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -152,19 +180,16 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
     ]);
   }
 
-  function copyToClipboard(target: HTMLElement) {
-    const elInfo = getElementInfo(target, adapterId());
-
-    if (elInfo) {
-      const linkProps = elInfo.thisElement.link;
-      if (linkProps) {
-        navigator.clipboard.writeText(linkProps.filePath);
-      }
-    }
+  function onboardingDismissed() {
+    return (
+      options.uiState().onboarding?.dismissed ??
+      options.uiState().welcomeScreenDismissed ??
+      false
+    );
   }
 
   function rightClickListener(e: MouseEvent) {
-    if (!isCombinationModifiersPressed(options, e, true)) {
+    if (!matchBinding(bindings(), e, { ignoreCtrl: true })) {
       return;
     }
 
@@ -182,12 +207,14 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   }
 
   async function clickListener(e: MouseEvent) {
-    if (
-      !isCombinationModifiersPressed(options, e) &&
-      uiMode()[0] !== "options"
-    ) {
-      return;
-    }
+    const binding =
+      (props.tryAction
+        ? {
+            trigger: { kind: "hover-toolbar" } as const,
+            action: props.tryAction,
+          }
+        : null) ?? matchBinding(bindings(), e);
+    if (!binding) return;
 
     const target = e.target;
     if (target && target instanceof HTMLElement) {
@@ -202,19 +229,24 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
       // Try sync resolution first
       let elInfo = getElementInfo(target, adapterId());
 
-      if (elInfo?.thisElement.link) {
+      if (
+        elInfo &&
+        (elInfo.thisElement.link || !actionNeedsSourceLink(binding.action))
+      ) {
         // Sync found a link — prevent default and navigate
         e.preventDefault();
         e.stopPropagation();
-        trackClickStats();
-
         if (
+          binding.action.kind === "open-editor" &&
           (!isExtension() || detectSvelte()) &&
-          !options.uiState().welcomeScreenDismissed
+          !onboardingDismissed() &&
+          !props.tryAction
         ) {
-          setDialog(["choose-editor", elInfo.thisElement.link]);
+          setDialog(["choose-editor", elInfo.thisElement.link!]);
         } else {
-          goToLinkProps(elInfo.thisElement.link, targets(), options);
+          if (binding.action.kind === "open-editor") trackClickStats();
+          const succeeded = await runAction(binding.action, elInfo);
+          if (props.tryAction && succeeded) props.setTryAction(null);
         }
         return;
       }
@@ -231,16 +263,18 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
 
       if (elInfo) {
         const linkProps = elInfo.thisElement.link;
-        if (linkProps) {
-          trackClickStats();
-
+        if (linkProps || !actionNeedsSourceLink(binding.action)) {
           if (
+            binding.action.kind === "open-editor" &&
             (!isExtension() || detectSvelte()) &&
-            !options.uiState().welcomeScreenDismissed
+            !onboardingDismissed() &&
+            !props.tryAction
           ) {
-            setDialog(["choose-editor", linkProps]);
+            setDialog(["choose-editor", linkProps!]);
           } else {
-            goToLinkProps(linkProps, targets(), options);
+            if (binding.action.kind === "open-editor") trackClickStats();
+            const succeeded = await runAction(binding.action, elInfo);
+            if (props.tryAction && succeeded) props.setTryAction(null);
           }
         } else {
           // eslint-disable-next-line no-console
@@ -347,6 +381,21 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
     }
   }
 
+  function runAction(
+    action: BindingAction,
+    element: FullElementInfo,
+    position?: { x: number; y: number }
+  ) {
+    return performAction(action, {
+      element,
+      targets: targets(),
+      options,
+      showTree: showTreeFromElement,
+      showParents: showContextMenu,
+      parentsPosition: position,
+    });
+  }
+
   function openOptions() {
     setUiMode(["options"]);
   }
@@ -371,17 +420,26 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           setHighlightedNode={setHighlightedNode}
         />
       ) : null}
-      {(holdingModKey() || uiMode()[0] === "options") && currentElement() ? (
+      {(activeBinding() || props.tryAction) && currentElement() ? (
         <MaybeOutline
           currentElement={currentElement()!}
           adapterId={adapterId()}
           targets={targets()}
           showTreeFromElement={showTreeFromElement}
-          showParentsPath={showContextMenu}
-          copyToClipboard={copyToClipboard}
+          bindings={
+            props.tryAction
+              ? [
+                  {
+                    trigger: { kind: "hover-toolbar" },
+                    action: props.tryAction,
+                  },
+                ]
+              : iconBindings(bindings())
+          }
+          performAction={runAction}
         />
       ) : null}
-      {holdingModKey() ? (
+      {activeBinding() ? (
         <div class={bannerClass}>
           <BannerHeader openOptions={openOptions} adapter={adapterId()} />
           <div class={styles.sponsorText}>
@@ -407,13 +465,12 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
       {!isExtension() && options.effective().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
-          hide={!!holdingModKey() || uiMode()[0] !== "off"}
+          hide={!!activeBinding() || uiMode()[0] !== "off" || !!dialog()}
           adapter={adapterId()}
         />
       ) : null}
-      {uiMode()[0] === "options" ? (
+      {uiMode()[0] === "options" && !props.tryAction ? (
         <Options
-          adapterId={adapterId()}
           targets={targets()}
           portalMount={props.portalMount}
           onClose={() => {
@@ -422,8 +479,17 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           showDisableDialog={() => {
             setUiMode(["disable-confirmation"]);
           }}
-          currentElement={currentElement()}
+          onTryAction={(action) => {
+            props.setTryAction(action);
+            setUiMode(["off"]);
+          }}
         />
+      ) : null}
+      {props.tryAction ? (
+        <div class={styles.tryPill}>
+          Trying “{actionLabel(props.tryAction, targets())}” — click a
+          component. Esc to cancel.
+        </div>
       ) : null}
       {uiMode()[0] === "disable-confirmation" ? (
         <DisableConfirmation
@@ -432,11 +498,6 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
           }}
         />
       ) : null}
-      {/* {holdingModKey() &&
-      currentElement() &&
-      getElementInfo(currentElement()!) ? (
-        <Outline element={getElementInfo(currentElement()!)!} />
-      ) : null} */}
       {dialog() && (
         <div
           class={styles.dialogBackdrop}
@@ -452,6 +513,11 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
               targets={targets()}
               originalLinkProps={dialog()![1]!}
               portalMount={props.portalMount}
+              onTry={() => {
+                setDialog(null);
+                const binding = primaryEditorBinding(bindings());
+                if (binding) props.setTryAction(binding.action);
+              }}
               onClose={() => {
                 setDialog(null);
               }}
@@ -463,8 +529,13 @@ function Runtime(props: { portalMount: HTMLDivElement }) {
   );
 }
 
+function actionNeedsSourceLink(action: BindingAction) {
+  return action.kind === "open-editor" || action.kind === "copy-path";
+}
+
 function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
   const options = useOptions();
+  const [tryAction, setTryAction] = createSignal<BindingAction | null>(null);
 
   const isDisabled = () => options.effective().disabled || false;
 
@@ -476,9 +547,22 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
     }
   });
 
+  const onTryAction = (event: Event) => {
+    const action = (event as CustomEvent<BindingAction>).detail;
+    setTryAction(action);
+  };
+  window.addEventListener("locatorjs:try-action", onTryAction);
+  onCleanup(() =>
+    window.removeEventListener("locatorjs:try-action", onTryAction)
+  );
+
   return (
     <Show when={!isDisabled()}>
-      <Runtime portalMount={props.portalMount} />
+      <Runtime
+        portalMount={props.portalMount}
+        tryAction={tryAction()}
+        setTryAction={setTryAction}
+      />
     </Show>
   );
 }

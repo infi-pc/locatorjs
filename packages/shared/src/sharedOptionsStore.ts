@@ -1,4 +1,8 @@
-import type { LocatorOptions, LocatorUserOriginStored } from "./layeredOptions";
+import {
+  normalizeLayer,
+  type LocatorOptions,
+  type LocatorUserOriginStored,
+} from "./layeredOptions";
 import { cleanupLegacyLocalStorage } from "./cleanupLegacyStorage";
 
 export const USER_ORIGIN_STORAGE_KEY = "LOCATOR_USER_OPTIONS";
@@ -37,26 +41,44 @@ function readStored(): LocatorUserOriginStored {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
-    return parsed as LocatorUserOriginStored;
+    const stored = parsed as LocatorUserOriginStored;
+    if (stored.mouseModifiers !== undefined && stored.bindings === undefined) {
+      const { uiState, ...options } = stored;
+      const migrated: LocatorUserOriginStored = {
+        ...normalizeLayer(options),
+        ...(uiState ? { uiState } : {}),
+      };
+      writeStored(migrated);
+      return migrated;
+    }
+    return stored;
   } catch {
     return {};
   }
 }
 
-function writeStored(value: LocatorUserOriginStored) {
+export type WriteResult =
+  | { ok: true }
+  | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
+
+function storageFailure(error: unknown): WriteResult {
+  const reason =
+    error instanceof DOMException &&
+    (error.name === "QuotaExceededError" || error.code === 22)
+      ? ("quota" as const)
+      : ("blocked" as const);
+  return { ok: false, reason };
+}
+
+function writeStored(value: LocatorUserOriginStored): WriteResult {
   if (!hasLocalStorage()) {
     return { ok: false as const, reason: "blocked" as const };
   }
   try {
     localStorage.setItem(USER_ORIGIN_STORAGE_KEY, JSON.stringify(value));
     return { ok: true as const };
-  } catch (e) {
-    const reason =
-      e instanceof DOMException &&
-      (e.name === "QuotaExceededError" || e.code === 22)
-        ? ("quota" as const)
-        : ("blocked" as const);
-    return { ok: false as const, reason };
+  } catch (error) {
+    return storageFailure(error);
   }
 }
 
@@ -72,10 +94,6 @@ export function getUserOriginUiState(): NonNullable<
   return readStored().uiState ?? {};
 }
 
-export type WriteResult =
-  | { ok: true }
-  | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
-
 export function setUserOriginOptions(
   patch: Partial<LocatorOptions>
 ): WriteResult {
@@ -85,6 +103,15 @@ export function setUserOriginOptions(
     ...currentOpts,
     ...patch,
   };
+  if (
+    Object.prototype.hasOwnProperty.call(patch, "mouseModifiers") &&
+    !Object.prototype.hasOwnProperty.call(patch, "bindings")
+  ) {
+    delete next.bindings;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "bindings")) {
+    delete next.mouseModifiers;
+  }
   if (uiState) next.uiState = uiState;
   return writeStored(next);
 }
@@ -100,20 +127,17 @@ export function setUserOriginUiState(
   return writeStored(next);
 }
 
-export function clearUserOriginOptions() {
-  if (!hasLocalStorage()) return;
+export function clearUserOriginOptions(): WriteResult {
+  if (!hasLocalStorage()) return { ok: false, reason: "blocked" };
   const { uiState } = readStored();
   try {
     if (uiState && Object.keys(uiState).length > 0) {
-      localStorage.setItem(
-        USER_ORIGIN_STORAGE_KEY,
-        JSON.stringify({ uiState })
-      );
-    } else {
-      localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
+      return writeStored({ uiState });
     }
-  } catch {
-    // ignore
+    localStorage.removeItem(USER_ORIGIN_STORAGE_KEY);
+    return { ok: true };
+  } catch (error) {
+    return storageFailure(error);
   }
 }
 

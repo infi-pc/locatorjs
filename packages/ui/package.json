@@ -6,10 +6,10 @@
   "license": "MIT",
   "scripts": {
     "dev": "concurrently pnpm:dev:*",
-    "dev:babel": "babel src --watch --out-dir dist --extensions .ts,.tsx",
+    "dev:babel": "babel src --watch --out-dir dist --extensions .ts,.tsx --copy-files",
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
     "build": "concurrently pnpm:build:*",
-    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx",
+    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx --copy-files",
     "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
     "ts": "tsc --noEmit",
     "test": "vitest run",

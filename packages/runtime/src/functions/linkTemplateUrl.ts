@@ -1,4 +1,8 @@
-import { Targets, resolveTarget } from "@locator/shared";
+import {
+  Targets,
+  primaryEditorBinding,
+  resolveBindingTarget,
+} from "@locator/shared";
 import { OptionsStore } from "./optionsStore";
 
 export const getLinkTypeOrTemplate = (
@@ -7,12 +11,12 @@ export const getLinkTypeOrTemplate = (
   localLinkTypeOrTemplate?: string
 ) => {
   if (localLinkTypeOrTemplate) return localLinkTypeOrTemplate;
-  const effective = options.effective();
-  if (effective.targetTemplate) return effective.targetTemplate;
-  if (effective.targetId && targets[effective.targetId]) {
-    return effective.targetId;
+  const binding = primaryEditorBinding(options.effective().bindings);
+  if (binding?.action.kind === "open-editor") {
+    const resolved = resolveBindingTarget(binding.action, targets);
+    return resolved.kind === "template" ? resolved.url : resolved.id;
   }
-  return Object.entries(targets)[0]![0];
+  return targets.vscode ? "vscode" : Object.entries(targets)[0]?.[0] ?? "";
 };
 
 export function linkTemplateUrl(
@@ -24,6 +28,10 @@ export function linkTemplateUrl(
     const target = targets[localLinkTypeOrTemplate];
     return target ? target.url : localLinkTypeOrTemplate;
   }
-  const resolved = resolveTarget(options.effective(), targets);
-  return resolved.url;
+  const binding = primaryEditorBinding(options.effective().bindings);
+  if (binding?.action.kind === "open-editor") {
+    return resolveBindingTarget(binding.action, targets).url;
+  }
+  if (targets.vscode) return targets.vscode.url;
+  return Object.entries(targets)[0]?.[1].url ?? "";
 }

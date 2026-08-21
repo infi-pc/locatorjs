@@ -36,4 +36,27 @@ describe("Select", () => {
     });
     expect(onChange).toHaveBeenCalledWith("vscode");
   });
+
+  test("renders independent icons in the trigger and open menu", async () => {
+    render(() => (
+      <Select
+        aria-label="Action"
+        items={[
+          {
+            value: "copy-path",
+            label: "Copy path",
+            icon: () => <span data-testid="action-icon" />,
+          },
+        ]}
+        value="copy-path"
+        onChange={() => undefined}
+      />
+    ));
+
+    const icons = screen.getAllByTestId("action-icon");
+    expect(icons).toHaveLength(2);
+    expect(icons[0]).not.toBe(icons[1]);
+    await screen.getByRole("combobox", { name: "Action" }).click();
+    expect(screen.getAllByTestId("action-icon")).toHaveLength(2);
+  });
 });

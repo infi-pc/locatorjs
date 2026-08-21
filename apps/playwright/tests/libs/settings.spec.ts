@@ -1,34 +1,121 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
 
 async function openSettings(page: Page) {
   const settings = page.getByRole("button", { name: "Settings", exact: true });
-  await page.keyboard.down("Alt");
-  try {
-    await page.mouse.move(100, 100);
-    await settings.first().click();
-  } finally {
-    await page.keyboard.up("Alt");
-  }
+  const visibleSettings = settings.filter({ visible: true }).first();
+  await expect(visibleSettings).toBeVisible({ timeout: 15_000 });
+  await visibleSettings.dispatchEvent("click");
   await expect(
-    page.getByRole("tablist", { name: "Settings layers" })
+    page.getByRole("button", { name: /^Edit action 1:/ })
   ).toBeVisible();
+}
+
+async function openAdvanced(page: Page) {
+  await page.getByLabel("Settings menu").click();
+  await page.getByRole("button", { name: "Advanced settings" }).click();
+  await expect(page.getByText("Project path", { exact: true })).toBeVisible();
+}
+
+type DrawerScrollHost = HTMLElement & {
+  __locatorDrawerScrollState?: { maxScrollLeft: number };
+};
+
+async function trackDrawerHostScroll(host: Locator) {
+  await host.evaluate((element) => {
+    const panel = element as DrawerScrollHost;
+    const state = { maxScrollLeft: panel.scrollLeft };
+    panel.__locatorDrawerScrollState = state;
+    panel.addEventListener("scroll", () => {
+      state.maxScrollLeft = Math.max(state.maxScrollLeft, panel.scrollLeft);
+    });
+  });
+}
+
+async function expectDrawerAnimationWithoutHostScroll(
+  host: Locator,
+  dialog: Locator
+) {
+  await dialog.evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations().map((animation) => animation.finished)
+    );
+  });
+  const maxScrollLeft = await host.evaluate((element) => {
+    const panel = element as DrawerScrollHost;
+    return panel.__locatorDrawerScrollState?.maxScrollLeft ?? panel.scrollLeft;
+  });
+  expect(maxScrollLeft).toBe(0);
 }
 
 test.beforeEach(async ({ page }) => {
   await page.goto(projects.solid);
 });
 
-test("settings popover exposes layers and persists origin values", async ({
+test("action settings persist editor-owned and advanced origin values", async ({
   page,
 }) => {
   await openSettings(page);
 
-  await expect(page.getByRole("tab", { name: /This origin/ })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /Extension/ })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /Team/ })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /Defaults/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Shortcuts" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Hover toolbar" })
+  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Cards" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  const settingsPanel = page
+    .getByRole("button", { name: "Close settings" })
+    .locator("xpath=../../..");
+  await trackDrawerHostScroll(settingsPanel);
+
+  const firstAction = page.getByRole("button", {
+    name: "Edit action 1: Open in VSCode",
+  });
+  await expect(firstAction).toHaveAttribute("aria-pressed", "false");
+  await firstAction.click();
+  await expect(firstAction).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", { name: "Open in VSCode" })
+  ).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expectDrawerAnimationWithoutHostScroll(settingsPanel, dialog);
+
+  const panelBox = await settingsPanel.boundingBox();
+  const drawerBox = await dialog.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(drawerBox).not.toBeNull();
+  expect(
+    Math.abs(drawerBox!.x + drawerBox!.width - (panelBox!.x + panelBox!.width))
+  ).toBeLessThan(2);
+  expect(Math.abs(drawerBox!.y - panelBox!.y)).toBeLessThan(2);
+  expect(Math.abs(drawerBox!.width - panelBox!.width * 0.8)).toBeLessThan(2);
+  expect(Math.abs(drawerBox!.height - panelBox!.height)).toBeLessThanOrEqual(2);
+  await expect(
+    page.getByText("Live link preview", { exact: true })
+  ).toHaveCount(0);
+
+  const editor = page.getByRole("combobox", { name: "Editor" });
+  await editor.click();
+  await page.getByRole("option", { name: "WebStorm" }).click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
+        const binding = raw ? JSON.parse(raw).bindings?.[0] : undefined;
+        return binding?.action?.targetId;
+      })
+    )
+    .toBe("webstorm");
+
+  await page.getByRole("button", { name: "Close interaction editor" }).click();
+  await expect(
+    page.getByRole("button", { name: "Edit action 1: Open in WebStorm" })
+  ).toHaveAttribute("aria-pressed", "false");
+  await openAdvanced(page);
 
   const projectPath = page.getByPlaceholder("/Users/me/project/");
   await projectPath.fill("/tmp/locator-project");
@@ -45,31 +132,134 @@ test("settings popover exposes layers and persists origin values", async ({
 
   await page.reload();
   await openSettings(page);
+  await openAdvanced(page);
   await expect(page.getByPlaceholder("/Users/me/project/")).toHaveValue(
     "/tmp/locator-project"
   );
 });
 
-test("layer tabs explain extension and team semantics", async ({ page }) => {
+test("separate trigger sections share action editing and navigation state", async ({
+  page,
+}) => {
   await openSettings(page);
 
-  await page.getByRole("tab", { name: /Extension/ }).click();
+  const settingsPanel = page
+    .getByRole("button", { name: "Close settings" })
+    .locator("xpath=../../..");
+  await trackDrawerHostScroll(settingsPanel);
+  await page.getByRole("button", { name: "Add hover toolbar action" }).click();
+  await expectDrawerAnimationWithoutHostScroll(
+    settingsPanel,
+    page.getByRole("dialog")
+  );
   await expect(
-    page.getByText(
-      "Install the browser extension to set personal cross-site defaults."
-    )
+    page.getByRole("button", { name: "Add", exact: true })
   ).toBeVisible();
-
-  await page.getByRole("tab", { name: /Team/ }).click();
   await expect(
-    page.getByText(
-      "Defined by setup() in the app’s code — change it in the repository."
-    )
+    page.getByRole("button", { name: "Copy AI prompt", exact: true })
+  ).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Action" }).click();
+  await page.getByRole("option", { name: "Copy AI prompt" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Add interaction" })
   ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Prompt template" })
+    .fill("Explain ${filePath} at ${line}");
+  await page.getByRole("textbox", { name: "Prompt template" }).blur();
 
-  const originTab = page.getByRole("tab", { name: /This origin/ });
-  await originTab.click();
-  await expect(originTab).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByRole("textbox", { name: "Prompt template" })
+  ).toHaveValue("Explain ${filePath} at ${line}");
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
+        const bindings = raw ? JSON.parse(raw).bindings : undefined;
+        return bindings?.length ?? 0;
+      })
+    )
+    .toBe(0);
+
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Edit action 5: Copy AI prompt" })
+  ).toBeVisible();
+  const addedHoverAction = page.getByRole("button", {
+    name: "Edit action 5: Copy AI prompt",
+  });
+  await expect(addedHoverAction).toHaveAttribute("aria-pressed", "false");
+  await addedHoverAction.click();
+  await expect(addedHoverAction).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("textbox", { name: "Prompt template" })
+  ).toHaveValue("Explain ${filePath} at ${line}");
+  await page.getByRole("button", { name: "Close interaction editor" }).click();
+  await expect(addedHoverAction).toHaveAttribute("aria-pressed", "false");
+  await page
+    .getByRole("button", { name: "Add modifier + click action" })
+    .click();
+  await page.getByRole("combobox", { name: "Action" }).click();
+  await page.getByRole("option", { name: "Copy path" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Add interaction" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /(Option|Alt)/ })
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /Shift/ })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
+        const bindings = raw ? JSON.parse(raw).bindings : [];
+        return bindings?.map(
+          (binding: { trigger?: { kind?: string } }) => binding.trigger?.kind
+        );
+      })
+    )
+    .toEqual([
+      "modifier-click",
+      "modifier-click",
+      "hover-toolbar",
+      "hover-toolbar",
+      "hover-toolbar",
+      "hover-toolbar",
+    ]);
+});
+
+test("Advanced contains source inspection and infrequent settings", async ({
+  page,
+}) => {
+  await openSettings(page);
+  const advancedSettings = page.getByRole("button", {
+    name: "Advanced settings",
+  });
+  await page.getByLabel("Settings menu").click();
+  await expect(advancedSettings).toBeVisible();
+  await page.getByRole("heading", { name: "Shortcuts" }).click();
+  await expect(advancedSettings).not.toBeVisible();
+  await openAdvanced(page);
+
+  await expect(
+    page.getByRole("button", { name: "Back to interactions" })
+  ).toBeVisible();
+  await expect(page.getByText("This origin", { exact: true })).toBeVisible();
+  await expect(page.getByText("Extension", { exact: true })).toBeVisible();
+  await expect(page.getByText("Team", { exact: true })).toBeVisible();
+  await expect(page.getByText("Default", { exact: true }).last()).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Debug mode" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Show intro again" })
+  ).toBeVisible();
 });
 
 test("welcome dismissal survives resetting origin settings", async ({
@@ -79,28 +269,105 @@ test("welcome dismissal survives resetting origin settings", async ({
     timeout: 15_000,
   });
   await locateElement(page, "text=save to reload");
-  await expect(page.getByText("Welcome to Locator!")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Welcome to Locator" })
+  ).toBeVisible();
   await page.keyboard.up("Alt");
-  await page.getByRole("button", { name: "Confirm" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Pick your editor" })
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Choose your controls" })
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Test it" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "You’re ready" })
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Finish" }).click();
 
   await expect
     .poll(() =>
       page.evaluate(() => {
         const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-        return raw
-          ? JSON.parse(raw).uiState?.welcomeScreenDismissed
-          : undefined;
+        return raw ? JSON.parse(raw).uiState?.onboarding?.dismissed : undefined;
       })
     )
     .toBe(true);
 
   await openSettings(page);
-  await page.getByRole("button", { name: "Reset this origin" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(page.getByText("Reset settings for this site?")).toBeVisible();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
 
   expect(
     await page.evaluate(() => {
       const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
       return raw ? JSON.parse(raw) : null;
     })
-  ).toEqual({ uiState: { welcomeScreenDismissed: true } });
+  ).toEqual({
+    uiState: {
+      welcomeScreenDismissed: true,
+      onboarding: { dismissed: true, step: "done" },
+    },
+  });
+});
+
+test("Try runs only the selected action and Escape cancels", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          (
+            window as Window & { __locatorCopiedText?: string }
+          ).__locatorCopiedText = text;
+        },
+      },
+    });
+    window.open = ((url?: string | URL) => {
+      (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl =
+        String(url);
+      return null;
+    }) as typeof window.open;
+  });
+
+  await openSettings(page);
+  await page.getByRole("button", { name: "Edit action 4: Copy path" }).click();
+  await page.getByRole("button", { name: "Try this action" }).click();
+  await expect(page.getByText(/Trying “Copy path”/)).toBeVisible();
+
+  const target = page.getByText("save to reload", { exact: false }).first();
+  await target.dispatchEvent("mouseover", { altKey: true });
+  await target.dispatchEvent("click", { altKey: true });
+
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { __locatorCopiedText?: string })
+            .__locatorCopiedText
+      )
+    )
+    .toMatch(/\.(?:tsx|ts|jsx|js):\d+:\d+$/);
+  expect(
+    await page.evaluate(
+      () =>
+        (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl
+    )
+  ).toBeUndefined();
+  await expect(page.getByText(/Trying “Copy path”/)).toHaveCount(0);
+  await page.locator("body").dispatchEvent("keyup", { key: "Alt" });
+
+  await openSettings(page);
+  await page.getByRole("button", { name: "Edit action 4: Copy path" }).click();
+  await page.getByRole("button", { name: "Try this action" }).click();
+  await expect(page.getByText(/Trying “Copy path”/)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText(/Trying “Copy path”/)).toHaveCount(0);
 });

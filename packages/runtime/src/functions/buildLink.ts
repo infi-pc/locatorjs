@@ -1,4 +1,4 @@
-import type { Targets } from "@locator/shared";
+import { resolveFilePath, type Targets } from "@locator/shared";
 import type { LinkProps, Source } from "../types/types";
 import { evalTemplate } from "./evalTemplate";
 import { linkTemplateUrl } from "./linkTemplateUrl";
@@ -15,14 +15,10 @@ export function buildLink(
   const tmuxSession = effective.tmuxSession;
   const savedProjectPath = effective.projectPath || linkProps.projectPath;
 
-  // Handle Turbopack [project]/ prefix
-  let resolvedFilePath = linkProps.filePath;
-  if (resolvedFilePath.startsWith("[project]/") && savedProjectPath) {
-    const relativePath = resolvedFilePath.slice("[project]/".length);
-    resolvedFilePath = savedProjectPath.endsWith("/")
-      ? savedProjectPath + relativePath
-      : savedProjectPath + "/" + relativePath;
-  }
+  const resolvedFilePath = resolveFilePath(
+    linkProps.filePath,
+    savedProjectPath
+  );
 
   const params = {
     filePath: resolvedFilePath,

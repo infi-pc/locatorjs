@@ -11,9 +11,21 @@ function createMockOptions(effective: LocatorOptions): OptionsStore {
     uiState: () => ({}),
     allTargets: () => ({}),
     setUserOrigin: async () => ({ ok: true as const }),
-    clearUserOrigin: () => undefined,
+    clearUserOrigin: async () => ({ ok: true }),
     setUiState: async () => ({ ok: true as const }),
   };
+}
+
+function editorOptions(targetId: string, options: LocatorOptions = {}) {
+  return createMockOptions({
+    ...options,
+    bindings: [
+      {
+        trigger: { kind: "modifier-click", modifiers: "alt" },
+        action: { kind: "open-editor", targetId },
+      },
+    ],
+  });
 }
 
 const targets = {
@@ -25,10 +37,7 @@ const targets = {
 
 describe("buildLink - Turbopack [project]/ prefix", () => {
   test("resolves [project]/ prefix with projectPath", () => {
-    const options = createMockOptions({
-      projectPath: "/Users/me/app",
-      targetId: "vscode",
-    });
+    const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
 
     const result = buildLink(
       {
@@ -45,10 +54,7 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
   });
 
   test("handles projectPath with trailing slash", () => {
-    const options = createMockOptions({
-      projectPath: "/Users/me/app/",
-      targetId: "vscode",
-    });
+    const options = editorOptions("vscode", { projectPath: "/Users/me/app/" });
 
     const result = buildLink(
       {
@@ -66,10 +72,7 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
   });
 
   test("passes through paths without [project]/ prefix", () => {
-    const options = createMockOptions({
-      projectPath: "/Users/me/app",
-      targetId: "vscode",
-    });
+    const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
 
     const result = buildLink(
       {
@@ -86,9 +89,7 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
   });
 
   test("leaves [project]/ prefix if no projectPath available", () => {
-    const options = createMockOptions({
-      targetId: "vscode",
-    });
+    const options = editorOptions("vscode");
 
     const result = buildLink(
       {
@@ -117,7 +118,7 @@ describe("buildLink - optional query parameters", () => {
     const result = buildLink(
       linkProps,
       allTargets,
-      createMockOptions({ targetId: "nvim", tmuxSession: "work" })
+      editorOptions("nvim", { tmuxSession: "work" })
     );
 
     expect(result).toBe(
@@ -126,35 +127,44 @@ describe("buildLink - optional query parameters", () => {
   });
 
   test("removes the unresolved nvim query parameter when unset", () => {
-    const result = buildLink(
-      linkProps,
-      allTargets,
-      createMockOptions({ targetId: "nvim" })
-    );
+    const result = buildLink(linkProps, allTargets, editorOptions("nvim"));
 
     expect(result).toBe("nvim://file//repo/src/page.tsx:10:5");
     expect(result).not.toContain("?");
   });
 
   test("does not alter targets without optional query parameters", () => {
-    const result = buildLink(
-      linkProps,
-      allTargets,
-      createMockOptions({ targetId: "vscode" })
-    );
+    const result = buildLink(linkProps, allTargets, editorOptions("vscode"));
 
     expect(result).toBe("vscode://file//repo/src/page.tsx:10:5");
   });
 
   test("preserves fully resolved query parameters", () => {
-    const result = buildLink(
-      linkProps,
-      allTargets,
-      createMockOptions({ targetId: "webstorm" })
-    );
+    const result = buildLink(linkProps, allTargets, editorOptions("webstorm"));
 
     expect(result).toBe(
       "webstorm://open?file=/repo/src/page.tsx&line=10&column=5"
     );
+  });
+
+  test("uses the primary modifier editor for links outside direct actions", () => {
+    const result = buildLink(
+      linkProps,
+      allTargets,
+      createMockOptions({
+        bindings: [
+          {
+            trigger: { kind: "hover-toolbar" },
+            action: { kind: "open-editor", targetId: "cursor" },
+          },
+          {
+            trigger: { kind: "modifier-click", modifiers: "alt" },
+            action: { kind: "open-editor", targetId: "webstorm" },
+          },
+        ],
+      })
+    );
+
+    expect(result).toContain("webstorm://open");
   });
 });

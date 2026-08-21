@@ -1,4 +1,8 @@
-// TODO if we want to use this add next line to the manifest:
-// "background": { "service_worker": "background.bundle.js" },
+import browser from '../../browser';
 
-// console.log('Background here');
+browser.runtime.onInstalled.addListener((details) => {
+  if (details.reason !== 'install') return;
+  browser.tabs.create({
+    url: browser.runtime.getURL('onboarding.html'),
+  });
+});

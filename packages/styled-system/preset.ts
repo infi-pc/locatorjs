@@ -48,6 +48,10 @@ export const preset = definePreset({
           },
           code: { value: "{fonts.mono}" },
         },
+        fontSizes: {
+          // Keep every typography token at the 12px accessibility floor.
+          "2xs": { value: "0.75rem" },
+        },
         radii: {
           l1: { value: "{radii.sm}" },
           l2: { value: "{radii.md}" },

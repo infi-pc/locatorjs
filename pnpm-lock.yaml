@@ -202,6 +202,37 @@ importers:
         specifier: ^1.59.1
         version: 1.59.1
 
+  apps/ui-lab:
+    dependencies:
+      '@locator/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
+      '@locator/styled-system':
+        specifier: workspace:^
+        version: link:../../packages/styled-system
+      '@locator/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+      lucide-solid:
+        specifier: ^1.14.0
+        version: 1.14.0(solid-js@1.9.12)
+      solid-js:
+        specifier: ^1.9.12
+        version: 1.9.12
+    devDependencies:
+      '@pandacss/dev':
+        specifier: ^1.11.4
+        version: 1.11.4(jsdom@20.0.3)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^3.0.7
+        version: 3.2.11
+      vite-plugin-solid:
+        specifier: ^2.11.12
+        version: 2.11.12(solid-js@1.9.12)(vite@3.2.11)
+
   apps/web:
     dependencies:
       '@locator/runtime':
@@ -934,11 +965,11 @@ packages:
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
-      '@babel/helper-module-transforms': 7.28.6(@babel/core@7.12.9)
+      '@babel/helper-module-transforms': 7.29.7(@babel/core@7.12.9)
       '@babel/helpers': 7.29.2
       '@babel/parser': 7.29.7
-      '@babel/template': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/template': 7.29.7
+      '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
       convert-source-map: 1.9.0
       debug: 4.4.3
@@ -1150,20 +1181,6 @@ packages:
       - supports-color
     dev: true
 
-  /@babel/helper-module-transforms@7.28.6(@babel/core@7.12.9):
-    resolution: {integrity: sha512-67oXFAYr2cDLDVGLXTEABjdBJZ6drElUSI7WKp70NrpyISso3plG9SAGEF6y7zbha/wOzUByWWTJvEDVNIUGcA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/core': 7.12.9
-      '@babel/helper-module-imports': 7.28.6
-      '@babel/helper-validator-identifier': 7.28.5
-      '@babel/traverse': 7.29.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
   /@babel/helper-module-transforms@7.28.6(@babel/core@7.29.0):
     resolution: {integrity: sha512-67oXFAYr2cDLDVGLXTEABjdBJZ6drElUSI7WKp70NrpyISso3plG9SAGEF6y7zbha/wOzUByWWTJvEDVNIUGcA==}
     engines: {node: '>=6.9.0'}
@@ -1176,6 +1193,20 @@ packages:
       '@babel/traverse': 7.29.0
     transitivePeerDependencies:
       - supports-color
+
+  /@babel/helper-module-transforms@7.29.7(@babel/core@7.12.9):
+    resolution: {integrity: sha512-UPUVSyXbOh627KiCIGQSgwWzGeBKLkaJ9PJEdrngIwMSzxLR4jS4+f1f1jb7VzBbg8nFLaYotvVPFCTqdrmTAg==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0
+    dependencies:
+      '@babel/core': 7.12.9
+      '@babel/helper-module-imports': 7.29.7
+      '@babel/helper-validator-identifier': 7.29.7
+      '@babel/traverse': 7.29.7
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
   /@babel/helper-module-transforms@7.29.7(@babel/core@7.29.0):
     resolution: {integrity: sha512-UPUVSyXbOh627KiCIGQSgwWzGeBKLkaJ9PJEdrngIwMSzxLR4jS4+f1f1jb7VzBbg8nFLaYotvVPFCTqdrmTAg==}
@@ -8466,7 +8497,7 @@ packages:
       '@vue/shared': 3.5.32
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.10
+      postcss: 8.5.14
       source-map-js: 1.2.1
 
   /@vue/compiler-ssr@3.5.25:
@@ -10438,7 +10469,7 @@ packages:
     resolution: {integrity: sha512-ESAc/RJvGTFEzRwOTT4+lNDk/GNHMkKbNzsvT0qKRfDyyYTskxB5rnU2njIDYVxXCBHHEI1c0YwHob3WaYujOg==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@babel/template': 7.28.6
+      '@babel/template': 7.29.7
       '@babel/types': 7.29.7
       '@types/babel__core': 7.20.5
       '@types/babel__traverse': 7.28.0
@@ -21038,7 +21069,6 @@ packages:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
-    dev: true
 
   /posthog-js@1.369.3:
     resolution: {integrity: sha512-t4vk8mgkSdhIYr8YDRdLG45uJYH58MC7bPL83lKTEeDgoejyXbJ1/G77GZB/aWVQDST055GkgjQtUtK5DiYGkg==}

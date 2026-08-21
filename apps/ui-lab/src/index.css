@@ -1,0 +1,16 @@
+@layer reset, base, tokens, recipes, utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}

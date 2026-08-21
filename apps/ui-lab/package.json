@@ -1,0 +1,24 @@
+{
+  "name": "@locator/ui-lab",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 3344",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 3344",
+    "ts": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@locator/shared": "workspace:^",
+    "@locator/styled-system": "workspace:^",
+    "@locator/ui": "workspace:^",
+    "lucide-solid": "^1.14.0",
+    "solid-js": "^1.9.12"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "^1.11.4",
+    "typescript": "^5.9.3",
+    "vite": "^3.0.7",
+    "vite-plugin-solid": "^2.11.12"
+  }
+}

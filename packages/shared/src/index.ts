@@ -26,6 +26,10 @@ export const allTargets: Targets = {
     url: "windsurf://file/${projectPath}${filePath}:${line}:${column}",
     label: "Windsurf",
   },
+  zed: {
+    url: "zed://file${projectPath}${filePath}:${line}:${column}",
+    label: "Zed",
+  },
   antigravity: {
     url: "antigravity://file/${projectPath}${filePath}:${line}:${column}",
     label: "Antigravity",
@@ -156,5 +160,6 @@ export type FileStorage = {
 
 export * from "./sharedOptionsStore";
 export * from "./layeredOptions";
+export * from "./bindingEditorModel";
 export * from "./cleanupLegacyStorage";
 export * from "./patchCodec";

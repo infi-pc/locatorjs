@@ -1,3 +1,4 @@
+import type { BindingAction } from '@locator/shared';
 import browser from '../../browser';
 
 const REPLY_TIMEOUT_MS = 1000;
@@ -9,7 +10,9 @@ type PopupMessage =
       subject: 'applySiteLocal';
       patch: Record<string, unknown>;
       unset?: string[];
-    };
+    }
+  | { from: 'popup'; subject: 'clearSiteLocal' }
+  | { from: 'popup'; subject: 'tryAction'; action: BindingAction };
 
 export function mountSnapshotBridge() {
   browser.runtime.onMessage.addListener(
@@ -50,6 +53,26 @@ export function mountSnapshotBridge() {
               sendResponse(payload);
             }
           }
+        );
+        return true;
+      }
+
+      if (msg.subject === 'clearSiteLocal') {
+        relayRequestToPage(
+          { type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' },
+          'LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT',
+          (payload) =>
+            sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
+        );
+        return true;
+      }
+
+      if (msg.subject === 'tryAction') {
+        relayRequestToPage(
+          { type: 'LOCATOR_PAGE_TRY_ACTION', action: msg.action },
+          'LOCATOR_PAGE_TRY_ACTION_RESULT',
+          (payload) =>
+            sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
         return true;
       }

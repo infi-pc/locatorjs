@@ -1,12 +1,18 @@
-import type { Targets } from "@locator/shared";
+import type { Binding, BindingAction, Targets } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { getParentsPaths } from "../adapters/getParentsPath";
-import { Button } from "./Button";
-import { ClipboardButton } from "./ClipboardButton";
 import { ComponentOutline } from "./ComponentOutline";
 import { RenderBoxes } from "./RenderBoxes";
 import Tooltip from "./Tooltip";
 import { css } from "@locator/styled-system/css";
+import {
+  HoverToolbarButton,
+  HoverToolbarFrame,
+  actionIconFor,
+  actionLabel,
+} from "@locator/ui";
+import { Check } from "lucide-solid";
+import { createSignal, For, onCleanup } from "solid-js";
 
 const styles = {
   outline: css({
@@ -23,14 +29,7 @@ const styles = {
     position: "fixed",
   }),
   actions: css({
-    bg: "black/60",
-    borderRadius: "l2",
-    color: "white",
-    display: "flex",
-    fontWeight: "bold",
     position: "absolute",
-    px: "1",
-    py: "1",
   }),
 };
 
@@ -57,8 +56,12 @@ export type AllBoxes = {
 export function Outline(props: {
   element: FullElementInfo;
   showTreeFromElement: (element: HTMLElement) => void;
-  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
-  copyToClipboard: (element: HTMLElement) => void;
+  bindings: Binding[];
+  performAction: (
+    action: BindingAction,
+    element: FullElementInfo,
+    position: { x: number; y: number }
+  ) => Promise<boolean>;
   targets: Targets;
 }) {
   const box = () => props.element.thisElement.box;
@@ -203,7 +206,7 @@ export function Outline(props: {
             "text-overflow": "ellipsis",
           }}
         >
-          <div
+          <HoverToolbarFrame
             class={styles.actions}
             style={{
               "text-shadow": "none",
@@ -212,66 +215,27 @@ export function Outline(props: {
             }}
             ref={buttonsWrapper}
           >
-            <Tooltip tooltipText="Tree view">
-              <Button
-                onClick={() => {
-                  props.showTreeFromElement(props.element.htmlElement);
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    "pointer-events": "none",
-                  }}
-                  viewBox="0 0 24 24"
-                >
-                  <title>sitemap</title>
-                  <path
-                    fill="currentColor"
-                    d="M9,2V8H11V11H5C3.89,11 3,11.89 3,13V16H1V22H7V16H5V13H11V16H9V22H15V16H13V13H19V16H17V22H23V16H21V13C21,11.89 20.11,11 19,11H13V8H15V2H9Z"
-                  />
-                </svg>
-              </Button>
-            </Tooltip>
-            {parentsWithLinks().length > 1 && (
-              <Tooltip tooltipText="Parents">
-                <Button
-                  onClick={() => {
-                    props.showParentsPath(
-                      props.element.htmlElement,
-                      box().x + 2,
-                      box().y + 20
-                    );
-                  }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    style={{
-                      width: "16px",
-                      height: "16px",
-                      "pointer-events": "none",
-                    }}
-                    viewBox="0 0 24 24"
-                  >
-                    <title>format-list-text</title>
-                    <path
-                      fill="currentColor"
-                      d="M2 14H8V20H2M16 8H10V10H16M2 10H8V4H2M10 4V6H22V4M10 20H16V18H10M10 16H22V14H10"
-                    />
-                  </svg>
-                </Button>
-              </Tooltip>
-            )}
-            <Tooltip tooltipText="Copy path">
-              <ClipboardButton
-                onClick={() => {
-                  props.copyToClipboard(props.element.htmlElement);
-                }}
-              />
-            </Tooltip>
-          </div>
+            <For
+              each={props.bindings.filter(
+                (binding) =>
+                  binding.action.kind !== "show-parents" ||
+                  parentsWithLinks().length > 1
+              )}
+            >
+              {(binding) => (
+                <OutlineActionButton
+                  binding={binding}
+                  targets={props.targets}
+                  onAction={() =>
+                    props.performAction(binding.action, props.element, {
+                      x: box().x + 2,
+                      y: box().y + 20,
+                    })
+                  }
+                />
+              )}
+            </For>
+          </HoverToolbarFrame>
           {props.element.thisElement.label}
         </div>
       </div>
@@ -285,6 +249,45 @@ export function Outline(props: {
         />
       )}
     </>
+  );
+}
+
+function OutlineActionButton(props: {
+  binding: Binding;
+  targets: Targets;
+  onAction: () => Promise<boolean>;
+}) {
+  const [complete, setComplete] = createSignal(false);
+  let completeTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => {
+    if (completeTimer) clearTimeout(completeTimer);
+  });
+  const isCopy = () =>
+    props.binding.action.kind === "copy-path" ||
+    props.binding.action.kind === "copy-prompt";
+  return (
+    <Tooltip tooltipText={actionLabel(props.binding.action, props.targets)}>
+      <HoverToolbarButton
+        aria-label={actionLabel(props.binding.action, props.targets)}
+        onClick={async () => {
+          const succeeded = await props.onAction();
+          if (succeeded && isCopy()) {
+            if (completeTimer) clearTimeout(completeTimer);
+            setComplete(true);
+            completeTimer = setTimeout(() => {
+              setComplete(false);
+              completeTimer = undefined;
+            }, 2000);
+          }
+        }}
+      >
+        {complete() ? (
+          <Check size={16} />
+        ) : (
+          actionIconFor(props.binding.action, props.targets)
+        )}
+      </HoverToolbarButton>
+    </Tooltip>
   );
 }
 

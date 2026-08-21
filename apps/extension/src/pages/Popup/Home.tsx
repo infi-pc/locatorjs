@@ -1,195 +1,252 @@
+import { allTargets, DEFAULT_LAYER, type LocatorLayer } from '@locator/shared';
 import {
-  modifiersTitles,
-  getModifiersMap,
-  resolveTarget,
-} from '@locator/shared';
-import {
+  ActionSettings,
   Button,
-  Kbd,
-  ProvenanceBadge,
-  SectionHeadline,
-  editorIconFor,
+  type ActionSettingsSaveStatus,
 } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
-import { MousePointerClick, Power } from 'lucide-solid';
+import { Power, RotateCcw } from 'lucide-solid';
+import { Show, createEffect, createSignal } from 'solid-js';
 import { useSyncedState } from './syncedState';
-import { Page } from './Page';
-
-type Props = {
-  setPage: (page: Page) => void;
-};
 
 const styles = {
-  stack: css({ display: 'flex', flexDirection: 'column', gap: '3' }),
-  card: css({ layerStyle: 'card', p: '3' }),
-  controls: css({
-    alignItems: 'center',
-    display: 'flex',
-    fontSize: 'sm',
-    gap: '2',
-    py: '1',
-  }),
-  controlText: css({ minW: '0' }),
-  hint: css({ color: 'fg.muted', fontSize: 'xs', lineHeight: '5', mt: '1' }),
-  editorRow: css({
-    alignItems: 'center',
-    display: 'flex',
-    gap: '3',
-    justifyContent: 'space-between',
-  }),
-  editorMain: css({
-    alignItems: 'center',
-    display: 'flex',
-    gap: '2',
-    minW: '0',
-  }),
-  editorIcon: css({
-    alignItems: 'center',
-    bg: 'accent.subtle.bg',
-    borderColor: 'accent.surface.border',
-    borderRadius: 'l2',
-    borderWidth: '1px',
-    color: 'accent.subtle.fg',
-    display: 'inline-flex',
-    flexShrink: '0',
-    height: '8',
-    justifyContent: 'center',
-    width: '8',
-  }),
-  editorText: css({ color: 'fg.default', fontSize: 'sm' }),
-  editorMeta: css({
-    alignItems: 'center',
-    color: 'fg.muted',
-    display: 'flex',
-    flexWrap: 'wrap',
-    fontSize: 'xs',
-    gap: '1.5',
-    mt: '0.5',
-  }),
+  stack: css({ display: 'flex', flexDirection: 'column', gap: '2' }),
   footer: css({
     alignItems: 'center',
     display: 'flex',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: '3',
+    justifyContent: 'space-between',
+    pt: '3',
     width: '100%',
   }),
   footerText: css({ color: 'fg.muted', fontSize: 'xs' }),
+  footerActions: css({
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1',
+  }),
+  advancedExtras: css({ display: 'flex', flexDirection: 'column', gap: '2' }),
+  advancedHelp: css({
+    layerStyle: 'card',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2',
+    p: '3',
+  }),
   sponsorLink: css({
     color: 'accent.plain.fg',
     textDecoration: 'underline',
     _hover: { color: 'accent.solid.bg.hover' },
   }),
-  pointerIcon: css({ color: 'accent.plain.fg', flexShrink: '0' }),
 };
 
-export function Home(props: Props) {
-  const { setSiteLocal, snapshot } = useSyncedState();
+export function Home() {
+  const {
+    setSiteLocal,
+    setUserExtension,
+    clearSiteLocal,
+    clearUserExtension,
+    tryAction,
+    snapshot,
+    userExtension,
+    status,
+  } = useSyncedState();
+  const connected = () => status() === 'connected' && !!snapshot();
+  const [activeScope, setActiveScope] = createSignal<LocatorLayer>(
+    connected() ? 'user-origin' : 'user-extension'
+  );
+  const [saveStatus, setSaveStatus] =
+    createSignal<ActionSettingsSaveStatus>('idle');
+  const [confirmReset, setConfirmReset] = createSignal(false);
+  const [actionError, setActionError] = createSignal<string>();
 
-  const targetProvenance = () =>
-    snapshot()?.provenance.targetTemplate ?? snapshot()?.provenance.targetId;
-  const currentEditor = () => {
-    const s = snapshot();
-    if (!s) return undefined;
-    const target = resolveTarget(s.effective, s.allTargets);
-    return target.kind === 'template'
-      ? target.url
-      : s.allTargets[target.id]?.label ?? target.id;
+  createEffect(() => {
+    if (!connected() && activeScope() === 'user-origin') {
+      setActiveScope('user-extension');
+      setConfirmReset(false);
+    }
+  });
+
+  const layers = () => {
+    const connectedLayers = snapshot()?.layers;
+    return connectedLayers
+      ? {
+          ...connectedLayers,
+          default: connectedLayers.default ?? DEFAULT_LAYER,
+          'user-extension': userExtension(),
+        }
+      : {
+          default: DEFAULT_LAYER,
+          'user-extension': userExtension(),
+        };
   };
-  const currentEditorId = () => {
-    const s = snapshot();
-    if (!s) return 'custom';
-    const target = resolveTarget(s.effective, s.allTargets);
-    return target.kind === 'template' ? 'custom' : target.id || 'custom';
+  const targets = () => snapshot()?.allTargets ?? allTargets;
+  const tryUnavailable = () => !connected() || !!snapshot()?.effective.disabled;
+  const resetLabel = () =>
+    activeScope() === 'user-origin' ? 'This site' : 'All sites';
+  const resetPrompt = () =>
+    activeScope() === 'user-origin'
+      ? 'Reset settings for this site?'
+      : 'Reset your All sites defaults?';
+
+  const reset = async () => {
+    setSaveStatus('saving');
+    const result =
+      activeScope() === 'user-origin'
+        ? await clearSiteLocal()
+        : await clearUserExtension();
+    setSaveStatus(result.ok ? 'saved' : 'error');
+    setActionError(result.ok ? undefined : `Could not reset ${resetLabel()}.`);
+    if (result.ok) setConfirmReset(false);
   };
 
   return (
     <div class={styles.stack}>
-      <div class={styles.card}>
-        <SectionHeadline>Controls</SectionHeadline>
-
-        <div class={styles.controls}>
-          <MousePointerClick size={18} class={styles.pointerIcon} />
-          <span class={styles.controlText}>
-            <b>
-              <Modifiers /> + <Kbd>click</Kbd>
-            </b>{' '}
-            opens your editor
-          </span>
-        </div>
-        <p class={styles.hint}>
-          Click the page once first so your app has focus.
-        </p>
-      </div>
-
-      <div class={styles.card}>
-        <div class={styles.editorRow}>
-          <div class={styles.editorMain}>
-            <span class={styles.editorIcon}>
-              {editorIconFor(currentEditorId())}
-            </span>
-            <div>
-              <div class={styles.editorText}>
-                Editor: <b>{currentEditor() ?? '—'}</b>
+      <ActionSettings
+        layers={layers()}
+        targets={targets()}
+        scopes={[
+          {
+            layer: 'user-origin',
+            label: 'This site',
+            write: setSiteLocal,
+            disabled: !connected(),
+            disabledReason:
+              'Connect to a page running LocatorJS to edit this site.',
+          },
+          {
+            layer: 'user-extension',
+            label: 'All sites',
+            write: setUserExtension,
+          },
+        ]}
+        activeScope={activeScope()}
+        onActiveScopeChange={(layer) => {
+          setActiveScope(layer);
+          setConfirmReset(false);
+          setActionError(undefined);
+        }}
+        unavailableLayers={connected() ? [] : ['team', 'user-origin']}
+        tryDisabled={tryUnavailable()}
+        tryDisabledReason={
+          !connected()
+            ? 'Connect to a page running LocatorJS to try this action.'
+            : 'Enable LocatorJS on this page to try this action.'
+        }
+        onTryAction={async (action) => {
+          setActionError(undefined);
+          const result = await tryAction(action);
+          if (result.ok) {
+            window.close();
+          } else {
+            setActionError(
+              result.reason === 'disabled'
+                ? 'Enable LocatorJS on this page before trying an action.'
+                : 'Could not start Try mode. Keep the page open and try again.'
+            );
+          }
+        }}
+        onSaveStatusChange={setSaveStatus}
+        advancedExtras={
+          <div class={styles.advancedExtras}>
+            <Show when={!connected()}>
+              <div class={styles.advancedHelp}>
+                <div class={styles.footerText}>
+                  Connect a page running LocatorJS to inspect team and site
+                  configuration.
+                </div>
+                <a
+                  class={styles.sponsorLink}
+                  href="https://www.locatorjs.com/install"
+                  target="_blank"
+                >
+                  Installation guides
+                </a>
+                <a
+                  class={styles.sponsorLink}
+                  href="https://github.com/infi-pc/locatorjs/blob/master/apps/extension/README.md#troubleshooting"
+                  target="_blank"
+                >
+                  Extension troubleshooting
+                </a>
               </div>
-              <div class={styles.editorMeta}>
-                <span>Resolved setting</span>
-                <ProvenanceBadge layer={targetProvenance()} />
-              </div>
+            </Show>
+            <div class={styles.footerText}>
+              Share Locator defaults with your team.{' '}
+              <a
+                class={styles.sponsorLink}
+                href="https://www.locatorjs.com/docs"
+                target="_blank"
+              >
+                Set up Locator via setup()
+              </a>
+            </div>
+            <div class={styles.footerText}>
+              Support LocatorJS on{' '}
+              <a
+                class={styles.sponsorLink}
+                href="https://github.com/sponsors/infi-pc"
+                target="_blank"
+              >
+                GitHub sponsors
+              </a>
             </div>
           </div>
+        }
+      />
+
+      <Show when={actionError()}>
+        <div class={styles.footerText} role="alert">
+          {actionError()}
+        </div>
+      </Show>
+      <div class={styles.footer}>
+        <span class={styles.footerText} role="status">
+          {saveStatus() === 'saving'
+            ? 'Saving…'
+            : saveStatus() === 'saved'
+            ? 'Saved'
+            : saveStatus() === 'error'
+            ? 'Could not save'
+            : connected()
+            ? 'Connected'
+            : 'Editing All sites offline'}
+        </span>
+        <div class={styles.footerActions}>
+          <Show when={confirmReset()}>
+            <span class={styles.footerText}>{resetPrompt()}</span>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => setConfirmReset(false)}
+            >
+              Cancel
+            </Button>
+            <Button size="xs" variant="danger-ghost" onClick={reset}>
+              Reset {resetLabel()}
+            </Button>
+          </Show>
+          <Show when={!confirmReset()}>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => setConfirmReset(true)}
+            >
+              <RotateCcw size={14} /> Reset
+            </Button>
+          </Show>
           <Button
+            variant="danger-ghost"
             size="xs"
-            variant="ghost"
-            onClick={() =>
-              props.setPage({ type: 'settings', tab: 'user-extension' })
-            }
+            disabled={!connected()}
+            onClick={() => setSiteLocal({ disabled: true })}
           >
-            Change
+            <Power size={16} /> Disable on this page
           </Button>
         </div>
       </div>
-
-      <div class={styles.footer}>
-        <div class={styles.footerText}>
-          Support me on{' '}
-          <a
-            class={styles.sponsorLink}
-            href="https://github.com/sponsors/infi-pc"
-            target="_blank"
-          >
-            GitHub sponsors
-          </a>
-        </div>
-        <Button
-          variant="danger-ghost"
-          size="xs"
-          disabled={!snapshot()}
-          onClick={() => {
-            setSiteLocal({ disabled: true });
-          }}
-        >
-          <Power size={16} />
-          Disable on this page
-        </Button>
-      </div>
     </div>
-  );
-}
-
-function Modifiers() {
-  const { snapshot } = useSyncedState();
-  const map = () =>
-    getModifiersMap(snapshot()?.effective.mouseModifiers ?? 'alt');
-  return (
-    <>
-      {Object.keys(map()).map((key, i) => {
-        return (
-          <>
-            {i === 0 ? '' : ' + '}
-            <Kbd>{modifiersTitles[key as keyof typeof modifiersTitles]}</Kbd>
-          </>
-        );
-      })}
-    </>
   );
 }

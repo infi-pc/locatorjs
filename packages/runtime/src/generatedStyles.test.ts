@@ -17,6 +17,13 @@ describe("generated shadow-root styles", () => {
     expect(generatedStyles).not.toMatch(/:\s*[a-z][a-z0-9-]*\.[a-z0-9.-]+;/);
   });
 
+  it("keeps the smallest font token at the 12px accessibility floor", () => {
+    expect(generatedStyles).toContain("--font-sizes-2xs: 0.75rem;");
+    expect(generatedStyles).toMatch(
+      /small,sub,sup\s*\{\s*font-size: var\(--font-sizes-xs\);/
+    );
+  });
+
   it("does not contain the removed Tailwind legacy layer", () => {
     expect(generatedStyles).not.toContain("@layer legacy");
     expect(generatedStyles).not.toContain("--tw-");

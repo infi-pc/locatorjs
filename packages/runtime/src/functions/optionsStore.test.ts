@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, vi } from "vitest";
 import { createRoot } from "solid-js";
-import { allTargets } from "@locator/shared";
+import { allTargets, type Binding, type LocatorOptions } from "@locator/shared";
 import {
   updateTeamLayer,
   setTeamTargets,
@@ -9,6 +9,31 @@ import {
 } from "./teamLayerStore";
 import { initOptions } from "./optionsStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
+
+function primaryModifiers(options: LocatorOptions) {
+  const trigger = options.bindings?.find(
+    (binding) => binding.trigger.kind === "modifier-click"
+  )?.trigger;
+  return trigger?.kind === "modifier-click" ? trigger.modifiers : undefined;
+}
+
+function editorBindings(targetId: string): Binding[] {
+  return [
+    {
+      trigger: { kind: "modifier-click", modifiers: "alt" },
+      action: { kind: "open-editor" as const, targetId },
+    },
+  ];
+}
+
+function primaryEditorTarget(options: LocatorOptions) {
+  const action = options.bindings?.find(
+    (binding) =>
+      binding.trigger.kind === "modifier-click" &&
+      binding.action.kind === "open-editor"
+  )?.action;
+  return action?.kind === "open-editor" ? action.targetId : undefined;
+}
 
 const disposers: (() => void)[] = [];
 
@@ -54,14 +79,14 @@ describe("optionsStore integration", () => {
 
     const options = withRoot(() => initOptions());
 
-    expect(options.effective().mouseModifiers).toBe("ctrl");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("ctrl");
+    expect(options.provenance().bindings).toBe("user-extension");
   });
 
   test("postMessage updates user-extension layer after runtime mount", async () => {
     const options = withRoot(() => initOptions());
 
-    expect(options.provenance().mouseModifiers).toBe("default");
+    expect(options.provenance().bindings).toBe("default");
 
     setUserExtensionGlobal({ mouseModifiers: "shift" });
     window.dispatchEvent(
@@ -71,19 +96,19 @@ describe("optionsStore integration", () => {
       })
     );
 
-    expect(options.effective().mouseModifiers).toBe("shift");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("shift");
+    expect(options.provenance().bindings).toBe("user-extension");
   });
 
   test("user-origin layer overrides user-extension and team layers", async () => {
-    updateTeamLayer({ targetId: "vscode" });
-    setUserExtensionGlobal({ targetId: "cursor" });
+    updateTeamLayer({ bindings: editorBindings("vscode") });
+    setUserExtensionGlobal({ bindings: editorBindings("cursor") });
 
     const options = withRoot(() => initOptions());
-    await options.setUserOrigin({ targetId: "webstorm" });
+    await options.setUserOrigin({ bindings: editorBindings("webstorm") });
 
-    expect(options.effective().targetId).toBe("webstorm");
-    expect(options.provenance().targetId).toBe("user-origin");
+    expect(primaryEditorTarget(options.effective())).toBe("webstorm");
+    expect(options.provenance().bindings).toBe("user-origin");
   });
 
   test("window.enableLocator() writes to user-origin layer only", async () => {
@@ -133,16 +158,34 @@ describe("optionsStore integration", () => {
 
     await options.setUserOrigin({ mouseModifiers: "shift" });
     await options.setUiState({ welcomeScreenDismissed: true });
-    expect(options.effective().mouseModifiers).toBe("shift");
+    expect(primaryModifiers(options.effective())).toBe("shift");
 
     options.clearUserOrigin();
 
     expect(JSON.parse(localStorage.getItem("LOCATOR_USER_OPTIONS")!)).toEqual({
       uiState: { welcomeScreenDismissed: true },
     });
-    expect(options.effective().mouseModifiers).toBe("ctrl");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("ctrl");
+    expect(options.provenance().bindings).toBe("user-extension");
     expect(options.uiState()).toEqual({ welcomeScreenDismissed: true });
+  });
+
+  test("clearUserOrigin reports failure and preserves resolved state", async () => {
+    const options = withRoot(() => initOptions());
+    await options.setUserOrigin({ mouseModifiers: "shift" });
+    const removeItem = vi
+      .spyOn(Storage.prototype, "removeItem")
+      .mockImplementation(() => {
+        throw new DOMException("blocked", "SecurityError");
+      });
+
+    await expect(options.clearUserOrigin()).resolves.toEqual({
+      ok: false,
+      reason: "blocked",
+    });
+    expect(primaryModifiers(options.effective())).toBe("shift");
+
+    removeItem.mockRestore();
   });
 
   test("team targets signal overrides default allTargets", async () => {
@@ -162,7 +205,7 @@ describe("mountRuntimePopupBridge", () => {
   });
 
   test("exposes __LOCATOR_RUNTIME__ bridge with snapshot + applySiteLocal", async () => {
-    updateTeamLayer({ targetId: "vscode" });
+    updateTeamLayer({ bindings: editorBindings("vscode") });
     const options = withRoot(() => {
       const o = initOptions();
       mountRuntimePopupBridge(o);
@@ -172,8 +215,8 @@ describe("mountRuntimePopupBridge", () => {
     type WinWithRuntime = {
       __LOCATOR_RUNTIME__?: {
         getSnapshot: () => {
-          effective: { targetId?: string };
-          provenance: { targetId?: string };
+          effective: LocatorOptions;
+          provenance: { bindings?: string };
         };
         applySiteLocal: (p: Record<string, unknown>) => Promise<unknown>;
       };
@@ -182,12 +225,12 @@ describe("mountRuntimePopupBridge", () => {
     expect(runtime).toBeDefined();
 
     const snap = runtime!.getSnapshot();
-    expect(snap.effective.targetId).toBe("vscode");
-    expect(snap.provenance.targetId).toBe("team");
+    expect(primaryEditorTarget(snap.effective)).toBe("vscode");
+    expect(snap.provenance.bindings).toBe("team");
 
-    await runtime!.applySiteLocal({ targetId: "zed" });
-    expect(options.effective().targetId).toBe("zed");
-    expect(options.provenance().targetId).toBe("user-origin");
+    await runtime!.applySiteLocal({ bindings: editorBindings("zed") });
+    expect(primaryEditorTarget(options.effective())).toBe("zed");
+    expect(options.provenance().bindings).toBe("user-origin");
   });
 
   test("responds to LOCATOR_PAGE_SNAPSHOT_REQUEST with matching requestId", async () => {
@@ -197,7 +240,7 @@ describe("mountRuntimePopupBridge", () => {
       return o;
     });
     await options.setUserOrigin({ mouseModifiers: "meta" });
-    expect(options.effective().mouseModifiers).toBe("meta");
+    expect(primaryModifiers(options.effective())).toBe("meta");
 
     const response = await new Promise<Record<string, unknown>>((resolve) => {
       const handler = (event: MessageEvent) => {
@@ -219,10 +262,8 @@ describe("mountRuntimePopupBridge", () => {
       );
     });
 
-    const snapshot = response.snapshot as {
-      effective: { mouseModifiers?: string };
-    };
-    expect(snapshot.effective.mouseModifiers).toBe("meta");
+    const snapshot = response.snapshot as { effective: LocatorOptions };
+    expect(primaryModifiers(snapshot.effective)).toBe("meta");
   });
 
   test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies patch", async () => {
@@ -257,7 +298,7 @@ describe("mountRuntimePopupBridge", () => {
     });
 
     expect(result.result).toEqual({ ok: true });
-    expect(options.effective().mouseModifiers).toBe("alt+ctrl");
+    expect(primaryModifiers(options.effective())).toBe("alt+ctrl");
   });
 
   test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies explicit unsets", async () => {
@@ -268,7 +309,7 @@ describe("mountRuntimePopupBridge", () => {
       return o;
     });
     await options.setUserOrigin({ mouseModifiers: "shift" });
-    expect(options.effective().mouseModifiers).toBe("shift");
+    expect(primaryModifiers(options.effective())).toBe("shift");
 
     const result = await new Promise<Record<string, unknown>>((resolve) => {
       const handler = (event: MessageEvent) => {
@@ -296,7 +337,49 @@ describe("mountRuntimePopupBridge", () => {
     });
 
     expect(result.result).toEqual({ ok: true });
-    expect(options.effective().mouseModifiers).toBe("ctrl");
-    expect(options.provenance().mouseModifiers).toBe("user-extension");
+    expect(primaryModifiers(options.effective())).toBe("ctrl");
+    expect(options.provenance().bindings).toBe("user-extension");
+  });
+
+  test("validates popup Try actions and dispatches only supported actions", async () => {
+    const options = withRoot(() => {
+      const o = initOptions();
+      mountRuntimePopupBridge(o);
+      return o;
+    });
+    const tried = vi.fn();
+    window.addEventListener("locatorjs:try-action", tried);
+
+    const response = await new Promise<Record<string, unknown>>((resolve) => {
+      const handler = (event: MessageEvent) => {
+        const data = event.data as Record<string, unknown> | undefined;
+        if (
+          data?.type === "LOCATOR_PAGE_TRY_ACTION_RESULT" &&
+          data.requestId === "try-1"
+        ) {
+          window.removeEventListener("message", handler);
+          resolve(data);
+        }
+      };
+      window.addEventListener("message", handler);
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            type: "LOCATOR_PAGE_TRY_ACTION",
+            requestId: "try-1",
+            action: { kind: "copy-path" },
+          },
+          source: window,
+        })
+      );
+    });
+
+    expect(response.result).toEqual({ ok: true });
+    expect(tried).toHaveBeenCalledTimes(1);
+    expect((tried.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      kind: "copy-path",
+    });
+    window.removeEventListener("locatorjs:try-action", tried);
+    void options;
   });
 });
