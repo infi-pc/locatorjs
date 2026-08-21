@@ -1,5 +1,9 @@
+// The runtime injects the generated CSS into a shadow root, where `html` and
+// `body` match nothing — it sets its own defaults on #locatorjs-layer instead.
 export const globalCss = {
   extend: {
+    // Panda's reset reads these with hard-coded fallbacks (currentcolor for
+    // borders, #005FCC for focus rings), so they must stay defined.
     "*": {
       "--global-color-border": "colors.border",
       "--global-color-placeholder": "colors.fg.subtle",
@@ -16,60 +20,6 @@ export const globalCss = {
     },
     "small, sub, sup": {
       fontSize: "xs",
-    },
-    ".locatorjs-select-trigger": {
-      alignItems: "center",
-      appearance: "none",
-      bg: "bg.default",
-      borderColor: "gray.outline.border",
-      borderRadius: "l2",
-      borderWidth: "1px",
-      color: "fg.default",
-      cursor: "pointer",
-      display: "inline-flex",
-      fontSize: "sm",
-      fontWeight: "medium",
-      gap: "2",
-      h: "8",
-      justifyContent: "space-between",
-      minW: "8",
-      outline: "0",
-      px: "2.5",
-      transitionProperty: "background-color, border-color, color, box-shadow",
-      width: "100%",
-      _focusVisible: { focusVisibleRing: "outside" },
-      _hover: { bg: "accent.outline.bg.hover" },
-    },
-    ".locatorjs-select-content": {
-      bg: "bg.default",
-      borderColor: "border",
-      borderRadius: "l2",
-      borderWidth: "1px",
-      boxShadow: "lg",
-      maxH: "64",
-      overflowY: "auto",
-      p: "1",
-      pointerEvents: "auto",
-      zIndex: "popover",
-    },
-    ".locatorjs-select-item": {
-      alignItems: "center",
-      bg: "transparent",
-      borderRadius: "l2",
-      color: "fg.default",
-      cursor: "pointer",
-      display: "grid",
-      fontSize: "sm",
-      gap: "2",
-      gridTemplateColumns: "1rem minmax(0, 1fr) 1rem",
-      minH: "8",
-      outline: "0",
-      px: "2",
-      py: "1",
-      textAlign: "left",
-      width: "100%",
-      _focusVisible: { focusVisibleRing: "inside" },
-      _hover: { bg: "accent.subtle.bg" },
     },
   },
 };

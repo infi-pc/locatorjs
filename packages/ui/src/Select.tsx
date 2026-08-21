@@ -1,4 +1,4 @@
-import { For, JSX, createMemo, splitProps } from "solid-js";
+import { For, JSX, Show, createMemo, splitProps } from "solid-js";
 import { Portal } from "solid-js/web";
 import {
   Select as ArkSelect,
@@ -20,9 +20,14 @@ const styles = {
   root: css({ display: "block", width: "100%" }),
   rootInline: css({ display: "inline-block", width: "auto" }),
   trigger: css({
+    bg: "bg.default",
     colorPalette: "accent",
     justifyContent: "space-between",
     width: "100%",
+    // These atoms outrank the button recipe, so its hover and active
+    // backgrounds have to be restated on top of the solid background.
+    _hover: { bg: "accent.outline.bg.hover" },
+    _active: { bg: "accent.outline.bg.active" },
   }),
   triggerGhost: css({
     colorPalette: "gray",
@@ -51,6 +56,9 @@ const styles = {
     p: "1",
     pointerEvents: "auto",
     width: "var(--reference-width)",
+    // Ark reads this to derive --z-index for the positioner's inline z-index;
+    // without it the dropdown renders behind dialogs.
+    zIndex: "popover",
     _open: { animation: "fade-in 100ms ease-out" },
   }),
   contentInline: css({ minW: "40", width: "auto" }),
@@ -62,7 +70,6 @@ const styles = {
     display: "grid",
     fontSize: "sm",
     gap: "2",
-    gridTemplateColumns: "1rem minmax(0, 1fr) 1rem",
     minH: "8",
     outline: "0",
     px: "2",
@@ -73,6 +80,8 @@ const styles = {
     _selected: { color: "accent.plain.fg" },
     _disabled: { cursor: "not-allowed", opacity: "0.5" },
   }),
+  itemWithIcon: css({ gridTemplateColumns: "1rem minmax(0, 1fr) 1rem" }),
+  itemNoIcon: css({ gridTemplateColumns: "minmax(0, 1fr) 1rem" }),
   icon: css({
     alignItems: "center",
     color: "fg.muted",
@@ -109,6 +118,7 @@ export function Select(
     "size",
   ]);
   const ghost = () => local.variant === "ghost";
+  const hasIcons = () => local.items.some((item) => item.icon);
   const collection = createMemo(() =>
     createListCollection<SelectItem>({
       items: local.items,
@@ -139,7 +149,6 @@ export function Select(
       <ArkSelect.Control>
         <ArkSelect.Trigger
           class={cx(
-            "locatorjs-select-trigger",
             button({
               variant: ghost() ? "plain" : "outline",
               size: local.size ?? "sm",
@@ -149,7 +158,9 @@ export function Select(
           {...triggerProps}
         >
           <span class={styles.triggerLabel}>
-            <span class={styles.icon}>{selected()?.icon?.()}</span>
+            <Show when={selected()?.icon}>
+              <span class={styles.icon}>{selected()?.icon?.()}</span>
+            </Show>
             {selected()?.label ?? local.placeholder ?? "Select"}
           </span>
           <ArkSelect.Indicator>
@@ -160,11 +171,7 @@ export function Select(
       <Portal mount={local.portalMount ?? document.body}>
         <ArkSelect.Positioner class={styles.positioner}>
           <ArkSelect.Content
-            class={cx(
-              "locatorjs-select-content",
-              styles.content,
-              ghost() && styles.contentInline
-            )}
+            class={cx(styles.content, ghost() && styles.contentInline)}
           >
             <ArkSelect.List>
               <For each={local.items}>
@@ -172,9 +179,14 @@ export function Select(
                   <ArkSelect.Item
                     item={item}
                     title={item.title}
-                    class={cx("locatorjs-select-item", styles.item)}
+                    class={cx(
+                      styles.item,
+                      hasIcons() ? styles.itemWithIcon : styles.itemNoIcon
+                    )}
                   >
-                    <span class={styles.icon}>{item.icon?.()}</span>
+                    <Show when={hasIcons()}>
+                      <span class={styles.icon}>{item.icon?.()}</span>
+                    </Show>
                     <ArkSelect.ItemText>{item.label}</ArkSelect.ItemText>
                     <ArkSelect.ItemIndicator>
                       <Check class={styles.check} />

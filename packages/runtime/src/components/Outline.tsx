@@ -12,7 +12,7 @@ import {
   actionLabel,
 } from "@locator/ui";
 import { Check } from "lucide-solid";
-import { createSignal, For, onCleanup } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
 
 const styles = {
   outline: css({
@@ -189,6 +189,12 @@ export function Outline(props: {
   const parentsWithLinks = () =>
     getParentsPaths(props.element.htmlElement).filter((parent) => parent.link);
 
+  const visibleBindings = () =>
+    props.bindings.filter(
+      (binding) =>
+        binding.action.kind !== "show-parents" || parentsWithLinks().length > 1
+    );
+
   return (
     <>
       <div>
@@ -206,36 +212,34 @@ export function Outline(props: {
             "text-overflow": "ellipsis",
           }}
         >
-          <HoverToolbarFrame
-            class={styles.actions}
-            style={{
-              "text-shadow": "none",
-              "pointer-events": "auto",
-              ...getOffset(),
-            }}
-            ref={buttonsWrapper}
-          >
-            <For
-              each={props.bindings.filter(
-                (binding) =>
-                  binding.action.kind !== "show-parents" ||
-                  parentsWithLinks().length > 1
-              )}
+          <Show when={visibleBindings().length > 0}>
+            <HoverToolbarFrame
+              role="toolbar"
+              aria-label="Locator actions"
+              class={styles.actions}
+              style={{
+                "text-shadow": "none",
+                "pointer-events": "auto",
+                ...getOffset(),
+              }}
+              ref={buttonsWrapper}
             >
-              {(binding) => (
-                <OutlineActionButton
-                  binding={binding}
-                  targets={props.targets}
-                  onAction={() =>
-                    props.performAction(binding.action, props.element, {
-                      x: box().x + 2,
-                      y: box().y + 20,
-                    })
-                  }
-                />
-              )}
-            </For>
-          </HoverToolbarFrame>
+              <For each={visibleBindings()}>
+                {(binding) => (
+                  <OutlineActionButton
+                    binding={binding}
+                    targets={props.targets}
+                    onAction={() =>
+                      props.performAction(binding.action, props.element, {
+                        x: box().x + 2,
+                        y: box().y + 20,
+                      })
+                    }
+                  />
+                )}
+              </For>
+            </HoverToolbarFrame>
+          </Show>
           {props.element.thisElement.label}
         </div>
       </div>

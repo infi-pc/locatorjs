@@ -1,4 +1,5 @@
 import { css } from "@locator/styled-system/css";
+import { LocatorMark } from "./LocatorMark";
 
 const styles = {
   brand: css({
@@ -7,22 +8,17 @@ const styles = {
     display: "inline-flex",
     fontSize: "sm",
     fontWeight: "semibold",
-    gap: "2",
+    gap: "1",
   }),
   mark: css({
-    bgGradient: "brand",
-    borderRadius: "l1",
-    boxShadow: "xs",
     flexShrink: "0",
-    height: "5",
-    width: "5",
   }),
 };
 
 export function LocatorBrand() {
   return (
     <span class={styles.brand} aria-label="LocatorJS">
-      <span class={styles.mark} aria-hidden="true" />
+      <LocatorMark class={styles.mark} />
       <span>LocatorJS</span>
     </span>
   );

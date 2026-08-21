@@ -120,3 +120,79 @@ test("legacy mouseModifiers still dispatch and migrate to bindings", async ({
       hasLegacyKey: false,
     });
 });
+
+test("hover toolbar stays hidden when no toolbar action is configured", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ options }) => {
+      localStorage.setItem("LOCATOR_USER_OPTIONS", JSON.stringify(options));
+    },
+    {
+      options: {
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: "alt" },
+            action: { kind: "copy-path" as const },
+          },
+        ],
+        uiState: dismissedUiState,
+      },
+    }
+  );
+
+  await page.goto(projects.solid);
+  await expect(
+    page.getByRole("button", { name: "Settings", exact: true })
+  ).toBeVisible({ timeout: 15_000 });
+
+  await page
+    .locator("text=save to reload")
+    .dispatchEvent("mouseover", { altKey: true });
+
+  const toolbar = page.getByRole("toolbar", { name: "Locator actions" });
+  await expect(page.locator("text=save to reload")).toBeVisible();
+  await expect(toolbar).toHaveCount(0);
+});
+
+test("hover toolbar renders the configured toolbar actions", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ options }) => {
+      localStorage.setItem("LOCATOR_USER_OPTIONS", JSON.stringify(options));
+    },
+    {
+      options: {
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: "alt" },
+            action: { kind: "copy-path" as const },
+          },
+          {
+            trigger: { kind: "hover-toolbar" as const },
+            action: { kind: "show-tree" as const },
+          },
+          {
+            trigger: { kind: "hover-toolbar" as const },
+            action: { kind: "copy-path" as const },
+          },
+        ],
+        uiState: dismissedUiState,
+      },
+    }
+  );
+
+  await page.goto(projects.solid);
+  await expect(
+    page.getByRole("button", { name: "Settings", exact: true })
+  ).toBeVisible({ timeout: 15_000 });
+
+  await page
+    .locator("text=save to reload")
+    .dispatchEvent("mouseover", { altKey: true });
+
+  const toolbar = page.getByRole("toolbar", { name: "Locator actions" });
+  await expect(toolbar).toBeVisible();
+  await expect(toolbar.locator("button")).toHaveCount(2);
+});

@@ -9,9 +9,10 @@ import {
   type WriteResult,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
-import { ChevronRight, RotateCcw } from "lucide-solid";
-import { For, Show, createSignal, type JSX } from "solid-js";
+import { RotateCcw } from "lucide-solid";
+import { For, Show, createSignal } from "solid-js";
 import { Field } from "./Field";
+import { FoldableSection } from "./FoldableSection";
 import { IconButton } from "./IconButton";
 import { LAYER_LABELS, ProvenanceBadge } from "./ProvenanceBadge";
 import { Switch } from "./Switch";
@@ -47,34 +48,6 @@ const styles = {
     fontSize: "sm",
     fontWeight: "semibold",
     pb: "2",
-  }),
-  foldSection: css({ layerStyle: "card", p: "3" }),
-  foldSummary: css({
-    alignItems: "center",
-    cursor: "pointer",
-    display: "flex",
-    fontSize: "sm",
-    fontWeight: "semibold",
-    gap: "1.5",
-    listStyle: "none",
-    _focusVisible: { focusVisibleRing: "outside" },
-    _open: {
-      borderBottomColor: "border",
-      borderBottomWidth: "1px",
-      pb: "2",
-      "& [data-fold-chevron]": { transform: "rotate(90deg)" },
-    },
-  }),
-  foldChevron: css({
-    color: "fg.muted",
-    flexShrink: "0",
-    transition: "transform token(durations.fast) ease",
-  }),
-  foldBody: css({
-    display: "flex",
-    flexDirection: "column",
-    gap: "3",
-    pt: "3",
   }),
   note: css({ color: "fg.muted", fontSize: "xs" }),
   pair: css({ display: "grid", gap: "2", gridTemplateColumns: "1fr 1fr" }),
@@ -205,18 +178,6 @@ export function AdvancedSettings(props: {
         />
       </FoldableSection>
     </div>
-  );
-}
-
-function FoldableSection(props: { title: string; children: JSX.Element }) {
-  return (
-    <details class={styles.foldSection}>
-      <summary class={styles.foldSummary}>
-        <ChevronRight class={styles.foldChevron} data-fold-chevron size={14} />
-        {props.title}
-      </summary>
-      <div class={styles.foldBody}>{props.children}</div>
-    </details>
   );
 }
 

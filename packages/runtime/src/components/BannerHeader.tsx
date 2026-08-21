@@ -5,6 +5,7 @@ import { AdapterId } from "../consts";
 import { css } from "@locator/styled-system/css";
 
 const header = css({
+  alignItems: "center",
   display: "flex",
   gap: "2",
   justifyContent: "space-between",

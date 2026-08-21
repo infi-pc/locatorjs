@@ -14,6 +14,7 @@ import {
   Button,
   EditorPicker,
   Field,
+  FoldableSection,
   IconButton,
   Kbd,
   LocatorBrand,
@@ -319,6 +320,10 @@ const sampleBindings: Binding[] = [
   { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
 ];
 
+const editorSelectItems = Object.entries(allTargets)
+  .slice(0, 5)
+  .map(([value, target]) => ({ value, label: target.label }));
+
 const initialLayers: Partial<Record<LocatorLayer, LocatorOptions>> = {
   default: DEFAULT_LAYER,
   team: {
@@ -335,6 +340,9 @@ const initialLayers: Partial<Record<LocatorLayer, LocatorOptions>> = {
 export function App() {
   const [switchOn, setSwitchOn] = createSignal(true);
   const [selectValue, setSelectValue] = createSignal("cursor");
+  const [plainSelectValue, setPlainSelectValue] = createSignal("vscode");
+  const [ghostScope, setGhostScope] = createSignal("site");
+  const [pickedEditor, setPickedEditor] = createSignal<string>();
   const [modifiers, setModifiers] = createSignal<string | undefined>(
     "alt+shift"
   );
@@ -570,22 +578,91 @@ export function App() {
 
             <Specimen
               title="Select"
-              description="Ark UI behavior with a local composition and button styling."
+              description="Ark UI behavior with a local composition and button styling. Outline and ghost variants, sm and xs sizes, placeholder, and per-item disabled with a tooltip."
               provenance="hybrid"
+              wide
             >
-              <Select
-                aria-label="Editor example"
-                items={Object.entries(allTargets)
-                  .slice(0, 5)
-                  .map(([value, target]) => ({
-                    value,
-                    label: target.label,
-                    icon: () => editorIconFor(value),
-                  }))}
-                value={selectValue()}
-                onChange={setSelectValue}
-              />
-              <span class={styles.muted}>Selected value: {selectValue()}</span>
+              <div class={styles.stack}>
+                <div class={styles.fieldGrid}>
+                  <div class={styles.buttonGroup}>
+                    <span class={styles.groupLabel}>Outline · with icons</span>
+                    <Select
+                      aria-label="Editor example"
+                      items={editorSelectItems.map((item) => ({
+                        ...item,
+                        icon: () => editorIconFor(item.value),
+                      }))}
+                      value={selectValue()}
+                      onChange={setSelectValue}
+                    />
+                  </div>
+                  <div class={styles.buttonGroup}>
+                    <span class={styles.groupLabel}>
+                      Outline · no icons · sm and xs
+                    </span>
+                    <Select
+                      aria-label="Editor example without icons"
+                      items={editorSelectItems}
+                      value={plainSelectValue()}
+                      onChange={setPlainSelectValue}
+                    />
+                    <Select
+                      aria-label="Extra small editor example"
+                      size="xs"
+                      items={editorSelectItems}
+                      value={plainSelectValue()}
+                      onChange={setPlainSelectValue}
+                    />
+                  </div>
+                  <div class={styles.buttonGroup}>
+                    <span class={styles.groupLabel}>
+                      Ghost · xs · disabled item with tooltip
+                    </span>
+                    <div class={styles.row}>
+                      <Select
+                        aria-label="Scope example"
+                        variant="ghost"
+                        size="xs"
+                        items={[
+                          { value: "site", label: "This site" },
+                          { value: "all", label: "All sites" },
+                          {
+                            value: "page",
+                            label: "This page",
+                            disabled: true,
+                            title: "Connect to a page to configure it.",
+                          },
+                        ]}
+                        value={ghostScope()}
+                        onChange={setGhostScope}
+                      />
+                    </div>
+                  </div>
+                  <div class={styles.buttonGroup}>
+                    <span class={styles.groupLabel}>
+                      Placeholder · disabled control
+                    </span>
+                    <Select
+                      aria-label="Pick an editor"
+                      placeholder="Choose editor…"
+                      items={editorSelectItems}
+                      value={pickedEditor()}
+                      onChange={setPickedEditor}
+                    />
+                    <Select
+                      aria-label="Disabled editor example"
+                      disabled
+                      items={editorSelectItems}
+                      value="vscode"
+                      onChange={() => undefined}
+                    />
+                  </div>
+                </div>
+                <span class={styles.muted}>
+                  Selected: {selectValue()} · plain: {plainSelectValue()} ·
+                  scope: {ghostScope()} · placeholder: {pickedEditor() ?? "—"}
+                </span>
+              </div>
             </Specimen>
 
             <Specimen
@@ -641,7 +718,7 @@ export function App() {
 
             <Specimen
               title="Tabs"
-              description="Park/Ark tabs with the local connected variant. Previously present but unused."
+              description="Park/Ark tabs with the local connected variant. Kept as an available primitive; no production consumer since the scope switch moved to the ghost Select."
               provenance="park"
               wide
             >
@@ -674,6 +751,25 @@ export function App() {
                   },
                 ]}
               />
+            </Specimen>
+
+            <Specimen
+              title="Foldable section"
+              description="Native details/summary card, closed by default with a rotating chevron; keyboard accessible for free. Advanced settings uses it for Diagnostics and Configuration sources."
+              provenance="local"
+            >
+              <div class={styles.stack}>
+                <FoldableSection title="Diagnostics">
+                  <p class={styles.muted}>
+                    Rarely needed toggles collapse out of the way by default.
+                  </p>
+                </FoldableSection>
+                <FoldableSection title="Configuration sources">
+                  <p class={styles.muted}>
+                    Later sources override earlier ones for each setting.
+                  </p>
+                </FoldableSection>
+              </div>
             </Specimen>
           </LabSection>
 
