@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3348",
+    "dev": "vite --port ${PORT_REACT_CLEAN:-3348}",
     "build": "vite build",
-    "preview": "vite preview --port 3348"
+    "preview": "vite preview --port ${PORT_REACT_CLEAN:-3348}"
   },
   "dependencies": {
     "react": "^18.2.0",

@@ -2,7 +2,7 @@
   "name": "@locator/web",
   "version": "0.0.0",
   "scripts": {
-    "dev": "next dev --port=3342",
+    "dev": "next dev --port=${PORT_WEB:-3342}",
     "build": "next build",
     "start": "next start",
     "ts": "tsc --noEmit",

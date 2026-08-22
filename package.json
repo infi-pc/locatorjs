@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "turbo run build --filter=./packages/* --filter=./apps/*",
-    "dev": "turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
+    "dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
     "lint": "turbo run lint --filter=./packages/* --filter=./apps/*",
     "test": "turbo run test --filter=./packages/* --filter=./apps/*",
     "ts": "turbo run ts --filter=./packages/* --filter=./apps/*",
@@ -17,7 +17,7 @@
     "typecheck": "pnpm ts",
     "check": "pnpm format:check && pnpm dependency-versions && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
     "check:fix": "pnpm format && pnpm dependency-versions:fix",
-    "test-apps:dev": "turbo run dev --parallel --filter=./test-apps/*",
+    "test-apps:dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./test-apps/*",
     "test-apps:build": "turbo run build --filter=./test-apps/*",
     "ui:lab": "pnpm --dir apps/ui-lab dev",
     "ui:lab:build": "pnpm --dir apps/ui-lab build",

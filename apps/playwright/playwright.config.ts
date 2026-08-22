@@ -131,24 +131,29 @@ const config: PlaywrightTestConfig = {
    * See scripts/dev-ports.sh for the shared source.
    */
   webServer: [
-    { command: "pnpm --filter @locator/web dev", port: 3342 },
-    { command: "pnpm --filter @locator/vite-react-project dev", port: 3343 },
-    { command: "pnpm --filter vite-solid-project dev", port: 3345 },
-    { command: "pnpm --filter vite-preact-project dev", port: 3346 },
-    { command: "pnpm --filter vite-svelte-project dev", port: 3347 },
-    { command: "pnpm --filter vite-react-clean-project dev", port: 3348 },
-    { command: "pnpm --filter vite-svelte-clean-project dev", port: 3349 },
-    { command: "pnpm --filter vite-vue-project dev", port: 3350 },
-    { command: "pnpm --filter next-16 dev", port: 3352 },
-    { command: "pnpm --filter next-16-turbopack dev", port: 3353 },
-  ].map((server) => ({
-    ...server,
-    reuseExistingServer: !process.env.CI,
-    // The Next apps cold-compile on first request; be generous.
-    timeout: 120_000,
-    stdout: "pipe" as const,
-    stderr: "pipe" as const,
-  })),
+    ["@locator/web", "PORT_WEB", 3342],
+    ["@locator/vite-react-project", "PORT_REACT", 3343],
+    ["vite-solid-project", "PORT_SOLID", 3345],
+    ["vite-preact-project", "PORT_PREACT", 3346],
+    ["vite-svelte-project", "PORT_SVELTE", 3347],
+    ["vite-react-clean-project", "PORT_REACT_CLEAN", 3348],
+    ["vite-svelte-clean-project", "PORT_SVELTE_CLEAN", 3349],
+    ["vite-vue-project", "PORT_VUE", 3350],
+    ["next-16", "PORT_NEXT_16", 3352],
+    ["next-16-turbopack", "PORT_NEXT_16_TURBO", 3353],
+  ]
+    .map(([pkg, envVar, fallback]) => ({
+      command: `pnpm --filter ${pkg} dev`,
+      port: Number(process.env[envVar as string] ?? fallback),
+    }))
+    .map((server) => ({
+      ...server,
+      reuseExistingServer: !process.env.CI,
+      // The Next apps cold-compile on first request; be generous.
+      timeout: 120_000,
+      stdout: "pipe" as const,
+      stderr: "pipe" as const,
+    })),
 };
 
 export default config;

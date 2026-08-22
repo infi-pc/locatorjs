@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 3344",
+    "dev": "vite --host 127.0.0.1 --port ${PORT_UI_LAB:-3344}",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 3344",
+    "preview": "vite preview --host 127.0.0.1 --port ${PORT_UI_LAB:-3344}",
     "ts": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx"
   },
