@@ -47,3 +47,6 @@ all-blob-reports/
 
 # agent scratch space (screenshots, repros, plans) - never committed
 .context/
+
+# personal Claude Code overrides - keep local
+.claude/settings.local.json

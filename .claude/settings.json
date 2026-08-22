@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; pnpm exec prettier --write --ignore-unknown \"$f\"; } 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Formatting"
+          }
+        ]
+      }
+    ]
+  }
+}
