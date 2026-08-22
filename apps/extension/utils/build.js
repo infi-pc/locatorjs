@@ -21,15 +21,20 @@ webpack(config, function (err, stats) {
     if (err.details) {
       console.error(err.details);
     }
-    return;
+    process.exit(1);
   }
 
+  // Print the human-readable summary before deciding the exit code, so a failing
+  // build still leaves a usable log behind.
+  console.log(stats.toString({ colors: true }));
+
   const info = stats.toJson();
-  if (stats.hasErrors()) {
-    console.error(info.errors);
-  }
   if (stats.hasWarnings()) {
     console.warn(info.warnings);
   }
-  console.log(stats.toString({ colors: true }));
+  if (stats.hasErrors()) {
+    console.error(info.errors);
+    // Without this the build exits 0 on a compile error and CI reports green.
+    process.exit(1);
+  }
 });
