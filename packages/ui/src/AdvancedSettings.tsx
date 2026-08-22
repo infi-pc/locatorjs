@@ -1,7 +1,7 @@
 import {
   LAYER_ORDER,
+  hasEditorOverride,
   normalizeLayer,
-  resolve,
   type Binding,
   type LocatorLayer,
   type LocatorOptions,
@@ -14,6 +14,7 @@ import { For, Show, createSignal } from "solid-js";
 import { Field } from "./Field";
 import { FoldableSection } from "./FoldableSection";
 import { IconButton } from "./IconButton";
+import { layerFieldState } from "./layerFieldState";
 import { LAYER_LABELS, ProvenanceBadge } from "./ProvenanceBadge";
 import { Switch } from "./Switch";
 import { TextInput } from "./TextInput";
@@ -25,6 +26,7 @@ const FIELD_LABELS: Partial<Record<FieldKey, string>> = {
   projectPath: "Project path",
   replacePath: "Path replace",
   bindings: "Actions",
+  editor: "Editor",
   hrefTarget: "Open links in a new tab",
   tmuxSession: "Tmux session",
   debugMode: "Debug mode",
@@ -194,7 +196,7 @@ function FieldMeta(
   props: CommonProps & { fieldKey: FieldKey; onReset: () => void }
 ) {
   const state = () =>
-    fieldState(props.layers, props.scope.layer, props.fieldKey);
+    layerFieldState(props.layers, props.scope.layer, props.fieldKey);
   const label = () =>
     `Revert ${FIELD_LABELS[props.fieldKey] ?? String(props.fieldKey)}`;
   return (
@@ -227,7 +229,7 @@ function TextSetting(
   }
 ) {
   const state = () =>
-    fieldState(props.layers, props.scope.layer, props.fieldKey);
+    layerFieldState(props.layers, props.scope.layer, props.fieldKey);
   return (
     <Field
       label={props.label}
@@ -259,7 +261,7 @@ function ReplacePathField(
   }
 ) {
   const state = () =>
-    fieldState(props.layers, props.scope.layer, "replacePath");
+    layerFieldState(props.layers, props.scope.layer, "replacePath");
   const value = () =>
     (state().value as LocatorOptions["replacePath"]) ?? { from: "", to: "" };
   const commit = (key: "from" | "to", next: string) => {
@@ -315,7 +317,7 @@ function BooleanSetting(
   }
 ) {
   const state = () =>
-    fieldState(props.layers, props.scope.layer, props.fieldKey);
+    layerFieldState(props.layers, props.scope.layer, props.fieldKey);
   const checked = () =>
     props.toChecked ? props.toChecked(state().value) : !!state().value;
   return (
@@ -374,32 +376,6 @@ export function SettingsSources(props: {
   );
 }
 
-function fieldState(
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>,
-  layer: LocatorLayer,
-  fieldKey: FieldKey
-) {
-  const normalized = normalizedLayers(layers);
-  const resolved = resolve(normalized);
-  const layerValues = normalized[layer] ?? {};
-  return {
-    setHere: layerValues[fieldKey] !== undefined,
-    source: resolved.provenance[fieldKey],
-    value: resolved.effective[fieldKey],
-  };
-}
-
-function normalizedLayers(
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>
-) {
-  return Object.fromEntries(
-    Object.entries(layers).map(([layer, options]) => [
-      layer,
-      normalizeLayer(options),
-    ])
-  ) as Partial<Record<LocatorLayer, LocatorOptions>>;
-}
-
 function formatLayer(values: LocatorOptions | undefined, targets: Targets) {
   if (!values || Object.keys(normalizeLayer(values)).length === 0)
     return "No overrides";
@@ -411,6 +387,16 @@ function formatLayer(values: LocatorOptions | undefined, targets: Targets) {
         return `actions: ${normalized.bindings
           ?.map((binding) => bindingSummary(binding, targets))
           .join(", ")}`;
+      }
+      if (key === "editor") {
+        const editor = normalized.editor;
+        return `editor: ${
+          editor?.targetTemplate
+            ? "custom link"
+            : editor?.targetId
+            ? targets[editor.targetId]?.label ?? editor.targetId
+            : "not set"
+        }`;
       }
       const value = normalized[key];
       return `${FIELD_LABELS[key] ?? key}: ${
@@ -427,13 +413,13 @@ function bindingSummary(binding: Binding, targets: Targets) {
       : "hover toolbar";
   const action =
     binding.action.kind === "open-editor"
-      ? binding.action.targetId
+      ? !hasEditorOverride(binding.action)
+        ? "open in editor"
+        : binding.action.targetId
         ? `open ${
             targets[binding.action.targetId]?.label ?? binding.action.targetId
           }`
-        : binding.action.targetTemplate
-        ? "open custom editor"
-        : "open VSCode"
+        : "open custom editor"
       : binding.action.kind.replaceAll("-", " ");
   return `${trigger} → ${action}`;
 }

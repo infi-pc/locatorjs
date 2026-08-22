@@ -3,6 +3,7 @@ import {
   defaultBindingAction,
   type Binding,
   type BindingAction,
+  type EditorSelection,
   type Targets,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
@@ -11,6 +12,7 @@ import { Show, onMount } from "solid-js";
 import { actionIconFor, actionLabel, actionSelectItems } from "./actionIcons";
 import { Button } from "./Button";
 import { EditorPicker } from "./EditorPicker";
+import { editorSettingLabel } from "./EditorSetting";
 import { ModifierChips } from "./ModifierChips";
 import { Select } from "./Select";
 import { TextArea } from "./TextArea";
@@ -64,6 +66,7 @@ const styles = {
 export function ActionInspector(props: {
   binding: Binding;
   targets: Targets;
+  editor?: EditorSelection;
   portalMount?: Node;
   duplicate?: boolean;
   draft?: boolean;
@@ -80,7 +83,8 @@ export function ActionInspector(props: {
     if (props.draft)
       queueMicrotask(() => heading?.focus({ preventScroll: true }));
   });
-  const label = () => actionLabel(props.binding.action, props.targets);
+  const label = () =>
+    actionLabel(props.binding.action, props.targets, props.editor);
   const setAction = (action: BindingAction) =>
     props.onChange({ ...props.binding, action });
 
@@ -102,7 +106,7 @@ export function ActionInspector(props: {
           {props.binding.trigger.kind === "modifier-click" ? (
             <MousePointer2 size={18} />
           ) : (
-            actionIconFor(props.binding.action, props.targets)
+            actionIconFor(props.binding.action, props.targets, props.editor)
           )}
           {props.draft ? "Add interaction" : label()}
         </h2>
@@ -150,9 +154,7 @@ export function ActionInspector(props: {
             items={actionSelectItems}
             value={props.binding.action.kind}
             portalMount={props.portalMount}
-            onChange={(kind) =>
-              setAction(defaultBindingAction(kind, props.targets))
-            }
+            onChange={(kind) => setAction(defaultBindingAction(kind))}
           />
         </div>
 
@@ -171,11 +173,16 @@ export function ActionInspector(props: {
                   ? props.binding.action.targetTemplate
                   : undefined
               }
+              inheritLabel={editorSettingLabel(props.editor, props.targets)}
               portalMount={props.portalMount}
               onChange={(target) =>
                 setAction({ kind: "open-editor", ...target })
               }
             />
+            <div class={styles.summary}>
+              Leave this on the Editor setting to follow it everywhere, or pick
+              an editor to send only this action somewhere else.
+            </div>
           </div>
         </Show>
 

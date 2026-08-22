@@ -10,6 +10,7 @@ import {
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { getVueComponentBoundingBox } from "./getVNodeBoundingBox";
+import { getParentElementAcrossShadow } from "../../functions/domTraversal";
 
 type VueElement = HTMLElement & {
   __vueParentComponent?: ComponentInternalInstance;
@@ -124,7 +125,7 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
       }
     }
 
-    currentElement = currentElement.parentElement;
+    currentElement = getParentElementAcrossShadow(currentElement);
   } while (currentElement);
 
   return path;

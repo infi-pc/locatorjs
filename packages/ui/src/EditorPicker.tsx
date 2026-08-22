@@ -1,5 +1,5 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
-import type { BindingAction, Targets } from "@locator/shared";
+import type { EditorSelection, Targets } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
 import { IconButton } from "./IconButton";
@@ -9,6 +9,7 @@ import { Tooltip } from "./Tooltip";
 import { editorIconFor } from "./editorIcons";
 
 const CUSTOM_VALUE = "__custom__";
+const INHERIT_VALUE = "__inherit__";
 
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
@@ -42,11 +43,13 @@ export function EditorPicker(props: {
   targetTemplate?: string;
   disabled?: boolean;
   portalMount?: Node;
+  /**
+   * Offers a "follow the Editor setting" choice, for per-action pickers where
+   * no override is the default.
+   */
+  inheritLabel?: string;
   onChange: (
-    patch: Pick<
-      Extract<BindingAction, { kind: "open-editor" }>,
-      "targetId" | "targetTemplate"
-    >
+    patch: EditorSelection
   ) => void | boolean | Promise<void | boolean>;
 }) {
   const [editing, setEditing] = createSignal(false);
@@ -54,6 +57,15 @@ export function EditorPicker(props: {
   const [saving, setSaving] = createSignal(false);
   let input: HTMLInputElement | undefined;
   const items = createMemo<SelectItem[]>(() => [
+    ...(props.inheritLabel
+      ? [
+          {
+            value: INHERIT_VALUE,
+            label: props.inheritLabel,
+            icon: () => editorIconFor("default"),
+          },
+        ]
+      : []),
     ...Object.entries(props.targets).map(([value, target]) => ({
       value,
       label: target.label,
@@ -65,14 +77,21 @@ export function EditorPicker(props: {
       icon: () => editorIconFor("custom"),
     },
   ]);
-  const value = () =>
-    props.targetTemplate || (props.targetId && !props.targets[props.targetId])
+  const inherited = () =>
+    Boolean(props.inheritLabel) && !props.targetId && !props.targetTemplate;
+  const value = () => {
+    if (inherited()) return INHERIT_VALUE;
+    return props.targetTemplate ||
+      (props.targetId && !props.targets[props.targetId])
       ? CUSTOM_VALUE
       : props.targetId ??
-        (props.targets.vscode ? "vscode" : Object.keys(props.targets)[0]);
+          (props.targets.vscode ? "vscode" : Object.keys(props.targets)[0]);
+  };
   const selectedTemplate = () =>
-    props.targetTemplate ??
-    (value() ? props.targets[value()!]?.url ?? props.targetId ?? "" : "");
+    inherited()
+      ? ""
+      : props.targetTemplate ??
+        (value() ? props.targets[value()!]?.url ?? props.targetId ?? "" : "");
 
   createEffect(() => {
     if (editing()) queueMicrotask(() => input?.focus());
@@ -119,6 +138,9 @@ export function EditorPicker(props: {
         onChange={(next) => {
           if (next === CUSTOM_VALUE) {
             beginEditing();
+          } else if (next === INHERIT_VALUE) {
+            setEditing(false);
+            props.onChange({ targetId: undefined, targetTemplate: undefined });
           } else {
             setEditing(false);
             props.onChange({ targetId: next, targetTemplate: undefined });

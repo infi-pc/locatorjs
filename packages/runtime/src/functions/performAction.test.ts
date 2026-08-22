@@ -41,10 +41,11 @@ function context() {
     },
     options: {
       effective: () => ({
+        editor: { targetId: "vscode" },
         bindings: [
           {
             trigger: { kind: "modifier-click" as const, modifiers: "alt" },
-            action: { kind: "open-editor", targetId: "vscode" as const },
+            action: { kind: "open-editor" as const },
           },
         ],
         projectPath: "/workspace",
@@ -53,6 +54,7 @@ function context() {
     } as OptionsStore,
     showTree: vi.fn(),
     showParents: vi.fn(),
+    requestEditorSetup: vi.fn(),
   };
 }
 
@@ -81,26 +83,46 @@ describe("performAction", () => {
     );
   });
 
-  test("defaults an older editor action without a destination to VS Code", async () => {
+  test("an action without a destination follows the Editor setting", async () => {
     const ctx = context();
     ctx.options = {
       effective: () => ({
-        bindings: [
-          {
-            trigger: { kind: "modifier-click" as const, modifiers: "alt" },
-            action: { kind: "open-editor", targetId: "cursor" },
-          },
-        ],
+        editor: { targetId: "cursor" },
         projectPath: "/workspace",
         hrefTarget: "_self",
       }),
     } as OptionsStore;
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
 
-    await performAction({ kind: "open-editor" }, ctx);
-
+    expect(await performAction({ kind: "open-editor" }, ctx)).toBe(true);
     expect(open).toHaveBeenCalledWith(
-      "vscode://file//workspace/src/Button.tsx:7:3",
+      "cursor://file//workspace/src/Button.tsx:7:3",
+      "_self"
+    );
+  });
+
+  test("asks for an editor instead of opening a guessed destination", async () => {
+    const ctx = context();
+    ctx.options = {
+      effective: () => ({ projectPath: "/workspace", hrefTarget: "_self" }),
+    } as OptionsStore;
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    expect(await performAction({ kind: "open-editor" }, ctx)).toBe(false);
+    expect(open).not.toHaveBeenCalled();
+    expect(ctx.requestEditorSetup).toHaveBeenCalledWith(
+      ctx.element.thisElement.link
+    );
+  });
+
+  test("an editor pinned on the action overrides the Editor setting", async () => {
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    await performAction(
+      { kind: "open-editor", targetTemplate: "zed://file/${filePath}" },
+      context()
+    );
+    expect(open).toHaveBeenCalledWith(
+      "zed://file//workspace/src/Button.tsx",
       "_self"
     );
   });

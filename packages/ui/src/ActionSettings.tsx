@@ -37,6 +37,7 @@ import { Select } from "./Select";
 import { InspectorDialog } from "./InspectorDialog";
 import { InteractionStudio, type StudioSelection } from "./InteractionStudio";
 import { AdvancedSettings, SettingsSources } from "./AdvancedSettings";
+import { EditorSetting } from "./EditorSetting";
 
 export type ActionSettingsScope = {
   layer: LocatorLayer;
@@ -272,7 +273,7 @@ export function ActionSettings(props: {
     if (!canAddBinding(bindings(), triggerKind)) return;
     setInspectorState({
       kind: "draft",
-      binding: createBindingDraft(triggerKind, bindings(), props.targets),
+      binding: createBindingDraft(triggerKind, bindings()),
     });
     setError(undefined);
   };
@@ -348,6 +349,7 @@ export function ActionSettings(props: {
           <ActionInspector
             binding={draftBinding()}
             targets={props.targets}
+            editor={snapshot().effective.editor}
             portalMount={props.inspectorMount ?? props.portalMount}
             draft
             duplicate={hasShortcutConflict(draftBinding(), bindings())}
@@ -364,6 +366,7 @@ export function ActionSettings(props: {
           <ActionInspector
             binding={binding()}
             targets={props.targets}
+            editor={snapshot().effective.editor}
             portalMount={props.inspectorMount ?? props.portalMount}
             duplicate={selectedDuplicate()}
             tryDisabled={props.tryDisabled}
@@ -459,9 +462,17 @@ export function ActionSettings(props: {
 
       <Switch>
         <Match when={route() === "studio"}>
+          <EditorSetting
+            layers={scopedLayers()}
+            layer={currentLayer()}
+            targets={props.targets}
+            portalMount={props.portalMount}
+            write={write}
+          />
           <InteractionStudio
             bindings={bindings()}
             targets={props.targets}
+            editor={snapshot().effective.editor}
             selection={selection()}
             onSelect={(next) => {
               setInspectorState({ kind: "selected", selection: next });

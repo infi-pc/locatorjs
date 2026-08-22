@@ -1,4 +1,9 @@
-import { findDebugSource, findDebugSourceAsync } from "./findDebugSource";
+import {
+  findDebugSource,
+  findDebugSourceAsync,
+  findOwnDebugSource,
+} from "./findDebugSource";
+import { getUsableName } from "../../functions/getUsableName";
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
 import { getFiberLabel } from "./getFiberLabel";
 import { getAllWrappingParents } from "./getAllWrappingParents";
@@ -113,30 +118,37 @@ function getTree(element: HTMLElement): TreeState | null {
   return goUpByTheTree(originalRoot);
 }
 
-function fiberToPathItem(fiber: Fiber): ParentPathItem {
-  const label = getFiberLabel(fiber, findDebugSource(fiber)?.source);
-
-  return {
-    title: label.label,
-    link: label.link,
-  };
-}
-
-function getParentsPaths(element: HTMLElement) {
+/**
+ * Walks the owner chain — who wrote the JSX, not who contains the DOM node —
+ * and reports each step with its own source only. Falling back to an
+ * ancestor's source (as `findDebugSource` does) would make consecutive rows
+ * claim the same file and line.
+ */
+function getParentsPaths(element: HTMLElement): ParentPathItem[] {
   const fiber = findFiberByHtmlElement(element, false);
-  if (fiber) {
-    const pathItems: ParentPathItem[] = [];
-    let currentFiber = fiber;
-    pathItems.push(fiberToPathItem(currentFiber));
+  if (!fiber) return [];
 
-    while (currentFiber._debugOwner) {
-      currentFiber = currentFiber._debugOwner;
-      pathItems.push(fiberToPathItem(currentFiber));
-    }
+  const pathItems: ParentPathItem[] = [];
+  const seen = new Set<Fiber>();
+  let current: Fiber | null = fiber;
 
-    return pathItems;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    const owner: Fiber | null = current._debugOwner || null;
+    const label = getFiberLabel(
+      current,
+      findOwnDebugSource(current) || undefined
+    );
+    pathItems.push({
+      title: label.label,
+      link: label.link,
+      component: owner ? getUsableName(owner) : undefined,
+      kind: "call-site",
+    });
+    current = owner;
   }
-  return [];
+
+  return pathItems;
 }
 
 /**

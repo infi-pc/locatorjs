@@ -1,6 +1,8 @@
 import type { Binding, BindingAction, Targets } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { getParentsPaths } from "../adapters/getParentsPath";
+import type { AdapterId } from "../consts";
+import { buildParentRows } from "../functions/treeViewModel";
 import { ComponentOutline } from "./ComponentOutline";
 import { RenderBoxes } from "./RenderBoxes";
 import Tooltip from "./Tooltip";
@@ -12,7 +14,7 @@ import {
   actionLabel,
 } from "@locator/ui";
 import { Check } from "lucide-solid";
-import { createSignal, For, onCleanup, Show } from "solid-js";
+import { createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 
 const styles = {
   outline: css({
@@ -63,6 +65,7 @@ export function Outline(props: {
     position: { x: number; y: number }
   ) => Promise<boolean>;
   targets: Targets;
+  adapterId?: AdapterId | undefined;
 }) {
   const box = () => props.element.thisElement.box;
 
@@ -186,13 +189,25 @@ export function Outline(props: {
     };
   }
 
-  const parentsWithLinks = () =>
-    getParentsPaths(props.element.htmlElement).filter((parent) => parent.link);
+  // The icon has to agree with the menu about whether there is anything to
+  // show, so it asks the same adapter and applies the same row mapping — and
+  // only when a parents action is actually configured, since walking the fiber
+  // chain is not free on every outline render.
+  const wantsParents = () =>
+    props.bindings.some((binding) => binding.action.kind === "show-parents");
+
+  const parentRows = createMemo(() =>
+    wantsParents()
+      ? buildParentRows(
+          getParentsPaths(props.element.htmlElement, props.adapterId)
+        )
+      : []
+  );
 
   const visibleBindings = () =>
     props.bindings.filter(
       (binding) =>
-        binding.action.kind !== "show-parents" || parentsWithLinks().length > 1
+        binding.action.kind !== "show-parents" || parentRows().length > 1
     );
 
   return (
@@ -201,6 +216,7 @@ export function Outline(props: {
         {domElementInfo() && <RenderBoxes allBoxes={domElementInfo()!} />}
         <div
           class={styles.outline}
+          data-locatorjs-outline="element"
           style={{
             "z-index": 2,
             left: box().x + "px",

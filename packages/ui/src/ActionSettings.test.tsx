@@ -9,6 +9,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -73,11 +74,11 @@ describe("ActionSettings", () => {
       screen.getAllByRole("button", { name: /^Edit action/ })
     ).toHaveLength(4);
     expect(screen.getByLabelText(/(Option|Alt) \+ Click/)).toBeTruthy();
-    expect(screen.getAllByText("Open in VS Code")).toHaveLength(1);
+    expect(screen.getAllByText("Open in editor")).toHaveLength(1);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     const firstAction = screen.getByRole("button", {
-      name: "Edit action 1: Open in VS Code",
+      name: "Edit action 1: Open in editor",
     });
     expect(firstAction.getAttribute("aria-pressed")).toBe("false");
 
@@ -85,7 +86,7 @@ describe("ActionSettings", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     expect(firstAction.getAttribute("aria-pressed")).toBe("true");
     expect(
-      screen.getByRole("heading", { name: "Open in VS Code" })
+      screen.getByRole("heading", { name: "Open in editor" })
     ).toBeTruthy();
     expect(screen.getByLabelText("Selected interaction editor")).toBeTruthy();
 
@@ -114,7 +115,7 @@ describe("ActionSettings", () => {
     render(() => <Harness inspectorMount={host} />);
 
     await screen
-      .getByRole("button", { name: "Edit action 1: Open in VS Code" })
+      .getByRole("button", { name: "Edit action 1: Open in editor" })
       .click();
 
     const dialog = screen.getByRole("dialog");
@@ -122,7 +123,7 @@ describe("ActionSettings", () => {
     expect(dialog.parentElement?.parentElement?.parentElement).toBe(host);
   });
 
-  test("edits an action-owned editor and never writes a global editor", async () => {
+  test("pinning an editor on an action writes only that action", async () => {
     const write = vi.fn(async (patch: Partial<LocatorOptions>) => {
       void patch;
       return { ok: true as const };
@@ -136,12 +137,14 @@ describe("ActionSettings", () => {
     ));
 
     await screen
-      .getByRole("button", { name: "Edit action 1: Open in VS Code" })
+      .getByRole("button", { name: "Edit action 1: Open in editor" })
       .click();
-    await screen.getByRole("combobox", { name: "Editor" }).click();
-    const listbox = await screen.findByRole("listbox");
-    await fireEvent.keyDown(listbox, { key: "ArrowDown" });
-    await fireEvent.keyDown(listbox, { key: "Enter" });
+    // Scoped to the drawer: the surface also carries the global Editor field.
+    const dialog = screen.getByRole("dialog");
+    await within(dialog).getByRole("combobox", { name: "Editor" }).click();
+    await fireEvent.click(
+      await screen.findByRole("option", { name: /WebStorm/ })
+    );
 
     expect(write).toHaveBeenLastCalledWith({
       bindings: expect.arrayContaining([
@@ -151,16 +154,58 @@ describe("ActionSettings", () => {
       ]),
       mouseModifiers: undefined,
     });
-    expect(
-      write.mock.calls.flatMap(([patch]) => Object.keys(patch))
-    ).not.toContain("targetId");
+    // The action carries the override; the global setting is left alone.
+    const writtenKeys = write.mock.calls.flatMap(([patch]) =>
+      Object.keys(patch)
+    );
+    expect(writtenKeys).not.toContain("targetId");
+    expect(writtenKeys).not.toContain("editor");
+  });
+
+  test("an action can be handed back to the global Editor setting", async () => {
+    const write = vi.fn(async (patch: Partial<LocatorOptions>) => {
+      void patch;
+      return { ok: true as const };
+    });
+    const pinned: Binding[] = [
+      {
+        trigger: { kind: "modifier-click", modifiers: "alt" },
+        action: { kind: "open-editor", targetId: "webstorm" },
+      },
+    ];
+    render(() => (
+      <ActionSettings
+        layers={{ default: DEFAULT_LAYER, "user-origin": { bindings: pinned } }}
+        scopes={[{ layer: "user-origin", label: "This origin", write }]}
+        targets={targets}
+      />
+    ));
+
+    await screen
+      .getByRole("button", { name: "Edit action 1: Open in WebStorm" })
+      .click();
+    const dialog = screen.getByRole("dialog");
+    await within(dialog).getByRole("combobox", { name: "Editor" }).click();
+    await fireEvent.click(
+      await screen.findByRole("option", { name: /^Editor setting/ })
+    );
+
+    expect(write).toHaveBeenLastCalledWith({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: "alt" },
+          action: { kind: "open-editor" },
+        },
+      ],
+      mouseModifiers: undefined,
+    });
   });
 
   test("shows an icon for the selected action and every action choice", async () => {
     render(() => <Harness />);
 
     await screen
-      .getByRole("button", { name: "Edit action 1: Open in VS Code" })
+      .getByRole("button", { name: "Edit action 1: Open in editor" })
       .click();
     const trigger = screen.getByRole("combobox", { name: "Action" });
     expect(trigger.querySelectorAll("svg, img").length).toBeGreaterThanOrEqual(
@@ -274,7 +319,13 @@ describe("ActionSettings", () => {
         }) as HTMLTextAreaElement
       ).value
     ).toBe("Explain ${filePath}");
-    expect(screen.queryByRole("combobox", { name: "Editor" })).toBeNull();
+    // A prompt action has no destination to pick, so the drawer shows no
+    // editor field — the global one on the surface behind it is not it.
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("combobox", {
+        name: "Editor",
+      })
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: /(Option|Alt)/ })).toBeNull();
 
     await screen.getByRole("button", { name: "Remove" }).click();

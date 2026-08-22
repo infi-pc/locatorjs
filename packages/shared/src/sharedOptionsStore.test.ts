@@ -99,13 +99,13 @@ describe("clearUserOriginOptions", () => {
 
     expect(getUserOriginOptions().bindings?.[0]).toEqual({
       trigger: { kind: "modifier-click", modifiers: "meta" },
-      action: { kind: "open-editor", targetId: "vscode" },
+      action: { kind: "open-editor" },
     });
     expect(JSON.parse(localStorage.getItem(USER_ORIGIN_STORAGE_KEY)!)).toEqual({
       bindings: [
         {
           trigger: { kind: "modifier-click", modifiers: "meta" },
-          action: { kind: "open-editor", targetId: "vscode" },
+          action: { kind: "open-editor" },
         },
         {
           trigger: { kind: "hover-toolbar" },

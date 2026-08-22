@@ -1,4 +1,5 @@
 import {
+  needsEditorSetup,
   resolveBindingTarget,
   resolveFilePath,
   type BindingAction,
@@ -6,6 +7,7 @@ import {
 } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { HREF_TARGET } from "../consts";
+import type { LinkProps } from "../types/types";
 import type { OptionsStore } from "./optionsStore";
 import { buildLink } from "./buildLink";
 import { buildPrompt, buildPromptDeeplink } from "./buildPrompt";
@@ -18,6 +20,11 @@ export type ActionContext = {
   showTree: (element: HTMLElement) => void;
   showParents: (element: HTMLElement, x: number, y: number) => void;
   parentsPosition?: { x: number; y: number };
+  /**
+   * Called instead of navigating when no editor is configured, so the click
+   * asks the user to pick one rather than opening a link that goes nowhere.
+   */
+  requestEditorSetup?: (link: LinkProps) => void;
 };
 
 export async function performAction(
@@ -30,7 +37,15 @@ export async function performAction(
   switch (action.kind) {
     case "open-editor": {
       if (!link) return false;
-      const target = resolveBindingTarget(action, targets);
+      const target = resolveBindingTarget(
+        action,
+        targets,
+        options.effective().editor
+      );
+      if (needsEditorSetup(target)) {
+        context.requestEditorSetup?.(link);
+        return false;
+      }
       const destination = buildLink(
         link,
         targets,

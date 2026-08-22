@@ -10,15 +10,10 @@ import {
   duplicateShortcutModifiers,
   globalIndexForTrigger,
   hasShortcutConflict,
+  clearPrimaryEditorOverride,
   insertBinding,
   nextAvailableModifiers,
-  replacePrimaryEditorBinding,
 } from "./bindingEditorModel";
-
-const targets = {
-  cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
-  vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
-};
 
 const bindings: Binding[] = [
   {
@@ -29,23 +24,18 @@ const bindings: Binding[] = [
 ];
 
 describe("binding editor model", () => {
-  test("uses VS Code, the first target, or target resolution fallback", () => {
-    expect(defaultBindingAction("open-editor", targets)).toEqual({
-      kind: "open-editor",
-      targetId: "vscode",
-    });
-    expect(
-      defaultBindingAction("open-editor", {
-        cursor: targets.cursor,
-        webstorm: {
-          label: "WebStorm",
-          url: "webstorm://open?file=${filePath}",
-        },
-      })
-    ).toEqual({ kind: "open-editor", targetId: "cursor" });
-    expect(defaultBindingAction("open-editor", {})).toEqual({
+  test("creates actions without an editor override", () => {
+    // A bare open-editor action follows the global Editor setting; pinning a
+    // target is something the user has to do deliberately.
+    expect(defaultBindingAction("open-editor")).toEqual({
       kind: "open-editor",
     });
+    expect(defaultBindingAction("show-tree")).toEqual({ kind: "show-tree" });
+    expect(defaultBindingAction("open-prompt")).toEqual({
+      kind: "open-prompt",
+      app: "cursor",
+    });
+    expect(defaultBindingAction("nonsense")).toEqual({ kind: "open-editor" });
   });
 
   test("groups bindings while retaining their global positions", () => {
@@ -57,8 +47,8 @@ describe("binding editor model", () => {
   });
 
   test("inserts bindings in modifier then toolbar order", () => {
-    const toolbar = createBindingDraft("hover-toolbar", bindings, targets);
-    const modifier = createBindingDraft("modifier-click", bindings, targets);
+    const toolbar = createBindingDraft("hover-toolbar", bindings);
+    const modifier = createBindingDraft("modifier-click", bindings);
     expect(modifier.trigger).toEqual({
       kind: "modifier-click",
       modifiers: "alt+shift",
@@ -99,21 +89,31 @@ describe("binding editor model", () => {
     );
   });
 
-  test("replaces only the primary editor binding", () => {
-    expect(
-      replacePrimaryEditorBinding(bindings, { targetId: "cursor" })
-    ).toEqual([
+  test("clears the override on the primary editor binding only", () => {
+    expect(clearPrimaryEditorOverride(bindings)).toEqual([
       {
         trigger: { kind: "modifier-click", modifiers: "alt" },
-        action: { kind: "open-editor", targetId: "cursor" },
+        action: { kind: "open-editor" },
       },
       bindings[1],
     ]);
+  });
+
+  test("leaves bindings alone when there is nothing to clear", () => {
+    // No editor binding at all…
     expect(
-      replacePrimaryEditorBinding(
-        [{ trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } }],
-        { targetId: "cursor" }
-      )
+      clearPrimaryEditorOverride([
+        { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
+      ])
+    ).toBeUndefined();
+    // …and one that already follows the Editor setting.
+    expect(
+      clearPrimaryEditorOverride([
+        {
+          trigger: { kind: "modifier-click", modifiers: "alt" },
+          action: { kind: "open-editor" },
+        },
+      ])
     ).toBeUndefined();
   });
 });

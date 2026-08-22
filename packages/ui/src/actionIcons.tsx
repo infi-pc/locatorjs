@@ -1,6 +1,8 @@
 import {
+  hasEditorOverride,
   resolveBindingTarget,
   type BindingAction,
+  type EditorSelection,
   type Targets,
 } from "@locator/shared";
 import {
@@ -64,16 +66,20 @@ export function actionTypeIconFor(kind: BindingAction["kind"]) {
   }
 }
 
-export function actionIconFor(action: BindingAction, targets?: Targets) {
+export function actionIconFor(
+  action: BindingAction,
+  targets?: Targets,
+  editor?: EditorSelection
+) {
   switch (action.kind) {
     case "open-editor": {
       if (action.targetTemplate) return editorIconFor("custom");
       if (targets) {
-        const target = resolveBindingTarget(action, targets);
+        const target = resolveBindingTarget(action, targets, editor);
         if (target.kind === "template") return editorIconFor("custom");
         return editorIconFor(target.id || "default");
       }
-      return editorIconFor(action.targetId ?? "default");
+      return editorIconFor(action.targetId ?? editor?.targetId ?? "default");
     }
     case "copy-path":
       return actionTypeIconFor(action.kind);
@@ -90,18 +96,25 @@ export function actionIconFor(action: BindingAction, targets?: Targets) {
   }
 }
 
-export function actionLabel(action: BindingAction, targets?: Targets): string {
+export function actionLabel(
+  action: BindingAction,
+  targets?: Targets,
+  editor?: EditorSelection
+): string {
   switch (action.kind) {
     case "open-editor": {
+      // Actions without an override follow the global Editor setting, so the
+      // label stays generic; only a pinned destination names an editor.
+      if (!hasEditorOverride(action)) return "Open in editor";
       if (targets) {
-        const target = resolveBindingTarget(action, targets);
+        const target = resolveBindingTarget(action, targets, editor);
         if (target.kind === "template") return "Open custom editor link";
         return `Open in ${
           targets[target.id]?.label ?? (target.id || "editor")
         }`;
       }
       if (action.targetTemplate) return "Open custom editor link";
-      return action.targetId ? `Open in ${action.targetId}` : "Open in editor";
+      return `Open in ${action.targetId}`;
     }
     case "copy-path":
       return "Copy path";

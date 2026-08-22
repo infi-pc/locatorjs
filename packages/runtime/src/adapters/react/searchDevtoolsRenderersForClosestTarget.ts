@@ -1,4 +1,5 @@
 import { findFiberByHtmlElement } from "./findFiberByHtmlElement";
+import { getParentElementAcrossShadow } from "../../functions/domTraversal";
 
 export function searchDevtoolsRenderersForClosestTarget(
   target: HTMLElement
@@ -8,7 +9,7 @@ export function searchDevtoolsRenderersForClosestTarget(
     if (findFiberByHtmlElement(closest, false)) {
       return closest;
     }
-    closest = closest.parentElement;
+    closest = getParentElementAcrossShadow(closest);
   }
 
   return null;

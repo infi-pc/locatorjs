@@ -3,10 +3,13 @@ import {
   DEFAULT_LAYER,
   LocatorLayer,
   LocatorOptions,
+  hasEditorOverride,
+  needsEditorSetup,
   resolve,
   normalizeLayer,
   primaryEditorBinding,
   resolveBindingTarget,
+  resolveEditorTarget,
   resolveTarget,
 } from "./layeredOptions";
 import type { Targets } from "./index";
@@ -89,12 +92,25 @@ describe("resolve – value semantics", () => {
 
   test("DEFAULT_LAYER provides the legacy-equivalent bindings", () => {
     const { effective, provenance } = resolve({ default: DEFAULT_LAYER });
+    // The default editor action carries no target: it follows the global
+    // Editor setting, which the same layer defaults to VS Code.
     expect(effective.bindings?.[0]).toEqual({
       trigger: { kind: "modifier-click", modifiers: "alt" },
-      action: { kind: "open-editor", targetId: "vscode" },
+      action: { kind: "open-editor" },
     });
+    expect(effective.editor).toEqual({ targetId: "vscode" });
     expect(effective.bindings).toHaveLength(4);
     expect(provenance.bindings).toBe("default");
+    expect(provenance.editor).toBe("default");
+  });
+
+  test("editor is atomic: a higher layer replaces both fields", () => {
+    const { effective, provenance } = resolve({
+      default: DEFAULT_LAYER,
+      team: { editor: { targetTemplate: "team://${filePath}" } },
+    });
+    expect(effective.editor).toEqual({ targetTemplate: "team://${filePath}" });
+    expect(provenance.editor).toBe("team");
   });
 });
 
@@ -125,7 +141,7 @@ describe("bindings compatibility", () => {
     expect(normalized.bindings).toEqual([
       {
         trigger: { kind: "modifier-click", modifiers: "alt+shift" },
-        action: { kind: "open-editor", targetId: "vscode" },
+        action: { kind: "open-editor" },
       },
       { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
       {
@@ -165,7 +181,7 @@ describe("bindings compatibility", () => {
     });
     expect(result.effective.bindings?.[0]).toEqual({
       trigger: { kind: "modifier-click", modifiers: "ctrl" },
-      action: { kind: "open-editor", targetId: "vscode" },
+      action: { kind: "open-editor" },
     });
     expect(result.effective.bindings).toHaveLength(4);
     expect(result.provenance.bindings).toBe("user-origin");
@@ -211,14 +227,60 @@ describe("bindings compatibility", () => {
     ).toMatchObject({ kind: "targetId", id: "cursor" });
   });
 
-  test("an editor binding without a target prefers VSCode", () => {
+  test("an editor binding without a target follows the Editor setting", () => {
     const targets: Targets = {
       cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
       vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
     };
     expect(
-      resolveBindingTarget({ kind: "open-editor" }, targets)
+      resolveBindingTarget({ kind: "open-editor" }, targets, {
+        targetId: "vscode",
+      })
     ).toMatchObject({ kind: "targetId", id: "vscode" });
+    // An override on the action wins over the setting.
+    expect(
+      resolveBindingTarget(
+        { kind: "open-editor", targetId: "cursor" },
+        targets,
+        {
+          targetId: "vscode",
+        }
+      )
+    ).toMatchObject({ kind: "targetId", id: "cursor" });
+  });
+
+  test("an unconfigured editor resolves to a fallback that needs setup", () => {
+    const targets: Targets = {
+      cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
+      vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
+    };
+    // Nothing chosen anywhere: the destination would be a guess, so callers
+    // are told to ask the user rather than opening the first target blindly.
+    const unset = resolveBindingTarget({ kind: "open-editor" }, targets);
+    expect(unset).toMatchObject({ kind: "fallback", reason: "none-selected" });
+    expect(needsEditorSetup(unset)).toBe(true);
+
+    // A configured editor is a choice, not a guess.
+    expect(
+      needsEditorSetup(resolveEditorTarget({ targetId: "cursor" }, targets))
+    ).toBe(false);
+    // So is an id that no longer exists — but it still reports as a fallback.
+    const unknown = resolveEditorTarget({ targetId: "nope" }, targets);
+    expect(unknown).toMatchObject({ kind: "fallback", reason: "unknown-id" });
+    expect(needsEditorSetup(unknown)).toBe(true);
+  });
+
+  test("hasEditorOverride distinguishes pinned actions from following ones", () => {
+    expect(hasEditorOverride({ kind: "open-editor" })).toBe(false);
+    expect(hasEditorOverride({ kind: "open-editor", targetId: "cursor" })).toBe(
+      true
+    );
+    expect(
+      hasEditorOverride({
+        kind: "open-editor",
+        targetTemplate: "x://${filePath}",
+      })
+    ).toBe(true);
   });
 });
 

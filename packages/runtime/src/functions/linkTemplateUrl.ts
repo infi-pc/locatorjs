@@ -1,37 +1,66 @@
 import {
-  Targets,
-  primaryEditorBinding,
+  needsEditorSetup,
   resolveBindingTarget,
+  resolveEditorTarget,
+  type ResolvedTarget,
+  type Targets,
 } from "@locator/shared";
 import { OptionsStore } from "./optionsStore";
 
-export const getLinkTypeOrTemplate = (
+/**
+ * Where source links open for surfaces that are not tied to a single binding
+ * (the tree panel, the parents menu, the welcome screen preview). They follow
+ * the global Editor setting rather than guessing from the bindings list.
+ */
+export function resolveEditorLink(
   targets: Targets,
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
-) => {
-  if (localLinkTypeOrTemplate) return localLinkTypeOrTemplate;
-  const binding = primaryEditorBinding(options.effective().bindings);
-  if (binding?.action.kind === "open-editor") {
-    const resolved = resolveBindingTarget(binding.action, targets);
-    return resolved.kind === "template" ? resolved.url : resolved.id;
+): ResolvedTarget {
+  if (localLinkTypeOrTemplate) {
+    const target = targets[localLinkTypeOrTemplate];
+    return target
+      ? {
+          kind: "targetId",
+          id: localLinkTypeOrTemplate,
+          url: target.url,
+        }
+      : { kind: "template", url: localLinkTypeOrTemplate };
   }
-  return targets.vscode ? "vscode" : Object.entries(targets)[0]?.[0] ?? "";
-};
+  return resolveEditorTarget(options.effective().editor, targets);
+}
+
+/**
+ * True when we would be guessing the destination. Callers ask the user to pick
+ * an editor instead of opening a link that goes nowhere.
+ */
+export function editorNeedsSetup(
+  targets: Targets,
+  options: OptionsStore,
+  localLinkTypeOrTemplate?: string
+): boolean {
+  return needsEditorSetup(
+    resolveEditorLink(targets, options, localLinkTypeOrTemplate)
+  );
+}
 
 export function linkTemplateUrl(
   targets: Targets,
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): string {
-  if (localLinkTypeOrTemplate) {
-    const target = targets[localLinkTypeOrTemplate];
-    return target ? target.url : localLinkTypeOrTemplate;
-  }
-  const binding = primaryEditorBinding(options.effective().bindings);
-  if (binding?.action.kind === "open-editor") {
-    return resolveBindingTarget(binding.action, targets).url;
-  }
-  if (targets.vscode) return targets.vscode.url;
-  return Object.entries(targets)[0]?.[1].url ?? "";
+  return resolveEditorLink(targets, options, localLinkTypeOrTemplate).url;
+}
+
+/** Resolves the destination of a single `open-editor` action. */
+export function actionTargetUrl(
+  action: { targetId?: string; targetTemplate?: string },
+  targets: Targets,
+  options: OptionsStore
+): ResolvedTarget {
+  return resolveBindingTarget(
+    { kind: "open-editor", ...action },
+    targets,
+    options.effective().editor
+  );
 }

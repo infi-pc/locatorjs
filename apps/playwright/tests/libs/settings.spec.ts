@@ -71,13 +71,13 @@ test("action settings persist editor-owned and advanced origin values", async ({
   await trackDrawerHostScroll(settingsPanel);
 
   const firstAction = page.getByRole("button", {
-    name: "Edit action 1: Open in VSCode",
+    name: "Edit action 1: Open in editor",
   });
   await expect(firstAction).toHaveAttribute("aria-pressed", "false");
   await firstAction.click();
   await expect(firstAction).toHaveAttribute("aria-pressed", "true");
   await expect(
-    page.getByRole("heading", { name: "Open in VSCode" })
+    page.getByRole("heading", { name: "Open in editor" })
   ).toBeVisible();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
@@ -97,9 +97,14 @@ test("action settings persist editor-owned and advanced origin values", async ({
     page.getByText("Live link preview", { exact: true })
   ).toHaveCount(0);
 
-  const editor = page.getByRole("combobox", { name: "Editor" });
+  // Scoped to the drawer: the settings surface also carries the global Editor
+  // field, and picking there would change the setting, not this action.
+  const editor = dialog.getByRole("combobox", { name: "Editor" });
   await editor.click();
-  await page.getByRole("option", { name: "WebStorm" }).click();
+  await page
+    .getByRole("option")
+    .filter({ hasText: /^WebStorm$/ })
+    .click();
 
   await expect
     .poll(() =>
@@ -250,10 +255,14 @@ test("Advanced contains source inspection and infrequent settings", async ({
   await expect(
     page.getByRole("button", { name: "Back to interactions" })
   ).toBeVisible();
+  // Both of these live in foldable sections that start collapsed.
+  await page.getByText("Configuration sources", { exact: true }).click();
   await expect(page.getByText("This origin", { exact: true })).toBeVisible();
   await expect(page.getByText("Extension", { exact: true })).toBeVisible();
   await expect(page.getByText("Team", { exact: true })).toBeVisible();
   await expect(page.getByText("Default", { exact: true }).last()).toBeVisible();
+
+  await page.getByText("Diagnostics", { exact: true }).click();
   await expect(
     page.getByRole("checkbox", { name: "Debug mode" })
   ).toBeVisible();

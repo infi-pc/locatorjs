@@ -70,7 +70,7 @@ describe('Popup settings navigation', () => {
     ).toHaveLength(4);
 
     await screen
-      .getByRole('button', { name: 'Edit action 1: Open in VSCode' })
+      .getByRole('button', { name: 'Edit action 1: Open in editor' })
       .click();
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByLabelText('Selected interaction editor')).toBeTruthy();
@@ -78,7 +78,7 @@ describe('Popup settings navigation', () => {
       screen.getByRole('combobox', { name: 'Settings scope' }).textContent
     ).toContain('This site');
     expect(
-      screen.getByRole('heading', { name: 'Open in VSCode' })
+      screen.getByRole('heading', { name: 'Open in editor' })
     ).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Advanced settings' })
@@ -120,7 +120,7 @@ describe('Popup settings navigation', () => {
     await fireEvent.keyDown(listbox, { key: 'Escape' });
 
     await screen
-      .getByRole('button', { name: 'Edit action 1: Open in VSCode' })
+      .getByRole('button', { name: 'Edit action 1: Open in editor' })
       .click();
     expect(screen.getByRole('dialog')).toBeTruthy();
   });

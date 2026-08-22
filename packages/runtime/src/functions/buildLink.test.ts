@@ -16,16 +16,12 @@ function createMockOptions(effective: LocatorOptions): OptionsStore {
   };
 }
 
+/**
+ * Links built without an explicit target follow the global Editor setting, so
+ * that — not the bindings list — is what these cases configure.
+ */
 function editorOptions(targetId: string, options: LocatorOptions = {}) {
-  return createMockOptions({
-    ...options,
-    bindings: [
-      {
-        trigger: { kind: "modifier-click", modifiers: "alt" },
-        action: { kind: "open-editor", targetId },
-      },
-    ],
-  });
+  return createMockOptions({ ...options, editor: { targetId } });
 }
 
 const targets = {
@@ -147,22 +143,32 @@ describe("buildLink - optional query parameters", () => {
     );
   });
 
-  test("uses the primary modifier editor for links outside direct actions", () => {
+  test("uses the Editor setting for links outside direct actions", () => {
+    // An editor pinned on a binding is that binding's business; the tree, the
+    // parents menu and the welcome preview follow the global setting.
     const result = buildLink(
       linkProps,
       allTargets,
       createMockOptions({
+        editor: { targetId: "webstorm" },
         bindings: [
           {
-            trigger: { kind: "hover-toolbar" },
-            action: { kind: "open-editor", targetId: "cursor" },
-          },
-          {
             trigger: { kind: "modifier-click", modifiers: "alt" },
-            action: { kind: "open-editor", targetId: "webstorm" },
+            action: { kind: "open-editor", targetId: "cursor" },
           },
         ],
       })
+    );
+
+    expect(result).toContain("webstorm://open");
+  });
+
+  test("an explicit target beats the Editor setting", () => {
+    const result = buildLink(
+      linkProps,
+      allTargets,
+      createMockOptions({ editor: { targetId: "vscode" } }),
+      "webstorm"
     );
 
     expect(result).toContain("webstorm://open");

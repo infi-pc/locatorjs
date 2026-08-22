@@ -1,6 +1,7 @@
 export const projects = {
   web: "http://localhost:3342/",
   react: "http://localhost:3343/",
+  reactEmbedding: "http://localhost:3343/embedding.html",
   solid: "http://localhost:3345/",
   preact: "http://localhost:3346/",
   svelte: "http://localhost:3347/",

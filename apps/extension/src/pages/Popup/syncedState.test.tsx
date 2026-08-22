@@ -82,12 +82,17 @@ describe('SyncedStateProvider', () => {
       tmuxSession: 'work',
     });
 
-    expect(mocks.tabsSendMessage).toHaveBeenCalledWith(42, {
-      from: 'popup',
-      subject: 'applySiteLocal',
-      patch: { tmuxSession: 'work' },
-      unset: ['projectPath'],
-    });
+    expect(mocks.tabsSendMessage).toHaveBeenCalledWith(
+      42,
+      {
+        from: 'popup',
+        subject: 'applySiteLocal',
+        patch: { tmuxSession: 'work' },
+        unset: ['projectPath'],
+      },
+      // The content script runs in every frame; only the top one is addressed.
+      { frameId: 0 }
+    );
   });
 
   test('strips undefined values before writing extension storage', async () => {
@@ -116,11 +121,15 @@ describe('SyncedStateProvider', () => {
         ok: true,
       }
     );
-    expect(mocks.tabsSendMessage).toHaveBeenCalledWith(42, {
-      from: 'popup',
-      subject: 'tryAction',
-      action: { kind: 'copy-path' },
-    });
+    expect(mocks.tabsSendMessage).toHaveBeenCalledWith(
+      42,
+      {
+        from: 'popup',
+        subject: 'tryAction',
+        action: { kind: 'copy-path' },
+      },
+      { frameId: 0 }
+    );
   });
 
   test('migrates legacy extension modifiers in storage changes', async () => {
@@ -138,7 +147,7 @@ describe('SyncedStateProvider', () => {
     expect(syncedState.userExtension().mouseModifiers).toBeUndefined();
     expect(syncedState.userExtension().bindings?.[0]).toEqual({
       trigger: { kind: 'modifier-click', modifiers: 'meta' },
-      action: { kind: 'open-editor', targetId: 'vscode' },
+      action: { kind: 'open-editor' },
     });
     expect(mocks.storageSet).toHaveBeenCalledWith({
       userOptions: expect.objectContaining({

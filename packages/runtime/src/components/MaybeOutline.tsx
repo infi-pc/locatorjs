@@ -48,11 +48,13 @@ export function MaybeOutline(props: {
           bindings={props.bindings}
           performAction={props.performAction}
           targets={props.targets}
+          adapterId={props.adapterId}
         />
       ) : (
         <div class={styles.viewport}>
           <div
             class={styles.missing}
+            data-locatorjs-outline="no-source"
             style={{
               position: "absolute",
               left: box().x + "px",

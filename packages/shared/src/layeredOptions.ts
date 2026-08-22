@@ -2,6 +2,15 @@ import type { Targets } from "./index";
 
 export type PromptApp = "cursor" | "windsurf";
 
+/**
+ * Where source links open. Used by the global `editor` option and, as an
+ * override, by individual `open-editor` actions.
+ */
+export type EditorSelection = {
+  targetId?: string;
+  targetTemplate?: string;
+};
+
 export type BindingAction =
   | { kind: "open-editor"; targetId?: string; targetTemplate?: string }
   | { kind: "copy-path" }
@@ -23,6 +32,12 @@ export type LocatorOptions = {
   adapterId?: string;
   projectPath?: string;
   replacePath?: { from: string; to: string };
+  /**
+   * The single destination every source link opens in, unless an individual
+   * `open-editor` action overrides it. Atomic: a layer that sets it replaces
+   * both fields from lower layers.
+   */
+  editor?: EditorSelection;
   bindings?: Binding[];
   /** @deprecated Use bindings instead. Kept as an input for compatibility. */
   mouseModifiers?: string;
@@ -54,10 +69,11 @@ export const LAYER_ORDER: LocatorLayer[] = [
 ];
 
 export const DEFAULT_LAYER: LocatorOptions = {
+  editor: { targetId: "vscode" },
   bindings: [
     {
       trigger: { kind: "modifier-click", modifiers: "alt" },
-      action: { kind: "open-editor", targetId: "vscode" },
+      action: { kind: "open-editor" },
     },
     { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
     {
@@ -143,7 +159,7 @@ export function normalizeLayer(options: LocatorOptions = {}): LocatorOptions {
                 kind: "modifier-click" as const,
                 modifiers: mouseModifiers,
               },
-              action: { kind: "open-editor", targetId: "vscode" } as const,
+              action: { kind: "open-editor" } as const,
             },
           ]
         : []),
@@ -184,21 +200,45 @@ export function resolve(
   return { effective, provenance };
 }
 
+/**
+ * True when the action pins its own destination instead of following the
+ * global Editor setting.
+ */
+export function hasEditorOverride(
+  action: Extract<BindingAction, { kind: "open-editor" }>
+): boolean {
+  return Boolean(action.targetId || action.targetTemplate);
+}
+
+/**
+ * Resolves where an `open-editor` action opens: its own override when it has
+ * one, otherwise the global Editor setting.
+ */
 export function resolveBindingTarget(
   action: Extract<BindingAction, { kind: "open-editor" }>,
+  targets: Targets,
+  editor?: EditorSelection
+): ResolvedTarget {
+  if (hasEditorOverride(action)) {
+    return resolveTarget(action, targets);
+  }
+  return resolveEditorTarget(editor, targets);
+}
+
+/** Resolves the global Editor setting. */
+export function resolveEditorTarget(
+  editor: EditorSelection | undefined,
   targets: Targets
 ): ResolvedTarget {
-  return resolveTarget(
-    {
-      targetId:
-        action.targetId ??
-        (action.targetTemplate === undefined && targets.vscode
-          ? "vscode"
-          : undefined),
-      targetTemplate: action.targetTemplate,
-    },
-    targets
-  );
+  return resolveTarget(editor ?? {}, targets);
+}
+
+/**
+ * True when a resolved target is a guess rather than a choice, so callers can
+ * ask the user to pick an editor instead of opening a link that goes nowhere.
+ */
+export function needsEditorSetup(resolved: ResolvedTarget): boolean {
+  return resolved.kind === "fallback";
 }
 
 export function primaryEditorBinding(

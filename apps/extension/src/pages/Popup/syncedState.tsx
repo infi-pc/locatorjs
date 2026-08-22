@@ -19,6 +19,8 @@ import {
 import browser from '../../browser';
 
 const USER_OPTIONS_KEY = 'userOptions';
+/** The tab's main document. Content scripts also run in every iframe. */
+const TOP_FRAME_ID = 0;
 
 export type Snapshot = {
   effective: LocatorOptions;
@@ -84,10 +86,16 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         setSnapshot(null);
         return;
       }
-      const response = (await browser.tabs.sendMessage(currentTab.id, {
-        from: 'popup',
-        subject: 'requestSnapshot',
-      })) as
+      const response = (await browser.tabs.sendMessage(
+        currentTab.id,
+        {
+          from: 'popup',
+          subject: 'requestSnapshot',
+        },
+        // The content script runs in every frame; the popup only ever talks to
+        // the top-level document.
+        { frameId: TOP_FRAME_ID }
+      )) as
         | { ok: true; snapshot: Snapshot }
         | { ok: false; reason: string }
         | undefined;
@@ -143,12 +151,16 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
           return { ok: false, reason: 'blocked' };
         }
         const serialized = serializePatch(patch);
-        const response = (await browser.tabs.sendMessage(currentTab.id, {
-          from: 'popup',
-          subject: 'applySiteLocal',
-          patch: serialized.patch,
-          unset: serialized.unset,
-        })) as WriteResult | undefined;
+        const response = (await browser.tabs.sendMessage(
+          currentTab.id,
+          {
+            from: 'popup',
+            subject: 'applySiteLocal',
+            patch: serialized.patch,
+            unset: serialized.unset,
+          },
+          { frameId: TOP_FRAME_ID }
+        )) as WriteResult | undefined;
         if (!response) {
           return { ok: false, reason: 'blocked' };
         }
@@ -198,9 +210,9 @@ async function sendToActiveTab<T>(message: Record<string, unknown>) {
     });
     const currentTab = tabs[0];
     if (!currentTab?.id) return undefined;
-    return (await browser.tabs.sendMessage(currentTab.id, message)) as
-      | T
-      | undefined;
+    return (await browser.tabs.sendMessage(currentTab.id, message, {
+      frameId: TOP_FRAME_ID,
+    })) as T | undefined;
   } catch {
     return undefined;
   }

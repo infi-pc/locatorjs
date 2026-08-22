@@ -8,6 +8,7 @@ import {
 } from "../adapterApi";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import { getParentElementAcrossShadow } from "../../functions/domTraversal";
 
 type SvelteLoc = {
   char: number;
@@ -92,7 +93,7 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
       }
     }
 
-    currentElement = currentElement.parentElement;
+    currentElement = getParentElementAcrossShadow(currentElement);
     maxDepth--;
     if (maxDepth < 0) {
       break;

@@ -4,6 +4,7 @@ import { getReferenceId } from "../functions/getReferenceId";
 import nonNullable from "../functions/nonNullable";
 import { TreeNode, TreeNodeComponent } from "../types/TreeNode";
 import { SimpleDOMRect } from "../types/types";
+import { getParentElementAcrossShadow } from "../functions/domTraversal";
 
 export class HtmlElementTreeNode implements TreeNode {
   type = "element" as const;
@@ -35,9 +36,10 @@ export class HtmlElementTreeNode implements TreeNode {
       .filter(nonNullable);
   }
   getParent(): TreeNode | null {
-    if (this.element.parentElement) {
+    const parent = getParentElementAcrossShadow(this.element);
+    if (parent) {
       // @ts-ignore
-      return new this.constructor(this.element.parentElement);
+      return new this.constructor(parent);
     } else {
       return null;
     }

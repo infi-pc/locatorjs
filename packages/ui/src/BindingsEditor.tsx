@@ -9,6 +9,7 @@ import {
   type Binding,
   type BindingAction,
   type BindingTrigger,
+  type EditorSelection,
   type Targets,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
@@ -16,6 +17,7 @@ import { Copy, Plus, Trash2 } from "lucide-solid";
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { Button } from "./Button";
 import { EditorPicker } from "./EditorPicker";
+import { editorSettingLabel } from "./EditorSetting";
 import { IconButton } from "./IconButton";
 import { ModifierChips } from "./ModifierChips";
 import { Select } from "./Select";
@@ -79,6 +81,7 @@ const styles = {
 export function BindingsEditor(props: {
   value: Binding[];
   targets: Targets;
+  editor?: EditorSelection;
   portalMount?: Node;
   /** Trigger groups to show. Defaults to all of them. */
   triggers?: BindingTrigger["kind"][];
@@ -100,7 +103,7 @@ export function BindingsEditor(props: {
     props.onChange(props.value.filter((_, itemIndex) => itemIndex !== index));
   const beginAdd = (triggerKind: BindingTrigger["kind"]) => {
     if (!canAddBinding(props.value, triggerKind)) return;
-    setDraft(createBindingDraft(triggerKind, props.value, props.targets));
+    setDraft(createBindingDraft(triggerKind, props.value));
   };
   const confirmDraft = () => {
     const binding = draft();
@@ -119,6 +122,7 @@ export function BindingsEditor(props: {
           triggerKind="modifier-click"
           value={props.value}
           targets={props.targets}
+          editor={props.editor}
           portalMount={props.portalMount}
           draft={
             draft()?.trigger.kind === "modifier-click" ? draft() : undefined
@@ -138,6 +142,7 @@ export function BindingsEditor(props: {
           triggerKind="hover-toolbar"
           value={props.value}
           targets={props.targets}
+          editor={props.editor}
           portalMount={props.portalMount}
           draft={
             draft()?.trigger.kind === "hover-toolbar" ? draft() : undefined
@@ -173,6 +178,7 @@ function BindingGroup(props: {
   triggerKind: BindingTrigger["kind"];
   value: Binding[];
   targets: Targets;
+  editor?: EditorSelection;
   portalMount?: Node;
   draft?: Binding;
   duplicates: Set<string>;
@@ -213,6 +219,7 @@ function BindingGroup(props: {
             binding={binding}
             index={index}
             targets={props.targets}
+            editor={props.editor}
             portalMount={props.portalMount}
             duplicate={
               binding.trigger.kind === "modifier-click" &&
@@ -233,6 +240,7 @@ function BindingGroup(props: {
                 : props.value.length
             }
             targets={props.targets}
+            editor={props.editor}
             portalMount={props.portalMount}
             actionLabel="New action"
             duplicate={hasShortcutConflict(draft(), props.value)}
@@ -250,6 +258,7 @@ function BindingRow(props: {
   binding: Binding;
   index: number;
   targets: Targets;
+  editor?: EditorSelection;
   portalMount?: Node;
   actionLabel?: string;
   duplicate: boolean;
@@ -268,9 +277,7 @@ function BindingRow(props: {
           items={actionSelectItems}
           value={props.binding.action.kind}
           portalMount={props.portalMount}
-          onChange={(kind) =>
-            updateAction(defaultBindingAction(kind, props.targets))
-          }
+          onChange={(kind) => updateAction(defaultBindingAction(kind))}
         />
         <Show when={props.onRemove}>
           <IconButton
@@ -317,10 +324,7 @@ function BindingRow(props: {
           targets={props.targets}
           targetId={
             props.binding.action.kind === "open-editor"
-              ? props.binding.action.targetId ??
-                (props.targets.vscode
-                  ? "vscode"
-                  : Object.keys(props.targets)[0])
+              ? props.binding.action.targetId
               : undefined
           }
           targetTemplate={
@@ -328,6 +332,7 @@ function BindingRow(props: {
               ? props.binding.action.targetTemplate
               : undefined
           }
+          inheritLabel={editorSettingLabel(props.editor, props.targets)}
           portalMount={props.portalMount}
           onChange={(target) =>
             updateAction({ kind: "open-editor", ...target })

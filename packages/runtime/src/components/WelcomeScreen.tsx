@@ -1,7 +1,6 @@
 import {
-  primaryEditorBinding,
-  replacePrimaryEditorBinding,
-  type BindingAction,
+  clearPrimaryEditorOverride,
+  type EditorSelection,
   type Targets,
 } from "@locator/shared";
 import {
@@ -49,12 +48,21 @@ export function WelcomeScreen(props: {
   onClose: () => void;
   onTry: () => void;
   portalMount: HTMLDivElement;
+  /**
+   * Step to open on, overriding the one onboarding left off at. Used when the
+   * wizard is opened to answer a specific question — "which editor?" — rather
+   * than to resume onboarding.
+   */
+  initialStep?: string;
 }) {
   const options = useOptions();
+  // eslint-disable-next-line solid/reactivity
+  const requestedStep = props.initialStep;
   const savedStep = options.uiState().onboarding?.step;
-  const [active, setActiveSignal] = createSignal(
-    savedStep && STEP_IDS.includes(savedStep) ? savedStep : "welcome"
+  const startingStep = [requestedStep, savedStep].find(
+    (step): step is string => !!step && STEP_IDS.includes(step)
   );
+  const [active, setActiveSignal] = createSignal(startingStep ?? "welcome");
 
   const setActive = (step: string) => {
     setActiveSignal(step);
@@ -73,20 +81,18 @@ export function WelcomeScreen(props: {
     props.originalLinkProps
       ? buildLink(props.originalLinkProps, props.targets, options)
       : undefined;
-  const editorAction = () => {
-    const action = primaryEditorBinding(options.effective().bindings)?.action;
-    return action?.kind === "open-editor" ? action : undefined;
-  };
-  const updatePrimaryEditor = async (
-    patch: Pick<
-      Extract<BindingAction, { kind: "open-editor" }>,
-      "targetId" | "targetTemplate"
-    >
-  ) => {
-    const bindings = effectiveBindings(options.effective());
-    const next = replacePrimaryEditorBinding(bindings, patch);
-    if (!next) return false;
-    return (await options.setUserOrigin({ bindings: next })).ok;
+  const editor = () => options.effective().editor;
+  const updateEditor = async (patch: EditorSelection) => {
+    // An override left on the primary action would silently shadow the pick.
+    const bindings = clearPrimaryEditorOverride(
+      effectiveBindings(options.effective())
+    );
+    return (
+      await options.setUserOrigin({
+        editor: patch,
+        ...(bindings ? { bindings, mouseModifiers: undefined } : {}),
+      })
+    ).ok;
   };
 
   const steps = (): WizardStep[] => [
@@ -110,14 +116,15 @@ export function WelcomeScreen(props: {
     {
       id: "editor",
       title: "Pick your editor",
-      description: "This is the default destination for open-editor actions.",
+      description:
+        "Every source link opens here unless an action overrides it.",
       content: () => (
         <EditorPicker
           targets={options.allTargets()}
-          targetId={editorAction()?.targetId}
-          targetTemplate={editorAction()?.targetTemplate}
+          targetId={editor()?.targetId}
+          targetTemplate={editor()?.targetTemplate}
           portalMount={props.portalMount}
-          onChange={updatePrimaryEditor}
+          onChange={updateEditor}
         />
       ),
     },
@@ -129,6 +136,7 @@ export function WelcomeScreen(props: {
         <BindingsEditor
           value={effectiveBindings(options.effective())}
           targets={options.allTargets()}
+          editor={editor()}
           triggers={["modifier-click"]}
           portalMount={props.portalMount}
           onChange={(bindings) =>

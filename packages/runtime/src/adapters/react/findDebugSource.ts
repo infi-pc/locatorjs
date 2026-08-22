@@ -90,6 +90,17 @@ function getSourceFromFiber(
 }
 
 /**
+ * Source attached to this fiber only, without walking the `_debugOwner` chain.
+ *
+ * Lists that show one row per fiber need this: `findDebugSource` falls back to
+ * an ancestor's source, which would make several rows claim the same location.
+ */
+export function findOwnDebugSource(fiber: Fiber): Source | null {
+  const [source] = getSourceFromFiber(fiber);
+  return source ?? getSourceFromCache(fiber) ?? null;
+}
+
+/**
  * Synchronous: find debug source from Fiber
  * Prefers traditional methods, suitable for most scenarios
  */

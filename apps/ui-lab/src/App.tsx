@@ -19,6 +19,7 @@ import {
   Kbd,
   LocatorBrand,
   ModifierChips,
+  ParentsMenu,
   PromoFooter,
   ProvenanceBadge,
   SectionHeadline,
@@ -29,10 +30,14 @@ import {
   TextArea,
   TextInput,
   Tooltip,
+  TreePanel,
   Wizard,
   actionIconFor,
   actionLabel,
   editorIconFor,
+  type ParentRow,
+  type TreeRow,
+  type TreeViewModel,
 } from "@locator/ui";
 import {
   ArrowRight,
@@ -217,6 +222,16 @@ const styles = {
     gap: "2",
   }),
   stack: css({ display: "flex", flexDirection: "column", gap: "3" }),
+  callout: css({
+    bg: "bg.default",
+    borderColor: "border",
+    borderRadius: "l2",
+    borderWidth: "1px",
+    color: "fg.muted",
+    fontSize: "sm",
+    px: "3",
+    py: "2",
+  }),
   fieldGrid: css({
     display: "grid",
     gap: "4",
@@ -294,9 +309,116 @@ const navItems = [
   ["foundations", "Foundations"],
   ["controls", "Controls"],
   ["composites", "Composites"],
+  ["panels", "Inspector panels"],
   ["settings", "Settings surface"],
   ["flows", "Flows"],
 ] as const;
+
+/**
+ * Stands in for what the runtime maps out of an adapter: a component boundary
+ * above the element it renders, rows with and without a source, and one nested
+ * level so indent guides and chevrons are visible.
+ */
+const treeRows: TreeRow[] = [
+  {
+    id: "c:app",
+    kind: "component",
+    label: "App",
+    source: { filePath: "/repo/src/main.tsx", line: 12, column: 3 },
+    detail: "main.tsx:12",
+    hasChildren: true,
+    children: [
+      {
+        id: "e:main",
+        kind: "element",
+        label: "main",
+        source: { filePath: "/repo/src/App.tsx", line: 24, column: 5 },
+        detail: "App.tsx:24",
+        hasChildren: true,
+        children: [
+          {
+            id: "c:nesting",
+            kind: "component",
+            label: "NestingTest",
+            source: { filePath: "/repo/src/App.tsx", line: 31, column: 7 },
+            detail: "App.tsx:31",
+            hasChildren: true,
+            children: [
+              {
+                id: "e:section",
+                kind: "element",
+                label: "section",
+                source: {
+                  filePath: "/repo/src/NestingTest.tsx",
+                  line: 16,
+                  column: 5,
+                },
+                detail: "NestingTest.tsx:16",
+                hasChildren: true,
+                children: [
+                  {
+                    id: "e:button",
+                    kind: "element",
+                    label: "button",
+                    source: {
+                      filePath: "/repo/src/NestingTest.tsx",
+                      line: 18,
+                      column: 9,
+                    },
+                    detail: "NestingTest.tsx:18",
+                    hasChildren: false,
+                    children: [],
+                  },
+                  {
+                    // No source: injected by a library, so the row is inert.
+                    id: "e:svg",
+                    kind: "element",
+                    label: "svg",
+                    source: null,
+                    hasChildren: false,
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+const treeModel: TreeViewModel = {
+  rows: treeRows,
+  selectedId: "e:button",
+  canGoUp: true,
+};
+
+const parentRows: ParentRow[] = [
+  {
+    id: "p0",
+    component: "NestingTest",
+    tag: "button",
+    detail: "NestingTest.tsx:18:9",
+    kind: "call-site",
+    source: { filePath: "/repo/src/NestingTest.tsx", line: 18, column: 9 },
+  },
+  {
+    id: "p1",
+    component: "App",
+    tag: "NestingTest",
+    detail: "App.tsx:31:7",
+    kind: "call-site",
+    source: { filePath: "/repo/src/App.tsx", line: 31, column: 7 },
+  },
+  {
+    id: "p2",
+    component: "App",
+    detail: "App.tsx:8:1",
+    kind: "declaration",
+    source: { filePath: "/repo/src/App.tsx", line: 8, column: 1 },
+  },
+];
 
 const actionSamples: BindingAction[] = [
   { kind: "open-editor", targetId: "vscode" },
@@ -354,6 +476,18 @@ export function App() {
   const [layers, setLayers] = createSignal(initialLayers);
   const [wizardStep, setWizardStep] = createSignal("choose");
   const [finished, setFinished] = createSignal(false);
+  const [expandedIds, setExpandedIds] = createSignal<ReadonlySet<string>>(
+    new Set(["c:app", "e:main", "c:nesting", "e:section"])
+  );
+  const [opened, setOpened] = createSignal<string>();
+
+  const toggleExpanded = (id: string) =>
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const updateEditor = (next: {
     targetId?: string;
@@ -824,6 +958,79 @@ export function App() {
                 onChange={(next) => setBindings(next ?? [])}
               />
             </Specimen>
+          </LabSection>
+
+          <LabSection
+            id="panels"
+            title="Inspector panels"
+            description="The two panels the in-page runtime opens from the hover toolbar. Both take a view model and callbacks only, so what you see here is exactly what the runtime renders. Click a row to see what it resolves to; rows without a source are inert on purpose."
+          >
+            <Specimen
+              title="Tree panel"
+              description="Component boundaries, element rows, indent guides, and keyboard navigation (↑↓ move, ←→ collapse/expand, Enter opens, Esc closes)."
+              provenance="local"
+              mutedCanvas
+            >
+              <TreePanel
+                model={treeModel}
+                expandedIds={expandedIds()}
+                hint="↑↓ move · ←→ collapse/expand · Enter opens · Esc closes"
+                onToggle={toggleExpanded}
+                onGoUp={() => setOpened("Show parent")}
+                onHover={() => undefined}
+                onOpen={(row) =>
+                  setOpened(`${row.source!.filePath}:${row.source!.line}`)
+                }
+                onClose={() => setOpened("Closed")}
+              />
+            </Specimen>
+
+            <Specimen
+              title="Parents menu"
+              description="Ancestors labelled with the component that renders them, each with its own file:line so two entries in the same file are told apart."
+              provenance="local"
+              mutedCanvas
+            >
+              <ParentsMenu
+                rows={parentRows}
+                onHover={() => undefined}
+                onOpen={(row) =>
+                  setOpened(`${row.source!.filePath}:${row.source!.line}`)
+                }
+                onClose={() => setOpened("Closed")}
+              />
+            </Specimen>
+
+            <Specimen
+              title="Empty states"
+              description="What both panels show when the adapter resolved nothing worth opening."
+              provenance="local"
+              mutedCanvas
+            >
+              <div class={styles.stack}>
+                <TreePanel
+                  model={{ rows: [], canGoUp: false }}
+                  expandedIds={new Set()}
+                  onToggle={() => undefined}
+                  onGoUp={() => undefined}
+                  onHover={() => undefined}
+                  onOpen={() => undefined}
+                  onClose={() => undefined}
+                />
+                <ParentsMenu
+                  rows={[]}
+                  onHover={() => undefined}
+                  onOpen={() => undefined}
+                  onClose={() => undefined}
+                />
+              </div>
+            </Specimen>
+
+            <Show when={opened()}>
+              <div class={styles.callout} role="status">
+                Last action: <code>{opened()}</code>
+              </div>
+            </Show>
           </LabSection>
 
           <LabSection

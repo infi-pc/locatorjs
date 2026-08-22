@@ -5,6 +5,7 @@ import {
   globalIndexForTrigger,
   type Binding,
   type BindingTrigger,
+  type EditorSelection,
   type Targets,
 } from "@locator/shared";
 import { css, cx } from "@locator/styled-system/css";
@@ -135,6 +136,7 @@ const styles = {
 export function InteractionStudio(props: {
   bindings: Binding[];
   targets: Targets;
+  editor?: EditorSelection;
   selection?: StudioSelection;
   onSelect: (selection: StudioSelection) => void;
   onAdd: (kind: BindingTrigger["kind"]) => void;
@@ -162,7 +164,8 @@ export function InteractionStudio(props: {
                 const selected = () =>
                   props.selection?.triggerKind === "modifier-click" &&
                   props.selection.index === index();
-                const label = () => actionLabel(binding.action, props.targets);
+                const label = () =>
+                  actionLabel(binding.action, props.targets, props.editor);
                 const itemIndex = () =>
                   globalIndexForTrigger(
                     props.bindings,
@@ -191,7 +194,11 @@ export function InteractionStudio(props: {
                     />
                     <ArrowRight size={13} class={styles.arrow} />
                     <span class={styles.action}>
-                      {actionIconFor(binding.action, props.targets)}
+                      {actionIconFor(
+                        binding.action,
+                        props.targets,
+                        props.editor
+                      )}
                       <span class={styles.actionLabel}>{label()}</span>
                       <Show when={duplicate(binding)}>
                         <span class={styles.warning} title="Duplicate shortcut">
@@ -231,7 +238,7 @@ export function InteractionStudio(props: {
                       props.selection?.triggerKind === "hover-toolbar" &&
                       props.selection.index === index();
                     const label = () =>
-                      actionLabel(binding.action, props.targets);
+                      actionLabel(binding.action, props.targets, props.editor);
                     const itemIndex = () =>
                       globalIndexForTrigger(
                         props.bindings,
@@ -252,7 +259,11 @@ export function InteractionStudio(props: {
                           })
                         }
                       >
-                        {actionIconFor(binding.action, props.targets)}
+                        {actionIconFor(
+                          binding.action,
+                          props.targets,
+                          props.editor
+                        )}
                       </HoverToolbarButton>
                     );
                   }}

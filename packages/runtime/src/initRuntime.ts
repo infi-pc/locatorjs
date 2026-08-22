@@ -1,6 +1,7 @@
 import { fontFamily } from "./consts";
 import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
+import { installShadowRootTracking } from "./functions/shadowRoots";
 
 export function initRuntime() {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -10,6 +11,10 @@ export function initRuntime() {
     // already initialized
     return;
   }
+
+  // Done before anything else: closed shadow roots can only be tracked from the
+  // moment `attachShadow` is patched, so the earlier the better.
+  installShadowRootTracking();
 
   // add style tag to head
   const style = document.createElement("style");

@@ -104,18 +104,9 @@ function insertScript(locatorClientUrl: string) {
     //   // TODO maybe add back
     //   // delete document.documentElement.dataset.locatorClientUrl;
     // }
-    const foundIFrames = document.getElementsByTagName('iframe');
-
-    for (const iframe of foundIFrames) {
-      try {
-        const script = document.createElement('script');
-        script.src = locatorClientUrl;
-        script.className = 'locatorjs-extension-script';
-        iframe.contentWindow?.document.head.appendChild(script);
-      } catch (e) {
-        // Fail silently, in most cases it will be cross-origin, and we don't need Locator there.
-      }
-    }
+    // Iframes are handled by the content script itself: the manifest declares
+    // `all_frames`, so every frame - cross-origin ones included - runs the hook
+    // and inserts the client with the same retry logic as the top document.
     return true;
   }
   return false;

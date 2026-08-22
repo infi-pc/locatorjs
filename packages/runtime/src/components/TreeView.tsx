@@ -1,12 +1,16 @@
 import { Targets } from "@locator/shared";
-import { AdapterId } from "../consts";
-import { TreeNode, TreeNodeElement } from "../types/TreeNode";
-import { TreeState } from "../adapters/adapterApi";
-import { TreeNodeElementView } from "./TreeNodeElementView";
-import { createEffect, createSignal } from "solid-js";
-import { computePosition, flip, shift, offset } from "@floating-ui/dom";
+import { TreePanel, type TreeRow } from "@locator/ui";
+import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { css } from "@locator/styled-system/css";
-import { expandPill } from "@locator/styled-system/recipes";
+import { createEffect, createMemo, createSignal } from "solid-js";
+import { TreeState } from "../adapters/adapterApi";
+import { useOptions } from "../functions/optionsStore";
+import {
+  buildTreeViewModel,
+  sourceRefToLinkProps,
+} from "../functions/treeViewModel";
+import { TreeNode } from "../types/TreeNode";
+import { LinkProps } from "../types/types";
 
 const styles = {
   backdrop: css({
@@ -19,123 +23,122 @@ const styles = {
     width: "100vw",
     zIndex: "popover",
   }),
-  panel: css({
-    bg: "bg.default",
-    borderRadius: "l2",
-    boxShadow: "xl",
-    fontSize: "xs",
-    m: "2",
-    overflow: "auto",
-    p: "4",
-  }),
-  parent: css({ mb: "2" }),
+  anchor: css({ m: "2", position: "absolute" }),
 };
 
 export function TreeView(props: {
   treeState: TreeState;
   setTreeState: (state: TreeState) => void;
   close: () => void;
-  adapterId?: AdapterId | undefined;
   targets: Targets;
   setHighlightedNode: (node: null | TreeNode) => void;
+  /** Opens the link, or asks the user to pick an editor first. */
+  openLink: (link: LinkProps) => void;
 }) {
+  const options = useOptions();
   let contentRef: HTMLDivElement | undefined;
 
   const [pos, setPos] = createSignal<{ x: number; y: number }>();
+
   createEffect(() => {
-    if (contentRef) {
-      const originalBox = props.treeState.originalNode.getBox();
-      computePosition(
-        {
-          getBoundingClientRect: () => {
-            return {
-              top: originalBox?.y || 0,
-              left: originalBox?.x || 0,
-              width: 16,
-              height: 16,
-            } as DOMRect;
-          },
-        },
-        contentRef,
-        {
-          placement: "left-start",
-          middleware: [offset(10), shift(), flip()],
-        }
-      ).then(({ x, y }) => {
-        setPos({ x, y });
-      });
-    }
+    if (!contentRef) return;
+    const originalBox = props.treeState.originalNode.getBox();
+    computePosition(
+      {
+        getBoundingClientRect: () =>
+          ({
+            top: originalBox?.y || 0,
+            left: originalBox?.x || 0,
+            width: 16,
+            height: 16,
+          } as DOMRect),
+      },
+      contentRef,
+      {
+        placement: "left-start",
+        middleware: [offset(10), shift(), flip()],
+      }
+    ).then(({ x, y }) => setPos({ x, y }));
   });
+
+  const model = createMemo(() =>
+    buildTreeViewModel(props.treeState, props.treeState.expandedIds)
+  );
+
+  /** Nodes are keyed by id, so find the live node a row was mapped from. */
+  function findNode(id: string): TreeNode | null {
+    const nodeId = id.replace(/^component:/, "");
+    const walk = (node: TreeNode): TreeNode | null => {
+      if (node.uniqueId === nodeId) return node;
+      for (const child of node.getChildren()) {
+        const found = walk(child);
+        if (found) return found;
+      }
+      return null;
+    };
+    return walk(props.treeState.root);
+  }
+
   return (
     <div
       class={styles.backdrop}
-      style={{
-        "z-index": 1001,
-      }}
       onClick={(e) => {
-        if (e.currentTarget === e.target) {
-          props.close();
-        }
+        if (e.currentTarget === e.target) props.close();
       }}
     >
       <div
-        style={{
-          position: "absolute",
-          // top: `${(props.treeState?.originalNode.getBox()?.y || 0) + 24}px`,
-          top: `${pos()?.y || 0}px`,
-          left: `${pos()?.x || 0}px`,
-        }}
         ref={contentRef}
+        class={styles.anchor}
+        style={{ top: `${pos()?.y || 0}px`, left: `${pos()?.x || 0}px` }}
       >
-        <div
-          class={styles.panel}
-          style={{
-            "max-height": "calc(100vh - 16px)",
+        <TreePanel
+          model={model()}
+          expandedIds={props.treeState.expandedIds}
+          autofocus
+          hint={
+            options.effective().debugMode
+              ? "↑↓ move · ←→ collapse/expand · Enter opens · Esc closes"
+              : undefined
+          }
+          onToggle={(id) => {
+            const state = props.treeState;
+            const expandedIds = new Set(state.expandedIds);
+            const nodeId = id.replace(/^component:/, "");
+            if (expandedIds.has(id)) {
+              expandedIds.delete(id);
+              expandedIds.delete(nodeId);
+            } else {
+              expandedIds.add(id);
+              expandedIds.add(nodeId);
+            }
+            props.setTreeState({ ...state, expandedIds });
           }}
-        >
-          {props.treeState ? (
-            <div>
-              {props.treeState?.root.getParent() ? (
-                <div class={styles.parent}>
-                  <button
-                    class={expandPill()}
-                    onClick={() => {
-                      const state = props.treeState;
-                      const parent = state.root.getParent();
-                      if (parent) {
-                        state.expandedIds.add(parent.uniqueId);
-                        props.setTreeState({ ...state, root: parent });
-                      }
-                    }}
-                  >
-                    ...
-                  </button>
-                </div>
-              ) : null}
-              <TreeNodeElementView
-                node={props.treeState!.root as TreeNodeElement}
-                expandedIds={props.treeState!.expandedIds}
-                highlightedId={props.treeState!.highlightedId}
-                expandId={(id: string) => {
-                  const state = props.treeState;
-                  state.expandedIds.add(id);
-                  props.setTreeState(state);
-                }}
-                targets={props.targets}
-                setHighlightedBoundingBox={props.setHighlightedNode}
-                parentComponent={null}
-              />
-            </div>
-          ) : (
-            <>no tree</>
-          )}
-        </div>
+          onGoUp={() => {
+            const state = props.treeState;
+            const parent = state.root.getParent();
+            if (!parent) return;
+            const expandedIds = new Set(state.expandedIds);
+            expandedIds.add(parent.uniqueId);
+            expandedIds.add(`component:${parent.uniqueId}`);
+            props.setTreeState({ ...state, root: parent, expandedIds });
+          }}
+          onHover={(id) => {
+            props.setHighlightedNode(id ? findNode(id) : null);
+          }}
+          onOpen={(row: TreeRow) => {
+            if (!row.source) return;
+            props.setHighlightedNode(null);
+            // The panel closes either way: the row has been acted on, and
+            // leaving it up would put its backdrop over whatever comes next.
+            props.openLink(sourceRefToLinkProps(row.source));
+            props.close();
+          }}
+          onClose={() => {
+            props.setHighlightedNode(null);
+            props.close();
+          }}
+        />
       </div>
-      {/* <For each={getAllNodes()}>
-                {(node, i) => (
-                  <RenderXrayNode node={node} parentIsHovered={false} />
-                )}
-              </For> */}
     </div>
   );
 }

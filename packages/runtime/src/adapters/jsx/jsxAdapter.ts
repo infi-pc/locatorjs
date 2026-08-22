@@ -16,9 +16,16 @@ import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
+import {
+  closestAcrossShadow,
+  getParentElementAcrossShadow,
+} from "../../functions/domTraversal";
 
 export function getElementInfo(target: HTMLElement): FullElementInfo | null {
-  const found = target.closest("[data-locatorjs-id], [data-locatorjs]");
+  const found = closestAcrossShadow(
+    target,
+    "[data-locatorjs-id], [data-locatorjs]"
+  );
 
   if (
     found &&
@@ -256,12 +263,16 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
           path.push({
             title: label,
             link: link,
+            // The component whose JSX contains this element. Without it the
+            // menu reads as a column of identical `<div>` entries.
+            component: info.componentsLabels[0]?.label,
+            kind: "call-site",
           });
         }
       }
     }
 
-    currentElement = currentElement.parentElement;
+    currentElement = getParentElementAcrossShadow(currentElement);
   } while (currentElement);
 
   return path;

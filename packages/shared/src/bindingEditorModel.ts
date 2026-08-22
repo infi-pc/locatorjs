@@ -1,5 +1,5 @@
-import type { Targets } from "./index";
 import {
+  hasEditorOverride,
   primaryEditorBinding,
   type Binding,
   type BindingAction,
@@ -90,10 +90,11 @@ export function hasShortcutConflict(
   );
 }
 
-export function defaultBindingAction(
-  kind: string,
-  targets: Targets
-): BindingAction {
+/**
+ * New actions carry no editor override, so they follow the global Editor
+ * setting until the user deliberately pins one.
+ */
+export function defaultBindingAction(kind: string): BindingAction {
   switch (kind) {
     case "copy-path":
       return { kind: "copy-path" };
@@ -106,19 +107,14 @@ export function defaultBindingAction(
     case "show-parents":
       return { kind: "show-parents" };
     case "open-editor":
-    default: {
-      const targetId = targets.vscode ? "vscode" : Object.keys(targets)[0];
-      return targetId
-        ? { kind: "open-editor", targetId }
-        : { kind: "open-editor" };
-    }
+    default:
+      return { kind: "open-editor" };
   }
 }
 
 export function createBindingDraft(
   triggerKind: BindingTrigger["kind"],
-  bindings: Binding[],
-  targets: Targets
+  bindings: Binding[]
 ): Binding {
   return {
     trigger:
@@ -128,7 +124,7 @@ export function createBindingDraft(
             modifiers: nextAvailableModifiers(bindings),
           }
         : { kind: "hover-toolbar" },
-    action: defaultBindingAction("open-editor", targets),
+    action: defaultBindingAction("open-editor"),
   };
 }
 
@@ -145,19 +141,25 @@ export function insertBinding(
     : [...modifierBindings, ...toolbarBindings, binding];
 }
 
-export function replacePrimaryEditorBinding(
-  bindings: Binding[],
-  patch: Pick<
-    Extract<BindingAction, { kind: "open-editor" }>,
-    "targetId" | "targetTemplate"
-  >
+/**
+ * Points the primary editor action back at the global Editor setting, so
+ * picking an editor during onboarding is not silently shadowed by an override
+ * left on the binding.
+ */
+export function clearPrimaryEditorOverride(
+  bindings: Binding[]
 ): Binding[] | undefined {
   const primary = primaryEditorBinding(bindings);
-  const index = primary ? bindings.indexOf(primary) : -1;
+  if (!primary) return undefined;
+  const index = bindings.indexOf(primary);
   if (index < 0) return undefined;
+  const action = primary.action;
+  if (action.kind !== "open-editor" || !hasEditorOverride(action)) {
+    return undefined;
+  }
   return bindings.map((binding, bindingIndex) =>
     bindingIndex === index
-      ? { ...binding, action: { kind: "open-editor" as const, ...patch } }
+      ? { ...binding, action: { kind: "open-editor" as const } }
       : binding
   );
 }

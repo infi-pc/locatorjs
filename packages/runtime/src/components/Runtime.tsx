@@ -1,7 +1,6 @@
 import {
   detectSvelte,
   primaryEditorBinding,
-  type Binding,
   type BindingAction,
 } from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
@@ -37,10 +36,23 @@ import {
   effectiveBindings,
   iconBindings,
   matchBinding,
+  matchesActivation,
 } from "../functions/bindings";
 import { performAction } from "../functions/performAction";
+import { goToLinkPropsOrSetup } from "../functions/goTo";
+import { idsOnPathToRoot } from "../functions/treeViewModel";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { actionLabel } from "@locator/ui";
+import { resolveEventTarget } from "../functions/resolveEventTarget";
+import {
+  observeShadowRoots,
+  setPointerCursorInShadowRoots,
+} from "../functions/shadowRoots";
+import {
+  broadcastModifiers,
+  listenToFrameModifiers,
+  modifiersFromEvent,
+} from "../functions/crossFrameModifiers";
 
 const styles = {
   dialogBackdrop: css({
@@ -54,6 +66,8 @@ const styles = {
     position: "fixed",
     top: "0",
     width: "100vw",
+    // Below `popover`, so the dropdowns the dialog itself opens land above it.
+    zIndex: "modal",
   }),
   tryPill: css({
     bg: "bg.default",
@@ -86,13 +100,21 @@ function Runtime(props: {
   setTryAction: (action: BindingAction | null) => void;
 }) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
-  const [activeBinding, setActiveBinding] = createSignal<Binding | null>(null);
+  // Holding an activation modifier reveals the outline and its toolbar. It is
+  // deliberately separate from binding matching: a config with only toolbar
+  // actions still needs a way to bring the toolbar up.
+  const [activationHeld, setActivationHeld] = createSignal(false);
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
   );
 
   const [dialog, setDialog] = createSignal<
-    ["no-link"] | ["choose-editor", LinkProps] | null
+    | ["no-link"]
+    | ["choose-editor", LinkProps]
+    // Same wizard, but opened because we could not tell where to open a link,
+    // so it starts on the editor question instead of resuming onboarding.
+    | ["setup-editor", LinkProps]
+    | null
   >(null);
 
   const [highlightedNode, setHighlightedNode] = createSignal<null | TreeNode>(
@@ -105,16 +127,22 @@ function Runtime(props: {
   const targets = () => options.allTargets();
   const bindings = () => effectiveBindings(options.effective());
 
+  const outlineVisible = () =>
+    (activationHeld() || !!props.tryAction) && !!currentElement();
+
   createEffect(() => {
-    if ((activeBinding() || props.tryAction) && currentElement()) {
+    const active = outlineVisible();
+    if (active) {
       document.body.classList.add("locatorjs-active-pointer");
     } else {
       document.body.classList.remove("locatorjs-active-pointer");
     }
+    setPointerCursorInShadowRoots(active);
   });
 
   function keyUpListener(e: KeyboardEvent) {
-    setActiveBinding(matchBinding(bindings(), e));
+    setActivationHeld(matchesActivation(bindings(), e));
+    broadcastModifiers(modifiersFromEvent(e));
   }
 
   function keyDownListener(e: KeyboardEvent) {
@@ -122,18 +150,26 @@ function Runtime(props: {
       props.setTryAction(null);
       return;
     }
-    setActiveBinding(matchBinding(bindings(), e));
+    setActivationHeld(matchesActivation(bindings(), e));
+    broadcastModifiers(modifiersFromEvent(e));
   }
 
+  // Keyboard events only reach the focused document, so a frame under the mouse
+  // has to be told about modifiers held in a sibling or parent frame.
+  const stopListeningToFrameModifiers = listenToFrameModifiers((modifiers) => {
+    setActivationHeld(matchesActivation(bindings(), modifiers));
+  });
+  onCleanup(stopListeningToFrameModifiers);
+
   function mouseOverListener(e: MouseEvent) {
-    const target = e.target;
-    if (target && target instanceof HTMLElement) {
+    const target = resolveEventTarget(e);
+    if (target) {
       // Ignore LocatorJS elements
       if (isLocatorsOwnElement(target)) {
         return;
       }
 
-      setActiveBinding(matchBinding(bindings(), e));
+      setActivationHeld(matchesActivation(bindings(), e));
 
       batch(() => {
         setCurrentElement(target);
@@ -194,8 +230,8 @@ function Runtime(props: {
     const y = e.clientY;
 
     // show context menu
-    const target = e.target;
-    if (target && target instanceof HTMLElement) {
+    const target = resolveEventTarget(e);
+    if (target) {
       showContextMenu(target, x, y);
     }
   }
@@ -210,12 +246,8 @@ function Runtime(props: {
         : null) ?? matchBinding(bindings(), e);
     if (!binding) return;
 
-    const target = e.target;
-    if (target && target instanceof HTMLElement) {
-      if (target.shadowRoot) {
-        return;
-      }
-
+    const target = resolveEventTarget(e);
+    if (target) {
       if (isLocatorsOwnElement(target)) {
         return;
       }
@@ -293,86 +325,123 @@ function Runtime(props: {
     setCurrentElement(null);
   }
 
-  const roots: (Document | ShadowRoot)[] = [document];
-  document.querySelectorAll("*").forEach((node) => {
-    if (node.id === "locatorjs-wrapper") {
-      return;
+  /** The pointer left this document, e.g. moved into an iframe. */
+  function mouseOutListener(e: MouseEvent) {
+    if (!e.relatedTarget) {
+      setCurrentElement(null);
     }
-    if (node.shadowRoot) {
-      roots.push(node.shadowRoot);
-    }
-  });
-
-  for (const root of roots) {
-    root.addEventListener("mouseover", mouseOverListener as EventListener, {
-      capture: true,
-    });
-    root.addEventListener("keydown", keyDownListener as EventListener);
-    root.addEventListener("keyup", keyUpListener as EventListener);
-    root.addEventListener("click", clickListener as unknown as EventListener, {
-      capture: true,
-    });
-    root.addEventListener("contextmenu", rightClickListener as EventListener, {
-      capture: true,
-    });
-
-    root.addEventListener("mousedown", mouseDownUpListener as EventListener, {
-      capture: true,
-    });
-    root.addEventListener("mouseup", mouseDownUpListener as EventListener, {
-      capture: true,
-    });
-    root.addEventListener("scroll", scrollListener);
   }
 
-  onCleanup(() => {
-    for (const root of roots) {
-      root.removeEventListener("keyup", keyUpListener as EventListener);
-      root.removeEventListener("keydown", keyDownListener as EventListener);
-      root.removeEventListener(
-        "mouseover",
-        mouseOverListener as EventListener,
-        {
-          capture: true,
-        }
-      );
-      root.removeEventListener(
-        "click",
-        clickListener as unknown as EventListener,
-        {
-          capture: true,
-        }
-      );
-      root.removeEventListener(
-        "contextmenu",
-        rightClickListener as EventListener,
-        {
-          capture: true,
-        }
-      );
-      root.removeEventListener(
-        "mousedown",
-        mouseDownUpListener as EventListener,
-        {
-          capture: true,
-        }
-      );
-      root.removeEventListener(
-        "mouseup",
-        mouseDownUpListener as EventListener,
-        {
-          capture: true,
-        }
-      );
-      root.removeEventListener("scroll", scrollListener);
+  // Mouse and keyboard events from open shadow roots are composed, so they all
+  // reach the document; `resolveEventTarget` recovers the real target from the
+  // composed path. Only `scroll` does not compose, so scroll containers living
+  // inside a shadow root need their own listener.
+  document.addEventListener("mouseover", mouseOverListener as EventListener, {
+    capture: true,
+  });
+  document.addEventListener("mouseout", mouseOutListener as EventListener, {
+    capture: true,
+  });
+  document.addEventListener("keydown", keyDownListener as EventListener);
+  document.addEventListener("keyup", keyUpListener as EventListener);
+  document.addEventListener(
+    "click",
+    clickListener as unknown as EventListener,
+    { capture: true }
+  );
+  document.addEventListener(
+    "contextmenu",
+    rightClickListener as EventListener,
+    {
+      capture: true,
     }
+  );
+  document.addEventListener("mousedown", mouseDownUpListener as EventListener, {
+    capture: true,
+  });
+  document.addEventListener("mouseup", mouseDownUpListener as EventListener, {
+    capture: true,
+  });
+  document.addEventListener("scroll", scrollListener, { capture: true });
+
+  const scrollRoots = new Set<ShadowRoot>();
+  const stopObservingShadowRoots = observeShadowRoots((root) => {
+    if (scrollRoots.has(root)) return;
+    scrollRoots.add(root);
+    root.addEventListener("scroll", scrollListener, { capture: true });
+  });
+
+  onCleanup(() => {
+    document.removeEventListener("keyup", keyUpListener as EventListener);
+    document.removeEventListener("keydown", keyDownListener as EventListener);
+    document.removeEventListener(
+      "mouseover",
+      mouseOverListener as EventListener,
+      { capture: true }
+    );
+    document.removeEventListener(
+      "mouseout",
+      mouseOutListener as EventListener,
+      { capture: true }
+    );
+    document.removeEventListener(
+      "click",
+      clickListener as unknown as EventListener,
+      { capture: true }
+    );
+    document.removeEventListener(
+      "contextmenu",
+      rightClickListener as EventListener,
+      { capture: true }
+    );
+    document.removeEventListener(
+      "mousedown",
+      mouseDownUpListener as EventListener,
+      { capture: true }
+    );
+    document.removeEventListener(
+      "mouseup",
+      mouseDownUpListener as EventListener,
+      { capture: true }
+    );
+    document.removeEventListener("scroll", scrollListener, { capture: true });
+
+    stopObservingShadowRoots();
+    for (const root of scrollRoots) {
+      root.removeEventListener("scroll", scrollListener, { capture: true });
+    }
+    scrollRoots.clear();
   });
 
   function showTreeFromElement(element: HTMLElement) {
     const newState = getTree(element);
-    if (newState) {
-      setUiMode(["tree", newState]);
-    }
+    if (!newState) return;
+    // The panel opens on the element the user pointed at, so every row between
+    // it and the root has to start out expanded or it would not be visible.
+    setUiMode([
+      "tree",
+      {
+        ...newState,
+        expandedIds: new Set([
+          ...newState.expandedIds,
+          ...idsOnPathToRoot(newState),
+        ]),
+      },
+    ]);
+  }
+
+  function requestEditorSetup(link: LinkProps) {
+    setDialog(["setup-editor", link]);
+  }
+
+  /**
+   * Opens a source link from the tree or the parents menu. When we would be
+   * guessing the destination, the editor picker is shown instead of navigating
+   * into the void.
+   */
+  function openLink(link: LinkProps): void {
+    if (goToLinkPropsOrSetup(link, targets(), options)) return;
+    requestEditorSetup(link);
   }
 
   function runAction(
@@ -387,6 +456,7 @@ function Runtime(props: {
       showTree: showTreeFromElement,
       showParents: showContextMenu,
       parentsPosition: position,
+      requestEditorSetup,
     });
   }
 
@@ -400,9 +470,9 @@ function Runtime(props: {
           treeState={uiMode()[1]! as TreeState}
           close={() => setUiMode(["off"])}
           setTreeState={(newState) => setUiMode(["tree", newState])}
-          adapterId={adapterId()}
           targets={targets()}
           setHighlightedNode={setHighlightedNode}
+          openLink={openLink}
         />
       ) : null}
       {uiMode()[0] === "context" ? (
@@ -411,10 +481,10 @@ function Runtime(props: {
           close={() => setUiMode(["off"])}
           adapterId={adapterId()}
           targets={targets()}
-          setHighlightedNode={setHighlightedNode}
+          openLink={openLink}
         />
       ) : null}
-      {(activeBinding() || props.tryAction) && currentElement() ? (
+      {outlineVisible() ? (
         <MaybeOutline
           currentElement={currentElement()!}
           adapterId={adapterId()}
@@ -433,7 +503,7 @@ function Runtime(props: {
           performAction={runAction}
         />
       ) : null}
-      {activeBinding() ? (
+      {activationHeld() ? (
         <div class={bannerClass}>
           <BannerHeader openOptions={openOptions} adapter={adapterId()} />
         </div>
@@ -444,7 +514,7 @@ function Runtime(props: {
       {!isExtension() && options.effective().showIntro !== false ? (
         <IntroInfo
           openOptions={openOptions}
-          hide={!!activeBinding() || uiMode()[0] !== "off" || !!dialog()}
+          hide={activationHeld() || uiMode()[0] !== "off" || !!dialog()}
           adapter={adapterId()}
         />
       ) : null}
@@ -487,15 +557,24 @@ function Runtime(props: {
           }}
         >
           {dialog()![0] === "no-link" && <NoLinkDialog />}
-          {dialog()![0] === "choose-editor" && (
+          {(dialog()![0] === "choose-editor" ||
+            dialog()![0] === "setup-editor") && (
             <WelcomeScreen
               targets={targets()}
               originalLinkProps={dialog()![1]!}
               portalMount={props.portalMount}
+              initialStep={
+                dialog()![0] === "setup-editor" ? "editor" : undefined
+              }
               onTry={() => {
                 setDialog(null);
-                const binding = primaryEditorBinding(bindings());
-                if (binding) props.setTryAction(binding.action);
+                // Without an editor binding there is still one thing to try:
+                // opening the editor that was just picked.
+                props.setTryAction(
+                  primaryEditorBinding(bindings())?.action ?? {
+                    kind: "open-editor",
+                  }
+                );
               }}
               onClose={() => {
                 setDialog(null);

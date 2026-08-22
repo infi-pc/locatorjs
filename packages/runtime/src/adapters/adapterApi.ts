@@ -24,8 +24,20 @@ export type TreeState = {
 };
 
 export type ParentPathItem = {
+  /** Element tag or component name at this location. */
   title: string;
   link: LinkProps | null;
+  /**
+   * Component whose JSX created `title`, when the adapter can tell. Lets the
+   * parents menu read "NestingTest2 · <NestingTest3>" instead of five
+   * indistinguishable rows.
+   */
+  component?: string;
+  /**
+   * `call-site` points at the JSX that created the node; `declaration` points
+   * at where the component itself is defined.
+   */
+  kind?: "call-site" | "declaration";
 };
 
 export interface AdapterObject {
