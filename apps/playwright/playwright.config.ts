@@ -25,7 +25,30 @@ const config: PlaywrightTestConfig = {
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
+  /**
+   * Retry on CI only.
+   *
+   * These retries are currently masking a real defect, so don't read a green
+   * run as "no flakes". `basics.spec.ts` "solid" fails on first attempt in all
+   * three browsers on roughly every run, then passes on retry in ~5s. Two
+   * distinct failure snapshots exist for the same assertion:
+   *
+   *   1. the solid app is fully rendered with no LocatorJS UI at all
+   *   2. the LocatorJS UI *is* in the accessibility tree, Settings button
+   *      included, but under an extra wrapper node — and getByRole still
+   *      reports "element(s) not found"
+   *
+   * (2) rules out slowness: the element exists and is still unreachable, which
+   * points at the runtime's shadow-root mount rather than timing. getByRole
+   * does not pierce closed shadow roots. Sharding only changed the timing
+   * enough to expose it; the serial pre-sharding run reported 0 flaky.
+   *
+   * Two things were tried and did not help, so don't repeat them: switching
+   * webServer from `port` to `url`, and a globalSetup that loaded every app in
+   * a real browser and waited for the same Settings button (reverted in
+   * 4047541). The fix belongs in the runtime's mount, or in the specs using a
+   * locator that reaches into the shadow root deliberately.
+   */
   retries: process.env.CI ? 2 : 0,
   /**
    * One worker per shard on CI. These specs share dev servers and mutate
@@ -127,14 +150,13 @@ const config: PlaywrightTestConfig = {
    * listener means something is wrong) and on locally, so an already-running
    * `pnpm dev` is reused rather than fought over.
    *
-   * `url` rather than `port` is load-bearing. `port` only waits for a TCP
-   * listener, and vite listens before it has transformed anything, so the first
-   * test to reach an app raced its initial compile. The bash port-wait loop
-   * this replaced happened to curl every port, which warmed them by accident;
-   * dropping it made that race visible as flakes in basics.spec.ts (once per
-   * shard, since each shard boots its own servers). `url` makes Playwright
-   * issue real HTTP GETs until one succeeds, restoring the warm-up as a
-   * deliberate part of readiness rather than a side effect.
+   * `url` rather than `port` on purpose: `port` only waits for a TCP listener,
+   * which a dev server opens before it can actually serve. That difference is
+   * not theoretical — `port` silently reused a local apps/web server that was
+   * returning HTTP 500 from a stale .next, where `url` refused it and said so.
+   *
+   * Note this is a readiness signal, not a warm-up. It does not fix the
+   * basics.spec.ts "solid" flake; see the comment on `retries`.
    *
    * Ports also live in test-apps/<app>/package.json and in tests/consts.ts.
    * See scripts/dev-ports.sh for the shared source.
