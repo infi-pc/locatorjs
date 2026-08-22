@@ -130,11 +130,19 @@ so it is **not** run by `pnpm e2e` and does not run in CI.
 
 Things that will waste your time if you rediscover them:
 
-- **Playwright browsers may not launch locally.** If you see
-  `Executable doesn't exist at .../chromium_headless_shell-<rev>`, the pinned
-  revision isn't installed and `--headed` may SIGABRT too. It is an environment
-  problem, not your change — CI installs browsers fresh. Confirm by stashing
-  your work and reproducing.
+- **`playwright install` needs the Node version in `.nvmrc`.** On Node 26 the
+  download finishes in seconds and then extraction deadlocks at ~1 MB with the
+  process at 0% CPU — no error, no timeout, just a hang, and killing it leaves a
+  `~/Library/Caches/ms-playwright/__dirlock` that makes every later install
+  abort with "An active lockfile is found". Playwright 1.62 fixed this; 1.59 and
+  earlier hang. If you hit it on an older branch, `rm -rf` the `__dirlock` and
+  re-run under Node 22. A partially-extracted browser dir also has to go, or
+  you get `Executable doesn't exist at .../chromium_headless_shell-<rev>` at
+  test time.
+- **`pnpm e2e` on default ports reuses another workspace's servers.**
+  `reuseExistingServer` is on locally, so if a parallel Conductor workspace has
+  `pnpm dev` up, Playwright silently tests _that_ checkout. Give the run its own
+  block first: `PORT=45000 . ./scripts/dev-ports.sh && pnpm e2e`.
 - **`--no-webstorage` in three vitest configs is load-bearing.** Node 25+ turned
   on Web Storage, which shadows jsdom's `localStorage` and breaks every test
   touching it (vitest-dev/vitest#8757). The configs probe the running Node
