@@ -94,19 +94,9 @@ jobs:
       - name: Install Playwright browsers
         working-directory: apps/playwright
         run: pnpm exec playwright install --with-deps
-      - name: Start web + test-app dev servers
-        run: |
-          pnpm --filter @locator/web dev &
-          pnpm test-apps:dev &
-        env:
-          CI: true
-      - name: Wait for dev servers
-        run: |
-          for port in 3342 3343 3345 3346 3347 3348 3350 3352 3353; do
-            echo "Waiting for port $port..."
-            timeout 60 bash -c "until curl -s http://localhost:$port > /dev/null 2>&1; do sleep 1; done"
-            echo "Port $port is ready"
-          done
+      # No dev-server startup or port-wait steps here on purpose: the webServer
+      # array in apps/playwright/playwright.config.ts owns starting every app,
+      # waiting for it, and capturing its output.
       - name: Run Playwright tests
         run: pnpm e2e
       - name: Upload Playwright report

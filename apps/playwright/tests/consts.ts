@@ -8,7 +8,6 @@ export const projects = {
   reactClean: "http://localhost:3348/",
   svelteClean: "http://localhost:3349/",
   vue: "http://localhost:3350/",
-  reactServerComponents: "http://localhost:3351/",
   next16: "http://localhost:3352/",
   next16Turbopack: "http://localhost:3353/",
 };
