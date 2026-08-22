@@ -12,8 +12,6 @@ import { devices } from "@playwright/test";
  */
 const config: PlaywrightTestConfig = {
   testDir: "./tests",
-  /* Warms every app's module graph so the first test does not pay for it. */
-  globalSetup: "./globalSetup.ts",
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {
