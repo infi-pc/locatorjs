@@ -44,3 +44,6 @@ test-results/
 playwright-report/
 blob-report/
 all-blob-reports/
+
+# agent scratch space (screenshots, repros, plans) - never committed
+.context/
