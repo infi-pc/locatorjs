@@ -27,10 +27,23 @@ const config: PlaywrightTestConfig = {
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
+  /**
+   * One worker per shard on CI. These specs share dev servers and mutate
+   * global settings (see settings.spec.ts), so running them concurrently
+   * against the same server is not safe. CI parallelism comes from sharding
+   * instead: each shard is a separate job with its own dev servers, so the
+   * isolation holds.
+   */
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  /**
+   * On CI: `github` annotates the failing lines directly in the PR, `list`
+   * puts the failure in the job log (previously the html reporter was the
+   * only one, so the log said nothing and you had to download an artifact to
+   * learn which test broke), and `blob` is what makes shard merging possible.
+   */
+  reporter: process.env.CI
+    ? [["github"], ["list"], ["blob"]]
+    : [["html", { open: "never" }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
@@ -40,6 +53,8 @@ const config: PlaywrightTestConfig = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
 
   /* Configure projects for major browsers */

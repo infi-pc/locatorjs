@@ -38,3 +38,9 @@ vite.config.js.timestamp-*.mjs
 
 # typescript incremental build info
 *.tsbuildinfo
+
+# playwright output
+test-results/
+playwright-report/
+blob-report/
+all-blob-reports/
