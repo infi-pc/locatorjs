@@ -3,7 +3,6 @@ import {
   allTargets,
   getModifiersMap,
   primaryEditorBinding,
-  replacePrimaryEditorBinding,
   resolve,
   type Binding,
   type BindingAction,
@@ -201,9 +200,17 @@ export function Onboarding() {
     (await setUserExtension({ bindings })).ok;
 
   const updatePrimaryEditor = async (patch: EditorPatch) => {
-    const next = replacePrimaryEditorBinding(effective().bindings ?? [], patch);
-    if (!next) return false;
-    return setBindings(next);
+    const bindings = effective().bindings ?? [];
+    const primary = primaryEditorBinding(bindings);
+    const action = primary?.action;
+    if (!primary || action?.kind !== 'open-editor') return false;
+    return setBindings(
+      bindings.map((binding) =>
+        binding === primary
+          ? { ...binding, action: { ...action, ...patch } }
+          : binding
+      )
+    );
   };
   const updateModifiers = (value: string | undefined) => {
     if (!value) return;
