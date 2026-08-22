@@ -20,8 +20,8 @@ export default function Why() {
                   Find anything faster
                 </h3>
                 <p className="text-base leading-relaxed">
-                  Don't know every corner of your codebase? Find any component
-                  faster than ever.
+                  Don&apos;t know every corner of your codebase? Find any
+                  component faster than ever.
                 </p>
               </div>
             </div>

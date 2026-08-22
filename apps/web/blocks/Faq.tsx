@@ -10,8 +10,8 @@ export default function Faq() {
           What is the right name? Preffered format is LocatorJS or just Locator.
           Locator.js, Locator JS, locatorjs are weird. Do I need to install
           anything to my project? In most dev stacks as CRA, Next.js or Vite,
-          you don't need to install anything, the browser extension is enough.
-          If you use some custom config (for example custorm webpack)
+          you don&apos;t need to install anything, the browser extension is
+          enough. If you use some custom config (for example custorm webpack)
         </div>
       </div>
     </section>

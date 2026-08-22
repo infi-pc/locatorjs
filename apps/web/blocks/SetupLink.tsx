@@ -16,7 +16,6 @@ export function SetupLink({
 }) {
   return (
     <div className="p-4">
-      {/* eslint-disable-next-line @next/next/link-passhref */}
       <Link href={`/install/${id}`}>
         <div className="flex flex-col p-8 border-2 border-gray-200 border-opacity-50 rounded-lg cursor-pointer sm:flex-row hover:bg-slate-50">
           <div className="inline-flex items-center justify-center flex-shrink-0 w-16 h-16 mb-4 rounded-full sm:mr-8 sm:mb-0">
