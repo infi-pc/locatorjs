@@ -1,0 +1,22 @@
+name: Setup
+description: Install pnpm and Node, restore the pnpm store, and install dependencies.
+
+runs:
+  using: composite
+  steps:
+    # pnpm must be installed before setup-node, because setup-node's
+    # `cache: pnpm` shells out to `pnpm store path` to locate the store.
+    #
+    # No `version:` input on purpose: action-setup reads it from the
+    # packageManager field in package.json, which keeps one source of truth
+    # (and passing both is an error).
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
