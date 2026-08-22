@@ -14,7 +14,8 @@
     "PORT_VUE",
     "PORT_NEXT_14",
     "PORT_NEXT_16",
-    "PORT_NEXT_16_TURBO"
+    "PORT_NEXT_16_TURBO",
+    "E2E_GROUP"
   ],
   "tasks": {
     "build": {

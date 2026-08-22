@@ -121,10 +121,25 @@ Unit tests are colocated `*.test.ts(x)` next to the source, run by **vitest**:
 `tests/fixtures/`.
 
 E2E lives in `apps/playwright/tests/libs` (168 tests, 3 browsers), driven
-against the `test-apps/` fixtures. CI shards it three ways.
+against the `test-apps/` fixtures.
+
+CI runs it as six **named groups** — `basics`, `tree`, `embedding`, `settings`,
+`bindings`, `next` — not as anonymous shards. `apps/playwright/e2e-groups.ts`
+defines which specs and which dev servers each one gets, so a job boots only
+the apps its specs navigate to. Run one locally with
+`E2E_GROUP=<name> pnpm exec playwright test` from `apps/playwright`; leave the
+variable unset and you get the whole suite and all ten servers, as before.
+
+**A new spec file must be added to a group.** Otherwise CI silently stops
+running it. That is checked, not trusted: `e2e-groups.ts` throws at config load
+if a spec belongs to no group, if a group is missing an app its specs visit, or
+if the group list and `ci.yml`'s matrix disagree. Renaming a group means editing
+both, and the check will tell you so.
 
 `apps/playwright/tests/extensions` needs a real extension build and `--headed`,
-so it is **not** run by `pnpm e2e` and does not run in CI.
+so it is **not** run by `pnpm e2e` and does not run in CI. It has a group
+(`extension`, marked `ci: false`) only so `vite-svelte-clean-project` has a
+stated reason to exist.
 
 ## Known rough edges
 
@@ -159,6 +174,10 @@ Things that will waste your time if you rediscover them:
   `panda codegen` builds fine.
 - **`packages/locatorjs` is a published stub** whose `main` points at a `dist`
   nothing builds.
+- **Renaming an e2e group renames a CI check.** Required status checks are
+  typed into GitHub's branch protection by hand, so a group rename leaves PRs
+  waiting forever on a check that will never report again. Update the required
+  check names in the same change.
 - **`.context/` is gitignored** agent scratch space. Put screenshots and repro
   scripts there, not in the repo proper.
 
@@ -168,8 +187,11 @@ Things that will waste your time if you rediscover them:
 
 - **build** → populates the turbo cache
 - **check** → `pnpm check`; all non-e2e gates in one job
-- **e2e (shard 1..3/3)** → Playwright, each shard with its own dev servers
-- **e2e report** → merges the shard blob reports into one HTML report
+- **e2e (basics | tree | embedding | settings | bindings | next)** → Playwright,
+  each group booting only the dev servers its own specs use
+- **e2e report** → merges the six blob reports into one HTML report. Not a gate:
+  `merge-reports` exits 0 whatever the tests did, so this job is green on a red
+  suite. The `e2e (<group>)` jobs are the checks.
 
 Failures are annotated inline on the PR by Playwright's `github` reporter, so
 you usually don't need to download an artifact.
