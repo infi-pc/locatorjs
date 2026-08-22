@@ -11,31 +11,41 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-jobs:
-  format:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup
-      - run: pnpm format:check
+env:
+  # `tui` is for interactive terminals; at concurrency 20 it interleaves into
+  # unreadable CI logs.
+  TURBO_UI: false
 
+jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: pnpm build
-      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        name: Save turbo cache
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        name: Turbo cache
         with:
           path: .turbo/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          # Exact key per commit, falling back to any cache built against the
+          # same lockfile so a source-only change warm-starts instead of
+          # rebuilding from scratch.
+          key: ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-
+      - run: pnpm build
 
-  typecheck:
+  # Every non-e2e gate. `pnpm check` runs format, dependency-versions, lint,
+  # typecheck and unit tests with --continue=always, so one run reports all
+  # failures rather than stopping at the first.
+  #
+  # This replaces what used to be four separate jobs (format, typecheck, lint,
+  # test), each of which repeated the full install + build before doing any
+  # work. The tradeoff is fewer status squares for a much shorter critical
+  # path; --log-order=grouped keeps the failing gate easy to find in the log.
+  check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs: build
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,39 +54,11 @@ jobs:
         name: Restore turbo cache
         with:
           path: .turbo/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          key: ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-
       - run: pnpm build
-      - run: pnpm ts
-
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: build
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        name: Restore turbo cache
-        with:
-          path: .turbo/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-      - run: pnpm build
-      - run: pnpm lint
-
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: build
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        name: Restore turbo cache
-        with:
-          path: .turbo/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-      - run: pnpm build
-      - run: pnpm test
+      - run: pnpm check
 
   e2e:
     name: e2e (shard ${{ matrix.shard }})
@@ -95,7 +77,9 @@ jobs:
         name: Restore turbo cache
         with:
           path: .turbo/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          key: ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-
       - run: pnpm build
       - name: Install Playwright browsers
         working-directory: apps/playwright
@@ -123,7 +107,7 @@ jobs:
     name: e2e report
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # always() so a failing shard still produces a merged, browsable report.
+    # Runs even when a shard fails, so there is always a merged report to read.
     if: ${{ !cancelled() }}
     needs: e2e
     steps:
