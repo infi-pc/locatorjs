@@ -14,6 +14,9 @@
     "test": "turbo run test --filter=./packages/* --filter=./apps/*",
     "ts": "turbo run ts --filter=./packages/* --filter=./apps/*",
     "e2e": "turbo run e2e --filter=./apps/playwright",
+    "typecheck": "pnpm ts",
+    "check": "pnpm format:check && pnpm dependency-versions && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
+    "check:fix": "pnpm format && pnpm dependency-versions:fix",
     "test-apps:dev": "turbo run dev --parallel --filter=./test-apps/*",
     "test-apps:build": "turbo run build --filter=./test-apps/*",
     "ui:lab": "pnpm --dir apps/ui-lab dev",
@@ -27,8 +30,8 @@
     "clean:dist": "rm -rf */*/dist",
     "clean:turbo": "rm -rf */*/.turbo",
     "clean:next": "rm -rf */*/.next",
-    "dependency-versions": "check-dependency-version-consistency . --ignore-path-pattern='^test-apps/'",
-    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/'"
+    "dependency-versions": "check-dependency-version-consistency . --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
+    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/' --ignore-dep=prettier"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",

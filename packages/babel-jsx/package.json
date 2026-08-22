@@ -22,7 +22,7 @@
     "@locator/shared": "workspace:^"
   },
   "devDependencies": {
-    "@babel/preset-typescript": "^7.26.0",
+    "@babel/preset-typescript": "^7.28.5",
     "@locator/dev-config": "workspace:^",
     "@types/babel__traverse": "^7.28.0",
     "@types/jest": "^29.5.14",
