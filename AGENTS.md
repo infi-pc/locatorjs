@@ -1,0 +1,167 @@
+# AGENTS.md
+
+LocatorJS: click a component in the browser, land on its source in your editor.
+A pnpm + Turborepo monorepo shipping a browser extension, a runtime library, a
+babel plugin, and the marketing site.
+
+## Verify your work with one command
+
+```bash
+pnpm check
+```
+
+Runs formatting, dependency-version consistency, lint, typecheck and unit tests
+across all 13 packages. It uses `--continue=always`, so it reports **every**
+failing gate in one run rather than stopping at the first, and
+`--output-logs=errors-only`, so the output is only failures.
+
+Fix what it reports and re-run until it is green. Two shortcuts:
+
+```bash
+pnpm check:fix   # prettier + dependency-version autofix
+pnpm format      # formatting only
+```
+
+`pnpm check` is exactly what CI's `check` job runs, so green locally means green
+in CI. Scope it to one package while iterating:
+
+```bash
+pnpm turbo run lint ts test --filter=@locator/runtime
+```
+
+Never claim a check passed that you did not run.
+
+## Commands
+
+| Command                      | What                                                   |
+| ---------------------------- | ------------------------------------------------------ |
+| `pnpm build`                 | Build all packages and apps (turbo, cached)            |
+| `pnpm check`                 | Every gate. Use this.                                  |
+| `pnpm dev`                   | All dev servers (sources `scripts/dev-ports.sh` first) |
+| `pnpm e2e`                   | Playwright suite. Starts its own servers — see below.  |
+| `pnpm ui:lab`                | Component workbench on 3344                            |
+| `pnpm ts` / `pnpm typecheck` | Typecheck only (same thing)                            |
+| `pnpm lint` / `pnpm test`    | Individual gates                                       |
+| `pnpm clean`                 | Remove node_modules, dist, .turbo, .next               |
+
+Node version is pinned in `.nvmrc` (22). Don't hardcode it anywhere else.
+
+## Don't start a dev server yourself
+
+One is usually already running, and a second either fights over the port or
+serves a _different Conductor workspace_. Ask before starting `pnpm dev`.
+One-off commands that run and exit — `pnpm build`, `pnpm check`, `pnpm -C
+apps/extension build` — are always fine.
+
+`pnpm e2e` is the exception: Playwright's `webServer` array owns starting every
+app it needs, waits for each, and reuses anything already listening when not on
+CI. Do not start servers by hand before running it.
+
+## Ports
+
+Every port derives from one base via `scripts/dev-ports.sh`, so parallel
+workspaces don't collide:
+
+```bash
+PORT=45000 . ./scripts/dev-ports.sh && pnpm dev
+```
+
+Each consumer reads its variable with the historical port as the default, so
+**not** sourcing the script keeps the original numbers. Defaults: web 3342,
+vite-react 3343, ui-lab 3344, solid 3345, preact 3346, svelte 3347,
+react-clean 3348, svelte-clean 3349, vue 3350, next-14 3351, next-16 3352,
+next-16-turbopack 3353.
+
+If you add an app, add its variable to `scripts/dev-ports.sh` **and** to
+`turbo.json`'s `globalEnv` — otherwise turbo omits it from cache keys and will
+hand you a build made against a different port.
+
+## Layout
+
+**Packages** — `runtime` (injected into the page; draws the overlays),
+`shared` (pure helpers, bindings, editor-target resolution), `ui` (Solid
+components), `styled-system` (Panda CSS tokens/theme, mostly generated),
+`babel-jsx` (adds source attributes to JSX), `webpack-loader` (wraps the babel
+plugin), `react-devtools-hook` (installs the devtools global hook),
+`dev-config` (shared eslint presets + tsconfig bases), `locatorjs` (published
+stub, no source).
+
+**Apps** — `extension` (the browser extension, Solid + webpack),
+`web` (locatorjs.com, Next.js), `ui-lab` (component workbench, private),
+`playwright` (e2e suite).
+
+**test-apps/** — 10 fixture apps across React/Solid/Preact/Svelte/Vue/Next that
+the e2e suite drives. Excluded from `pnpm build` and `pnpm check`.
+
+## Rules, and what enforces each
+
+- **Don't add a `console.log`.** `no-console` allows only `error`, `info` and
+  `warn` (`packages/dev-config/eslint-base-preset.js`). Caught by `pnpm lint`.
+- **Don't add `@ts-ignore`.** `@typescript-eslint/ban-ts-comment` bans it; use
+  `@ts-expect-error` _with a description_. `@ts-expect-error` fails the build if
+  the error it claims to suppress doesn't exist, which is the point. Caught by
+  `pnpm lint` and `pnpm ts`.
+- **Every `eslint-disable` needs a reason** after `--`. Not machine-enforced
+  yet; treat it as required anyway.
+- **A new package needs `lint` and `ts` scripts.** Turbo silently no-ops on a
+  missing script, so a package without them is invisible to CI rather than
+  passing it. This is how coverage previously sat at 4/13 for lint. Confirm with
+  `pnpm turbo run lint --dry=json`.
+- **Keep dependency versions identical across packages.** Enforced by
+  `pnpm dependency-versions` inside `pnpm check`. `prettier` is currently
+  exempted (see Known rough edges).
+- **Don't edit generated output**: `packages/styled-system/dist` (Panda),
+  `apps/web/next-env.d.ts`, `apps/extension/build`.
+
+## Tests
+
+Unit tests are colocated `*.test.ts(x)` next to the source, run by **vitest**:
+`runtime` (22 files), `ui` (11), `shared` (5), `extension` (4).
+`packages/babel-jsx` is the one **jest** package, with fixture snapshots under
+`tests/fixtures/`.
+
+E2E lives in `apps/playwright/tests/libs` (168 tests, 3 browsers), driven
+against the `test-apps/` fixtures. CI shards it three ways.
+
+`apps/playwright/tests/extensions` needs a real extension build and `--headed`,
+so it is **not** run by `pnpm e2e` and does not run in CI.
+
+## Known rough edges
+
+Things that will waste your time if you rediscover them:
+
+- **Playwright browsers may not launch locally.** If you see
+  `Executable doesn't exist at .../chromium_headless_shell-<rev>`, the pinned
+  revision isn't installed and `--headed` may SIGABRT too. It is an environment
+  problem, not your change — CI installs browsers fresh. Confirm by stashing
+  your work and reproducing.
+- **`--no-webstorage` in three vitest configs is load-bearing.** Node 25+ turned
+  on Web Storage, which shadows jsdom's `localStorage` and breaks every test
+  touching it (vitest-dev/vitest#8757). The configs probe the running Node
+  rather than assuming a version, because Node 22 rejects the flag outright.
+  Don't "simplify" it to an unconditional flag.
+- **Prettier is split across majors** — 2.8.8 at root and in `apps/extension`,
+  3.8.3 in `packages/babel-jsx` — and there are three formatter entry points
+  with disagreeing options. `dependency-versions` exempts `prettier` until this
+  is unified, since unifying reformats the repo.
+- **`.npmrc`'s `minimum-release-age` is inert** on the pinned pnpm 8.7.5; it
+  needs pnpm >= 10.16.
+- **`packages/styled-system` has no `ts` script.** Typechecking the Panda theme
+  files surfaces type-level disagreements with Panda's own types even though
+  `panda codegen` builds fine.
+- **`packages/locatorjs` is a published stub** whose `main` points at a `dist`
+  nothing builds.
+- **`.context/` is gitignored** agent scratch space. Put screenshots and repro
+  scripts there, not in the repo proper.
+
+## What CI checks
+
+`.github/workflows/ci.yml`, on PRs and pushes to **master** (not `main`):
+
+- **build** → populates the turbo cache
+- **check** → `pnpm check`; all non-e2e gates in one job
+- **e2e (shard 1..3/3)** → Playwright, each shard with its own dev servers
+- **e2e report** → merges the shard blob reports into one HTML report
+
+Failures are annotated inline on the PR by Playwright's `github` reporter, so
+you usually don't need to download an artifact.
