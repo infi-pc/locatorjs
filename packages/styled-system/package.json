@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "build": "panda codegen",
-    "dev": "panda codegen --watch"
+    "dev": "panda codegen --watch",
+    "lint": "eslint . --ext .ts,.tsx"
   },
   "exports": {
     "./css": {

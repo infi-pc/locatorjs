@@ -7,7 +7,8 @@
     "test:update": "jest tests/ -u",
     "dev": "tsc --watch --outDir dist --preserveWatchOutput",
     "build": "tsc --outDir dist --declaration",
-    "ts": "tsc --noEmit"
+    "ts": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
     "@babel/parser": "^7.29.2",

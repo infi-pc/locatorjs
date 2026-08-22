@@ -25,7 +25,8 @@
     "release:node": "node utils/release.js",
     "release:node:firefox": "node utils/release.js --firefox",
     "release:node:all": "node utils/release.js --all",
-    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
+    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
+    "ts": "tsc --noEmit"
   },
   "dependencies": {
     "@locator/react-devtools-hook": "workspace:^",

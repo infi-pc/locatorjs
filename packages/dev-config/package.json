@@ -4,7 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "files": [
-    "eslint-preset.js",
+    "eslint-base-preset.js",
+    "eslint-react-preset.js",
+    "eslint-solid-preset.js",
     "tsconfig.base.json",
     "tsconfig.nextjs.json",
     "tsconfig.react-library.json"

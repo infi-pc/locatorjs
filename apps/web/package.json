@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "next dev --port=3342",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "ts": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
     "@locator/runtime": "workspace:^",

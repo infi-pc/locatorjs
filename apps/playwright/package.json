@@ -6,10 +6,14 @@
     "e2e": "playwright test ./tests/libs",
     "e2e-headed": "playwright test --headed --project=chromium ./tests/libs",
     "e2e-extension": "playwright test --headed --project=chromium ./tests/extensions",
-    "install-browsers": "playwright install"
+    "install-browsers": "playwright install",
+    "lint": "eslint . --ext .ts",
+    "ts": "tsc --noEmit"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^22",
+    "typescript": "^5.9.3"
   },
   "files": []
 }

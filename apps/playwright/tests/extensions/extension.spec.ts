@@ -9,6 +9,22 @@ import * as path from "path";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
 
+/**
+ * `chrome` exists only in the extension's page context, which is where the
+ * page.evaluate callbacks below actually run. Declare the sliver this spec
+ * touches instead of pulling in all of @types/chrome.
+ */
+declare const chrome: {
+  storage: {
+    local: {
+      get(
+        keys: string[],
+        callback: (result: { userOptions?: { debugMode?: boolean } }) => void
+      ): void;
+    };
+  };
+};
+
 export const test = base.extend<{
   context: BrowserContext;
   extensionId: string;

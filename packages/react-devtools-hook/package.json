@@ -8,7 +8,8 @@
     "//test:update": "jest tests/ -u",
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
     "build": "tsc --declaration --outDir dist",
-    "ts": "tsc --noEmit"
+    "ts": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",
