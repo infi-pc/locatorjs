@@ -127,6 +127,15 @@ const config: PlaywrightTestConfig = {
    * listener means something is wrong) and on locally, so an already-running
    * `pnpm dev` is reused rather than fought over.
    *
+   * `url` rather than `port` is load-bearing. `port` only waits for a TCP
+   * listener, and vite listens before it has transformed anything, so the first
+   * test to reach an app raced its initial compile. The bash port-wait loop
+   * this replaced happened to curl every port, which warmed them by accident;
+   * dropping it made that race visible as flakes in basics.spec.ts (once per
+   * shard, since each shard boots its own servers). `url` makes Playwright
+   * issue real HTTP GETs until one succeeds, restoring the warm-up as a
+   * deliberate part of readiness rather than a side effect.
+   *
    * Ports also live in test-apps/<app>/package.json and in tests/consts.ts.
    * See scripts/dev-ports.sh for the shared source.
    */
@@ -144,7 +153,7 @@ const config: PlaywrightTestConfig = {
   ]
     .map(([pkg, envVar, fallback]) => ({
       command: `pnpm --filter ${pkg} dev`,
-      port: Number(process.env[envVar as string] ?? fallback),
+      url: `http://localhost:${process.env[envVar as string] ?? fallback}/`,
     }))
     .map((server) => ({
       ...server,
