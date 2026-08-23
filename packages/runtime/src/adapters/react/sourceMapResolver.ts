@@ -1,4 +1,6 @@
 import { Source } from "@locator/shared";
+import { firstUserFrame } from "./stackFrame";
+import { createTtlCache } from "./ttlCache";
 
 /**
  * Source Map Resolver
@@ -6,13 +8,27 @@ import { Source } from "@locator/shared";
  * When traditional _debugSource is unavailable, reverse-lookup via source-map
  */
 
-// Source map cache: url -> parsed map data
-const sourceMapCache = new Map<string, SourceMapConsumer | null>();
+/**
+ * Dev chunk URLs are stable across HMR, so a parsed map has to expire or every
+ * click after an edit reports pre-edit line numbers.
+ */
+const SOURCE_MAP_TTL_MS = 5_000;
+const MAX_CACHED_SOURCE_MAPS = 64;
+
+const sourceMapCache = createTtlCache<SourceMapConsumer | null>(
+  SOURCE_MAP_TTL_MS,
+  MAX_CACHED_SOURCE_MAPS
+);
 
 // Loading promise cache to avoid duplicate requests
 const loadingPromises = new Map<string, Promise<SourceMapConsumer | null>>();
 
 // Simplified Source Map Consumer interface
+/**
+ * Positions here use the source-map spec's bases: `line` 1-based, `column`
+ * 0-based, in and out. The public helpers below convert, because stack traces
+ * report 1-based columns and editors expect them.
+ */
 interface SourceMapConsumer {
   originalPositionFor(pos: { line: number; column: number }): {
     source: string | null;
@@ -73,7 +89,10 @@ export function decodeVLQ(encoded: string, index: number): [number, number] {
       throw new Error(`Invalid VLQ character: ${char}`);
     }
     continuation = (digit & VLQ_CONTINUATION_BIT) !== 0;
-    result += (digit & VLQ_BASE_MASK) << shift;
+    // Multiplication, not `<<`: the shift operator is 32-bit and silently
+    // wraps past bit 32, corrupting positions in a malformed or unusually
+    // large mapping rather than failing.
+    result += (digit & VLQ_BASE_MASK) * 2 ** shift;
     shift += VLQ_BASE_SHIFT;
   } while (continuation);
 
@@ -334,132 +353,28 @@ function inferSourceMapUrl(jsUrl: string): string | null {
 }
 
 /**
- * Parse Error stack trace for call location
- * Supports Chrome/Firefox/Safari formats
- */
-interface StackFrame {
-  fileName: string;
-  lineNumber: number;
-  columnNumber: number;
-  functionName?: string;
-}
-
-function parseStackTrace(stack: string): StackFrame[] {
-  const frames: StackFrame[] = [];
-  const lines = stack.split("\n");
-
-  for (const line of lines) {
-    // Chrome format: "    at functionName (file:line:column)"
-    // or "    at file:line:column"
-    const chromeMatch = line.match(
-      /^\s*at\s+(?:(.+?)\s+\()?(.+?):(\d+):(\d+)\)?$/
-    );
-    if (chromeMatch) {
-      const [, funcName, fileName, lineStr, colStr] = chromeMatch;
-      if (fileName && lineStr && colStr) {
-        frames.push({
-          functionName: funcName,
-          fileName,
-          lineNumber: parseInt(lineStr, 10),
-          columnNumber: parseInt(colStr, 10),
-        });
-      }
-      continue;
-    }
-
-    // Firefox format: "functionName@file:line:column"
-    const firefoxMatch = line.match(/^(.+?)@(.+?):(\d+):(\d+)$/);
-    if (firefoxMatch) {
-      const [, funcName, fileName, lineStr, colStr] = firefoxMatch;
-      if (fileName && lineStr && colStr) {
-        frames.push({
-          functionName: funcName,
-          fileName,
-          lineNumber: parseInt(lineStr, 10),
-          columnNumber: parseInt(colStr, 10),
-        });
-      }
-    }
-  }
-
-  return frames;
-}
-
-/**
- * Filter out LocatorJS and React internal stack frames
- */
-function filterRelevantFrames(frames: StackFrame[]): StackFrame[] {
-  return frames.filter((frame) => {
-    const fileName = frame.fileName.toLowerCase();
-    // Exclude LocatorJS
-    if (fileName.includes("locator")) return false;
-    // Exclude React internals
-    if (fileName.includes("react-dom")) return false;
-    if (fileName.includes("react.development")) return false;
-    if (fileName.includes("react.production")) return false;
-    return true;
-  });
-}
-
-/**
- * Try to get component source from stack trace
- * Core function for environments where _debugSource is unavailable
+ * Try to get component source from a stack trace.
+ * Core function for environments where _debugSource is unavailable.
  */
 export async function resolveSourceFromStack(): Promise<Source | null> {
   try {
-    // Generate Error to get stack trace
-    const error = new Error();
-    const stack = error.stack;
+    const stack = new Error().stack;
     if (!stack) return null;
 
-    const frames = parseStackTrace(stack);
-    const relevantFrames = filterRelevantFrames(frames);
-
-    if (relevantFrames.length === 0) return null;
-
-    // Take first relevant frame (usually component render location)
-    const frame = relevantFrames[0];
+    const frame = firstUserFrame(stack);
     if (!frame) return null;
 
-    const mapUrl = inferSourceMapUrl(frame.fileName);
-
-    if (!mapUrl) {
-      // No source map, return compiled position
-      return {
+    return (
+      (await resolveOriginalPosition(
+        frame.fileName,
+        frame.lineNumber,
+        frame.columnNumber
+      )) ?? {
         fileName: frame.fileName,
         lineNumber: frame.lineNumber,
         columnNumber: frame.columnNumber,
-      };
-    }
-
-    // Load and parse source map
-    const consumer = await loadSourceMap(mapUrl);
-    if (!consumer) {
-      return {
-        fileName: frame.fileName,
-        lineNumber: frame.lineNumber,
-        columnNumber: frame.columnNumber,
-      };
-    }
-
-    const original = consumer.originalPositionFor({
-      line: frame.lineNumber,
-      column: frame.columnNumber,
-    });
-
-    if (original.source && original.line) {
-      return {
-        fileName: original.source,
-        lineNumber: original.line,
-        columnNumber: original.column ?? undefined,
-      };
-    }
-
-    return {
-      fileName: frame.fileName,
-      lineNumber: frame.lineNumber,
-      columnNumber: frame.columnNumber,
-    };
+      }
+    );
   } catch {
     return null;
   }
@@ -494,7 +409,16 @@ export function fileUrlToPath(fileUrl: string): string {
 }
 
 /**
- * Reverse-lookup original position from compiled position
+ * Reverse-lookup an original position from a compiled one.
+ *
+ * `null` means the lookup failed -- no map, no mapping, nothing usable. It
+ * used to echo the compiled URL back instead, which callers could not tell
+ * from a real result: five of the eight strategies in `resolveSourceFromFiber`
+ * accepted `webpack-internal:///...` as the answer and stopped, skipping the
+ * strategies that do resolve.
+ *
+ * `column` is 1-based in and out, matching stack traces and editor links; the
+ * source map's own 0-based columns stay behind this boundary.
  */
 export async function resolveOriginalPosition(
   compiledUrl: string,
@@ -502,28 +426,22 @@ export async function resolveOriginalPosition(
   column: number
 ): Promise<Source | null> {
   const mapUrl = inferSourceMapUrl(compiledUrl);
-  if (!mapUrl) {
-    return { fileName: compiledUrl, lineNumber: line, columnNumber: column };
-  }
+  if (!mapUrl) return null;
 
   const consumer = await loadSourceMap(mapUrl);
-  if (!consumer) {
-    return { fileName: compiledUrl, lineNumber: line, columnNumber: column };
-  }
+  if (!consumer) return null;
 
-  const original = consumer.originalPositionFor({ line, column });
+  const original = consumer.originalPositionFor({
+    line,
+    column: Math.max(0, column - 1),
+  });
+  if (!original.source || !original.line) return null;
 
-  if (original.source && original.line) {
-    // Convert file:// URL to local path
-    const fileName = fileUrlToPath(original.source);
-    return {
-      fileName,
-      lineNumber: original.line,
-      columnNumber: original.column ?? undefined,
-    };
-  }
-
-  return { fileName: compiledUrl, lineNumber: line, columnNumber: column };
+  return {
+    fileName: fileUrlToPath(original.source),
+    lineNumber: original.line,
+    columnNumber: original.column === null ? undefined : original.column + 1,
+  };
 }
 
 /**
@@ -549,9 +467,7 @@ export async function preloadSourceMaps(): Promise<void> {
   await Promise.all(loadPromises);
 }
 
-/**
- * Clear source map cache
- */
+/** Drops every cached map immediately, ahead of the TTL. */
 export function clearSourceMapCache(): void {
   sourceMapCache.clear();
   loadingPromises.clear();

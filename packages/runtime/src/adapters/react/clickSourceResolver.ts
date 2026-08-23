@@ -1,37 +1,20 @@
 import { Source, Fiber, RendererInterface } from "@locator/shared";
 import { resolveOriginalPosition, fileUrlToPath } from "./sourceMapResolver";
 import {
+  cleanStackFileName,
+  isInternalFrame,
+  parseStackFrame,
+  type StackFrame,
+} from "./stackFrame";
+import { createTtlCache } from "./ttlCache";
+import {
   SourceMethod,
   logSourceFound,
   logSourceComplete,
   logError,
   isDebugEnabled,
+  type SourceMethodType,
 } from "./debug";
-
-/**
- * Clean up stack frame file paths
- * Handles React Server Component URLs: about://React/Server/file:///path -> /path
- * Handles Turbopack chunk query params: /path.js?5 -> /path.js
- */
-function cleanStackFileName(fileName: string): string {
-  let cleaned = fileName;
-
-  // Strip about://React/Server/ prefix (React 19 Server Components)
-  if (cleaned.startsWith("about://React/Server/")) {
-    cleaned = cleaned.slice("about://React/Server/".length);
-  }
-
-  // Convert file:// URLs to local paths
-  cleaned = fileUrlToPath(cleaned);
-
-  // Strip query params from chunk paths (e.g. .js?5 -> .js)
-  const queryIdx = cleaned.indexOf("?");
-  if (queryIdx !== -1) {
-    cleaned = cleaned.slice(0, queryIdx);
-  }
-
-  return cleaned;
-}
 
 /**
  * Check if a fileName looks like a compiled chunk (not an original source file)
@@ -45,62 +28,94 @@ function isChunkUrl(fileName: string): boolean {
   );
 }
 
-// Cached Turbopack project root (undefined = not yet resolved)
-let turbopackProjectRoot: string | null | undefined = undefined;
+/**
+ * Inferred project roots. `undefined` means "not tried yet".
+ *
+ * Only successes are remembered. Caching the failure meant one early attempt
+ * -- before any chunk map was fetchable -- poisoned the whole session: every
+ * later click returned the literal `[project]/app/page.tsx` as its file path.
+ * A short cooldown keeps a burst of clicks from refetching every map.
+ */
+let turbopackProjectRoot: string | undefined = undefined;
+let turbopackRootRetryAfter = 0;
 
-// Cached Next.js app root for resolving relative paths from /__nextjs_original-stack-frames
-let nextjsAppRoot: string | null | undefined = undefined;
+let nextjsAppRoot: string | undefined = undefined;
+let nextjsRootRetryAfter = 0;
+
+const ROOT_RETRY_COOLDOWN_MS = 5_000;
 
 /**
- * Resolve Turbopack [project]/ prefix to absolute path
- * Infers the project root by matching source map sources against the relative path
+ * The project root implied by an absolute source path ending in `relativePath`,
+ * or null if it does not.
+ *
+ * The match has to land on a separator: `endsWith("app/page.tsx")` alone also
+ * accepts `.../some-lib-app/page.tsx` and yields a root one directory too deep.
  */
+function rootFromSource(absPath: string, relativePath: string): string | null {
+  const suffix = "/" + relativePath;
+  if (!absPath.endsWith(suffix)) return null;
+  return absPath.slice(0, absPath.length - suffix.length);
+}
+
+function sourcesOf(map: {
+  sections?: { map?: { sources?: string[] } }[];
+  sources?: string[];
+}): string[] {
+  return map.sections
+    ? map.sections.flatMap((section) => section.map?.sources || [])
+    : map.sources || [];
+}
+
+/**
+ * Picks the best root among candidates: anything outside `node_modules` beats
+ * anything inside it, so a dependency that happens to ship `app/page.tsx` does
+ * not become the project root for every subsequent path.
+ */
+function bestRoot(candidates: string[]): string | undefined {
+  return (
+    candidates.find((root) => !root.includes("/node_modules/")) ?? candidates[0]
+  );
+}
+
+/** Resolve Turbopack's `[project]/` prefix to an absolute path. */
 async function resolveProjectPrefix(fileName: string): Promise<string> {
   if (!fileName.startsWith("[project]/")) return fileName;
 
   const relativePath = fileName.slice("[project]/".length);
 
   if (turbopackProjectRoot !== undefined) {
-    return turbopackProjectRoot
-      ? turbopackProjectRoot + "/" + relativePath
-      : fileName;
+    return turbopackProjectRoot + "/" + relativePath;
   }
+  if (Date.now() < turbopackRootRetryAfter) return fileName;
 
-  // Infer project root from source map sources
   const scripts = Array.from(
     document.querySelectorAll('script[src*="/_next/static/chunks"]')
   ) as HTMLScriptElement[];
 
+  const candidates: string[] = [];
   for (const script of scripts) {
     try {
       const res = await fetch(script.src + ".map");
       if (!res.ok) continue;
       const map = await res.json();
 
-      const sources: string[] = map.sections
-        ? map.sections.flatMap(
-            (s: { map?: { sources?: string[] } }) => s.map?.sources || []
-          )
-        : map.sources || [];
-
-      for (const source of sources) {
+      for (const source of sourcesOf(map)) {
         if (!source.startsWith("file:///")) continue;
-        const absPath = fileUrlToPath(source);
-        if (absPath.endsWith(relativePath)) {
-          turbopackProjectRoot = absPath.slice(
-            0,
-            absPath.length - relativePath.length - 1
-          );
-          return turbopackProjectRoot + "/" + relativePath;
-        }
+        const root = rootFromSource(fileUrlToPath(source), relativePath);
+        if (root) candidates.push(root);
       }
     } catch {
       continue;
     }
   }
 
-  turbopackProjectRoot = null;
-  return fileName;
+  const root = bestRoot(candidates);
+  if (root === undefined) {
+    turbopackRootRetryAfter = Date.now() + ROOT_RETRY_COOLDOWN_MS;
+    return fileName;
+  }
+  turbopackProjectRoot = root;
+  return root + "/" + relativePath;
 }
 
 /**
@@ -123,17 +138,23 @@ type DevToolsHookWithInterfaces = {
   renderers?: Map<number, unknown>;
 };
 
-// Cache: component type -> source mapping
-const componentSourceCache = new WeakMap<object, Source | null>();
+/**
+ * Resolved source, keyed by the fiber it was resolved for.
+ *
+ * Keyed on `fiber.type` this was wrong: the strategies below return *call-site*
+ * locations, which differ per instance, while `type` is shared by every
+ * instance of a component. Two `<Row/>`s rendered on different lines both
+ * opened whichever one was clicked first.
+ */
+const componentSourceCache = new WeakMap<Fiber, Source | null>();
 
-// Cache: chunk code to avoid repeated fetches
-const chunkCodeCache = new Map<string, string>();
-
-// Cache: component name -> source mapping (for Turbopack)
-const componentNameSourceCache = new Map<string, Source | null>();
-
-// Cache: element signature -> source mapping (for native elements)
-const elementSignatureSourceCache = new Map<string, Source | null>();
+/**
+ * Fetched chunk text. Bounded and short-lived: this holds whole JS bundles,
+ * and dev chunk URLs survive HMR, so a stale entry means stale line numbers.
+ */
+const CHUNK_TTL_MS = 5_000;
+const MAX_CACHED_CHUNKS = 24;
+const chunkCodeCache = createTtlCache<string>(CHUNK_TTL_MS, MAX_CACHED_CHUNKS);
 
 /**
  * Get all chunk codes (with caching)
@@ -149,7 +170,7 @@ async function getAllChunkCodes(): Promise<string[]> {
     if (!src) continue;
 
     let code = chunkCodeCache.get(src);
-    if (!code) {
+    if (code === undefined) {
       try {
         const res = await fetch(src);
         if (!res.ok) continue;
@@ -165,103 +186,131 @@ async function getAllChunkCodes(): Promise<string[]> {
 }
 
 /**
- * Search for source info in chunk code (generic method)
- * Search forward from attribute value position for fileName/lineNumber
+ * The `{fileName, lineNumber, columnNumber}` literal a JSX transform appends to
+ * a `jsxDEV` call. Matched as one object so the three values cannot come from
+ * two different call sites -- separate regexes let `fileName` be read from one
+ * literal and `lineNumber` from the next.
  */
-function extractSourceNearPosition(
-  code: string,
-  position: number
-): Source | null {
-  // Search forward from current position for source info (within 1500 chars)
-  const searchRange = code.slice(position, position + 1500);
-  const fileMatch = searchRange.match(/fileName:\s*"([^"]+)"/);
-  const lineMatch = searchRange.match(/lineNumber:\s*(\d+)/);
-  const colMatch = searchRange.match(/columnNumber:\s*(\d+)/);
+const SOURCE_LITERAL =
+  /\{\s*fileName:\s*"([^"]+)"\s*,\s*lineNumber:\s*(\d+)\s*,\s*columnNumber:\s*(\d+)\s*\}/g;
 
-  if (fileMatch?.[1] && lineMatch?.[1]) {
-    return {
-      fileName: fileMatch[1],
-      lineNumber: parseInt(lineMatch[1], 10),
-      columnNumber: colMatch?.[1] ? parseInt(colMatch[1], 10) : 0,
-    };
+const SEARCH_WINDOW = 1500;
+
+/**
+ * The source literal belonging to the call being inspected.
+ *
+ * "Belonging to" is the whole difficulty: in compiled JSX the *first* literal
+ * after a call site is the one for a nested child, so
+ * `<div className="card"><span/></div>` used to resolve the div to the span's
+ * line -- and because the three fields were matched by three separate regexes,
+ * the filename and the line number could even come from two different objects.
+ *
+ * The literal we want is a sibling argument of this call, which fixes its
+ * brace depth relative to where the search starts. `expectedDepth` says where
+ * that is: 0 when starting at the call itself, -1 when starting at an
+ * attribute value inside the call's props object.
+ */
+export function extractSourceNearPosition(
+  code: string,
+  position: number,
+  expectedDepth: number
+): Source | null {
+  const searchRange = code.slice(position, position + SEARCH_WINDOW);
+
+  let depth = 0;
+  for (let i = 0; i < searchRange.length; i += 1) {
+    const char = searchRange[i];
+    if (char === "}") {
+      depth -= 1;
+      continue;
+    }
+    if (char !== "{") continue;
+
+    if (depth === expectedDepth) {
+      SOURCE_LITERAL.lastIndex = i;
+      const match = SOURCE_LITERAL.exec(searchRange);
+      if (match && match.index === i) {
+        const [, fileName, line, column] = match;
+        if (fileName && line) {
+          return {
+            fileName,
+            lineNumber: parseInt(line, 10),
+            columnNumber: column ? parseInt(column, 10) : 0,
+          };
+        }
+      }
+    }
+    depth += 1;
   }
+
   return null;
 }
 
 /**
- * Extract source info for native elements (div/span etc.) from Turbopack chunk code
- * Match precisely via className/id
+ * Recognises a JSX call for `name` immediately before an offset. `name` is
+ * either a quoted tag (`"div"`) or a bare component identifier.
+ *
+ * Hoisted and memoised: these were being recompiled inside the innermost loop
+ * of a scan over whole bundles.
+ */
+const jsxCallPatterns = new Map<string, RegExp>();
+function jsxCallPattern(name: string): RegExp {
+  let pattern = jsxCallPatterns.get(name);
+  if (!pattern) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // `["jsxDEV"])(x,` | `jsxDEV(x,` | `.jsxDEV)(x,` | `_jsx(x,` | `jsx(x,`
+    pattern = new RegExp(
+      `(?:\\["jsx(?:DEV|s)?"\\]\\)|\\.jsx(?:DEV|s)?\\)|\\b_?jsx(?:DEV|s)?)\\(\\s*${escaped}\\s*,[^}]*$`
+    );
+    jsxCallPatterns.set(name, pattern);
+  }
+  return pattern;
+}
+
+const BACKTRACK_WINDOW = 800;
+
+function hasJsxCallBefore(code: string, index: number, name: string): boolean {
+  const from = Math.max(0, index - BACKTRACK_WINDOW);
+  return jsxCallPattern(name).test(code.slice(from, index));
+}
+
+/**
+ * Source for a native element (div/span/...), found by locating its own
+ * className or id in the chunk text.
+ *
+ * Deliberately uncached. The old key was `tag:className:id`, which is not
+ * identifying: every `<div className="card">` in the app shares it and so
+ * resolved to one location.
  */
 async function extractSourceFromTurbopackChunksForElement(
   tagName: string,
   className?: string,
   id?: string
 ): Promise<Source | null> {
-  // Build cache key
-  const cacheKey = `${tagName}:${className || ""}:${id || ""}`;
-  if (elementSignatureSourceCache.has(cacheKey)) {
-    return elementSignatureSourceCache.get(cacheKey) ?? null;
-  }
-
-  // Cannot match precisely without className or id
-  if (!className && !id) {
-    elementSignatureSourceCache.set(cacheKey, null);
-    return null;
-  }
+  if (!className && !id) return null;
 
   try {
     const codes = await getAllChunkCodes();
 
-    // Collect all possible search patterns
     const searchPatterns: string[] = [];
-    if (id) {
-      searchPatterns.push(id);
-    }
+    if (id) searchPatterns.push(id);
     if (className) {
-      // Split class names, each can be used as search keyword
-      const classes = className.split(/\s+/).filter((c) => c.length > 2);
-      searchPatterns.push(...classes);
+      searchPatterns.push(
+        ...className.split(/\s+/).filter((item) => item.length > 2)
+      );
     }
-
-    if (searchPatterns.length === 0) {
-      elementSignatureSourceCache.set(cacheKey, null);
-      return null;
-    }
+    if (searchPatterns.length === 0) return null;
 
     for (const code of codes) {
       for (const pattern of searchPatterns) {
-        // Search for attribute value in code
         let searchIndex = 0;
         while (searchIndex < code.length) {
           const attrIndex = code.indexOf(`"${pattern}"`, searchIndex);
           if (attrIndex === -1) break;
 
-          // Search backward to confirm jsxDEV call (within 800 chars)
-          const startRange = Math.max(0, attrIndex - 800);
-          const beforeAttr = code.slice(startRange, attrIndex);
-
-          // Check if this is jsxDEV("tagName", or similar call
-          // Supports multiple Turbopack formats:
-          // - ["jsxDEV"])("div",
-          // - jsxDEV("div",
-          // - (0, _jsxDevRuntime.jsxDEV)("div",
-          // - _jsx("div",
-          const jsxPatterns = [
-            new RegExp(`\\["jsxDEV"\\]\\)\\("${tagName}",[^}]*$`),
-            new RegExp(`jsxDEV\\("${tagName}",[^}]*$`),
-            new RegExp(`\\.jsxDEV\\)\\("${tagName}",[^}]*$`),
-            new RegExp(`_jsx\\("${tagName}",[^}]*$`),
-            new RegExp(`jsx\\("${tagName}",[^}]*$`),
-          ];
-
-          const hasJsxCall = jsxPatterns.some((p) => p.test(beforeAttr));
-
-          if (hasJsxCall) {
-            const source = extractSourceNearPosition(code, attrIndex);
-            if (source) {
-              elementSignatureSourceCache.set(cacheKey, source);
-              return source;
-            }
+          if (hasJsxCallBefore(code, attrIndex, `"${tagName}"`)) {
+            const source = extractSourceNearPosition(code, attrIndex, -1);
+            if (source) return source;
           }
 
           searchIndex = attrIndex + 1;
@@ -269,7 +318,6 @@ async function extractSourceFromTurbopackChunksForElement(
       }
     }
 
-    elementSignatureSourceCache.set(cacheKey, null);
     return null;
   } catch {
     return null;
@@ -277,64 +325,50 @@ async function extractSourceFromTurbopackChunksForElement(
 }
 
 /**
- * Extract jsxDEV source info from Turbopack chunk code
- * For React 19 + Turbopack where Fiber has no _debugSource
+ * Source for a component, found by locating a JSX call to it in the chunk text.
+ *
+ * A last resort, and treated as one. The match is required to be an actual JSX
+ * call: searching for `` `(${name},` `` anywhere also hit `memo(Card,` and
+ * `useCallback(Card,`, where the next source literal belongs to something
+ * unrelated. Still ambiguous when two files export the same component name --
+ * which is exactly why the result is no longer memoised under the bare name.
  */
 async function extractSourceFromTurbopackChunks(
   componentName: string
 ): Promise<Source | null> {
-  // Check cache
-  if (componentNameSourceCache.has(componentName)) {
-    return componentNameSourceCache.get(componentName) ?? null;
-  }
-
   try {
     const codes = await getAllChunkCodes();
 
     for (const code of codes) {
-      // Search for various component call patterns:
-      // - (ComponentName,
-      // - jsxDEV(ComponentName,
-      // - ["jsxDEV"])(ComponentName,
-      const searchPatterns = [
-        `(${componentName},`,
-        `jsxDEV(${componentName},`,
-        `jsx(${componentName},`,
-      ];
+      let searchIndex = 0;
+      while (searchIndex < code.length) {
+        const callIndex = code.indexOf(componentName, searchIndex);
+        if (callIndex === -1) break;
 
-      for (const pattern of searchPatterns) {
-        let searchIndex = 0;
-        while (searchIndex < code.length) {
-          const callIndex = code.indexOf(pattern, searchIndex);
-          if (callIndex === -1) break;
-
-          const source = extractSourceNearPosition(code, callIndex);
-          if (source) {
-            componentNameSourceCache.set(componentName, source);
-            return source;
-          }
-
-          searchIndex = callIndex + 1;
+        const afterName = callIndex + componentName.length;
+        if (
+          code.startsWith(",", afterName) &&
+          hasJsxCallBefore(code, afterName, componentName)
+        ) {
+          const source = extractSourceNearPosition(code, callIndex, 0);
+          if (source) return source;
         }
+
+        searchIndex = callIndex + 1;
       }
     }
 
-    // Not found, cache null
-    componentNameSourceCache.set(componentName, null);
     return null;
   } catch {
     return null;
   }
 }
 
-/**
- * Clear Turbopack chunk cache
- * Useful after HMR updates during development
- */
+/** Drops cached chunk text immediately, ahead of the TTL. */
 export function clearTurbopackCache(): void {
   chunkCodeCache.clear();
-  componentNameSourceCache.clear();
-  elementSignatureSourceCache.clear();
+  turbopackProjectRoot = undefined;
+  nextjsAppRoot = undefined;
 }
 
 /**
@@ -579,24 +613,12 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
   for (const info of fiberAny._debugInfo) {
     // React Server Components stack info
     if (info.stack && typeof info.stack === "string") {
-      // Parse stack to get first valid position
-      // Format: "at ComponentName (file:line:column)"
-      const match = info.stack.match(/at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/);
-      if (match) {
+      const frame = firstFrameInStack(info.stack);
+      if (frame) {
         return {
-          fileName: match[1],
-          lineNumber: parseInt(match[2], 10),
-          columnNumber: parseInt(match[3], 10),
-        };
-      }
-
-      // Alternative format: "ComponentName@file:line:column"
-      const firefoxMatch = info.stack.match(/\S+@([^:]+):(\d+):(\d+)/);
-      if (firefoxMatch) {
-        return {
-          fileName: firefoxMatch[1],
-          lineNumber: parseInt(firefoxMatch[2], 10),
-          columnNumber: parseInt(firefoxMatch[3], 10),
+          fileName: frame.fileName,
+          lineNumber: frame.lineNumber,
+          columnNumber: frame.columnNumber,
         };
       }
     }
@@ -689,21 +711,30 @@ interface DebugStackResult {
   methodName: string;
 }
 
+/** The first frame in a stack string that is not React or LocatorJS internals. */
+function firstFrameInStack(stack: string): StackFrame | null {
+  for (const line of stack.split("\n")) {
+    if (isInternalFrame(line)) continue;
+    const frame = parseStackFrame(line);
+    if (!frame || isInternalFrame(frame.fileName)) continue;
+    return frame;
+  }
+  return null;
+}
+
 /**
- * Parse Fiber's _debugStack (if present)
- * React 19 dev mode may include component stack
+ * Parse Fiber's `_debugStack` (React 19 dev mode), which holds an Error
+ * captured at the JSX call site.
  */
 function parseDebugStack(fiber: Fiber): DebugStackResult | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fiberAny = fiber as any;
 
-  // React 19 may use _debugStack
   const rawStack = fiberAny._debugStack || fiberAny.__debugStack;
   if (!rawStack) {
     return null;
   }
 
-  // React 19 stores _debugStack as an Error object — extract .stack string
   let stackStr: string | null = null;
   if (typeof rawStack === "string") {
     stackStr = rawStack;
@@ -718,53 +749,18 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
     return null;
   }
 
-  const lines = stackStr.split("\n");
-  for (const line of lines) {
-    // Skip React internal and JSX runtime frames
-    if (
-      line.includes("react-dom") ||
-      line.includes("react.") ||
-      line.includes("react-server-dom") ||
-      line.includes("react_stack_bottom_frame") ||
-      line.includes("react-stack-top-frame") ||
-      line.includes("jsxDEV") ||
-      line.includes("fakeJSXCallSite")
-    ) {
-      continue;
-    }
+  const frame = firstFrameInStack(stackStr);
+  if (!frame) return null;
 
-    // Chrome format: "at ComponentName (url:line:col)"
-    const chromeMatch = line.match(/at\s+(\S+)\s+\((.+?):(\d+):(\d+)\)/);
-    if (chromeMatch && chromeMatch[2] && chromeMatch[3] && chromeMatch[4]) {
-      const cleaned = cleanStackFileName(chromeMatch[2]);
-      return {
-        source: {
-          fileName: cleaned,
-          lineNumber: parseInt(chromeMatch[3], 10),
-          columnNumber: parseInt(chromeMatch[4], 10),
-        },
-        rawFileUrl: chromeMatch[2],
-        methodName: chromeMatch[1] ?? "<unknown>",
-      };
-    }
-
-    // Firefox format: "functionName@url:line:col"
-    const firefoxMatch = line.match(/(\S+)@(.+?):(\d+):(\d+)/);
-    if (firefoxMatch && firefoxMatch[2] && firefoxMatch[3] && firefoxMatch[4]) {
-      const cleaned = cleanStackFileName(firefoxMatch[2]);
-      return {
-        source: {
-          fileName: cleaned,
-          lineNumber: parseInt(firefoxMatch[3], 10),
-          columnNumber: parseInt(firefoxMatch[4], 10),
-        },
-        rawFileUrl: firefoxMatch[2],
-        methodName: firefoxMatch[1] ?? "<unknown>",
-      };
-    }
-  }
-
-  return null;
+  return {
+    source: {
+      fileName: frame.fileName,
+      lineNumber: frame.lineNumber,
+      columnNumber: frame.columnNumber,
+    },
+    rawFileUrl: frame.rawFileName,
+    methodName: frame.functionName,
+  };
 }
 
 /**
@@ -775,42 +771,35 @@ async function resolveNextjsRelativePath(
   relativePath: string,
   rawChunkUrl: string
 ): Promise<string> {
-  // Use cached result if available
   if (nextjsAppRoot !== undefined) {
-    return nextjsAppRoot ? nextjsAppRoot + "/" + relativePath : relativePath;
+    return nextjsAppRoot + "/" + relativePath;
   }
+  if (Date.now() < nextjsRootRetryAfter) return relativePath;
 
-  // Fetch source map for the SSR chunk via Next.js dev server
+  const candidates: string[] = [];
   try {
     const mapRes = await fetch(
       `/__nextjs_source-map?filename=${encodeURIComponent(rawChunkUrl)}`
     );
     if (mapRes.ok) {
       const map = await mapRes.json();
-      const sources: string[] = map.sections
-        ? map.sections.flatMap(
-            (s: { map?: { sources?: string[] } }) => s.map?.sources || []
-          )
-        : map.sources || [];
-
-      for (const src of sources) {
-        if (!src.startsWith("file:///")) continue;
-        const absPath = fileUrlToPath(src);
-        if (absPath.endsWith("/" + relativePath)) {
-          nextjsAppRoot = absPath.slice(
-            0,
-            absPath.length - relativePath.length - 1
-          );
-          return absPath;
-        }
+      for (const source of sourcesOf(map)) {
+        if (!source.startsWith("file:///")) continue;
+        const root = rootFromSource(fileUrlToPath(source), relativePath);
+        if (root) candidates.push(root);
       }
     }
   } catch {
-    // Fall through
+    // Fall through to the cooldown below.
   }
 
-  nextjsAppRoot = null;
-  return relativePath;
+  const root = bestRoot(candidates);
+  if (root === undefined) {
+    nextjsRootRetryAfter = Date.now() + ROOT_RETRY_COOLDOWN_MS;
+    return relativePath;
+  }
+  nextjsAppRoot = root;
+  return root + "/" + relativePath;
 }
 
 /**
@@ -883,241 +872,179 @@ export async function resolveSourceFromFiber(
   const fiberAny = fiber as any;
   const debug = isDebugEnabled();
 
-  // 1. Check cache (use WeakMap only when type is an object)
-  if (
-    fiberAny.type &&
-    typeof fiberAny.type === "object" &&
-    componentSourceCache.has(fiberAny.type)
-  ) {
-    const cached = componentSourceCache.get(fiberAny.type) ?? null;
+  // 1. Cache, keyed on this fiber -- see `componentSourceCache`.
+  const cached = readCachedSource(fiber);
+  if (cached !== undefined) {
     if (debug && cached) {
       logSourceFound(SourceMethod.CACHE_HIT, fiber, cached, true);
     }
     return cached;
   }
 
-  // 2. [Preferred] Get via React DevTools 7.0.1+ rendererInterfaces API
-  // Most direct and reliable, but returns compiled position, needs source-map reverse lookup
-  try {
-    const rendererInterfaceSource = getSourceViaRendererInterfaceByFiber(fiber);
-    if (rendererInterfaceSource && rendererInterfaceSource.fileName) {
-      // Try source-map reverse lookup for original position
-      const resolved = await resolveOriginalPosition(
-        rendererInterfaceSource.fileName,
-        rendererInterfaceSource.lineNumber,
-        rendererInterfaceSource.columnNumber ?? 0
-      );
+  /**
+   * Records a resolution and reports it. Every strategy funnels through here
+   * so none of them can accept a compiled chunk URL as an answer: doing that
+   * emits `vscode://file/webpack-internal:///...` and, worse, stops the
+   * strategies below from ever running.
+   */
+  const accept = (source: Source, method: SourceMethodType): Source | null => {
+    if (isChunkUrl(source.fileName)) return null;
+    componentSourceCache.set(fiber, source);
+    if (debug) {
+      logSourceFound(method, fiber, source, true);
+      logSourceComplete(true, method, source);
+    }
+    return source;
+  };
 
-      const finalSource = resolved || rendererInterfaceSource;
-      if (fiberAny.type && typeof fiberAny.type === "object") {
-        componentSourceCache.set(fiberAny.type, finalSource);
-      }
-      if (debug) {
-        logSourceFound(
-          SourceMethod.RENDERER_INTERFACE,
-          fiber,
-          finalSource,
-          true
-        );
-        logSourceComplete(true, SourceMethod.RENDERER_INTERFACE, finalSource);
-      }
-      return finalSource;
+  // 2. [Preferred] React DevTools 7.0.1+ rendererInterfaces API. Returns a
+  //    compiled position, so it needs a source-map lookup.
+  try {
+    const rendererSource = getSourceViaRendererInterfaceByFiber(fiber);
+    if (rendererSource?.fileName) {
+      const cleaned = cleanStackFileName(rendererSource.fileName);
+      const resolved =
+        (await resolveOriginalPosition(
+          cleaned,
+          rendererSource.lineNumber,
+          rendererSource.columnNumber ?? 1
+        )) ??
+        (isChunkUrl(cleaned) ? null : { ...rendererSource, fileName: cleaned });
+      const accepted =
+        resolved && accept(resolved, SourceMethod.RENDERER_INTERFACE);
+      if (accepted) return accepted;
     }
   } catch (e) {
     if (debug) logError(SourceMethod.RENDERER_INTERFACE, e);
   }
 
-  // 3. Get from _debugInfo (React 19 Server Components)
+  // 3. _debugInfo (React 19 Server Components).
   try {
     const debugInfoSource = extractSourceFromDebugInfo(fiber);
-    if (debugInfoSource && debugInfoSource.fileName) {
-      // Try source-map reverse lookup for original position
-      const resolved = await resolveOriginalPosition(
-        debugInfoSource.fileName,
-        debugInfoSource.lineNumber,
-        debugInfoSource.columnNumber ?? 0
-      );
-      if (resolved && fiberAny.type && typeof fiberAny.type === "object") {
-        componentSourceCache.set(fiberAny.type, resolved);
-      }
-      if (debug && resolved) {
-        logSourceFound(SourceMethod.DEBUG_INFO, fiber, resolved, true);
-        logSourceComplete(true, SourceMethod.DEBUG_INFO, resolved);
-      }
-      return resolved;
+    if (debugInfoSource?.fileName) {
+      const resolved =
+        (await resolveOriginalPosition(
+          debugInfoSource.fileName,
+          debugInfoSource.lineNumber,
+          debugInfoSource.columnNumber ?? 1
+        )) ?? debugInfoSource;
+      const accepted = accept(resolved, SourceMethod.DEBUG_INFO);
+      if (accepted) return accepted;
     }
   } catch (e) {
     if (debug) logError(SourceMethod.DEBUG_INFO, e);
   }
 
-  // 4. Parse from _debugStack
+  // 4. _debugStack -- an Error captured at the JSX call site.
   try {
     const debugStackResult = parseDebugStack(fiber);
-    if (debugStackResult && debugStackResult.source.fileName) {
+    if (debugStackResult?.source.fileName) {
       const {
         source: debugStackSource,
         rawFileUrl,
         methodName,
       } = debugStackResult;
-      // For chunk/compiled URLs, try source-map resolution
+
       if (isChunkUrl(debugStackSource.fileName)) {
         const resolved = await resolveOriginalPosition(
           debugStackSource.fileName,
           debugStackSource.lineNumber,
-          debugStackSource.columnNumber ?? 0
+          debugStackSource.columnNumber ?? 1
         );
-        // Only use the result if it resolved to an original source file
-        if (resolved && !isChunkUrl(resolved.fileName)) {
-          if (fiberAny.type && typeof fiberAny.type === "object") {
-            componentSourceCache.set(fiberAny.type, resolved);
-          }
-          if (debug) {
-            logSourceFound(SourceMethod.DEBUG_STACK, fiber, resolved, true);
-            logSourceComplete(true, SourceMethod.DEBUG_STACK, resolved);
-          }
-          return resolved;
-        }
+        const accepted = resolved && accept(resolved, SourceMethod.DEBUG_STACK);
+        if (accepted) return accepted;
 
-        // Client-side source-map failed (e.g. SSR chunk maps not served via HTTP)
-        // Try Next.js dev server API which can resolve server-side source maps
+        // Client-side maps are not always served for SSR chunks; the Next dev
+        // server can resolve those.
         const nextResolved = await resolveViaNextDevServer(
           rawFileUrl,
           debugStackSource.lineNumber,
-          debugStackSource.columnNumber ?? 0,
+          debugStackSource.columnNumber ?? 1,
           methodName
         );
-        if (nextResolved && !isChunkUrl(nextResolved.fileName)) {
-          if (fiberAny.type && typeof fiberAny.type === "object") {
-            componentSourceCache.set(fiberAny.type, nextResolved);
-          }
-          if (debug) {
-            logSourceFound(SourceMethod.DEBUG_STACK, fiber, nextResolved, true);
-            logSourceComplete(true, SourceMethod.DEBUG_STACK, nextResolved);
-          }
-          return nextResolved;
-        }
-        // Both failed — skip, let parent fiber try
+        const acceptedNext =
+          nextResolved && accept(nextResolved, SourceMethod.DEBUG_STACK);
+        if (acceptedNext) return acceptedNext;
+        // Both failed -- fall through and let a later strategy or the parent
+        // fiber try.
       } else {
-        // Already a local file path — use directly
-        if (fiberAny.type && typeof fiberAny.type === "object") {
-          componentSourceCache.set(fiberAny.type, debugStackSource);
-        }
-        if (debug) {
-          logSourceFound(
-            SourceMethod.DEBUG_STACK,
-            fiber,
-            debugStackSource,
-            true
-          );
-          logSourceComplete(true, SourceMethod.DEBUG_STACK, debugStackSource);
-        }
-        return debugStackSource;
+        const accepted = accept(debugStackSource, SourceMethod.DEBUG_STACK);
+        if (accepted) return accepted;
       }
     }
   } catch (e) {
     if (debug) logError(SourceMethod.DEBUG_STACK, e);
   }
 
-  // 5. Get from component function metadata
+  // 5. Component function metadata.
   try {
     const metaSource = extractSourceFromFunctionMeta(fiberAny.type);
-    if (metaSource && metaSource.fileName) {
-      const resolved = await resolveOriginalPosition(
-        metaSource.fileName,
-        metaSource.lineNumber,
-        metaSource.columnNumber ?? 0
-      );
-      if (resolved && fiberAny.type && typeof fiberAny.type === "object") {
-        componentSourceCache.set(fiberAny.type, resolved);
-      }
-      if (debug && resolved) {
-        logSourceFound(SourceMethod.FUNCTION_META, fiber, resolved, true);
-        logSourceComplete(true, SourceMethod.FUNCTION_META, resolved);
-      }
-      return resolved;
+    if (metaSource?.fileName) {
+      const resolved =
+        (await resolveOriginalPosition(
+          metaSource.fileName,
+          metaSource.lineNumber,
+          metaSource.columnNumber ?? 1
+        )) ?? metaSource;
+      const accepted = accept(resolved, SourceMethod.FUNCTION_META);
+      if (accepted) return accepted;
     }
   } catch (e) {
     if (debug) logError(SourceMethod.FUNCTION_META, e);
   }
 
-  // 6. Get from React DevTools renderers (legacy API)
+  // 6. React DevTools renderers (legacy API).
   try {
     const devToolsSource = getSourceFromDevTools(fiber);
-    if (devToolsSource && devToolsSource.fileName) {
-      const resolved = await resolveOriginalPosition(
-        devToolsSource.fileName,
-        devToolsSource.lineNumber,
-        devToolsSource.columnNumber ?? 0
-      );
-      if (resolved && fiberAny.type && typeof fiberAny.type === "object") {
-        componentSourceCache.set(fiberAny.type, resolved);
-      }
-      if (debug && resolved) {
-        logSourceFound(SourceMethod.DEVTOOLS_RENDERERS, fiber, resolved, true);
-        logSourceComplete(true, SourceMethod.DEVTOOLS_RENDERERS, resolved);
-      }
-      return resolved;
+    if (devToolsSource?.fileName) {
+      const resolved =
+        (await resolveOriginalPosition(
+          devToolsSource.fileName,
+          devToolsSource.lineNumber,
+          devToolsSource.columnNumber ?? 1
+        )) ?? devToolsSource;
+      const accepted = accept(resolved, SourceMethod.DEVTOOLS_RENDERERS);
+      if (accepted) return accepted;
     }
   } catch (e) {
     if (debug) logError(SourceMethod.DEVTOOLS_RENDERERS, e);
   }
 
-  // 7. Try to extract sourceURL from function toString()
+  // 7. sourceURL comment, then JSX literals, in the function's own text.
   if (typeof fiberAny.type === "function") {
     try {
       const funcStr = fiberAny.type.toString();
       const sourceURL = extractSourceURL(funcStr);
       if (sourceURL) {
-        // sourceURL is usually a full path but may need parsing
-        const resolved: Source = {
-          fileName: sourceURL,
-          lineNumber: 1, // Cannot determine exact line number
-          columnNumber: 0,
-        };
-        componentSourceCache.set(fiberAny.type, resolved);
-        if (debug) {
-          logSourceFound(SourceMethod.SOURCE_URL, fiber, resolved, true);
-          logSourceComplete(true, SourceMethod.SOURCE_URL, resolved);
-        }
-        return resolved;
+        const accepted = accept(
+          { fileName: sourceURL, lineNumber: 1, columnNumber: 0 },
+          SourceMethod.SOURCE_URL
+        );
+        if (accepted) return accepted;
       }
 
-      // 7b. Extract source from JSX-embedded fileName/lineNumber in function body
-      // Turbopack embeds source info as jsxDEV arguments visible via toString()
       const bodySource = extractSourceFromFunctionBody(funcStr);
-      if (bodySource && bodySource.fileName) {
-        // Resolve [project]/ prefix to absolute path
+      if (bodySource?.fileName) {
         bodySource.fileName = await resolveProjectPrefix(bodySource.fileName);
-        componentSourceCache.set(fiberAny.type, bodySource);
-        if (debug) {
-          logSourceFound(
-            SourceMethod.FUNCTION_BODY_JSX,
-            fiber,
-            bodySource,
-            true
-          );
-          logSourceComplete(true, SourceMethod.FUNCTION_BODY_JSX, bodySource);
-        }
-        return bodySource;
+        const accepted = accept(bodySource, SourceMethod.FUNCTION_BODY_JSX);
+        if (accepted) return accepted;
       }
     } catch (e) {
       if (debug) logError(SourceMethod.SOURCE_URL, e);
     }
   }
 
-  // 8. [Turbopack] Extract jsxDEV source info from chunk code
-  // For React 19 + Next.js 15 + Turbopack environments
+  // 8. [Turbopack] Scrape the chunk text. Last resort: see the caveats on
+  //    `extractSourceFromTurbopackChunks`.
   const isNativeElement = typeof fiberAny.type === "string";
   const componentName =
     typeof fiberAny.type === "function" ? fiberAny.type.name : null;
 
   if (isNativeElement) {
-    // Native elements (div/span etc.): try precise match by tag + attributes
-    const tagName = fiberAny.type as string;
     const props = fiberAny.memoizedProps || {};
     try {
       const turbopackSource = await extractSourceFromTurbopackChunksForElement(
-        tagName,
+        fiberAny.type as string,
         props.className,
         props.id
       );
@@ -1125,20 +1052,11 @@ export async function resolveSourceFromFiber(
         turbopackSource.fileName = await resolveProjectPrefix(
           turbopackSource.fileName
         );
-        if (debug) {
-          logSourceFound(
-            SourceMethod.TURBOPACK_ELEMENT,
-            fiber,
-            turbopackSource,
-            true
-          );
-          logSourceComplete(
-            true,
-            SourceMethod.TURBOPACK_ELEMENT,
-            turbopackSource
-          );
-        }
-        return turbopackSource;
+        const accepted = accept(
+          turbopackSource,
+          SourceMethod.TURBOPACK_ELEMENT
+        );
+        if (accepted) return accepted;
       }
     } catch (e) {
       if (debug) logError(SourceMethod.TURBOPACK_ELEMENT, e);
@@ -1152,54 +1070,42 @@ export async function resolveSourceFromFiber(
         turbopackSource.fileName = await resolveProjectPrefix(
           turbopackSource.fileName
         );
-        // Turbopack returns component usage location (already original path, no source-map needed)
-        if (fiberAny.type && typeof fiberAny.type === "object") {
-          componentSourceCache.set(fiberAny.type, turbopackSource);
-        }
-        if (debug) {
-          logSourceFound(
-            SourceMethod.TURBOPACK_COMPONENT,
-            fiber,
-            turbopackSource,
-            true
-          );
-          logSourceComplete(
-            true,
-            SourceMethod.TURBOPACK_COMPONENT,
-            turbopackSource
-          );
-        }
-        return turbopackSource;
+        const accepted = accept(
+          turbopackSource,
+          SourceMethod.TURBOPACK_COMPONENT
+        );
+        if (accepted) return accepted;
       }
     } catch (e) {
       if (debug) logError(SourceMethod.TURBOPACK_COMPONENT, e);
     }
   }
 
-  // 9. Cache null result to avoid repeated lookups (only when type is an object)
-  if (fiberAny.type && typeof fiberAny.type === "object") {
-    componentSourceCache.set(fiberAny.type, null);
-  }
+  // 9. Nothing worked. Remember that, so the whole chain is not re-run for
+  //    this fiber on the next click.
+  componentSourceCache.set(fiber, null);
 
   return null;
+}
+
+/**
+ * A fiber and its alternate describe the same instance across renders, so
+ * either may carry the cached result. `undefined` means "not cached".
+ */
+function readCachedSource(fiber: Fiber): Source | null | undefined {
+  if (componentSourceCache.has(fiber)) return componentSourceCache.get(fiber);
+  const alternate = (fiber as unknown as { alternate?: Fiber }).alternate;
+  if (alternate && componentSourceCache.has(alternate)) {
+    return componentSourceCache.get(alternate);
+  }
+  return undefined;
 }
 
 /**
  * Synchronous: get from cache only (for non-async contexts)
  */
 export function getSourceFromCache(fiber: Fiber): Source | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fiberAny = fiber as any;
-
-  if (
-    fiberAny.type &&
-    typeof fiberAny.type === "object" &&
-    componentSourceCache.has(fiberAny.type)
-  ) {
-    return componentSourceCache.get(fiberAny.type) ?? null;
-  }
-
-  return null;
+  return readCachedSource(fiber) ?? null;
 }
 
 // Note: componentSourceCache is a WeakMap which auto-GCs when keys are dereferenced.
