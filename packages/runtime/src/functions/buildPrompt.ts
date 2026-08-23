@@ -31,7 +31,7 @@ export function buildPrompt(
   const componentLabels = element.componentsLabels
     .map((item) => item.label)
     .filter(Boolean);
-  const parentLabels = getParentsPaths(element.htmlElement)
+  const parentLabels = getParentsPaths(element.htmlElement, effective.adapterId)
     .map((item) => item.title)
     .filter(Boolean);
   const componentTree = [...parentLabels, ...componentLabels]

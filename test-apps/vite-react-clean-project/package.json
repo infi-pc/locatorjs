@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port ${PORT_REACT_CLEAN:-3348}",
+    "dev": "vite --port ${PORT_REACT_CLEAN:-3348} --strictPort",
     "build": "vite build",
     "preview": "vite preview --port ${PORT_REACT_CLEAN:-3348}"
   },

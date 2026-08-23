@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port ${PORT_SVELTE_CLEAN:-3349}",
+    "dev": "vite --port ${PORT_SVELTE_CLEAN:-3349} --strictPort",
     "build": "vite build",
     "preview": "vite preview --port ${PORT_SVELTE_CLEAN:-3349}"
   },

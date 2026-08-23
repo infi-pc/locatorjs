@@ -3,7 +3,7 @@ import { defineLayerStyles } from "@pandacss/dev";
 export const layerStyles = defineLayerStyles({
   card: {
     value: {
-      bg: "gray.surface.bg",
+      background: "gray.surface.bg",
       borderColor: "border",
       borderRadius: "l3",
       borderWidth: "1px",

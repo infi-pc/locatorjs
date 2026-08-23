@@ -16,7 +16,7 @@ migrateLegacyExtensionStorage().then(() => {
         type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
         options,
       },
-      '*'
+      window.location.origin
     );
   });
 });
@@ -32,7 +32,7 @@ browser.storage.onChanged.addListener((changes, areaName) => {
       type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
       options: newOptions,
     },
-    '*'
+    window.location.origin
   );
 });
 
