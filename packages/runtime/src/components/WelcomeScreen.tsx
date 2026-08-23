@@ -82,17 +82,15 @@ export function WelcomeScreen(props: {
       ? buildLink(props.originalLinkProps, props.targets, options)
       : undefined;
   const editor = () => options.effective().editor;
-  const updateEditor = async (patch: EditorSelection) => {
+  const updateEditor = (patch: EditorSelection) => {
     // An override left on the primary action would silently shadow the pick.
     const bindings = clearPrimaryEditorOverride(
       effectiveBindings(options.effective())
     );
-    return (
-      await options.setUserOrigin({
-        editor: patch,
-        ...(bindings ? { bindings, mouseModifiers: undefined } : {}),
-      })
-    ).ok;
+    return options.setUserOrigin({
+      editor: patch,
+      ...(bindings ? { bindings, mouseModifiers: undefined } : {}),
+    });
   };
 
   const steps = (): WizardStep[] => [

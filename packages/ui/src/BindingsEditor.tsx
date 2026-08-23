@@ -11,6 +11,7 @@ import {
   type BindingTrigger,
   type EditorSelection,
   type Targets,
+  type WriteResponse,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Copy, Plus, Trash2 } from "lucide-solid";
@@ -85,33 +86,33 @@ export function BindingsEditor(props: {
   portalMount?: Node;
   /** Trigger groups to show. Defaults to all of them. */
   triggers?: BindingTrigger["kind"][];
-  onChange: (next: Binding[] | undefined) => void;
+  onChange: (next: Binding[] | undefined) => WriteResponse;
 }) {
   const [draft, setDraft] = createSignal<Binding>();
   const shows = (kind: BindingTrigger["kind"]) =>
     !props.triggers || props.triggers.includes(kind);
   const duplicates = createMemo(() => duplicateShortcutModifiers(props.value));
 
-  const update = (index: number, next: Binding) => {
+  const update = (index: number, next: Binding) =>
     props.onChange(
       props.value.map((binding, itemIndex) =>
         itemIndex === index ? next : binding
       )
     );
-  };
   const remove = (index: number) =>
     props.onChange(props.value.filter((_, itemIndex) => itemIndex !== index));
   const beginAdd = (triggerKind: BindingTrigger["kind"]) => {
     if (!canAddBinding(props.value, triggerKind)) return;
     setDraft(createBindingDraft(triggerKind, props.value));
   };
-  const confirmDraft = () => {
+  const confirmDraft = async () => {
     const binding = draft();
     if (!binding) return;
     const next = insertBinding(props.value, binding);
     if (!next) return;
-    props.onChange(next);
-    setDraft(undefined);
+    // The draft stays open on a failed write, so the half-built binding is not
+    // thrown away along with the failure.
+    if ((await props.onChange(next)).ok) setDraft(undefined);
   };
 
   return (
@@ -162,7 +163,7 @@ export function BindingsEditor(props: {
           <Button
             size="xs"
             variant="ghost"
-            onClick={() => props.onChange(undefined)}
+            onClick={() => void props.onChange(undefined)}
           >
             <Copy size={14} />
             Use inherited
@@ -186,8 +187,8 @@ function BindingGroup(props: {
   onDraftChange: (binding: Binding) => void;
   onDraftConfirm: () => void;
   onDraftCancel: () => void;
-  onUpdate: (index: number, binding: Binding) => void;
-  onRemove: (index: number) => void;
+  onUpdate: (index: number, binding: Binding) => WriteResponse;
+  onRemove: (index: number) => WriteResponse;
 }) {
   const items = () =>
     props.value
@@ -244,7 +245,12 @@ function BindingGroup(props: {
             portalMount={props.portalMount}
             actionLabel="New action"
             duplicate={hasShortcutConflict(draft(), props.value)}
-            onChange={props.onDraftChange}
+            onChange={(binding) => {
+              // A draft lives in memory until it is confirmed, so editing one
+              // is not a write and has no outcome to report.
+              props.onDraftChange(binding);
+              return { ok: true };
+            }}
             onConfirm={props.onDraftConfirm}
             onCancel={props.onDraftCancel}
           />
@@ -262,8 +268,8 @@ function BindingRow(props: {
   portalMount?: Node;
   actionLabel?: string;
   duplicate: boolean;
-  onChange: (binding: Binding) => void;
-  onRemove?: () => void;
+  onChange: (binding: Binding) => WriteResponse;
+  onRemove?: () => WriteResponse;
   onConfirm?: () => void;
   onCancel?: () => void;
 }) {
@@ -282,7 +288,7 @@ function BindingRow(props: {
         <Show when={props.onRemove}>
           <IconButton
             aria-label={`Remove binding ${props.index + 1}`}
-            onClick={() => props.onRemove?.()}
+            onClick={() => void props.onRemove?.()}
           >
             <Trash2 size={15} />
           </IconButton>
@@ -304,7 +310,7 @@ function BindingRow(props: {
               }
               onChange={(modifiers) => {
                 if (!modifiers) return;
-                props.onChange({
+                void props.onChange({
                   ...props.binding,
                   trigger: { kind: "modifier-click", modifiers },
                 });

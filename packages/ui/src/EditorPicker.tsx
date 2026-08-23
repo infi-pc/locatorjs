@@ -1,5 +1,5 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
-import type { EditorSelection, Targets } from "@locator/shared";
+import type { EditorSelection, Targets, WriteResponse } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
 import { IconButton } from "./IconButton";
@@ -48,9 +48,7 @@ export function EditorPicker(props: {
    * no override is the default.
    */
   inheritLabel?: string;
-  onChange: (
-    patch: EditorSelection
-  ) => void | boolean | Promise<void | boolean>;
+  onChange: (patch: EditorSelection) => WriteResponse;
 }) {
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
@@ -131,7 +129,9 @@ export function EditorPicker(props: {
         targetTemplate: next || undefined,
         targetId: undefined,
       });
-      if (result !== false) setEditing(false);
+      // A failed write keeps the draft on screen, so the typed template is not
+      // silently discarded and re-seeded from props on the next open.
+      if (result.ok) setEditing(false);
     } finally {
       setSaving(false);
     }
@@ -151,10 +151,13 @@ export function EditorPicker(props: {
             beginEditing();
           } else if (next === INHERIT_VALUE) {
             setEditing(false);
-            props.onChange({ targetId: undefined, targetTemplate: undefined });
+            void props.onChange({
+              targetId: undefined,
+              targetTemplate: undefined,
+            });
           } else {
             setEditing(false);
-            props.onChange({ targetId: next, targetTemplate: undefined });
+            void props.onChange({ targetId: next, targetTemplate: undefined });
           }
         }}
       />

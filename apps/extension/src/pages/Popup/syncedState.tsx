@@ -121,13 +121,18 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   const refreshInterval = setInterval(requestSnapshot, 1500);
   onCleanup(() => clearInterval(refreshInterval));
 
-  const state: SyncedState = {
-    userExtension,
-    snapshot,
-    status,
-    setUserExtension: async (patch) => {
-      const current = userExtension();
-      const next = { ...current, ...patch };
+  /**
+   * Writes are read-modify-write over the whole options blob, so two of them
+   * in flight at once would both merge onto the same starting value and the
+   * first change would be lost. Queueing keeps each one reading what the
+   * previous one wrote.
+   */
+  let pendingWrite: Promise<unknown> = Promise.resolve();
+  function queueUserExtensionWrite(
+    patch: Partial<LocatorOptions>
+  ): Promise<WriteResult> {
+    const run = pendingWrite.then(async (): Promise<WriteResult> => {
+      const next = { ...userExtension(), ...patch };
       // Strip undefined to keep storage clean
       for (const key of Object.keys(next) as (keyof LocatorOptions)[]) {
         if (next[key] === undefined) delete next[key];
@@ -136,10 +141,19 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         await browser.storage.local.set({ [USER_OPTIONS_KEY]: next });
         setUserExtensionSignal(next);
         return { ok: true };
-      } catch (e) {
+      } catch {
         return { ok: false, reason: 'blocked' };
       }
-    },
+    });
+    pendingWrite = run.catch(() => undefined);
+    return run;
+  }
+
+  const state: SyncedState = {
+    userExtension,
+    snapshot,
+    status,
+    setUserExtension: (patch) => queueUserExtensionWrite(patch),
     setSiteLocal: async (patch) => {
       try {
         const tabs = await browser.tabs.query({
