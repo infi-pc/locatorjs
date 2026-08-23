@@ -11,7 +11,7 @@
     "ts": "tsc --noEmit"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.19.17",
     "typescript": "^5.9.3"
   },
