@@ -501,6 +501,9 @@ importers:
         specifier: ^1.9.12
         version: 1.9.12
     devDependencies:
+      '@locator/dev-config':
+        specifier: workspace:^
+        version: link:../dev-config
       '@pandacss/dev':
         specifier: ^1.11.4
         version: 1.11.4(jsdom@20.0.3)(typescript@5.9.3)

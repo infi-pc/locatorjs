@@ -19,6 +19,8 @@ import { teal } from "./theme/colors/teal";
 import { violet } from "./theme/colors/violet";
 
 export const preset = definePreset({
+  // Required by `Preset`; Panda uses it to identify and de-duplicate presets.
+  name: "@locator/styled-system",
   presets: [pandaPreset],
   globalCss,
   theme: {

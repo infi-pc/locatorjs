@@ -25,7 +25,6 @@ try {
 // Path configuration
 const ROOT_DIR = path.resolve(__dirname, "../../..");
 const EXTENSION_DIR = path.resolve(__dirname, "..");
-const RUNTIME_DIR = path.resolve(ROOT_DIR, "packages/runtime");
 const BUILD_DIR = path.resolve(EXTENSION_DIR, "build");
 
 // Color output
@@ -92,13 +91,23 @@ function execCommand(command, options = {}) {
 }
 
 /**
- * Build the runtime package
+ * Build everything the extension bundle resolves at build time.
+ *
+ * Building only `packages/runtime` was not enough: its own `build` script does
+ * not build `@locator/ui`, `@locator/shared` or `@locator/styled-system`, and
+ * all three are resolved through `main: "dist/index.js"`. On a clean checkout
+ * that failed at the webpack step; with stale dists lying around it silently
+ * shipped a zip missing whatever had changed in those packages. Turbo's
+ * `...` selector builds the extension's dependencies in order.
  */
-async function buildRuntime() {
-  logStep(1, "Building @locator/runtime package...");
+async function buildDependencies() {
+  logStep(1, "Building extension dependencies...");
 
-  await execCommand("pnpm run build", { cwd: RUNTIME_DIR });
-  logSuccess("Runtime build complete");
+  await execCommand(
+    "pnpm turbo run build --filter=locatorjs-extension^...",
+    { cwd: ROOT_DIR }
+  );
+  logSuccess("Dependency build complete");
 }
 
 /**
@@ -202,7 +211,7 @@ async function main() {
   try {
     // 1. Build dependencies
     if (!skipRuntime) {
-      await buildRuntime();
+      await buildDependencies();
     } else {
       log("\n[Skipped] runtime build", "yellow");
     }

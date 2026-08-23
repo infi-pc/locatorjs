@@ -11,7 +11,8 @@
   "scripts": {
     "build": "panda codegen",
     "dev": "panda codegen --watch",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "ts": "tsc --noEmit"
   },
   "exports": {
     "./css": {
@@ -59,6 +60,7 @@
     }
   },
   "devDependencies": {
+    "@locator/dev-config": "workspace:^",
     "@pandacss/dev": "^1.11.4",
     "typescript": "^5.9.3"
   },

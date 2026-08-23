@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite --port=${PORT_REACT:-3343}",
+    "dev": "vite --port=${PORT_REACT:-3343} --strictPort",
     "build": "vite build",
     "preview": "vite preview --port=${PORT_REACT:-3343}",
     "storybook": "start-storybook -p 6006",

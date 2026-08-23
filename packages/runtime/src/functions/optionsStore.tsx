@@ -85,10 +85,11 @@ export function initOptions(): OptionsStore {
     setDebugMode(effective().debugMode ?? false);
   });
 
-  listenOnUserOriginChanges(() => {
+  const stopListeningToUserOrigin = listenOnUserOriginChanges(() => {
     setUserOrigin(getUserOriginOptions());
     setUiState(getUserOriginUiState());
   });
+  if (getOwner()) onCleanup(stopListeningToUserOrigin);
 
   if (typeof window !== "undefined") {
     const onMessage = (event: MessageEvent) => {

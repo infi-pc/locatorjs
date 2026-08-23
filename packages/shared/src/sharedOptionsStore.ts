@@ -152,17 +152,23 @@ export function clearUserOriginOptions(): WriteResult {
   }
 }
 
+/**
+ * Watches for changes written by another tab. Returns an unsubscribe: without
+ * one, every re-init added another listener that nothing could ever remove.
+ */
 export function listenOnUserOriginChanges(
   fn: (stored: LocatorUserOriginStored) => void
-) {
-  if (!hasLocalStorage()) return;
+): () => void {
+  if (!hasLocalStorage()) return () => undefined;
   let currentRaw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
-  addEventListener("storage", (event) => {
+  const onStorage = (event: StorageEvent) => {
     if (event.key !== USER_ORIGIN_STORAGE_KEY) return;
     const newRaw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
     if (newRaw !== currentRaw) {
       currentRaw = newRaw;
       fn(readStored());
     }
-  });
+  };
+  addEventListener("storage", onStorage);
+  return () => removeEventListener("storage", onStorage);
 }

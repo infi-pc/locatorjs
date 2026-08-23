@@ -27,6 +27,7 @@ export function mountSnapshotBridge() {
             type: 'LOCATOR_PAGE_SNAPSHOT_REQUEST',
           },
           'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
+          validateSnapshot,
           (payload) => {
             if (payload === null) {
               sendResponse({ ok: false, reason: 'no-runtime' });
@@ -46,6 +47,7 @@ export function mountSnapshotBridge() {
             unset: msg.unset ?? [],
           },
           'LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT',
+          validateWriteResult,
           (payload) => {
             if (payload === null) {
               sendResponse({ ok: false, reason: 'no-runtime' });
@@ -61,6 +63,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           { type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' },
           'LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT',
+          validateWriteResult,
           (payload) =>
             sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
@@ -71,6 +74,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           { type: 'LOCATOR_PAGE_TRY_ACTION', action: msg.action },
           'LOCATOR_PAGE_TRY_ACTION_RESULT',
+          validateWriteResult,
           (payload) =>
             sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
@@ -82,35 +86,87 @@ export function mountSnapshotBridge() {
   );
 }
 
+/**
+ * Trust boundary.
+ *
+ * The runtime lives in the page's own JavaScript world, so anything in that
+ * page can see a request posted on `window` and answer it first. There is no
+ * way to authenticate the responder from here -- the page owns that world.
+ * What we can do is refuse to pass anything through that is not shaped like a
+ * real reply, so a hostile page can at worst lie about its *own* settings
+ * rather than inject arbitrary structures into the popup.
+ *
+ * The popup must therefore treat everything relayed here as untrusted display
+ * data, and never persist it to `browser.storage` unvalidated.
+ */
+type ValidatedPayload = Record<string, unknown>;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** A `WriteResult`: `{ok: true}` or `{ok: false, reason: string}`. */
+function validateWriteResult(value: unknown): ValidatedPayload | null {
+  if (!isPlainObject(value) || typeof value.ok !== 'boolean') return null;
+  if (value.ok) return { ok: true };
+  return {
+    ok: false,
+    reason: typeof value.reason === 'string' ? value.reason : 'unknown',
+  };
+}
+
+/** A `Snapshot`: four plain-object fields, rebuilt rather than passed through. */
+function validateSnapshot(value: unknown): ValidatedPayload | null {
+  if (!isPlainObject(value)) return null;
+  const { effective, provenance, layers, allTargets } = value;
+  if (
+    !isPlainObject(effective) ||
+    !isPlainObject(provenance) ||
+    !isPlainObject(layers) ||
+    !isPlainObject(allTargets)
+  ) {
+    return null;
+  }
+  return { effective, provenance, layers, allTargets };
+}
+
+type Validator = (value: unknown) => ValidatedPayload | null;
+
 function relayRequestToPage(
   request: Record<string, unknown>,
   responseType: string,
-  done: (payload: unknown | null) => void
+  validate: Validator,
+  done: (payload: ValidatedPayload | null) => void
 ) {
   const requestId = generateRequestId();
   let settled = false;
 
-  function handler(event: MessageEvent) {
-    if (event.source !== window) return;
-    const data = event.data;
-    if (!data || typeof data !== 'object') return;
-    if (data.type !== responseType) return;
-    if (data.requestId !== requestId) return;
-
-    settled = true;
-    window.removeEventListener('message', handler);
-    done(data.snapshot ?? data.result ?? null);
-  }
-
-  window.addEventListener('message', handler);
-  window.postMessage({ ...request, requestId }, '*');
-
-  setTimeout(() => {
+  function finish(payload: ValidatedPayload | null) {
     if (settled) return;
     settled = true;
     window.removeEventListener('message', handler);
-    done(null);
-  }, REPLY_TIMEOUT_MS);
+    done(payload);
+  }
+
+  function handler(event: MessageEvent) {
+    if (event.source !== window) return;
+    const data = event.data;
+    if (!isPlainObject(data)) return;
+    if (data.type !== responseType) return;
+    if (data.requestId !== requestId) return;
+
+    // A malformed reply is treated as no reply, so a page cannot settle the
+    // request early with junk and lock out the runtime's real answer.
+    const payload = validate(data.snapshot ?? data.result);
+    if (payload === null) return;
+
+    finish(payload);
+  }
+
+  window.addEventListener('message', handler);
+  window.postMessage({ ...request, requestId }, window.location.origin);
+
+  setTimeout(() => finish(null), REPLY_TIMEOUT_MS);
 }
 
 function generateRequestId() {

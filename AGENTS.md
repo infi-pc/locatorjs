@@ -74,7 +74,9 @@ next-16-turbopack 3353.
 
 If you add an app, add its variable to `scripts/dev-ports.sh` **and** to
 `turbo.json`'s `globalEnv` — otherwise turbo omits it from cache keys and will
-hand you a build made against a different port.
+hand you a build made against a different port. Give its dev server
+`--strictPort` too: without it vite silently moves to the next free port, which
+is the next app's slot, and the collision cascades through the block.
 
 ## Layout
 
@@ -171,9 +173,6 @@ Things that will waste your time if you rediscover them:
   is unified, since unifying reformats the repo.
 - **`.npmrc`'s `minimum-release-age` is inert** on the pinned pnpm 8.7.5; it
   needs pnpm >= 10.16.
-- **`packages/styled-system` has no `ts` script.** Typechecking the Panda theme
-  files surfaces type-level disagreements with Panda's own types even though
-  `panda codegen` builds fine.
 - **`packages/locatorjs` is a published stub** whose `main` points at a `dist`
   nothing builds.
 - **Renaming an e2e group renames a CI check.** Required status checks are

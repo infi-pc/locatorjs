@@ -419,7 +419,7 @@ function Runtime(props: {
   });
 
   function showTreeFromElement(element: HTMLElement) {
-    const newState = getTree(element);
+    const newState = getTree(element, adapterId());
     if (!newState) return;
     // The panel opens on the element the user pointed at, so every row between
     // it and the root has to start out expanded or it would not be visible.
