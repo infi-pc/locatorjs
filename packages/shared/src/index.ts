@@ -1,44 +1,6 @@
 import { isValidRenderer } from "./isValidRenderer";
 export * from "./types";
-
-export type Target = {
-  url: string;
-  label: string;
-  // target?: "_blank" | "_self" | "_parent" | "_top" | string;
-};
-
-export type Targets = { [k: string]: Target };
-
-export const allTargets: Targets = {
-  vscode: {
-    url: "vscode://file/${projectPath}${filePath}:${line}:${column}",
-    label: "VSCode",
-  },
-  webstorm: {
-    url: "webstorm://open?file=${projectPath}${filePath}&line=${line}&column=${column}",
-    label: "WebStorm",
-  },
-  cursor: {
-    url: "cursor://file/${projectPath}${filePath}:${line}:${column}",
-    label: "Cursor",
-  },
-  windsurf: {
-    url: "windsurf://file/${projectPath}${filePath}:${line}:${column}",
-    label: "Windsurf",
-  },
-  zed: {
-    url: "zed://file${projectPath}${filePath}:${line}:${column}",
-    label: "Zed",
-  },
-  antigravity: {
-    url: "antigravity://file/${projectPath}${filePath}:${line}:${column}",
-    label: "Antigravity",
-  },
-  nvim: {
-    url: "nvim://file/${projectPath}${filePath}:${line}:${column}?tmux-session=${tmuxSession}",
-    label: "Neovim (macOS only)",
-  },
-};
+export * from "./targets";
 
 export const isMac =
   typeof navigator !== "undefined" &&
@@ -162,5 +124,5 @@ export * from "./sharedOptionsStore";
 export * from "./layeredOptions";
 export * from "./sourcePath";
 export * from "./bindingEditorModel";
-export * from "./cleanupLegacyStorage";
+export * from "./migrateLegacyStorage";
 export * from "./patchCodec";
