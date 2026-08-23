@@ -3,7 +3,7 @@ import {
   type LocatorOptions,
   type LocatorUserOriginStored,
 } from "./layeredOptions";
-import { cleanupLegacyLocalStorage } from "./cleanupLegacyStorage";
+import { migrateLegacyLocalStorage } from "./migrateLegacyStorage";
 
 export const USER_ORIGIN_STORAGE_KEY = "LOCATOR_USER_OPTIONS";
 
@@ -25,16 +25,17 @@ function hasLocalStorage() {
   return true;
 }
 
-let legacyCleanupRan = false;
-function runLegacyCleanupOnce() {
-  if (legacyCleanupRan) return;
-  legacyCleanupRan = true;
-  cleanupLegacyLocalStorage();
+let legacyMigrationRan = false;
+/** Runs before the first read, so a v1 user's settings are already in place. */
+function runLegacyMigrationOnce() {
+  if (legacyMigrationRan) return;
+  legacyMigrationRan = true;
+  migrateLegacyLocalStorage(USER_ORIGIN_STORAGE_KEY);
 }
 
 function readStored(): LocatorUserOriginStored {
   if (!hasLocalStorage()) return {};
-  runLegacyCleanupOnce();
+  runLegacyMigrationOnce();
 
   try {
     const raw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);

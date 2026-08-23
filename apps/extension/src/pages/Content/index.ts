@@ -1,21 +1,24 @@
 import browser from '../../browser';
-import { cleanupLegacyExtensionStorage } from './cleanupLegacyExtensionStorage';
+import {
+  migrateLegacyExtensionStorage,
+  USER_OPTIONS_KEY,
+} from './migrateLegacyExtensionStorage';
 import { mountSnapshotBridge } from './snapshotBridge';
 
-const USER_OPTIONS_KEY = 'userOptions';
-
-cleanupLegacyExtensionStorage();
-
-browser.storage.local.get([USER_OPTIONS_KEY], (result) => {
-  const options = result?.[USER_OPTIONS_KEY] ?? {};
-  injectUserExtensionGlobal(options);
-  window.postMessage(
-    {
-      type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
-      options,
-    },
-    '*'
-  );
+// The migration writes `userOptions`, so the first read waits for it. Reading
+// in parallel would race a v1 user's settings against their own upgrade.
+migrateLegacyExtensionStorage().then(() => {
+  browser.storage.local.get([USER_OPTIONS_KEY], (result) => {
+    const options = result?.[USER_OPTIONS_KEY] ?? {};
+    injectUserExtensionGlobal(options);
+    window.postMessage(
+      {
+        type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
+        options,
+      },
+      '*'
+    );
+  });
 });
 
 browser.storage.onChanged.addListener((changes, areaName) => {

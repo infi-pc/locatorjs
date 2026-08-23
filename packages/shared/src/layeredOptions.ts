@@ -1,4 +1,4 @@
-import type { Targets } from "./index";
+import type { Targets } from "./targets";
 
 export type PromptApp = "cursor" | "windsurf";
 
