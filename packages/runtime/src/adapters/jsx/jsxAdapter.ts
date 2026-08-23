@@ -64,8 +64,9 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const [styledFileFullPath, styledId] = styledDataId
       ? parseDataId(styledDataId)
       : [null, null];
-    const styledFileData: FileStorage | undefined =
-      styledFileFullPath && locatorData?.[styledFileFullPath];
+    const styledFileData = styledFileFullPath
+      ? locatorData?.[styledFileFullPath]
+      : undefined;
     const styledExpData =
       styledFileData && styledFileData.styledDefinitions[Number(styledId)];
 

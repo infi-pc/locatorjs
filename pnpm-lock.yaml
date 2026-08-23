@@ -14,9 +14,6 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.29.0)
-      '@pandacss/dev':
-        specifier: ^1.11.4
-        version: 1.11.4(jsdom@20.0.3)(typescript@5.9.3)
       check-dependency-version-consistency:
         specifier: 5.0.1
         version: 5.0.1

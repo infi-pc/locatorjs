@@ -11,24 +11,14 @@
   ],
   "treatConfigHintsAsErrors": true,
   "ignoreWorkspaces": ["test-apps/**", "packages/locatorjs"],
-  "ignoreFiles": [
-    "**/tests/fixtures/**",
-    "apps/web/blocks/Faq.tsx",
-    "apps/web/blocks/Headline.tsx",
-    "apps/web/blocks/Installation.tsx"
-  ],
+  "ignoreFiles": ["**/tests/fixtures/**"],
   "ignoreDependencies": ["archiver"],
   "workspaces": {
     ".": {
-      "entry": ["panda.config.ts"],
       "ignoreDependencies": ["vitest"]
     },
     "apps/extension": {
-      "entry": [
-        "src/pages/**/index.{ts,tsx,jsx}",
-        "utils/*.js",
-        "panda.config.ts"
-      ],
+      "entry": ["panda.config.ts"],
       "ignoreDependencies": ["@types/chrome"]
     },
     "apps/ui-lab": {
@@ -38,7 +28,6 @@
       "ignoreDependencies": ["sharp"]
     },
     "packages/babel-jsx": {
-      "entry": ["tests/**/*.spec.ts"],
       "ignoreDependencies": [
         "@babel/plugin-syntax-jsx",
         "@babel/preset-typescript",
@@ -46,7 +35,6 @@
       ]
     },
     "packages/dev-config": {
-      "entry": ["*.js"],
       "ignoreDependencies": [
         "@typescript-eslint/eslint-plugin",
         "eslint-config-next",
@@ -54,14 +42,11 @@
         "eslint-plugin-solid"
       ]
     },
-    "packages/react-devtools-hook": {
-      "entry": ["src/**/*.ts"]
-    },
     "packages/runtime": {
-      "entry": ["src/**/*.{ts,tsx}", "scripts/*.js", "panda.config.ts"]
+      "entry": ["src/index.server.ts", "panda.config.ts"]
     },
     "packages/styled-system": {
-      "entry": ["panda.config.ts", "preset.ts", "theme/**/*.ts"]
+      "entry": ["panda.config.ts"]
     },
     "packages/webpack-loader": {
       "ignoreDependencies": ["@babel/preset-typescript", "webpack"]
