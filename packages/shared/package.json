@@ -13,12 +13,8 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "devDependencies": {
-    "@babel/parser": "^7.29.2",
     "@locator/dev-config": "workspace:^",
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
     "@types/semver": "^7.7.1",
-    "tsconfig": "^0.0.1",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
   },

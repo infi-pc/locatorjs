@@ -14,11 +14,9 @@
     "@babel/parser": "^7.29.2",
     "@babel/plugin-syntax-jsx": "^7.28.6",
     "@babel/preset-env": "^7.29.2",
-    "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "@babel/traverse": "^7.29.0",
     "@babel/types": "^7.29.0",
-    "@locator/runtime": "workspace:^",
     "@locator/shared": "workspace:^"
   },
   "devDependencies": {

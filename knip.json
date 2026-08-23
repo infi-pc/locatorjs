@@ -1,0 +1,70 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "include": [
+    "files",
+    "dependencies",
+    "devDependencies",
+    "optionalPeerDependencies",
+    "unlisted",
+    "binaries",
+    "unresolved"
+  ],
+  "treatConfigHintsAsErrors": true,
+  "ignoreWorkspaces": ["test-apps/**", "packages/locatorjs"],
+  "ignoreFiles": [
+    "**/tests/fixtures/**",
+    "apps/web/blocks/Faq.tsx",
+    "apps/web/blocks/Headline.tsx",
+    "apps/web/blocks/Installation.tsx"
+  ],
+  "ignoreDependencies": ["archiver"],
+  "workspaces": {
+    ".": {
+      "entry": ["panda.config.ts"],
+      "ignoreDependencies": ["vitest"]
+    },
+    "apps/extension": {
+      "entry": [
+        "src/pages/**/index.{ts,tsx,jsx}",
+        "utils/*.js",
+        "panda.config.ts"
+      ],
+      "ignoreDependencies": ["@types/chrome"]
+    },
+    "apps/ui-lab": {
+      "entry": ["panda.config.ts", "postcss.config.cjs"]
+    },
+    "apps/web": {
+      "ignoreDependencies": ["sharp"]
+    },
+    "packages/babel-jsx": {
+      "entry": ["tests/**/*.spec.ts"],
+      "ignoreDependencies": [
+        "@babel/plugin-syntax-jsx",
+        "@babel/preset-typescript",
+        "prettier"
+      ]
+    },
+    "packages/dev-config": {
+      "entry": ["*.js"],
+      "ignoreDependencies": [
+        "@typescript-eslint/eslint-plugin",
+        "eslint-config-next",
+        "eslint-config-prettier",
+        "eslint-plugin-solid"
+      ]
+    },
+    "packages/react-devtools-hook": {
+      "entry": ["src/**/*.ts"]
+    },
+    "packages/runtime": {
+      "entry": ["src/**/*.{ts,tsx}", "scripts/*.js", "panda.config.ts"]
+    },
+    "packages/styled-system": {
+      "entry": ["panda.config.ts", "preset.ts", "theme/**/*.ts"]
+    },
+    "packages/webpack-loader": {
+      "ignoreDependencies": ["@babel/preset-typescript", "webpack"]
+    }
+  }
+}

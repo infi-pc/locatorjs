@@ -10,10 +10,11 @@ babel plugin, and the marketing site.
 pnpm check
 ```
 
-Runs formatting, dependency-version consistency, lint, typecheck and unit tests
-across all 13 packages. It uses `--continue=always`, so it reports **every**
-failing gate in one run rather than stopping at the first, and
-`--output-logs=errors-only`, so the output is only failures.
+Runs formatting, dependency-version consistency, unused-code checks, source
+duplication checks, lint, typecheck and unit tests across all 13 packages. It
+uses `--continue=always`, so Turbo reports **every** failing package gate in one
+run rather than stopping at the first, and `--output-logs=errors-only`, so the
+Turbo output is only failures.
 
 Fix what it reports and re-run until it is green. Two shortcuts:
 
@@ -42,6 +43,8 @@ Never claim a check passed that you did not run.
 | `pnpm ui:lab`                | Component workbench on 3344                            |
 | `pnpm ts` / `pnpm typecheck` | Typecheck only (same thing)                            |
 | `pnpm lint` / `pnpm test`    | Individual gates                                       |
+| `pnpm knip`                  | Unused files and dependencies                          |
+| `pnpm dup`                   | Source duplication budget                              |
 | `pnpm clean`                 | Remove node_modules, dist, .turbo, .next               |
 
 Node version is pinned in `.nvmrc` (22). Don't hardcode it anywhere else.

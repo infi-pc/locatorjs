@@ -27,7 +27,6 @@
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.2",
     "@babel/preset-typescript": "^7.28.5",
-    "@locator/dev-config": "workspace:^",
     "@solidjs/testing-library": "^0.8.10",
     "babel-preset-solid": "^1.9.12",
     "concurrently": "^9.2.1",
