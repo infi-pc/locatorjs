@@ -67,40 +67,41 @@ const Popup = () => {
           </div>
         }
       >
-        <Show
-          when={status() === 'connected'}
-          fallback={
-            <div class={styles.stack}>
-              <NoRuntimeView />
-              <Home />
-            </div>
-          }
-        >
-          <div class={styles.stack}>
-            <Show when={siteDisabled()}>
-              <div class={styles.card}>
-                <span class={styles.disabledIcon}>
-                  <Power size={16} />
-                </span>
-                <SectionHeadline>Disabled</SectionHeadline>
-                <div class={styles.bodyText}>
-                  LocatorJS is disabled on this page.
-                </div>
-                <div class={styles.actionRow}>
-                  <Button variant="primary" onClick={enableHere}>
-                    Enable
-                  </Button>
-                </div>
-                <Show when={enableError()}>
-                  <div class={styles.error} role="alert">
-                    {enableError()}
-                  </div>
-                </Show>
+        {/*
+          `<Home/>` is mounted once, outside the connectivity branches. Having
+          it in both branches of a `<Show>` made any transient poll failure --
+          an HMR reload, a page that misses the 1s reply timeout -- dispose and
+          rebuild the whole settings UI: open dialogs closed, in-flight edits
+          were discarded, and the write scope silently reset from "This site"
+          to "All sites" so the next save landed in the wrong layer.
+        */}
+        <div class={styles.stack}>
+          <Show when={status() !== 'connected'}>
+            <NoRuntimeView />
+          </Show>
+          <Show when={status() === 'connected' && siteDisabled()}>
+            <div class={styles.card}>
+              <span class={styles.disabledIcon}>
+                <Power size={16} />
+              </span>
+              <SectionHeadline>Disabled</SectionHeadline>
+              <div class={styles.bodyText}>
+                LocatorJS is disabled on this page.
               </div>
-            </Show>
-            <Home />
-          </div>
-        </Show>
+              <div class={styles.actionRow}>
+                <Button variant="primary" onClick={enableHere}>
+                  Enable
+                </Button>
+              </div>
+              <Show when={enableError()}>
+                <div class={styles.error} role="alert">
+                  {enableError()}
+                </div>
+              </Show>
+            </div>
+          </Show>
+          <Home />
+        </div>
       </Show>
     </div>
   );

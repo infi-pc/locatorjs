@@ -281,6 +281,22 @@ describe("buildParentRows", () => {
     ).toEqual(["span"]);
   });
 
+  test("keeps same-named files in different directories apart", () => {
+    // Deduping on the short name collapsed these into one row -- and because
+    // the Parents icon hides when a single row is left, the survivor's sibling
+    // became unreachable entirely.
+    const rows = buildParentRows([
+      item("div", "/repo/src/features/cart/Row.tsx", 12, 4),
+      item("div", "/repo/src/features/list/Row.tsx", 12, 4),
+    ]);
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.source?.filePath)).toEqual([
+      "/repo/src/features/cart/Row.tsx",
+      "/repo/src/features/list/Row.tsx",
+    ]);
+  });
+
   test("collapses entries pointing at the same place", () => {
     // The old menu showed five indistinguishable `div / NestingTest.tsx` rows.
     const rows = buildParentRows([

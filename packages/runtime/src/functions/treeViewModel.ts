@@ -159,15 +159,23 @@ function isComponentName(title: string) {
  */
 export function buildParentRows(items: ParentPathItem[]): ParentRow[] {
   const rows: ParentRow[] = [];
+  const seen = new Set<string>();
 
   items.forEach((item, index) => {
     const link = item.link;
     if (!link) return;
 
+    // Deduped on the full path, displayed by its short name. Deduping on the
+    // short name collapsed `features/cart/Row.tsx` into `features/list/Row.tsx`
+    // and dropped a real ancestor -- and since the Parents icon hides when only
+    // one row is left, that ancestor became unreachable.
+    const location = `${link.filePath}:${link.line}:${link.column}`;
+    if (seen.has(location)) return;
+    seen.add(location);
+
     const detail = `${getUsableFileName(link.filePath)}:${link.line}:${
       link.column
     }`;
-    if (rows.some((row) => row.detail === detail)) return;
 
     const isComponent = isComponentName(item.title);
     rows.push({

@@ -108,7 +108,15 @@ export function ParentsMenu(props: {
   const moveFocus = (delta: number) => {
     const rows = props.rows;
     if (!rows.length) return;
-    const next = (focused() + delta + rows.length) % rows.length;
+    // `-1` means nothing is focused yet; feeding that sentinel through the
+    // modulo landed ArrowUp one row short of the end. From nowhere, ArrowUp
+    // goes to the last row and ArrowDown to the first.
+    const next =
+      focused() < 0
+        ? delta < 0
+          ? rows.length - 1
+          : 0
+        : (focused() + delta + rows.length) % rows.length;
     setFocused(next);
     props.onHover(rows[next]!.id);
     list

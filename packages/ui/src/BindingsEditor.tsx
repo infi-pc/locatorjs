@@ -15,7 +15,7 @@ import {
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Copy, Plus, Trash2 } from "lucide-solid";
-import { For, Show, createMemo, createSignal } from "solid-js";
+import { Index, Show, createMemo, createSignal } from "solid-js";
 import { Button } from "./Button";
 import { EditorPicker } from "./EditorPicker";
 import { editorSettingLabel } from "./EditorSetting";
@@ -174,6 +174,13 @@ export function BindingsEditor(props: {
   );
 }
 
+function isDuplicate(binding: Binding, duplicates: Set<string>): boolean {
+  return (
+    binding.trigger.kind === "modifier-click" &&
+    duplicates.has(binding.trigger.modifiers)
+  );
+}
+
 function BindingGroup(props: {
   title: string;
   triggerKind: BindingTrigger["kind"];
@@ -214,23 +221,28 @@ function BindingGroup(props: {
           <Plus size={14} />
         </Button>
       </div>
-      <For each={items()}>
-        {({ binding, index }) => (
+      {/*
+        `<Index>`, not `<For>`. `items()` allocates a fresh wrapper object per
+        row on every render and `<For>` keys by reference, so any edit -- which
+        comes back as a new `props.value` -- disposed and rebuilt every row: the
+        prompt `<details>` collapsed, the textarea node was replaced, focus fell
+        to `<body>` and every keystroke after the first was dropped. Rows here
+        are identified by position, which is exactly what `<Index>` keys on.
+      */}
+      <Index each={items()}>
+        {(item) => (
           <BindingRow
-            binding={binding}
-            index={index}
+            binding={item().binding}
+            index={item().index}
             targets={props.targets}
             editor={props.editor}
             portalMount={props.portalMount}
-            duplicate={
-              binding.trigger.kind === "modifier-click" &&
-              props.duplicates.has(binding.trigger.modifiers)
-            }
-            onChange={(next) => props.onUpdate(index, next)}
-            onRemove={() => props.onRemove(index)}
+            duplicate={isDuplicate(item().binding, props.duplicates)}
+            onChange={(next) => props.onUpdate(item().index, next)}
+            onRemove={() => props.onRemove(item().index)}
           />
         )}
-      </For>
+      </Index>
       <Show when={props.draft}>
         {(draft) => (
           <BindingRow

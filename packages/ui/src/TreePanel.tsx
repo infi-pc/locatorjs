@@ -7,7 +7,14 @@ import {
   ExternalLink,
   X,
 } from "lucide-solid";
-import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
+import {
+  For,
+  Show,
+  createEffect,
+  createMemo,
+  createSignal,
+  untrack,
+} from "solid-js";
 import { IconButton } from "./IconButton";
 import { visibleTreeRows, type TreeRow, type TreeViewModel } from "./treeModel";
 
@@ -166,10 +173,21 @@ export function TreePanel(props: {
     visibleTreeRows(props.model.rows, props.expandedIds)
   );
 
+  /**
+   * Focus follows the selection, but only when the selection actually changes.
+   * Depending on `flat()` re-ran this on every expand and collapse -- each of
+   * which rebuilds the tree state -- and snapped focus back to `selectedId`,
+   * which is set once to the originally-hovered node and never moves. The user
+   * could expand a row but never walk into it.
+   */
+  let previousSelectedId: string | undefined;
+  let hasSyncedSelection = false;
   createEffect(() => {
-    const index = flat().findIndex(
-      (item) => item.row.id === props.model.selectedId
-    );
+    const selectedId = props.model.selectedId;
+    if (hasSyncedSelection && selectedId === previousSelectedId) return;
+    hasSyncedSelection = true;
+    previousSelectedId = selectedId;
+    const index = untrack(flat).findIndex((item) => item.row.id === selectedId);
     if (index >= 0) setFocused(index);
   });
 

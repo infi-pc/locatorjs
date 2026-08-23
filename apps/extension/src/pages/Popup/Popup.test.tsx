@@ -4,8 +4,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { Snapshot } from './syncedState';
 
 const mocks = vi.hoisted(() => ({
-  status: 'connected' as 'connected' | 'no-runtime',
-  snapshot: null as unknown,
   userExtension: {},
   setUserExtension: vi.fn(async () => ({ ok: true as const })),
   setSiteLocal: vi.fn(async () => ({ ok: true as const })),
@@ -13,20 +11,35 @@ const mocks = vi.hoisted(() => ({
   clearUserExtension: vi.fn(async () => ({ ok: true as const })),
   tryAction: vi.fn(async () => ({ ok: true as const })),
   createTab: vi.fn(),
+  // Assigned by the mock factory below. Connectivity is a signal so a test can
+  // flip it mid-session, which is the only way to observe a remount.
+  setStatus: undefined as unknown as (
+    value: 'connected' | 'no-runtime'
+  ) => void,
+  setSnapshot: undefined as unknown as (value: Snapshot | null) => void,
 }));
 
-vi.mock('./syncedState', () => ({
-  useSyncedState: () => ({
-    status: () => mocks.status,
-    snapshot: () => mocks.snapshot,
-    userExtension: () => mocks.userExtension,
-    setUserExtension: mocks.setUserExtension,
-    setSiteLocal: mocks.setSiteLocal,
-    clearSiteLocal: mocks.clearSiteLocal,
-    clearUserExtension: mocks.clearUserExtension,
-    tryAction: mocks.tryAction,
-  }),
-}));
+vi.mock('./syncedState', async () => {
+  const { createSignal } = await import('solid-js');
+  const [status, setStatus] = createSignal<'connected' | 'no-runtime'>(
+    'connected'
+  );
+  const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
+  mocks.setStatus = setStatus;
+  mocks.setSnapshot = (value) => setSnapshot(value);
+  return {
+    useSyncedState: () => ({
+      status,
+      snapshot,
+      userExtension: () => mocks.userExtension,
+      setUserExtension: mocks.setUserExtension,
+      setSiteLocal: mocks.setSiteLocal,
+      clearSiteLocal: mocks.clearSiteLocal,
+      clearUserExtension: mocks.clearUserExtension,
+      tryAction: mocks.tryAction,
+    }),
+  };
+});
 
 vi.mock('../../browser', () => ({
   default: {
@@ -52,8 +65,8 @@ function connectedSnapshot(): Snapshot {
 
 describe('Popup settings navigation', () => {
   beforeEach(() => {
-    mocks.status = 'connected';
-    mocks.snapshot = connectedSnapshot();
+    mocks.setStatus('connected');
+    mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
     vi.clearAllMocks();
   });
@@ -95,8 +108,8 @@ describe('Popup settings navigation', () => {
   });
 
   test('keeps All sites editable when no runtime is connected', async () => {
-    mocks.status = 'no-runtime';
-    mocks.snapshot = null;
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
     render(() => <Popup />);
 
     expect(
@@ -140,5 +153,68 @@ describe('Popup settings navigation', () => {
 
     await screen.getByRole('button', { name: 'Disable on this page' }).click();
     expect(mocks.setSiteLocal).toHaveBeenCalledWith({ disabled: true });
+  });
+});
+
+describe('Popup connectivity changes', () => {
+  beforeEach(() => {
+    mocks.setStatus('connected');
+    mocks.setSnapshot(connectedSnapshot());
+    mocks.userExtension = { projectPath: '/all-sites' };
+    vi.clearAllMocks();
+  });
+
+  afterEach(cleanup);
+
+  const scopeLabel = () =>
+    screen.getByRole('combobox', { name: 'Settings scope' }).textContent;
+
+  test('a transient disconnect does not steal the chosen write scope', async () => {
+    // `<Home/>` lived in both branches of the connectivity `<Show>`, so any
+    // poll failure -- an HMR reload, a page missing the 1s reply timeout --
+    // disposed and rebuilt it. "This site" then became "All sites" for good,
+    // because the fallback only ever ran one way: the next save landed in the
+    // wrong layer.
+    render(() => <Popup />);
+    expect(scopeLabel()).toContain('This site');
+
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    expect(scopeLabel()).toContain('All sites');
+
+    mocks.setStatus('connected');
+    mocks.setSnapshot(connectedSnapshot());
+    expect(scopeLabel()).toContain('This site');
+  });
+
+  test('an explicit All sites choice survives a reconnect', async () => {
+    render(() => <Popup />);
+
+    await screen.getByRole('combobox', { name: 'Settings scope' }).click();
+    const listbox = await screen.findByRole('listbox');
+    await fireEvent.keyDown(listbox, { key: 'ArrowDown' });
+    await fireEvent.keyDown(listbox, { key: 'Enter' });
+    expect(scopeLabel()).toContain('All sites');
+
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setStatus('connected');
+    mocks.setSnapshot(connectedSnapshot());
+
+    expect(scopeLabel()).toContain('All sites');
+  });
+
+  test('reconnecting does not rebuild the settings UI either', async () => {
+    render(() => <Popup />);
+    const before = screen.getByRole('combobox', { name: 'Settings scope' });
+
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setStatus('connected');
+    mocks.setSnapshot(connectedSnapshot());
+
+    expect(screen.getByRole('combobox', { name: 'Settings scope' })).toBe(
+      before
+    );
   });
 });

@@ -138,3 +138,55 @@ describe("BindingsEditor", () => {
     ).toBe(false);
   });
 });
+
+describe("BindingsEditor row identity", () => {
+  /** A single copy-prompt shortcut, so the customisable textarea is present. */
+  const promptBinding: Binding[] = [
+    {
+      trigger: { kind: "modifier-click", modifiers: "alt" },
+      action: { kind: "copy-prompt" },
+    },
+  ];
+
+  test("editing a row keeps its DOM, its focus, and its open details", async () => {
+    // `items()` allocated a fresh wrapper per row and `<For>` keys by
+    // reference, so every edit rebuilt every row: the details collapsed, the
+    // textarea node was replaced, focus fell to <body>, and every keystroke
+    // after the first was dropped.
+    render(() => <Harness initial={promptBinding} />);
+
+    const details = screen.getByText("Customize prompt")
+      .parentElement as HTMLDetailsElement;
+    details.open = true;
+
+    const textarea = screen.getByRole("textbox", {
+      name: "Custom prompt 1",
+    }) as HTMLTextAreaElement;
+    textarea.focus();
+
+    await fireEvent.input(textarea, { target: { value: "H" } });
+
+    expect(screen.getByRole("textbox", { name: "Custom prompt 1" })).toBe(
+      textarea
+    );
+    expect(document.activeElement).toBe(textarea);
+    expect(details.open).toBe(true);
+  });
+
+  test("successive keystrokes all land", async () => {
+    const onChange = vi.fn();
+    render(() => <Harness initial={promptBinding} onChange={onChange} />);
+
+    const details = screen.getByText("Customize prompt")
+      .parentElement as HTMLDetailsElement;
+    details.open = true;
+    const textarea = screen.getByRole("textbox", { name: "Custom prompt 1" });
+
+    for (const value of ["H", "He", "Hel"]) {
+      await fireEvent.input(textarea, { target: { value } });
+    }
+
+    const last = onChange.mock.calls.at(-1)?.[0] as Binding[];
+    expect(last[0]?.action).toEqual({ kind: "copy-prompt", template: "Hel" });
+  });
+});
