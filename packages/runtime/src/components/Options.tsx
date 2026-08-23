@@ -1,6 +1,9 @@
 import {
   DEFAULT_LAYER,
+  resolveBindingTarget,
+  resolveEditorTarget,
   type BindingAction,
+  type ResolvedTarget,
   type Targets,
 } from "@locator/shared";
 import { Show, createSignal } from "solid-js";
@@ -86,15 +89,27 @@ export function Options(props: {
     createSignal<ActionSettingsSaveStatus>("idle");
   const [confirmReset, setConfirmReset] = createSignal(false);
   const [inspectorMount, setInspectorMount] = createSignal<HTMLDivElement>();
+  /**
+   * True when anything would open Neovim, so the one-time `nvim://` handler
+   * guide is shown. Resolved rather than read off the raw action: picking
+   * Neovim in the editor picker records it on the global `editor` setting and
+   * deliberately strips `targetId` off the binding, so an action's own fields
+   * say nothing about where it opens.
+   */
   const isNvimTarget = () => {
-    return (options.effective().bindings ?? []).some((binding) => {
-      const action = binding.action;
-      return (
-        action.kind === "open-editor" &&
-        (action.targetId === "nvim" ||
-          action.targetTemplate?.includes("nvim://"))
-      );
-    });
+    const targets = options.allTargets();
+    const editor = options.effective().editor;
+    const opensNvim = (resolved: ResolvedTarget) =>
+      (resolved.kind === "targetId" && resolved.id === "nvim") ||
+      resolved.url.includes("nvim://");
+
+    if (opensNvim(resolveEditorTarget(editor, targets))) return true;
+
+    return (options.effective().bindings ?? []).some(
+      (binding) =>
+        binding.action.kind === "open-editor" &&
+        opensNvim(resolveBindingTarget(binding.action, targets, editor))
+    );
   };
 
   const promos = () => [
