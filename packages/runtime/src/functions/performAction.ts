@@ -1,7 +1,7 @@
 import {
   needsEditorSetup,
   resolveBindingTarget,
-  resolveFilePath,
+  resolveSourcePath,
   type BindingAction,
   type Targets,
 } from "@locator/shared";
@@ -57,9 +57,13 @@ export async function performAction(
     }
     case "copy-path": {
       if (!link) return false;
-      const projectPath = options.effective().projectPath || link.projectPath;
-      const path = resolveFilePath(link.filePath, projectPath);
-      return writeClipboard(`${path}:${link.line}:${link.column}`);
+      // The copied path is pasted into a terminal or another editor, so it has
+      // to be the same complete path the editor link resolves to.
+      const { absolute } = resolveSourcePath(
+        link.filePath,
+        options.effective().projectPath || link.projectPath
+      );
+      return writeClipboard(`${absolute}:${link.line}:${link.column}`);
     }
     case "copy-prompt":
       return writeClipboard(

@@ -1,4 +1,4 @@
-import { resolveFilePath, type Targets } from "@locator/shared";
+import { resolveSourcePath, type Targets } from "@locator/shared";
 import type { LinkProps, Source } from "../types/types";
 import { evalTemplate } from "./evalTemplate";
 import { linkTemplateUrl } from "./linkTemplateUrl";
@@ -13,16 +13,18 @@ export function buildLink(
 ): string {
   const effective = options.effective();
   const tmuxSession = effective.tmuxSession;
-  const savedProjectPath = effective.projectPath || linkProps.projectPath;
 
-  const resolvedFilePath = resolveFilePath(
+  // Every shipped template interpolates `${projectPath}${filePath}`, so the two
+  // have to be split apart here — handing over a path that already carries the
+  // root would bake it into the URL twice.
+  const source = resolveSourcePath(
     linkProps.filePath,
-    savedProjectPath
+    effective.projectPath || linkProps.projectPath
   );
 
   const params = {
-    filePath: resolvedFilePath,
-    projectPath: savedProjectPath,
+    filePath: source.filePath,
+    projectPath: source.projectPath,
     line: String(linkProps.line),
     column: String(linkProps.column),
     linePlusOne: String(linkProps.line + 1),
