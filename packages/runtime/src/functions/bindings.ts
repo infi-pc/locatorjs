@@ -35,6 +35,24 @@ function parseModifiers(modifiers: string): Set<string> {
   );
 }
 
+/**
+ * `ignoreCtrl` exists for macOS, where Ctrl+click *is* a right-click: the
+ * `contextmenu` event arrives with `ctrlKey` set even though the user only
+ * meant to open the menu. The relaxation is therefore one-way -- a spurious
+ * `ctrlKey: true` is forgiven, but `ctrlKey: false` can never satisfy a
+ * binding that asks for Ctrl. Skipping the comparison outright made a
+ * Ctrl-only shortcut match every plain right-click and swallow the native
+ * context menu.
+ */
+function matchesCtrl(
+  expected: Set<string>,
+  event: ModifierEvent,
+  config: { ignoreCtrl?: boolean }
+): boolean {
+  if (expected.has("ctrl")) return event.ctrlKey;
+  return config.ignoreCtrl ? true : !event.ctrlKey;
+}
+
 function matchesModifiers(
   expected: Set<string>,
   event: ModifierEvent,
@@ -42,7 +60,7 @@ function matchesModifiers(
 ): boolean {
   return (
     event.altKey === expected.has("alt") &&
-    (config.ignoreCtrl || event.ctrlKey === expected.has("ctrl")) &&
+    matchesCtrl(expected, event, config) &&
     event.metaKey === expected.has("meta") &&
     event.shiftKey === expected.has("shift")
   );

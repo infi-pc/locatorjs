@@ -5,14 +5,30 @@ import {
   listenToFrameModifiers,
   modifiersFromEvent,
 } from "./crossFrameModifiers";
+import {
+  __resetShadowRootsForTesting,
+  installShadowRootTracking,
+} from "./shadowRoots";
 
 const cleanups: (() => void)[] = [];
 
 afterEach(() => {
   while (cleanups.length) cleanups.pop()!();
   document.body.innerHTML = "";
+  __resetShadowRootsForTesting();
   vi.restoreAllMocks();
 });
+
+/** An iframe whose contentWindow records what it was posted. */
+function frameIn(parent: ParentNode & Node) {
+  const frame = document.createElement("iframe");
+  parent.appendChild(frame);
+  const post = vi.fn();
+  Object.defineProperty(frame, "contentWindow", {
+    value: { postMessage: post },
+  });
+  return post;
+}
 
 function listen(onModifiers: (state: unknown) => void) {
   const stop = listenToFrameModifiers(onModifiers);
@@ -62,6 +78,51 @@ describe("broadcastModifiers", () => {
       }),
       "*"
     );
+  });
+
+  test("reaches an iframe inside a shadow root", () => {
+    // `document.querySelectorAll` never crosses a shadow boundary, so this
+    // frame heard nothing and its overlay stayed dark while the light-DOM one
+    // next to it worked.
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+
+    const inLightDom = frameIn(document.body);
+    const inShadow = frameIn(shadow);
+
+    broadcastModifiers({
+      altKey: true,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+    });
+
+    expect(inLightDom).toHaveBeenCalledTimes(1);
+    expect(inShadow).toHaveBeenCalledTimes(1);
+  });
+
+  test("reaches an iframe inside a nested shadow root", () => {
+    // A closed root is only ever seen by the `attachShadow` patch, so tracking
+    // has to be installed before it is attached -- as the runtime does.
+    installShadowRootTracking();
+    const outerHost = document.createElement("div");
+    document.body.appendChild(outerHost);
+    const outer = outerHost.attachShadow({ mode: "open" });
+    const innerHost = document.createElement("div");
+    outer.appendChild(innerHost);
+    const inner = innerHost.attachShadow({ mode: "closed" });
+
+    const post = frameIn(inner);
+
+    broadcastModifiers({
+      altKey: true,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+    });
+
+    expect(post).toHaveBeenCalledTimes(1);
   });
 
   test("survives a frame that refuses postMessage", () => {

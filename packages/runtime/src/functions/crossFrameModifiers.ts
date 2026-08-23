@@ -11,6 +11,8 @@
  * safe to accept from cross-origin frames.
  */
 
+import { getShadowRoots } from "./shadowRoots";
+
 const MESSAGE_TYPE = "LOCATOR_FRAME_MODIFIERS";
 
 export type ModifierState = {
@@ -50,13 +52,18 @@ function neighbours(): Window[] {
   if (window.parent && window.parent !== window) {
     result.push(window.parent);
   }
-  const frames = document.querySelectorAll("iframe");
-  frames.forEach((frame) => {
-    const child = (frame as HTMLIFrameElement).contentWindow;
-    if (child) {
-      result.push(child);
-    }
-  });
+  // `querySelectorAll` never crosses a shadow boundary, so an iframe inside a
+  // shadow root would never be told about a modifier held outside it and its
+  // overlay would stay dark. The registry already tracks every root, closed
+  // ones included.
+  for (const root of [document as ParentNode, ...getShadowRoots()]) {
+    root.querySelectorAll("iframe").forEach((frame) => {
+      const child = frame.contentWindow;
+      if (child) {
+        result.push(child);
+      }
+    });
+  }
   return result;
 }
 

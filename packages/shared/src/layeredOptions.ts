@@ -1,3 +1,4 @@
+import { canonicalModifiers } from "./modifiers";
 import type { Targets } from "./targets";
 
 export type PromptApp = "cursor" | "windsurf";
@@ -124,6 +125,23 @@ const DEFAULT_ICON_BINDINGS: Binding[] = [
 ];
 
 /**
+ * Rewrites every shortcut into the canonical modifier order, so downstream
+ * comparisons of the raw string are sound. Returns the same array when nothing
+ * changed, to keep this cheap for the memos that call it on every resolve.
+ */
+function canonicalizeBindings(bindings: Binding[]): Binding[] {
+  let changed = false;
+  const next = bindings.map((binding) => {
+    if (binding.trigger.kind !== "modifier-click") return binding;
+    const modifiers = canonicalModifiers(binding.trigger.modifiers);
+    if (modifiers === binding.trigger.modifiers) return binding;
+    changed = true;
+    return { ...binding, trigger: { ...binding.trigger, modifiers } };
+  });
+  return changed ? next : bindings;
+}
+
+/**
  * Converts a legacy layer to the bindings schema. This is intentionally pure
  * so it can be used for in-memory resolution as well as lazy persistence.
  */
@@ -138,10 +156,14 @@ export function normalizeLayer(options: LocatorOptions = {}): LocatorOptions {
   delete actionOwnedOptions.promptTemplate;
 
   if (actionOwnedOptions.bindings !== undefined) {
-    if (actionOwnedOptions.mouseModifiers === undefined) {
+    const bindings = canonicalizeBindings(actionOwnedOptions.bindings);
+    if (
+      actionOwnedOptions.mouseModifiers === undefined &&
+      bindings === actionOwnedOptions.bindings
+    ) {
       return actionOwnedOptions;
     }
-    const normalized = { ...actionOwnedOptions };
+    const normalized = { ...actionOwnedOptions, bindings };
     delete normalized.mouseModifiers;
     return normalized;
   }
@@ -157,7 +179,7 @@ export function normalizeLayer(options: LocatorOptions = {}): LocatorOptions {
             {
               trigger: {
                 kind: "modifier-click" as const,
-                modifiers: mouseModifiers,
+                modifiers: canonicalModifiers(mouseModifiers),
               },
               action: { kind: "open-editor" } as const,
             },
@@ -241,15 +263,31 @@ export function needsEditorSetup(resolved: ResolvedTarget): boolean {
   return resolved.kind === "fallback";
 }
 
+/**
+ * The modifier-click shortcut that opens the editor, if there is one.
+ *
+ * Distinct from `primaryEditorBinding`, which falls back to a toolbar button:
+ * "which action opens the editor" and "which shortcut opens the editor" are
+ * different questions, and answering the second with the first is what made
+ * the intro banner advertise an Alt+click that does nothing.
+ */
+export function primaryEditorShortcut(
+  bindings: Binding[] | undefined
+): Binding | undefined {
+  return bindings?.find(
+    (binding) =>
+      binding.trigger.kind === "modifier-click" &&
+      binding.action.kind === "open-editor"
+  );
+}
+
+/** Any binding that opens the editor, shortcut or toolbar button. */
 export function primaryEditorBinding(
   bindings: Binding[] | undefined
 ): Binding | undefined {
   return (
-    bindings?.find(
-      (binding) =>
-        binding.trigger.kind === "modifier-click" &&
-        binding.action.kind === "open-editor"
-    ) ?? bindings?.find((binding) => binding.action.kind === "open-editor")
+    primaryEditorShortcut(bindings) ??
+    bindings?.find((binding) => binding.action.kind === "open-editor")
   );
 }
 

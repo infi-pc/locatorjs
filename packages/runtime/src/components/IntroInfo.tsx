@@ -1,13 +1,14 @@
 import {
   getModifiersMap,
   modifiersTitles,
-  primaryEditorBinding,
+  primaryEditorShortcut,
 } from "@locator/shared";
 import { createEffect, createSignal, For } from "solid-js";
 import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
 import { useOptions } from "../functions/optionsStore";
+import { activationModifiers, effectiveBindings } from "../functions/bindings";
 import { css, cx } from "@locator/styled-system/css";
 import { kbd } from "@locator/styled-system/recipes";
 
@@ -46,12 +47,21 @@ export function IntroInfo(props: {
     }
   });
 
-  const modifiers = () => {
-    const trigger = primaryEditorBinding(options.effective().bindings)?.trigger;
-    return getModifiersMap(
-      trigger?.kind === "modifier-click" ? trigger.modifiers : "alt"
-    );
+  const bindings = () => effectiveBindings(options.effective());
+  /**
+   * The shortcut that actually opens the editor. There may not be one -- a
+   * toolbar-only config is supported -- and in that case the banner has to
+   * describe what the modifier really does rather than promise a click that
+   * `matchBinding` will not match.
+   */
+  const editorShortcut = () => {
+    const trigger = primaryEditorShortcut(bindings())?.trigger;
+    return trigger?.kind === "modifier-click" ? trigger.modifiers : undefined;
   };
+  const modifiers = () =>
+    getModifiersMap(
+      editorShortcut() ?? activationModifiers(bindings())[0] ?? "alt"
+    );
   return (
     <div
       class={bannerClass}
@@ -61,7 +71,9 @@ export function IntroInfo(props: {
     >
       <BannerHeader openOptions={props.openOptions} adapter={props.adapter} />
       <div class={styles.instruction}>
-        Go to component code with{" "}
+        {editorShortcut()
+          ? "Go to component code with "
+          : "Show the LocatorJS toolbar with "}
         <For each={Object.keys(modifiers())}>
           {(key, i) => {
             return (
@@ -74,7 +86,13 @@ export function IntroInfo(props: {
             );
           }}
         </For>{" "}
-        + <div class={styles.key}>click</div>{" "}
+        {editorShortcut() ? (
+          <>
+            + <div class={styles.key}>click</div>{" "}
+          </>
+        ) : (
+          <>+ hover an element </>
+        )}
       </div>
       <div class={styles.links}>
         <a class={styles.link} href="https://www.locatorjs.com" target="_blank">
