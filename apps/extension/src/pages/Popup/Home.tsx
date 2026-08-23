@@ -54,19 +54,25 @@ export function Home() {
     status,
   } = useSyncedState();
   const connected = () => status() === 'connected' && !!snapshot();
-  const [activeScope, setActiveScope] = createSignal<LocatorLayer>(
-    connected() ? 'user-origin' : 'user-extension'
-  );
+  /**
+   * What the user picked, kept apart from what is currently writable. "This
+   * site" is not editable while the page is disconnected, but a transient poll
+   * failure -- an HMR reload, a missed reply -- must not silently promote the
+   * choice to "All sites" for good, or the next save lands in the wrong layer.
+   */
+  const [chosenScope, setChosenScope] =
+    createSignal<LocatorLayer>('user-origin');
+  const activeScope = (): LocatorLayer =>
+    !connected() && chosenScope() === 'user-origin'
+      ? 'user-extension'
+      : chosenScope();
   const [saveStatus, setSaveStatus] =
     createSignal<ActionSettingsSaveStatus>('idle');
   const [confirmReset, setConfirmReset] = createSignal(false);
   const [actionError, setActionError] = createSignal<string>();
 
   createEffect(() => {
-    if (!connected() && activeScope() === 'user-origin') {
-      setActiveScope('user-extension');
-      setConfirmReset(false);
-    }
+    if (!connected()) setConfirmReset(false);
   });
 
   const layers = () => {
@@ -124,7 +130,7 @@ export function Home() {
         ]}
         activeScope={activeScope()}
         onActiveScopeChange={(layer) => {
-          setActiveScope(layer);
+          setChosenScope(layer);
           setConfirmReset(false);
           setActionError(undefined);
         }}

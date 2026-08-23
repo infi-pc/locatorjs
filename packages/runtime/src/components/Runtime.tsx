@@ -283,9 +283,14 @@ function Runtime(props: {
       e.stopPropagation();
 
       // Try async resolution (source-map, Turbopack, etc.)
+      const tryActionAtClick = props.tryAction;
       if (!elInfo?.thisElement.link) {
         elInfo = await getElementInfoAsync(target, adapterId());
       }
+
+      // Resolution can take a while, and Esc or a mode change during it means
+      // the user no longer wants this action to fire.
+      if (props.tryAction !== tryActionAtClick) return;
 
       if (elInfo) {
         const linkProps = elInfo.thisElement.link;
