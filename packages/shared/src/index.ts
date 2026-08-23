@@ -160,6 +160,7 @@ export type FileStorage = {
 
 export * from "./sharedOptionsStore";
 export * from "./layeredOptions";
+export * from "./sourcePath";
 export * from "./bindingEditorModel";
 export * from "./cleanupLegacyStorage";
 export * from "./patchCodec";

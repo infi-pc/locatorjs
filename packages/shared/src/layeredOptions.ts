@@ -253,17 +253,6 @@ export function primaryEditorBinding(
   );
 }
 
-export function resolveFilePath(
-  filePath: string,
-  projectPath?: string
-): string {
-  if (!filePath.startsWith("[project]/") || !projectPath) return filePath;
-  const relativePath = filePath.slice("[project]/".length);
-  return projectPath.endsWith("/")
-    ? projectPath + relativePath
-    : projectPath + "/" + relativePath;
-}
-
 export type ResolvedTarget =
   | { kind: "template"; url: string }
   | { kind: "targetId"; id: string; url: string }

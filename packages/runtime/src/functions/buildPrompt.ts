@@ -1,6 +1,6 @@
 import {
   DEFAULT_PROMPT_TEMPLATE,
-  resolveFilePath,
+  resolveSourcePath,
   type LocatorOptions,
   type PromptApp,
 } from "@locator/shared";
@@ -18,8 +18,16 @@ export function buildPrompt(
   template?: string
 ): string {
   const link = element.thisElement.link;
-  const projectPath = effective.projectPath || link?.projectPath || "";
-  const filePath = link ? resolveFilePath(link.filePath, projectPath) : "";
+  // Unlike a link template, a prompt template has never joined the root itself
+  // — `DEFAULT_PROMPT_TEMPLATE` is `File: ${filePath}` — so `filePath` here is
+  // the complete path. `projectPath` is still offered separately, for templates
+  // that want to name the repo root on its own.
+  const source = link
+    ? resolveSourcePath(
+        link.filePath,
+        effective.projectPath || link.projectPath
+      )
+    : { absolute: "", projectPath: effective.projectPath ?? "" };
   const componentLabels = element.componentsLabels
     .map((item) => item.label)
     .filter(Boolean);
@@ -32,8 +40,8 @@ export function buildPrompt(
     .join(" > ");
 
   return evalTemplate(template ?? DEFAULT_PROMPT_TEMPLATE, {
-    filePath,
-    projectPath,
+    filePath: source.absolute,
+    projectPath: source.projectPath,
     line: link ? String(link.line) : "",
     column: link ? String(link.column) : "",
     componentName: componentLabels[0] ?? "",

@@ -29,14 +29,15 @@ function element(): FullElementInfo {
 function context() {
   return {
     element: element(),
+    // Shaped like the shipped templates, which all join the root themselves.
     targets: {
       vscode: {
         label: "VS Code",
-        url: "vscode://file/${filePath}:${line}:${column}",
+        url: "vscode://file/${projectPath}${filePath}:${line}:${column}",
       },
       cursor: {
         label: "Cursor",
-        url: "cursor://file/${filePath}:${line}:${column}",
+        url: "cursor://file/${projectPath}${filePath}:${line}:${column}",
       },
     },
     options: {
@@ -118,11 +119,32 @@ describe("performAction", () => {
   test("an editor pinned on the action overrides the Editor setting", async () => {
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     await performAction(
-      { kind: "open-editor", targetTemplate: "zed://file/${filePath}" },
+      {
+        kind: "open-editor",
+        targetTemplate: "zed://file${projectPath}${filePath}",
+      },
       context()
     );
     expect(open).toHaveBeenCalledWith(
-      "zed://file//workspace/src/Button.tsx",
+      "zed://file/workspace/src/Button.tsx",
+      "_self"
+    );
+  });
+
+  test("copy-path and the editor link agree on a project-relative path", async () => {
+    // babel-jsx emits `/src/Button.tsx`; the link template joins the root onto
+    // it, so the clipboard has to carry the root too or the two disagree.
+    writeText.mockResolvedValue(undefined);
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    const ctx = context();
+    ctx.element.thisElement.link!.filePath = "/src/Button.tsx";
+
+    await performAction({ kind: "copy-path" }, ctx);
+    await performAction({ kind: "open-editor" }, ctx);
+
+    expect(writeText).toHaveBeenCalledWith("/workspace/src/Button.tsx:7:3");
+    expect(open).toHaveBeenCalledWith(
+      "vscode://file//workspace/src/Button.tsx:7:3",
       "_self"
     );
   });

@@ -24,15 +24,13 @@ function editorOptions(targetId: string, options: LocatorOptions = {}) {
   return createMockOptions({ ...options, editor: { targetId } });
 }
 
-const targets = {
-  vscode: {
-    url: "vscode://file/${filePath}:${line}:${column}",
-    label: "VSCode",
-  },
-} as const;
-
+/**
+ * The shipped templates interpolate `${projectPath}${filePath}`, so they are
+ * what these cases have to run against: a target template without
+ * `${projectPath}` cannot show the root being applied twice.
+ */
 describe("buildLink - Turbopack [project]/ prefix", () => {
-  test("resolves [project]/ prefix with projectPath", () => {
+  test("resolves [project]/ prefix with projectPath, applying the root once", () => {
     const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
 
     const result = buildLink(
@@ -42,11 +40,11 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
         line: 10,
         column: 5,
       },
-      targets,
+      allTargets,
       options
     );
 
-    expect(result).toContain("/Users/me/app/src/page.tsx");
+    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
   });
 
   test("handles projectPath with trailing slash", () => {
@@ -59,29 +57,42 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
         line: 10,
         column: 5,
       },
-      targets,
+      allTargets,
       options
     );
 
-    expect(result).toContain("/Users/me/app/src/page.tsx");
-    expect(result).not.toContain("app//src");
+    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
   });
 
-  test("passes through paths without [project]/ prefix", () => {
+  test("applies the root once to an absolute path that already carries it", () => {
+    // The React 19 resolvers return absolute paths, which the template would
+    // otherwise prefix a second time.
     const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
 
     const result = buildLink(
       {
-        filePath: "/absolute/path/src/page.tsx",
+        filePath: "/Users/me/app/src/page.tsx",
         projectPath: "",
         line: 10,
         column: 5,
       },
-      targets,
+      allTargets,
       options
     );
 
-    expect(result).toContain("/absolute/path/src/page.tsx");
+    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
+  });
+
+  test("joins a project-relative path onto the root", () => {
+    const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
+
+    const result = buildLink(
+      { filePath: "/src/page.tsx", projectPath: "", line: 10, column: 5 },
+      allTargets,
+      options
+    );
+
+    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
   });
 
   test("leaves [project]/ prefix if no projectPath available", () => {
@@ -94,7 +105,7 @@ describe("buildLink - Turbopack [project]/ prefix", () => {
         line: 10,
         column: 5,
       },
-      targets,
+      allTargets,
       options
     );
 
