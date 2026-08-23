@@ -92,26 +92,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-${{ hashFiles('pnpm-lock.yaml') }}-
       - run: pnpm build
-      # Downloading three browsers is most of this job's fixed cost, and there
-      # are six jobs paying it. Keyed on the resolved Playwright version, so a
-      # bump invalidates it and nothing else does. On the first run after a bump
-      # all six jobs miss and race to save the same key; actions/cache resolves
-      # that with a harmless "already exists" warning.
-      - name: Resolve Playwright version
-        id: playwright
-        working-directory: apps/playwright
-        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        name: Playwright browser cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
-      # Still unconditional on a cache hit, rather than skipped. `install` is
-      # idempotent — it checks each browser's revision marker and downloads only
-      # what is missing — so this both repairs a cache that was saved from a
-      # half-finished download and covers the half of `--with-deps` that cannot
-      # be cached at all: the system libraries are apt packages, not files under
-      # ~/.cache/ms-playwright.
+      # ~45s per job, six times over, and not worth caching: measured, this step
+      # is apt, not download. Caching ~/.cache/ms-playwright does eliminate the
+      # browser downloads — run 32628277049 hit the cache and fetched no
+      # browsers at all — and the step still took 24-57s, because `--with-deps`
+      # installs the system libraries the browsers need and those are apt
+      # packages, outside any path a cache can hold. Restoring the 467MB entry
+      # cost 6-7s against ~15s of downloads saved, inside the noise of apt's own
+      # variance. So: no cache, one step.
       - name: Install Playwright browsers
         working-directory: apps/playwright
         run: pnpm exec playwright install --with-deps
