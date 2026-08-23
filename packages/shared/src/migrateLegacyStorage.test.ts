@@ -16,7 +16,7 @@ class MemoryLocalStorage {
     return Array.from(this.store.keys())[i] ?? null;
   }
   getItem(k: string) {
-    return this.store.has(k) ? this.store.get(k)! : null;
+    return this.store.get(k) ?? null;
   }
   setItem(k: string, v: string) {
     this.store.set(k, String(v));

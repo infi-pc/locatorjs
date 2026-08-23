@@ -62,6 +62,16 @@ export type WriteResult =
   | { ok: true }
   | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
 
+/**
+ * What a component hands back from a settings write.
+ *
+ * Every write crossing a component boundary reports one of these. Three
+ * conventions used to coexist -- `void`, `boolean` and `WriteResult` -- and a
+ * `!== false` check against a `WriteResult` object silently read every failure
+ * as success. One type means a caller that ignores the outcome cannot compile.
+ */
+export type WriteResponse = WriteResult | Promise<WriteResult>;
+
 function storageFailure(error: unknown): WriteResult {
   const reason =
     error instanceof DOMException &&

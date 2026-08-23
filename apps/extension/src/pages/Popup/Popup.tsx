@@ -1,4 +1,4 @@
-import { Show } from 'solid-js';
+import { Show, createSignal } from 'solid-js';
 import { Button, SectionHeadline, Spinner } from '@locator/ui';
 import { Power } from 'lucide-solid';
 import { css } from '@locator/styled-system/css';
@@ -23,6 +23,7 @@ const styles = {
   bodyText: css({ color: 'fg.muted', fontSize: 'sm', mt: '1' }),
   actionRow: css({ display: 'flex', justifyContent: 'flex-end', mt: '3' }),
   notice: css({ color: 'fg.muted', fontSize: 'xs', px: '1' }),
+  error: css({ color: 'red.plain.fg', fontSize: 'xs', mt: '2' }),
   disabledIcon: css({
     alignItems: 'center',
     bg: 'red.subtle.bg',
@@ -40,8 +41,19 @@ const styles = {
 
 const Popup = () => {
   const { status, snapshot, setSiteLocal } = useSyncedState();
+  const [enableError, setEnableError] = createSignal<string>();
 
   const siteDisabled = () => !!snapshot()?.effective.disabled;
+
+  // A page with third-party storage blocked, or storage at quota, resolves this
+  // write to `{ ok: false }`. Dropping it left the button looking like it had
+  // worked while the overlay stayed disabled.
+  const enableHere = async () => {
+    const result = await setSiteLocal({ disabled: false });
+    setEnableError(
+      result.ok ? undefined : 'Could not enable LocatorJS on this page.'
+    );
+  };
 
   return (
     <div class={styles.shell} style={{ '--locator-settings-tabs-top': '57px' }}>
@@ -75,13 +87,15 @@ const Popup = () => {
                   LocatorJS is disabled on this page.
                 </div>
                 <div class={styles.actionRow}>
-                  <Button
-                    variant="primary"
-                    onClick={() => setSiteLocal({ disabled: false })}
-                  >
+                  <Button variant="primary" onClick={enableHere}>
                     Enable
                   </Button>
                 </div>
+                <Show when={enableError()}>
+                  <div class={styles.error} role="alert">
+                    {enableError()}
+                  </div>
+                </Show>
               </div>
             </Show>
             <Home />

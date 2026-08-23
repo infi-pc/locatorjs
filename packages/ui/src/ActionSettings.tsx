@@ -15,6 +15,7 @@ import {
   type LocatorLayer,
   type LocatorOptions,
   type Targets,
+  type WriteResponse,
   type WriteResult,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
@@ -293,16 +294,16 @@ export function ActionSettings(props: {
     }
   };
 
-  const updateSelected = (next: Binding) => {
+  const updateSelected = (next: Binding): WriteResponse => {
     const selected = selection();
-    if (!selected) return;
+    if (!selected) return { ok: false, reason: "unknown" };
     const globalIndex = globalIndexForTrigger(
       bindings(),
       selected.triggerKind,
       selected.index
     );
-    if (globalIndex < 0) return;
-    void writeBindings(
+    if (globalIndex < 0) return { ok: false, reason: "unknown" };
+    return writeBindings(
       bindings().map((binding, index) =>
         index === globalIndex ? next : binding
       )
@@ -353,9 +354,12 @@ export function ActionSettings(props: {
             portalMount={props.inspectorMount ?? props.portalMount}
             draft
             duplicate={hasShortcutConflict(draftBinding(), bindings())}
-            onChange={(binding) =>
-              setInspectorState({ kind: "draft", binding })
-            }
+            onChange={(binding) => {
+              // A draft only exists in memory until it is confirmed, so there
+              // is no write to report on.
+              setInspectorState({ kind: "draft", binding });
+              return { ok: true };
+            }}
             onCancel={closeInspector}
             onConfirm={confirmDraft}
           />

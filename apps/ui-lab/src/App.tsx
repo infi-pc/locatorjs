@@ -489,11 +489,13 @@ export function App() {
       return next;
     });
 
+  // The lab has no storage behind it, so every write trivially succeeds.
   const updateEditor = (next: {
     targetId?: string;
     targetTemplate?: string;
-  }) => {
+  }): WriteResult => {
     setEditor(next);
+    return { ok: true };
   };
 
   const writeLayer =
@@ -955,7 +957,10 @@ export function App() {
               <BindingsEditor
                 value={bindings()}
                 targets={allTargets}
-                onChange={(next) => setBindings(next ?? [])}
+                onChange={(next) => {
+                  setBindings(next ?? []);
+                  return { ok: true };
+                }}
               />
             </Specimen>
           </LabSection>
@@ -1149,7 +1154,10 @@ export function App() {
                             <BindingsEditor
                               value={bindings()}
                               targets={allTargets}
-                              onChange={(next) => setBindings(next ?? [])}
+                              onChange={(next) => {
+                                setBindings(next ?? []);
+                                return { ok: true };
+                              }}
                             />
                           ),
                         },

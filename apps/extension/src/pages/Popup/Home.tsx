@@ -231,7 +231,14 @@ export function Home() {
             variant="danger-ghost"
             size="xs"
             disabled={!connected()}
-            onClick={() => setSiteLocal({ disabled: true })}
+            onClick={async () => {
+              setSaveStatus('saving');
+              const result = await setSiteLocal({ disabled: true });
+              setSaveStatus(result.ok ? 'saved' : 'error');
+              setActionError(
+                result.ok ? undefined : 'Could not disable LocatorJS here.'
+              );
+            }}
           >
             <Power size={16} /> Disable on this page
           </Button>

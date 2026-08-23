@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 describe("EditorPicker", () => {
   test("customizes a selected editor template only after the draft is committed", async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
       <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
     ));
@@ -41,7 +41,7 @@ describe("EditorPicker", () => {
   });
 
   test("cancels a custom template draft with Escape", async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
       <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
     ));
@@ -66,7 +66,7 @@ describe("EditorPicker", () => {
     // The draft is seeded from the selected editor's built-in template, so
     // accepting it unchanged used to compare equal and write nothing -- leaving
     // the action inheriting the Editor setting when the user had just pinned it.
-    const onChange = vi.fn();
+    const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
       <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
     ));
@@ -86,7 +86,7 @@ describe("EditorPicker", () => {
   });
 
   test("does not write an unchanged template a second time", async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
       <EditorPicker
         targets={targets}
@@ -111,7 +111,7 @@ describe("EditorPicker", () => {
     // contain. Showing the bare id here pre-filled the custom-link input with
     // `vscode`, and confirming it stored that as a template that can never
     // build a URL.
-    const onChange = vi.fn();
+    const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
       <EditorPicker targets={targets} targetId="vscode" onChange={onChange} />
     ));
@@ -123,7 +123,12 @@ describe("EditorPicker", () => {
   });
 
   test("keeps the custom template draft open when saving fails", async () => {
-    const onChange = vi.fn(async () => false);
+    // A `WriteResult`, which is what every real caller injects. The previous
+    // `false` fixture is what let `EditorSetting`'s `!== false` check pass this
+    // test while reading every real failure as success.
+    const onChange = vi.fn(
+      async () => ({ ok: false, reason: "quota" } as const)
+    );
     render(() => (
       <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
     ));

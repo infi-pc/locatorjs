@@ -27,6 +27,7 @@ function Harness(props: {
       onChange={(next) => {
         props.onChange?.(next);
         if (next) setValue(next);
+        return { ok: true };
       }}
     />
   );

@@ -5,6 +5,7 @@ import {
   type BindingAction,
   type EditorSelection,
   type Targets,
+  type WriteResponse,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { MousePointer2, Play, Plus, Trash2 } from "lucide-solid";
@@ -72,7 +73,7 @@ export function ActionInspector(props: {
   draft?: boolean;
   tryDisabled?: boolean;
   tryDisabledReason?: string;
-  onChange: (binding: Binding) => void;
+  onChange: (binding: Binding) => WriteResponse;
   onRemove?: () => void;
   onConfirm?: () => void;
   onCancel?: () => void;

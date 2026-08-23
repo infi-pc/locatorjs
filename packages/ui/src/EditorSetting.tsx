@@ -3,6 +3,7 @@ import {
   type LocatorLayer,
   type LocatorOptions,
   type Targets,
+  type WriteResponse,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { RotateCcw } from "lucide-solid";
@@ -38,7 +39,7 @@ export function EditorSetting(props: {
   targets: Targets;
   portalMount?: Node;
   error?: string;
-  write: (patch: Partial<LocatorOptions>) => void | Promise<unknown>;
+  write: (patch: Partial<LocatorOptions>) => WriteResponse;
 }) {
   const state = () => layerFieldState(props.layers, props.layer, "editor");
   const editor = () => state().value ?? {};
@@ -77,11 +78,7 @@ export function EditorSetting(props: {
         targetId={editor().targetId}
         targetTemplate={editor().targetTemplate}
         portalMount={props.portalMount}
-        // A write that reports `false` failed, so the picker keeps its editing
-        // state instead of pretending the choice was saved.
-        onChange={async (patch) =>
-          (await props.write({ editor: patch })) !== false
-        }
+        onChange={(patch) => props.write({ editor: patch })}
       />
     </Field>
   );
