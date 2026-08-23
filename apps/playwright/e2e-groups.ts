@@ -41,7 +41,20 @@ export type Group = {
 };
 
 export const groups = {
-  basics: {
+  /**
+   * The only group that needs seven servers, because the thing it varies is the
+   * framework: one shallow test per app, each checking that the runtime mounts
+   * and resolves a component there. That is coverage of
+   * packages/runtime/src/adapters — jsx, react, svelte, vue — plus react-clean
+   * as the negative control, so it is named after them.
+   *
+   * The file is still basics.spec.ts. Its name predates the split and reads as
+   * "basic functionality", which is what this group is *not*: the tests are
+   * shallow on purpose and broad by design. Renaming it would break the tie to
+   * the commits documenting its solid flake (see `retries` in
+   * playwright.config.ts), so the group carries the accurate name instead.
+   */
+  adapters: {
     specs: ["libs/basics.spec.ts"],
     apps: ["web", "react", "preact", "solid", "svelte", "reactClean", "vue"],
   },

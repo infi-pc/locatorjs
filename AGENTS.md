@@ -123,10 +123,12 @@ Unit tests are colocated `*.test.ts(x)` next to the source, run by **vitest**:
 E2E lives in `apps/playwright/tests/libs` (168 tests, 3 browsers), driven
 against the `test-apps/` fixtures.
 
-CI runs it as six **named groups** — `basics`, `tree`, `embedding`, `settings`,
-`bindings`, `next` — not as anonymous shards. `apps/playwright/e2e-groups.ts`
-defines which specs and which dev servers each one gets, so a job boots only
-the apps its specs navigate to. Run one locally with
+CI runs it as six **named groups** — `adapters`, `tree`, `embedding`,
+`settings`, `bindings`, `next` — not as anonymous shards.
+`apps/playwright/e2e-groups.ts` defines which specs and which dev servers each
+one gets, so a job boots only the apps its specs navigate to. `adapters` is the
+one that needs seven servers: it varies the framework rather than the depth, one
+shallow test per app over `packages/runtime/src/adapters`. Run one locally with
 `E2E_GROUP=<name> pnpm exec playwright test` from `apps/playwright`; leave the
 variable unset and you get the whole suite and all ten servers, as before.
 
@@ -187,8 +189,8 @@ Things that will waste your time if you rediscover them:
 
 - **build** → populates the turbo cache
 - **check** → `pnpm check`; all non-e2e gates in one job
-- **e2e (basics | tree | embedding | settings | bindings | next)** → Playwright,
-  each group booting only the dev servers its own specs use
+- **e2e (adapters | tree | embedding | settings | bindings | next)** →
+  Playwright, each group booting only the dev servers its own specs use
 - **e2e report** → merges the six blob reports into one HTML report. Not a gate:
   `merge-reports` exits 0 whatever the tests did, so this job is green on a red
   suite. The `e2e (<group>)` jobs are the checks.

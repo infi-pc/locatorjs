@@ -80,7 +80,7 @@ jobs:
         # the names are repeated here; that file reads this list back and fails
         # if the two disagree, because a group with no matrix entry would
         # otherwise just stop running, green.
-        group: [basics, tree, embedding, settings, bindings, next]
+        group: [adapters, tree, embedding, settings, bindings, next]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
