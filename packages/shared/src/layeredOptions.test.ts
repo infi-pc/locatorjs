@@ -8,10 +8,13 @@ import {
   resolve,
   normalizeLayer,
   primaryEditorBinding,
+  primaryEditorShortcut,
   resolveBindingTarget,
   resolveEditorTarget,
   resolveTarget,
+  type Binding,
 } from "./layeredOptions";
+import { duplicateShortcutModifiers } from "./bindingEditorModel";
 import type { Targets } from "./index";
 
 const layerCombos: LocatorLayer[][] = [
@@ -341,5 +344,103 @@ describe("resolveTarget – split-field semantics", () => {
       expect(r.id).toBe("");
       expect(r.url).toBe("");
     }
+  });
+});
+
+describe("normalizeLayer - canonical shortcut spelling", () => {
+  test("rewrites a stored shortcut into canonical order", () => {
+    // Stored values predate the canonical writer, and every editor guard
+    // compares the raw string, so "shift+alt" and "alt+shift" read as two
+    // different shortcuts: two bindings could claim one combination with no
+    // duplicate warning, and the second could never fire.
+    const normalized = normalizeLayer({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: "shift+alt" },
+          action: { kind: "open-editor" },
+        },
+      ],
+    });
+
+    expect(normalized.bindings?.[0]?.trigger).toEqual({
+      kind: "modifier-click",
+      modifiers: "alt+shift",
+    });
+  });
+
+  test("two spellings of one combination are seen as duplicates", () => {
+    const normalized = normalizeLayer({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: "alt+shift" },
+          action: { kind: "open-editor" },
+        },
+        {
+          trigger: { kind: "modifier-click", modifiers: "shift+alt" },
+          action: { kind: "copy-path" },
+        },
+      ],
+    });
+
+    expect(duplicateShortcutModifiers(normalized.bindings ?? [])).toEqual(
+      new Set(["alt+shift"])
+    );
+  });
+
+  test("canonicalises the legacy mouseModifiers string too", () => {
+    const normalized = normalizeLayer({ mouseModifiers: "shift+alt" });
+
+    expect(normalized.bindings?.[0]?.trigger).toEqual({
+      kind: "modifier-click",
+      modifiers: "alt+shift",
+    });
+  });
+
+  test("returns the same bindings array when nothing needed rewriting", () => {
+    const bindings: Binding[] = [
+      {
+        trigger: { kind: "modifier-click", modifiers: "alt+shift" },
+        action: { kind: "open-editor" },
+      },
+    ];
+
+    expect(normalizeLayer({ bindings }).bindings).toBe(bindings);
+  });
+});
+
+describe("primaryEditorShortcut", () => {
+  const toolbarOnly: Binding[] = [
+    { trigger: { kind: "hover-toolbar" }, action: { kind: "open-editor" } },
+  ];
+
+  test("reports no shortcut when only a toolbar button opens the editor", () => {
+    // `primaryEditorBinding` answers "what opens the editor" and falls back to
+    // a toolbar button. Using it to answer "which shortcut opens the editor"
+    // made the intro banner advertise an Alt+click that never matches.
+    expect(primaryEditorBinding(toolbarOnly)).toBe(toolbarOnly[0]);
+    expect(primaryEditorShortcut(toolbarOnly)).toBeUndefined();
+  });
+
+  test("finds the modifier-click shortcut when there is one", () => {
+    const bindings: Binding[] = [
+      ...toolbarOnly,
+      {
+        trigger: { kind: "modifier-click", modifiers: "ctrl+shift" },
+        action: { kind: "open-editor" },
+      },
+    ];
+
+    expect(primaryEditorShortcut(bindings)).toBe(bindings[1]);
+  });
+
+  test("ignores a shortcut bound to something other than the editor", () => {
+    expect(
+      primaryEditorShortcut([
+        {
+          trigger: { kind: "modifier-click", modifiers: "alt" },
+          action: { kind: "copy-path" },
+        },
+      ])
+    ).toBeUndefined();
   });
 });

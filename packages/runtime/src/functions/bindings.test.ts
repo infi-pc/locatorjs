@@ -21,6 +21,48 @@ const event = (
 });
 
 describe("bindings", () => {
+  describe("ignoreCtrl relaxes only a spurious ctrlKey", () => {
+    const ctrlOnly = [
+      {
+        trigger: { kind: "modifier-click" as const, modifiers: "ctrl" },
+        action: { kind: "show-parents" as const },
+      },
+    ];
+
+    test("a plain right-click does not match a ctrl-only shortcut", () => {
+      // Skipping the ctrl comparison outright made this match, so a Ctrl-only
+      // shortcut swallowed the native context menu on every right-click.
+      expect(
+        matchBinding(ctrlOnly, event({}), { ignoreCtrl: true })
+      ).toBeNull();
+    });
+
+    test("a ctrl-only shortcut still matches when ctrl is held", () => {
+      expect(
+        matchBinding(ctrlOnly, event({ ctrlKey: true }), { ignoreCtrl: true })
+      ).toBe(ctrlOnly[0]);
+    });
+
+    test("macOS ctrl+click still reaches a non-ctrl shortcut", () => {
+      // The reason ignoreCtrl exists: on macOS a Ctrl+click arrives as a
+      // contextmenu event with ctrlKey set that the user never meant.
+      const altOnly = [
+        {
+          trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+          action: { kind: "show-parents" as const },
+        },
+      ];
+      expect(
+        matchBinding(altOnly, event({ altKey: true, ctrlKey: true }), {
+          ignoreCtrl: true,
+        })
+      ).toBe(altOnly[0]);
+      expect(
+        matchBinding(altOnly, event({ altKey: true, ctrlKey: true }))
+      ).toBeNull();
+    });
+  });
+
   test("uses exact modifier matching and first-match wins", () => {
     const bindings = [
       {
