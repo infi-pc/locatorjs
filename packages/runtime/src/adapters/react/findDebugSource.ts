@@ -3,6 +3,7 @@ import {
   resolveSourceFromFiber,
   getSourceFromCache,
 } from "./clickSourceResolver";
+import { firstUserFrame } from "./stackFrame";
 import {
   SourceMethod,
   logSourceFound,
@@ -61,14 +62,16 @@ function getSourceFromFiber(
   if (fiberAny._debugInfo && Array.isArray(fiberAny._debugInfo)) {
     for (const info of fiberAny._debugInfo) {
       if (info.stack && typeof info.stack === "string") {
-        // Parse stack for first valid position
-        const match = info.stack.match(/at\s+\S+\s+\(([^:]+):(\d+):(\d+)\)/);
-        if (match) {
+        // Shared parser: the local regex here used `([^:]+)` for the filename,
+        // which cannot match any scheme-prefixed name, so this branch never
+        // fired for real input.
+        const frame = firstUserFrame(info.stack);
+        if (frame) {
           return [
             {
-              fileName: match[1],
-              lineNumber: parseInt(match[2], 10),
-              columnNumber: parseInt(match[3], 10),
+              fileName: frame.fileName,
+              lineNumber: frame.lineNumber,
+              columnNumber: frame.columnNumber,
             },
             SourceMethod.DEBUG_INFO_STACK,
           ];
