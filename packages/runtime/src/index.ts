@@ -19,7 +19,6 @@ export type SetupOptions = LocatorOptions & {
 export function setup({ adapter, targets, ...options }: SetupOptions = {}) {
   const teamOptions: Partial<LocatorOptions> = { ...options };
   if (adapter !== undefined) teamOptions.adapterId = adapter;
-  updateTeamLayer(teamOptions);
 
   if (targets) {
     const normalised: { [k: string]: Target } = {};
@@ -28,7 +27,19 @@ export function setup({ adapter, targets, ...options }: SetupOptions = {}) {
         typeof value === "string" ? { url: value, label: key } : value;
     }
     setTeamTargets(normalised);
+
+    // Replacing the targets map is itself a choice of destination. The built-in
+    // default is `vscode`, which such a map does not contain, so without this
+    // every link resolves to `unknown-id` and the runtime asks the user to pick
+    // an editor the app has already picked for them. Recording it on the team
+    // layer keeps provenance honest and lets user layers still override it.
+    const [firstId] = Object.keys(normalised);
+    if (firstId && !teamOptions.editor) {
+      teamOptions.editor = { targetId: firstId };
+    }
   }
+
+  updateTeamLayer(teamOptions);
 
   setTimeout(() => initRuntime(), 0);
 }

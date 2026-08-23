@@ -62,6 +62,66 @@ describe("EditorPicker", () => {
     expect(screen.getByText(targets.cursor.url)).toBeTruthy();
   });
 
+  test("confirming the pre-filled custom link pins it", async () => {
+    // The draft is seeded from the selected editor's built-in template, so
+    // accepting it unchanged used to compare equal and write nothing -- leaving
+    // the action inheriting the Editor setting when the user had just pinned it.
+    const onChange = vi.fn();
+    render(() => (
+      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    await fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "Custom link template" }),
+      { key: "Enter" }
+    );
+
+    expect(onChange).toHaveBeenCalledWith({
+      targetTemplate: targets.cursor.url,
+      targetId: undefined,
+    });
+  });
+
+  test("does not write an unchanged template a second time", async () => {
+    const onChange = vi.fn();
+    render(() => (
+      <EditorPicker
+        targets={targets}
+        targetTemplate="cursor://custom/${filePath}"
+        onChange={onChange}
+      />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    await fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "Custom link template" }),
+      { key: "Enter" }
+    );
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("never offers an unknown editor id as a link template", async () => {
+    // `DEFAULT_LAYER` pins `vscode`, which an app's own targets map does not
+    // contain. Showing the bare id here pre-filled the custom-link input with
+    // `vscode`, and confirming it stored that as a template that can never
+    // build a URL.
+    const onChange = vi.fn();
+    render(() => (
+      <EditorPicker targets={targets} targetId="vscode" onChange={onChange} />
+    ));
+
+    expect(screen.queryByText("vscode")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Customize link template" })
+    ).toBeNull();
+  });
+
   test("keeps the custom template draft open when saving fails", async () => {
     const onChange = vi.fn(async () => false);
     render(() => (

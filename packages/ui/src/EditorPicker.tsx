@@ -87,11 +87,17 @@ export function EditorPicker(props: {
       : props.targetId ??
           (props.targets.vscode ? "vscode" : Object.keys(props.targets)[0]);
   };
-  const selectedTemplate = () =>
-    inherited()
-      ? ""
-      : props.targetTemplate ??
-        (value() ? props.targets[value()!]?.url ?? props.targetId ?? "" : "");
+  /** The link template this picker currently stands for, or "" if it has none. */
+  const selectedTemplate = () => {
+    if (inherited()) return "";
+    if (props.targetTemplate) return props.targetTemplate;
+    const id = value();
+    // An id missing from the map has no template to show. Falling back to the
+    // id itself would display -- and, once confirmed, persist -- a bare
+    // `vscode` as the link template, which can never build a URL.
+    if (!id || id === CUSTOM_VALUE) return "";
+    return props.targets[id]?.url ?? "";
+  };
 
   createEffect(() => {
     if (editing()) queueMicrotask(() => input?.focus());
@@ -110,7 +116,12 @@ export function EditorPicker(props: {
   async function commitEditing() {
     if (!editing() || saving()) return;
     const next = draft().trim();
-    if (next === selectedTemplate()) {
+    // Compared against what is *stored* as a template, not against what is
+    // rendered. The draft is seeded from the selected editor's built-in
+    // template, so comparing with that would make "pick Custom link, accept the
+    // pre-filled value" a no-op -- and for a per-action picker that is the
+    // difference between pinning a link and inheriting the Editor setting.
+    if (next === (props.targetTemplate ?? "")) {
       setEditing(false);
       return;
     }
