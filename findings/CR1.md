@@ -556,7 +556,7 @@ All production fixes below landed in `7f43449` (`fix: remediate CR1 root causes`
 | CR1-24  | `Window.enableLocator` and the cross-browser extension global are typed; suppressions require descriptions; stale test counts were removed.                                 | ESLint suppression checker, lint, and typecheck.                                        |
 | CR1-25  | `PORT_EXTENSION` is a dedicated workspace offset with a 3300 unsourced fallback and Turbo cache-key coverage.                                                               | Config inspection; `pnpm check`; isolated E2E port block.                               |
 
-Related latent hazards L1, L3-L6, L8, and L9 are covered by the allowlisted decoders/resolver, storage envelope, origin-targeted bridges, no-compiled fallback, unified writer type, portal context, and error-level Solid reactivity rule. L7's nearest-owner behavior is intentionally preserved. L2 required no Firefox-specific change.
+Related latent hazards L1, L3, L5, L6, L8, and L9 are covered in `7f43449` by the allowlisted decoders/resolver, storage envelope, no-compiled fallback, unified writer type, portal context, and error-level Solid reactivity rule. L4's origin-targeted runtime bridge is completed in `61225de`. L7's nearest-owner behavior is intentionally preserved. L2 required no Firefox-specific change.
 
 Final automated verification:
 
