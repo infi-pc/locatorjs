@@ -43,10 +43,11 @@ browser.storage.onChanged.addListener((changes, areaName) => {
 });
 
 function injectUserExtensionGlobal(options: LocatorOptions) {
-  if (!document.documentElement) return;
-  document.documentElement.dataset.locatorUserExtensionOptions = JSON.stringify(
-    canReceiveFullSettings() ? options : safeFrameProjection(options)
-  );
+  withDocumentElement((element) => {
+    element.dataset.locatorUserExtensionOptions = JSON.stringify(
+      canReceiveFullSettings() ? options : safeFrameProjection(options)
+    );
+  });
 }
 
 function canReceiveFullSettings(): boolean {
@@ -83,25 +84,36 @@ export function safeFrameProjection(options: LocatorOptions): LocatorOptions {
   };
 }
 
-function injectClientHook() {
-  const script = document.createElement('script');
-  script.src = browser.runtime.getURL('/hook.bundle.js');
-
-  document.documentElement.dataset.locatorClientUrl =
-    browser.runtime.getURL('/client.bundle.js');
-
-  if (document.documentElement) {
-    document.documentElement.appendChild(script);
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-    }
+function withDocumentElement(callback: (element: HTMLElement) => void) {
+  const element = document.documentElement;
+  if (element) {
+    callback(element);
+    return;
   }
+
+  const observer = new MutationObserver(() => {
+    const nextElement = document.documentElement;
+    if (!nextElement) return;
+    observer.disconnect();
+    callback(nextElement);
+  });
+  observer.observe(document, { childList: true });
+}
+
+function publishClientUrl() {
+  withDocumentElement((element) => {
+    element.dataset.locatorClientUrl =
+      browser.runtime.getURL('/client.bundle.js');
+  });
 }
 
 switch (document.contentType) {
   case 'text/html':
   case 'application/xhtml+xml': {
-    injectClientHook();
+    // hook.bundle.js is declared as a MAIN-world document_start script. The
+    // isolated content script only publishes the extension URL it cannot read
+    // itself; the hook consumes it when the page is ready for runtime mounting.
+    publishClientUrl();
     break;
   }
 }

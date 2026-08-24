@@ -14,6 +14,14 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "js": ["hook.bundle.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["contentScript.bundle.js"],
       "run_at": "document_start",
       "all_frames": true,
@@ -26,7 +34,6 @@
       "resources": [
         "client.bundle.js",
         "locator-runtime-ui.chunk.js",
-        "hook.bundle.js",
         "content.styles.css",
         "icon-128.png",
         "icon-34.png",

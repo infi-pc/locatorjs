@@ -7,11 +7,10 @@ export function insertRuntimeScript() {
   let scriptLoaded = false;
   let attemptsNecessaryToShowError = 4; // but not necessarily all attempts, we want to show loading for a while
 
-  const locatorClientUrl = document.documentElement.dataset.locatorClientUrl;
-  delete document.documentElement.dataset.locatorClientUrl;
-
   function sendStatusMessage(message: string) {
-    document.head.dataset.locatorHookStatusMessage = message;
+    if (document.head) {
+      document.head.dataset.locatorHookStatusMessage = message;
+    }
     // eslint-disable-next-line no-console -- injection failure must be diagnosable from the page console.
     console.warn(`[locatorjs]: ${message}`);
   }
@@ -38,6 +37,7 @@ export function insertRuntimeScript() {
   }
 
   function tryToInsertScript(): string {
+    const locatorClientUrl = document.documentElement?.dataset.locatorClientUrl;
     if (!locatorClientUrl) {
       return 'Locator client url not found';
     }
@@ -45,6 +45,7 @@ export function insertRuntimeScript() {
     if (detectSvelte() || detectVue()) {
       const inserted = insertScript(locatorClientUrl);
       if (inserted) {
+        delete document.documentElement.dataset.locatorClientUrl;
         scriptLoaded = true;
         return 'ok';
       }
@@ -54,6 +55,7 @@ export function insertRuntimeScript() {
     if (document.querySelector('[data-locatorjs-id]')) {
       const inserted = insertScript(locatorClientUrl);
       if (inserted) {
+        delete document.documentElement.dataset.locatorClientUrl;
         scriptLoaded = true;
         return 'ok';
       }
@@ -73,6 +75,7 @@ export function insertRuntimeScript() {
       if (renderers.length) {
         const inserted = insertScript(locatorClientUrl);
         if (inserted) {
+          delete document.documentElement.dataset.locatorClientUrl;
           scriptLoaded = true;
           return 'ok';
         } else {
