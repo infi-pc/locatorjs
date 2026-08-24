@@ -11,12 +11,12 @@ vi.mock('../../browser', () => ({
 }));
 
 import {
-  migrateLegacyExtensionOptions,
   migrateLegacyExtensionStorage,
   USER_OPTIONS_KEY,
 } from './migrateLegacyExtensionStorage';
 import {
   __resetStorageContractForTesting,
+  migrateLegacyFields,
   USER_OPTIONS_SCHEMA_VERSION,
 } from '../../storageContract';
 
@@ -38,34 +38,69 @@ function withStorage(stored: Record<string, unknown>) {
   return stored;
 }
 
-describe('migrateLegacyExtensionOptions', () => {
+describe('migrateLegacyFields', () => {
   test('maps a known editor id and the modifier string', () => {
     expect(
-      migrateLegacyExtensionOptions({
-        target: 'webstorm',
-        controls: 'ctrl+shift',
-      })
-    ).toEqual({
+      migrateLegacyFields(
+        {},
+        {
+          target: 'webstorm',
+          controls: 'ctrl+shift',
+        }
+      )
+    ).toMatchObject({
       editor: { targetId: 'webstorm' },
-      mouseModifiers: 'ctrl+shift',
+      bindings: [
+        {
+          trigger: { kind: 'modifier-click', modifiers: 'ctrl+shift' },
+          action: { kind: 'open-editor' },
+        },
+        expect.any(Object),
+        expect.any(Object),
+        expect.any(Object),
+      ],
     });
   });
 
   test('keeps a custom URL as a template', () => {
     expect(
-      migrateLegacyExtensionOptions({ target: 'myeditor://file/${filePath}' })
+      migrateLegacyFields({}, { target: 'myeditor://file/${filePath}' })
     ).toEqual({ editor: { targetTemplate: 'myeditor://file/${filePath}' } });
   });
 
   test('keeps an empty modifier string, which means "no modifier"', () => {
-    expect(migrateLegacyExtensionOptions({ controls: '' })).toEqual({
-      mouseModifiers: '',
-    });
+    expect(migrateLegacyFields({}, { controls: '' }).bindings).toEqual([
+      { trigger: { kind: 'hover-toolbar' }, action: { kind: 'show-tree' } },
+      {
+        trigger: { kind: 'hover-toolbar' },
+        action: { kind: 'show-parents' },
+      },
+      { trigger: { kind: 'hover-toolbar' }, action: { kind: 'copy-path' } },
+    ]);
   });
 
-  test('reports nothing worth keeping as null', () => {
-    expect(migrateLegacyExtensionOptions({})).toBeNull();
-    expect(migrateLegacyExtensionOptions({ target: 42 })).toBeNull();
+  test('ignores invalid or absent legacy values', () => {
+    expect(migrateLegacyFields({}, {})).toEqual({});
+    expect(migrateLegacyFields({}, { target: 42 })).toEqual({});
+  });
+
+  test('does not overwrite fields already present in the current layer', () => {
+    const current = {
+      editor: { targetId: 'zed' } as const,
+      bindings: [
+        {
+          trigger: { kind: 'modifier-click' as const, modifiers: 'alt' },
+          action: { kind: 'open-editor' as const },
+        },
+      ],
+    };
+
+    expect(
+      migrateLegacyFields(current, {
+        target: 'webstorm',
+        controls: 'ctrl+shift',
+      })
+    ).toEqual(current);
   });
 });
 

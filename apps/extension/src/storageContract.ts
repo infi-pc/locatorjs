@@ -56,7 +56,7 @@ export function encodeStoredUserOptions(
   return { version: USER_OPTIONS_SCHEMA_VERSION, options };
 }
 
-function migrateLegacyFields(
+export function migrateLegacyFields(
   current: LocatorOptions,
   legacy: Record<string, unknown>
 ): LocatorOptions {
