@@ -572,3 +572,5 @@ Final automated verification:
 - Firefox `web-ext lint` — 0 errors and 0 notices (seven pre-existing generated-bundle `innerHTML` warnings).
 
 A true installed-v1-to-v2 profile upgrade remains a manual release checklist item; the automated headed pass uses a fresh temporary extension profile.
+
+The cross-origin disclosure in CR1-16 is closed, but the plan's behavior-preserving top-frame broker for private custom-editor and prompt actions is not implemented. Cross-origin frames receive only the safe projection; prompt bindings are omitted there, and custom editor details are not forwarded. Implementing the broker remains follow-up work if those actions must operate inside third-party frames without exposing extension secrets.
