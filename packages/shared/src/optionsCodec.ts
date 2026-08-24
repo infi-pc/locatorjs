@@ -31,6 +31,10 @@ const LAYERS = new Set<LocatorLayer>([
   "user-origin",
 ]);
 
+type OptionDecoder<K extends keyof LocatorOptions> = (
+  value: unknown
+) => LocatorOptions[K] | null;
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
@@ -123,81 +127,104 @@ export function decodeBinding(value: unknown): Binding | null {
   return trigger && action ? { trigger, action } : null;
 }
 
-export function decodeLocatorOptions(value: unknown): LocatorOptions | null {
+const stringOption = (value: unknown) =>
+  typeof value === "string" ? value : null;
+const booleanOption = (value: unknown) =>
+  typeof value === "boolean" ? value : null;
+
+const OPTION_DECODERS = {
+  adapterId: stringOption,
+  projectPath: stringOption,
+  replacePath: (value) => {
+    if (
+      !isPlainObject(value) ||
+      !hasOnlyKeys(value, ["from", "to"]) ||
+      typeof value.from !== "string" ||
+      typeof value.to !== "string"
+    ) {
+      return null;
+    }
+    return { from: value.from, to: value.to };
+  },
+  editor: (value) => {
+    if (
+      !isPlainObject(value) ||
+      !hasOnlyKeys(value, ["targetId", "targetTemplate"]) ||
+      (value.targetId !== undefined && typeof value.targetId !== "string") ||
+      (value.targetTemplate !== undefined &&
+        (typeof value.targetTemplate !== "string" ||
+          !isSafeTargetTemplate(value.targetTemplate)))
+    ) {
+      return null;
+    }
+    return {
+      ...(typeof value.targetId === "string"
+        ? { targetId: value.targetId }
+        : {}),
+      ...(typeof value.targetTemplate === "string"
+        ? { targetTemplate: value.targetTemplate }
+        : {}),
+    };
+  },
+  bindings: (value) => {
+    if (!Array.isArray(value)) return null;
+    const bindings = value.map(decodeBinding);
+    return bindings.some((binding) => binding === null)
+      ? null
+      : (bindings as Binding[]);
+  },
+  mouseModifiers: stringOption,
+  hrefTarget: (value) =>
+    value === "_blank" || value === "_self" ? value : null,
+  tmuxSession: stringOption,
+  disabled: booleanOption,
+  debugMode: booleanOption,
+  showIntro: booleanOption,
+} satisfies {
+  [K in keyof Required<LocatorOptions>]: OptionDecoder<K>;
+};
+
+function decodeOptions(
+  value: unknown,
+  tolerateInvalidFields: boolean
+): LocatorOptions | null {
+  if (!isPlainObject(value)) return null;
   if (
-    !isPlainObject(value) ||
+    !tolerateInvalidFields &&
     Object.keys(value).some((key) => !OPTION_KEYS.has(key))
   ) {
     return null;
   }
 
   const decoded: LocatorOptions = {};
-  for (const key of [
-    "adapterId",
-    "projectPath",
-    "mouseModifiers",
-    "tmuxSession",
-  ] as const) {
+  for (const key of LOCATOR_OPTION_KEYS) {
     const field = value[key];
-    if (field !== undefined) {
-      if (typeof field !== "string") return null;
-      decoded[key] = field;
-    }
-  }
-  for (const key of ["disabled", "debugMode", "showIntro"] as const) {
-    const field = value[key];
-    if (field !== undefined) {
-      if (typeof field !== "boolean") return null;
-      decoded[key] = field;
-    }
-  }
-  if (value.hrefTarget !== undefined) {
-    if (value.hrefTarget !== "_blank" && value.hrefTarget !== "_self")
-      return null;
-    decoded.hrefTarget = value.hrefTarget;
-  }
-  if (value.replacePath !== undefined) {
-    if (
-      !isPlainObject(value.replacePath) ||
-      !hasOnlyKeys(value.replacePath, ["from", "to"]) ||
-      typeof value.replacePath.from !== "string" ||
-      typeof value.replacePath.to !== "string"
-    ) {
+    if (field === undefined) continue;
+    const decodedField = OPTION_DECODERS[key](field) as
+      | LocatorOptions[typeof key]
+      | null;
+    if (decodedField === null) {
+      if (tolerateInvalidFields) continue;
       return null;
     }
-    decoded.replacePath = {
-      from: value.replacePath.from,
-      to: value.replacePath.to,
-    };
-  }
-  if (value.editor !== undefined) {
-    if (
-      !isPlainObject(value.editor) ||
-      !hasOnlyKeys(value.editor, ["targetId", "targetTemplate"]) ||
-      (value.editor.targetId !== undefined &&
-        typeof value.editor.targetId !== "string") ||
-      (value.editor.targetTemplate !== undefined &&
-        (typeof value.editor.targetTemplate !== "string" ||
-          !isSafeTargetTemplate(value.editor.targetTemplate)))
-    ) {
-      return null;
-    }
-    decoded.editor = {
-      ...(typeof value.editor.targetId === "string"
-        ? { targetId: value.editor.targetId }
-        : {}),
-      ...(typeof value.editor.targetTemplate === "string"
-        ? { targetTemplate: value.editor.targetTemplate }
-        : {}),
-    };
-  }
-  if (value.bindings !== undefined) {
-    if (!Array.isArray(value.bindings)) return null;
-    const bindings = value.bindings.map(decodeBinding);
-    if (bindings.some((binding) => binding === null)) return null;
-    decoded.bindings = bindings as Binding[];
+    (decoded as Record<string, unknown>)[key] = decodedField;
   }
   return decoded;
+}
+
+export function decodeLocatorOptions(value: unknown): LocatorOptions | null {
+  return decodeOptions(value, false);
+}
+
+/**
+ * Storage is long-lived and can outlive an option or extension version. Keep
+ * every independently valid field instead of discarding all settings because
+ * one field was written by a newer or broken version.
+ */
+export function decodeStoredLocatorOptions(
+  value: unknown
+): LocatorOptions | null {
+  return decodeOptions(value, true);
 }
 
 export function decodeLocatorLayers(

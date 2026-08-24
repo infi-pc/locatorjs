@@ -114,8 +114,6 @@ describe('SyncedStateProvider', () => {
 
     expect(mocks.storageSet).toHaveBeenCalledWith({
       userOptions: { version: 2, options: { debugMode: true } },
-      target: 'vscode',
-      controls: 'alt',
     });
   });
 
@@ -124,8 +122,6 @@ describe('SyncedStateProvider', () => {
     expect(result).toEqual({ ok: true });
     expect(mocks.storageSet).toHaveBeenCalledWith({
       userOptions: { version: 2, options: {} },
-      target: 'vscode',
-      controls: 'alt',
     });
     expect(syncedState.userExtension()).toEqual({});
   });
@@ -171,7 +167,6 @@ describe('SyncedStateProvider', () => {
         version: 2,
         options: expect.objectContaining({ bindings: expect.any(Array) }),
       },
-      target: 'vscode',
       controls: 'meta',
     });
   });

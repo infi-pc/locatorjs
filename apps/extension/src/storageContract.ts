@@ -1,7 +1,7 @@
 import {
-  DEFAULT_LAYER,
   asEditorSelection,
   decodeLocatorOptions,
+  decodeStoredLocatorOptions,
   normalizeLayer,
   primaryEditorShortcut,
   type LocatorOptions,
@@ -17,6 +17,11 @@ export type StoredUserOptionsV2 = {
   options: LocatorOptions;
 };
 
+type StoredUserOptionsEnvelope = {
+  version: number;
+  options: unknown;
+};
+
 const LEGACY_COMPATIBILITY_KEYS = ['target', 'controls'] as const;
 const OBSOLETE_KEYS = [
   'allowTracking',
@@ -30,20 +35,19 @@ const STORAGE_KEYS = [
   ...OBSOLETE_KEYS,
 ] as const;
 
-function isEnvelope(value: unknown): value is StoredUserOptionsV2 {
+function isEnvelope(value: unknown): value is StoredUserOptionsEnvelope {
   return (
     typeof value === 'object' &&
     value !== null &&
     !Array.isArray(value) &&
-    (value as Record<string, unknown>).version ===
-      USER_OPTIONS_SCHEMA_VERSION &&
+    typeof (value as Record<string, unknown>).version === 'number' &&
     'options' in value
   );
 }
 
 export function decodeStoredUserOptions(value: unknown): LocatorOptions {
   const raw = isEnvelope(value) ? value.options : value;
-  return normalizeLayer(decodeLocatorOptions(raw) ?? {});
+  return normalizeLayer(decodeStoredLocatorOptions(raw) ?? {});
 }
 
 export function encodeStoredUserOptions(
@@ -74,31 +78,55 @@ function migrateLegacyFields(
   return normalizeLayer(next);
 }
 
-function legacyEditor(options: LocatorOptions): string {
-  const editor = options.editor ?? DEFAULT_LAYER.editor;
-  return editor?.targetId ?? editor?.targetTemplate ?? 'vscode';
+function legacyEditor(options: LocatorOptions): string | undefined {
+  return options.editor?.targetId ?? options.editor?.targetTemplate;
 }
 
-function legacyControls(options: LocatorOptions): string {
-  const shortcut = primaryEditorShortcut(
-    options.bindings ?? DEFAULT_LAYER.bindings
-  );
+function legacyControls(options: LocatorOptions): string | undefined {
+  if (options.bindings === undefined && options.mouseModifiers === undefined) {
+    return undefined;
+  }
+  const shortcut = primaryEditorShortcut(options.bindings);
   return shortcut?.trigger.kind === 'modifier-click'
     ? shortcut.trigger.modifiers
-    : 'alt';
+    : options.mouseModifiers;
+}
+
+function equal(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 async function persist(
   options: LocatorOptions,
+  previous: Record<string, unknown> = {},
   removeObsolete = false
 ): Promise<WriteResult> {
+  const clean = decodeLocatorOptions(options);
+  if (!clean) return { ok: false, reason: 'corrupt' };
+
+  const envelope = encodeStoredUserOptions(normalizeLayer(clean));
+  const target = legacyEditor(clean);
+  const controls = legacyControls(clean);
+  const patch: Record<string, unknown> = {};
+  if (!equal(previous[USER_OPTIONS_KEY], envelope)) {
+    patch[USER_OPTIONS_KEY] = envelope;
+  }
+  if (target !== undefined && previous.target !== target) patch.target = target;
+  if (controls !== undefined && previous.controls !== controls) {
+    patch.controls = controls;
+  }
+  const remove = [
+    ...(removeObsolete ? OBSOLETE_KEYS.filter((key) => key in previous) : []),
+    ...(target === undefined && 'target' in previous
+      ? ['target' as const]
+      : []),
+    ...(controls === undefined && 'controls' in previous
+      ? ['controls' as const]
+      : []),
+  ];
   try {
-    await browser.storage.local.set({
-      [USER_OPTIONS_KEY]: encodeStoredUserOptions(options),
-      target: legacyEditor(options),
-      controls: legacyControls(options),
-    });
-    if (removeObsolete) await browser.storage.local.remove([...OBSOLETE_KEYS]);
+    if (Object.keys(patch).length > 0) await browser.storage.local.set(patch);
+    if (remove.length > 0) await browser.storage.local.remove(remove);
     return { ok: true };
   } catch {
     return { ok: false, reason: 'blocked' };
@@ -113,9 +141,16 @@ export function ensureExtensionStorageReady(): Promise<LocatorOptions> {
       const stored = (await browser.storage.local.get([
         ...STORAGE_KEYS,
       ])) as Record<string, unknown>;
-      const current = decodeStoredUserOptions(stored?.[USER_OPTIONS_KEY]);
-      const migrated = migrateLegacyFields(current, stored ?? {});
-      const result = await persist(migrated, true);
+      const raw = stored?.[USER_OPTIONS_KEY];
+      const envelope = isEnvelope(raw) ? raw : undefined;
+      const current = decodeStoredUserOptions(raw);
+      if (envelope && envelope.version > USER_OPTIONS_SCHEMA_VERSION) {
+        return current;
+      }
+      const migrated = envelope
+        ? current
+        : migrateLegacyFields(current, stored ?? {});
+      const result = await persist(migrated, stored, true);
       if (!result.ok) throw new Error('Extension storage migration failed');
       return migrated;
     })().catch((error) => {
@@ -136,12 +171,16 @@ export function mutateUserOptions(
   const run = pendingMutation.then(async () => {
     try {
       await ensureExtensionStorageReady();
-      const stored = await browser.storage.local.get([USER_OPTIONS_KEY]);
+      const stored = await browser.storage.local.get([...STORAGE_KEYS]);
+      const envelope = isEnvelope(stored?.[USER_OPTIONS_KEY])
+        ? stored[USER_OPTIONS_KEY]
+        : undefined;
+      if (envelope && envelope.version > USER_OPTIONS_SCHEMA_VERSION) {
+        return { ok: false as const, reason: 'corrupt' as const };
+      }
       const current = decodeStoredUserOptions(stored?.[USER_OPTIONS_KEY]);
       const candidate = mutation(current);
-      const clean = decodeLocatorOptions(candidate);
-      if (!clean) return { ok: false as const, reason: 'corrupt' as const };
-      return persist(normalizeLayer(clean));
+      return persist(candidate, stored);
     } catch {
       return { ok: false as const, reason: 'blocked' as const };
     }

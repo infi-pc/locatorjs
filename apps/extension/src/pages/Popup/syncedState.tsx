@@ -81,7 +81,15 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       const decoded = decodeStoredUserOptions(raw);
       setUserExtensionSignal(decoded);
       if (
-        JSON.stringify(raw) !== JSON.stringify(encodeStoredUserOptions(decoded))
+        JSON.stringify(raw) !==
+          JSON.stringify(encodeStoredUserOptions(decoded)) &&
+        (Object.keys(decoded).length > 0 ||
+          (typeof raw === 'object' &&
+            raw !== null &&
+            'options' in raw &&
+            typeof raw.options === 'object' &&
+            raw.options !== null &&
+            Object.keys(raw.options).length === 0))
       ) {
         void replaceUserOptions(decoded);
       }

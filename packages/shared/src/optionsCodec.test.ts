@@ -3,6 +3,7 @@ import {
   decodeBindingAction,
   decodeLocatorLayers,
   decodeLocatorOptions,
+  decodeStoredLocatorOptions,
   decodeProvenance,
   decodeTargets,
   isSafeTargetTemplate,
@@ -36,6 +37,16 @@ describe("options codec", () => {
     const { effective } = resolve({ team: polluted });
     expect(Object.getPrototypeOf(effective)).toBe(Object.prototype);
     expect(effective.editor).toBeUndefined();
+  });
+
+  test("salvages valid fields from long-lived storage", () => {
+    expect(
+      decodeStoredLocatorOptions({
+        projectPath: "/repo",
+        disabled: "not-a-boolean",
+        futureOption: true,
+      })
+    ).toEqual({ projectPath: "/repo" });
   });
 
   test.each(["javascript:alert(1)", "data:text/html,x", "blob:https://x/y"])(

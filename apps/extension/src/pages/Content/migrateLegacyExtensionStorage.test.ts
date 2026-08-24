@@ -127,6 +127,7 @@ describe('migrateLegacyExtensionStorage', () => {
     const stored = withStorage({ target: 'webstorm' });
 
     await migrateLegacyExtensionStorage();
+    __resetStorageContractForTesting();
     await migrateLegacyExtensionStorage();
 
     expect(stored[USER_OPTIONS_KEY]).toEqual({
@@ -136,11 +137,60 @@ describe('migrateLegacyExtensionStorage', () => {
   });
 
   test('no-op when there is nothing legacy to migrate', async () => {
-    withStorage({ [USER_OPTIONS_KEY]: { disabled: true } });
+    withStorage({
+      [USER_OPTIONS_KEY]: {
+        version: USER_OPTIONS_SCHEMA_VERSION,
+        options: { disabled: true },
+      },
+    });
 
     await migrateLegacyExtensionStorage();
 
-    expect(mocks.set).toHaveBeenCalledTimes(1);
+    expect(mocks.set).not.toHaveBeenCalled();
+  });
+
+  test('does not re-import compatibility mirrors in a fresh realm', async () => {
+    const stored = withStorage({});
+
+    await migrateLegacyExtensionStorage();
+    __resetStorageContractForTesting();
+    await migrateLegacyExtensionStorage();
+
+    expect(stored[USER_OPTIONS_KEY]).toEqual({
+      version: USER_OPTIONS_SCHEMA_VERSION,
+      options: {},
+    });
+    expect(stored).not.toHaveProperty('target');
+    expect(stored).not.toHaveProperty('controls');
+  });
+
+  test('reads a future envelope without overwriting it', async () => {
+    const future = {
+      version: USER_OPTIONS_SCHEMA_VERSION + 1,
+      options: { projectPath: '/repo', futureOption: true },
+    };
+    const stored = withStorage({ [USER_OPTIONS_KEY]: future });
+
+    await migrateLegacyExtensionStorage();
+
+    expect(stored[USER_OPTIONS_KEY]).toBe(future);
+    expect(mocks.set).not.toHaveBeenCalled();
+  });
+
+  test('keeps valid settings when one stored field is unreadable', async () => {
+    const stored = withStorage({
+      [USER_OPTIONS_KEY]: {
+        version: USER_OPTIONS_SCHEMA_VERSION,
+        options: { projectPath: '/repo', disabled: 'broken' },
+      },
+    });
+
+    await migrateLegacyExtensionStorage();
+
+    expect(stored[USER_OPTIONS_KEY]).toEqual({
+      version: USER_OPTIONS_SCHEMA_VERSION,
+      options: { projectPath: '/repo' },
+    });
   });
 
   test('resolves rather than throwing when storage is unavailable', async () => {
