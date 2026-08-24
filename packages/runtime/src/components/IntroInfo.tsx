@@ -3,7 +3,7 @@ import {
   modifiersTitles,
   primaryEditorShortcut,
 } from "@locator/shared";
-import { createEffect, createSignal, For } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
@@ -26,7 +26,16 @@ const styles = {
     mb: "1",
     mt: "2",
   }),
-  link: css({ cursor: "pointer", textDecoration: "underline" }),
+  link: css({
+    bg: "transparent",
+    border: "none",
+    color: "inherit",
+    cursor: "pointer",
+    font: "inherit",
+    p: "0",
+    textDecoration: "underline",
+  }),
+  error: css({ color: "error" }),
 };
 
 export function IntroInfo(props: {
@@ -37,6 +46,9 @@ export function IntroInfo(props: {
   const options = useOptions();
 
   const [showIntro, setShowIntro] = createSignal(true);
+  const [saveState, setSaveState] = createSignal<"idle" | "saving" | "error">(
+    "idle"
+  );
   setTimeout(() => {
     setShowIntro(false);
   }, 5000);
@@ -98,14 +110,27 @@ export function IntroInfo(props: {
         <a class={styles.link} href="https://www.locatorjs.com" target="_blank">
           What is Locator?
         </a>
-        <a
+        <button
+          type="button"
           class={styles.link}
-          onClick={() => {
-            options.setUserOrigin({ showIntro: false });
+          disabled={saveState() === "saving"}
+          onClick={async () => {
+            setSaveState("saving");
+            const result = await options.setUserOrigin({ showIntro: false });
+            if (result.ok) {
+              setShowIntro(false);
+            } else {
+              setSaveState("error");
+            }
           }}
         >
-          Stop showing this popup
-        </a>
+          {saveState() === "saving" ? "Saving…" : "Stop showing this popup"}
+        </button>
+        <Show when={saveState() === "error"}>
+          <span class={styles.error} role="alert">
+            Could not save
+          </span>
+        </Show>
       </div>
     </div>
   );

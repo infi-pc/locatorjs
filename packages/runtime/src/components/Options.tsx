@@ -230,10 +230,14 @@ export function Options(props: {
               <Button
                 size="xs"
                 variant="danger-ghost"
-                onClick={() => {
+                onClick={async () => {
                   if (isExtension()) {
-                    options.setUserOrigin({ disabled: true });
-                    props.onClose();
+                    setSaveStatus("saving");
+                    const result = await options.setUserOrigin({
+                      disabled: true,
+                    });
+                    setSaveStatus(result.ok ? "saved" : "error");
+                    if (result.ok) props.onClose();
                   } else {
                     props.showDisableDialog();
                   }

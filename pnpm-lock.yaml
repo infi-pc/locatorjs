@@ -427,6 +427,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vite-plugin-solid:
+        specifier: ^2.11.12
+        version: 2.11.12(solid-js@1.9.12)(vite@3.2.11)
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.19.17)(jsdom@20.0.3)

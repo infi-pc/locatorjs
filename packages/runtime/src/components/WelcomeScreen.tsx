@@ -63,19 +63,30 @@ export function WelcomeScreen(props: {
     (step): step is string => !!step && STEP_IDS.includes(step)
   );
   const [active, setActiveSignal] = createSignal(startingStep ?? "welcome");
+  const [saveError, setSaveError] = createSignal(false);
 
-  const setActive = (step: string) => {
-    setActiveSignal(step);
-    options.setUiState({
+  const setActive = async (step: string) => {
+    setSaveError(false);
+    const result = await options.setUiState({
       onboarding: { ...(options.uiState().onboarding ?? {}), step },
     });
+    if (result.ok) {
+      setActiveSignal(step);
+    } else {
+      setSaveError(true);
+    }
   };
-  const dismiss = () => {
-    options.setUiState({
+  const dismiss = async () => {
+    setSaveError(false);
+    const result = await options.setUiState({
       welcomeScreenDismissed: true,
       onboarding: { dismissed: true, step: "done" },
     });
-    props.onClose();
+    if (result.ok) {
+      props.onClose();
+    } else {
+      setSaveError(true);
+    }
   };
   const currentLink = () =>
     props.originalLinkProps
@@ -202,6 +213,9 @@ export function WelcomeScreen(props: {
       onStepChange={setActive}
       onFinish={dismiss}
       onSkip={dismiss}
+      error={
+        saveError() ? "Could not save your progress. Try again." : undefined
+      }
     />
   );
 }
