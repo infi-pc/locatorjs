@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { projects } from "../consts";
+import { expectLocatorReady } from "../activateLocator";
 
 const dismissedUiState = {
   welcomeScreenDismissed: true,
@@ -48,9 +49,7 @@ test("copy-path binding writes the resolved source location", async ({
   );
 
   await page.goto(projects.solid);
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  await expectLocatorReady(page);
   await trigger(page, "Alt");
 
   await expect
@@ -87,9 +86,7 @@ test("legacy mouseModifiers still dispatch and migrate to bindings", async ({
   );
 
   await page.goto(projects.solid);
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  await expectLocatorReady(page, "Control");
   await trigger(page, "Control");
 
   await expect
@@ -143,9 +140,7 @@ test("hover toolbar stays hidden when no toolbar action is configured", async ({
   );
 
   await page.goto(projects.solid);
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  await expectLocatorReady(page);
 
   await page
     .locator("text=save to reload")
@@ -185,9 +180,7 @@ test("hover toolbar renders the configured toolbar actions", async ({
   );
 
   await page.goto(projects.solid);
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  await expectLocatorReady(page);
 
   await page
     .locator("text=save to reload")

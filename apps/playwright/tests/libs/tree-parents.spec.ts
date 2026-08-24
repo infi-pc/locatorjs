@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { projects } from "../consts";
+import { expectLocatorReady } from "../activateLocator";
 
 /**
  * The tree panel and the parents menu. Both used to be unreachable or silently
@@ -35,7 +36,8 @@ const SOURCED_ROW = '[role="treeitem"]:not([aria-disabled="true"])';
 
 async function setup(
   page: Page,
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
+  activation: "Alt" | "Meta+Shift" = "Alt"
 ): Promise<void> {
   await page.addInitScript(
     ({ options: stored }) => {
@@ -48,11 +50,8 @@ async function setup(
     { options: { uiState: dismissedUiState, ...options } }
   );
   await page.goto(projects.react);
-  // The intro banner only renders once the runtime has mounted, so waiting for
-  // it keeps the first mouseover from landing before Locator is listening.
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  // Mount the lazy runtime before the scenario's first inspected mouseover.
+  await expectLocatorReady(page, activation);
   // The deepest nesting box is the element every scenario inspects.
   await expect(page.locator("div[style*='yellow']")).toBeVisible();
 }
@@ -346,16 +345,20 @@ test.describe("toolbar activation", () => {
   test("a custom shortcut replaces alt as the activation modifier", async ({
     page,
   }) => {
-    await setup(page, {
-      editor: { targetId: "vscode" },
-      bindings: [
-        {
-          trigger: { kind: "modifier-click", modifiers: "meta+shift" },
-          action: { kind: "open-editor" },
-        },
-        ...toolbarBindings.slice(1),
-      ],
-    });
+    await setup(
+      page,
+      {
+        editor: { targetId: "vscode" },
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: "meta+shift" },
+            action: { kind: "open-editor" },
+          },
+          ...toolbarBindings.slice(1),
+        ],
+      },
+      "Meta+Shift"
+    );
 
     const target = page.locator("div[style*='yellow']");
     await target.dispatchEvent("mouseover", { altKey: true });

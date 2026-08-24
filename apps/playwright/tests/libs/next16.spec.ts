@@ -1,14 +1,9 @@
 import { test, expect, Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
+import { expectLocatorReady } from "../activateLocator";
 
 const ASYNC_TIMEOUT = 15_000;
-
-async function expectLocatorReady(page: Page) {
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true }).first()
-  ).toBeAttached({ timeout: ASYNC_TIMEOUT });
-}
 
 async function expectWelcome(page: Page) {
   await expect(

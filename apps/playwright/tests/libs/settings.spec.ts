@@ -1,8 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
+import { expectLocatorReady } from "../activateLocator";
 
 async function openSettings(page: Page) {
+  await expectLocatorReady(page);
   const settings = page.getByRole("button", { name: "Settings", exact: true });
   const visibleSettings = settings.filter({ visible: true }).first();
   await expect(visibleSettings).toBeVisible({ timeout: 15_000 });
@@ -274,6 +276,7 @@ test("Advanced contains source inspection and infrequent settings", async ({
 test("welcome dismissal survives resetting origin settings", async ({
   page,
 }) => {
+  await expectLocatorReady(page);
   await expect(page.getByText("Go to component code with")).toBeVisible({
     timeout: 15_000,
   });
