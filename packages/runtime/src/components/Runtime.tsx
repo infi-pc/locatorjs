@@ -190,10 +190,6 @@ function Runtime(props: {
       if (isLocatorsOwnElement(target)) {
         return;
       }
-      // A click is the unit of intent. Even a synchronously resolvable second
-      // click supersedes an older async operation.
-      cancelResolution();
-
       setActivationHeld(matchesActivation(bindings(), e));
 
       setCurrentElement(target);
@@ -260,6 +256,10 @@ function Runtime(props: {
         return;
       }
 
+      // A click is the unit of intent. Even a synchronously resolvable second
+      // click supersedes an older async operation.
+      cancelResolution();
+
       // Try sync resolution first
       let elInfo = getElementInfo(target, adapterId());
 
@@ -302,59 +302,64 @@ function Runtime(props: {
         signal: operation.controller.signal,
         deadline: Date.now() + 4_000,
       };
-      if (!elInfo?.thisElement.link) {
-        try {
+      const finishResolution = () => {
+        if (activeResolution?.id !== operation.id) return;
+        activeResolution = undefined;
+        setResolutionPending(false);
+      };
+      try {
+        if (!elInfo?.thisElement.link) {
           elInfo = await getElementInfoAsync(target, adapterId(), context);
-        } catch (error) {
-          if (!(error instanceof DOMException && error.name === "AbortError")) {
-            throw error;
-          }
-          elInfo = null;
         }
-      }
 
-      // Resolution can take a while, and Esc or a mode change during it means
-      // the user no longer wants this action to fire.
-      if (
-        activeResolution?.id !== operation.id ||
-        operation.controller.signal.aborted ||
-        props.tryAction !== tryActionAtClick
-      ) {
-        return;
-      }
-      activeResolution = undefined;
-      setResolutionPending(false);
+        // Resolution can take a while, and Esc or a mode change during it means
+        // the user no longer wants this action to fire.
+        if (
+          activeResolution?.id !== operation.id ||
+          operation.controller.signal.aborted ||
+          props.tryAction !== tryActionAtClick
+        ) {
+          return;
+        }
+        finishResolution();
 
-      if (elInfo) {
-        const linkProps = elInfo.thisElement.link;
-        if (linkProps || !actionNeedsSourceLink(binding.action)) {
-          if (
-            binding.action.kind === "open-editor" &&
-            (!isExtension() || detectSvelte()) &&
-            !onboardingDismissed() &&
-            !props.tryAction
-          ) {
-            setDialog(["choose-editor", linkProps!]);
+        if (elInfo) {
+          const linkProps = elInfo.thisElement.link;
+          if (linkProps || !actionNeedsSourceLink(binding.action)) {
+            if (
+              binding.action.kind === "open-editor" &&
+              (!isExtension() || detectSvelte()) &&
+              !onboardingDismissed() &&
+              !props.tryAction
+            ) {
+              setDialog(["choose-editor", linkProps!]);
+            } else {
+              if (binding.action.kind === "open-editor") trackClickStats();
+              const succeeded = await runAction(binding.action, elInfo);
+              if (props.tryAction && succeeded) props.setTryAction(null);
+            }
           } else {
-            if (binding.action.kind === "open-editor") trackClickStats();
-            const succeeded = await runAction(binding.action, elInfo);
-            if (props.tryAction && succeeded) props.setTryAction(null);
+            // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
+            console.error(
+              "[LocatorJS]: Could not find link: Element info: ",
+              elInfo
+            );
+            setDialog(["no-link"]);
           }
         } else {
           // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
           console.error(
-            "[LocatorJS]: Could not find link: Element info: ",
-            elInfo
+            "[LocatorJS]: Could not find element info. Element: ",
+            target
           );
           setDialog(["no-link"]);
         }
-      } else {
-        // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
-        console.error(
-          "[LocatorJS]: Could not find element info. Element: ",
-          target
-        );
-        setDialog(["no-link"]);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          throw error;
+        }
+      } finally {
+        finishResolution();
       }
     }
   }

@@ -205,6 +205,41 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
 });
 
 test.describe("Turbopack debug diagnostics", () => {
+  test("pointer movement does not cancel an accepted click", async ({
+    page,
+  }) => {
+    await configureEditor(page);
+    await page.goto(projects.next16Turbopack);
+    await expectLocatorReady(page);
+    await page.evaluate(() => {
+      window.open = ((url?: string | URL) => {
+        (
+          window as Window & { __locatorOpenedUrl?: string }
+        ).__locatorOpenedUrl = String(url);
+        return null;
+      }) as typeof window.open;
+    });
+
+    const target = page.getByRole("button", { name: "-", exact: true });
+    await target.dispatchEvent("mouseover", { altKey: true });
+    await target.dispatchEvent("click", { altKey: true });
+    await page
+      .getByText("Counter Component")
+      .dispatchEvent("mouseover", { altKey: true });
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              (window as Window & { __locatorOpenedUrl?: string })
+                .__locatorOpenedUrl
+          ),
+        { timeout: ASYNC_TIMEOUT }
+      )
+      .toMatch(/test-apps\/next-16-turbopack\/app\/.*\.tsx:\d+:\d+$/);
+  });
+
   test("debug history tracks async resolution", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
     await expectLocatorReady(page);
