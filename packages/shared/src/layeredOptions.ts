@@ -71,24 +71,37 @@ export const LAYER_ORDER: LocatorLayer[] = [
   "user-origin",
 ];
 
-export const DEFAULT_LAYER: LocatorOptions = {
-  editor: { targetId: "vscode" },
-  bindings: [
-    {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
-      action: { kind: "open-editor" },
-    },
-    { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
-    {
-      trigger: { kind: "hover-toolbar" },
-      action: { kind: "show-parents" },
-    },
-    { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
-  ],
+const DEFAULT_ICON_BINDINGS: Binding[] = [
+  { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
+  {
+    trigger: { kind: "hover-toolbar" },
+    action: { kind: "show-parents" },
+  },
+  { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
+];
+const DEFAULT_BINDINGS: Binding[] = [
+  {
+    trigger: { kind: "modifier-click", modifiers: "alt" },
+    action: { kind: "open-editor" },
+  },
+  ...DEFAULT_ICON_BINDINGS,
+];
+for (const binding of DEFAULT_BINDINGS) {
+  Object.freeze(binding.trigger);
+  Object.freeze(binding.action);
+  Object.freeze(binding);
+}
+Object.freeze(DEFAULT_BINDINGS);
+
+const DEFAULT_EDITOR: EditorSelection = Object.freeze({ targetId: "vscode" });
+
+export const DEFAULT_LAYER: LocatorOptions = Object.freeze({
+  editor: DEFAULT_EDITOR,
+  bindings: DEFAULT_BINDINGS,
   hrefTarget: "_self",
   disabled: false,
   debugMode: false,
-};
+});
 
 export const PROMPT_TEMPLATE_VARIABLES = [
   "filePath",
@@ -116,15 +129,6 @@ export type ResolveResult = {
 };
 
 const BINDING_KEYS = ["bindings", "mouseModifiers"] as const;
-
-const DEFAULT_ICON_BINDINGS: Binding[] = [
-  { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
-  {
-    trigger: { kind: "hover-toolbar" },
-    action: { kind: "show-parents" },
-  },
-  { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
-];
 
 /**
  * Rewrites every shortcut into the canonical modifier order, so downstream

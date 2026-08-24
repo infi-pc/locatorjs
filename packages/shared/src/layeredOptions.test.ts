@@ -36,6 +36,19 @@ const layerCombos: LocatorLayer[][] = [
   ["default", "team", "user-extension", "user-origin"],
 ];
 
+describe("DEFAULT_LAYER", () => {
+  test("is deeply frozen across every exported mutable member", () => {
+    expect(Object.isFrozen(DEFAULT_LAYER)).toBe(true);
+    expect(Object.isFrozen(DEFAULT_LAYER.editor)).toBe(true);
+    expect(Object.isFrozen(DEFAULT_LAYER.bindings)).toBe(true);
+    for (const binding of DEFAULT_LAYER.bindings ?? []) {
+      expect(Object.isFrozen(binding)).toBe(true);
+      expect(Object.isFrozen(binding.trigger)).toBe(true);
+      expect(Object.isFrozen(binding.action)).toBe(true);
+    }
+  });
+});
+
 describe("resolve – 16 layer presence permutations", () => {
   test.each(layerCombos)("layers %j", (...present) => {
     const optionPerLayer: Record<LocatorLayer, LocatorOptions> = {
