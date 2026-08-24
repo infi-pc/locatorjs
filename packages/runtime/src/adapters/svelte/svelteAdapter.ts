@@ -19,7 +19,7 @@ type SvelteLoc = {
 
 type SvelteElement = HTMLElement & { __svelte_meta?: { loc: SvelteLoc } };
 
-export function getElementInfo(found: SvelteElement): FullElementInfo | null {
+function getElementInfo(found: SvelteElement): FullElementInfo | null {
   if (found.__svelte_meta) {
     const { loc } = found.__svelte_meta;
     return {
@@ -42,7 +42,7 @@ export function getElementInfo(found: SvelteElement): FullElementInfo | null {
   return null;
 }
 
-export class SvelteTreeNodeElement extends HtmlElementTreeNode {
+class SvelteTreeNodeElement extends HtmlElementTreeNode {
   protected createNode(element: HTMLElement): SvelteTreeNodeElement {
     return new SvelteTreeNodeElement(element);
   }

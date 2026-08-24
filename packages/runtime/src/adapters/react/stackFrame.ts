@@ -140,16 +140,6 @@ export function parseStackFrame(line: string): StackFrame | null {
   return null;
 }
 
-/** Every parseable frame in a stack string, internals included. */
-export function parseStackFrames(stack: string): StackFrame[] {
-  const frames: StackFrame[] = [];
-  for (const line of stack.split("\n")) {
-    const frame = parseStackFrame(line);
-    if (frame) frames.push(frame);
-  }
-  return frames;
-}
-
 /**
  * The first frame that could be the user's own code. A bare relative path is
  * rejected too: it cannot be opened, and returning it as a success stops the

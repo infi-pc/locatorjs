@@ -1,5 +1,5 @@
 import { Source } from "@locator/shared";
-import { firstUserFrame, isCompiledSourceLocation } from "./stackFrame";
+import { isCompiledSourceLocation } from "./stackFrame";
 import { createTtlCache } from "./ttlCache";
 
 /**
@@ -410,29 +410,6 @@ function inferSourceMapUrl(jsUrl: string): string | null {
 }
 
 /**
- * Try to get component source from a stack trace.
- * Core function for environments where _debugSource is unavailable.
- */
-export async function resolveSourceFromStack(): Promise<Source | null> {
-  try {
-    const stack = new Error().stack;
-    if (!stack) return null;
-
-    const frame = firstUserFrame(stack);
-    if (!frame) return null;
-
-    if (!isCompiledSourceLocation(frame.fileName)) return null;
-    return resolveOriginalPosition(
-      frame.fileName,
-      frame.lineNumber,
-      frame.columnNumber
-    );
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Convert file:// URL to local path
  * file:///Users/foo/bar.ts -> /Users/foo/bar.ts
  * file:///C:/foo/bar.ts -> C:/foo/bar.ts (Windows)
@@ -497,29 +474,6 @@ export async function resolveOriginalPosition(
     lineNumber: original.line,
     columnNumber: original.column === null ? undefined : original.column + 1,
   };
-}
-
-/**
- * Preload source maps for all page chunks (optional optimization)
- */
-export async function preloadSourceMaps(): Promise<void> {
-  // Find all script tags on page
-  const scripts = document.querySelectorAll('script[src*=".js"]');
-  const loadPromises: Promise<void>[] = [];
-
-  scripts.forEach((script) => {
-    const src = script.getAttribute("src");
-    if (src && src.includes("/_next/")) {
-      const mapUrl = `${src}.map`;
-      loadPromises.push(
-        loadSourceMap(mapUrl).then(() => {
-          /* ignore result */
-        })
-      );
-    }
-  });
-
-  await Promise.all(loadPromises);
 }
 
 /** Drops every cached map immediately, ahead of the TTL. */

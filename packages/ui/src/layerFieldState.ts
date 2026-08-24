@@ -13,7 +13,7 @@ export type LayerFieldState<K extends keyof LocatorOptions> = {
   value: LocatorOptions[K];
 };
 
-export function normalizedLayers(
+function normalizedLayers(
   layers: Partial<Record<LocatorLayer, LocatorOptions>>
 ) {
   return Object.fromEntries(

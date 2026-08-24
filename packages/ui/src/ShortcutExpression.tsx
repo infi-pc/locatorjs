@@ -40,7 +40,7 @@ const styles = {
   }),
 };
 
-export function modifierText(value: string) {
+function modifierText(value: string) {
   return Object.keys(getModifiersMap(value))
     .map((key) => modifiersTitles[key as keyof typeof modifiersTitles] ?? key)
     .join(" + ");

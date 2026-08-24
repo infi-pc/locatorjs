@@ -11,7 +11,7 @@ import {
 import browser from '../../browser';
 
 const REPLY_TIMEOUT_MS = 1000;
-export const EXTENSION_PROTOCOL_VERSION = 2 as const;
+const EXTENSION_PROTOCOL_VERSION = 2 as const;
 
 type PopupMessage =
   | { from: 'popup'; subject: 'requestSnapshot' }

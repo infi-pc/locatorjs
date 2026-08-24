@@ -1,5 +1,5 @@
 import { resolveSourcePath, type Targets } from "@locator/shared";
-import type { LinkProps, Source } from "../types/types";
+import type { LinkProps } from "../types/types";
 import { evalTemplate } from "./evalTemplate";
 import { linkTemplateUrl } from "./linkTemplateUrl";
 import type { OptionsStore } from "./optionsStore";
@@ -65,21 +65,4 @@ function stripUnresolvedQueryParams(url: string): string {
   return `${base}${
     resolvedParams.length ? `?${resolvedParams.join("&")}` : ""
   }${hash}`;
-}
-
-export function buildLinkFromSource(
-  source: Source,
-  targets: Targets,
-  options: OptionsStore
-): string {
-  return buildLink(
-    {
-      filePath: source.fileName,
-      projectPath: source.projectPath || "",
-      line: source.lineNumber,
-      column: source.columnNumber || 0,
-    },
-    targets,
-    options
-  );
 }

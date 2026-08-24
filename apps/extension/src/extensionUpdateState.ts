@@ -1,6 +1,6 @@
 import browser from './browser';
 
-export const EXTENSION_UPDATE_VERSION_KEY = 'locatorExtensionUpdateVersion';
+const EXTENSION_UPDATE_VERSION_KEY = 'locatorExtensionUpdateVersion';
 const STALE_TAB_KEY_PREFIX = 'locatorExtensionStaleTab:';
 
 function staleTabKey(tabId: number): string {

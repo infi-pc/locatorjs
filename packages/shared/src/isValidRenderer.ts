@@ -1,5 +1,5 @@
-export const MIN_SUPPORTED_VERSION = "16.9.0";
-export const BUNDLE_TYPE_PROD = 0;
+const MIN_SUPPORTED_VERSION = "16.9.0";
+const BUNDLE_TYPE_PROD = 0;
 export const BUNDLE_TYPE_DEV = 1;
 
 export function isValidRenderer(

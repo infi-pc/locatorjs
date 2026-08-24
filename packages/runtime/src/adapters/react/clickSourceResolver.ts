@@ -412,7 +412,7 @@ export function extractComponentSourceFromChunk(
 }
 
 /** Drops cached chunk text immediately, ahead of the TTL. */
-export function clearTurbopackCache(): void {
+function clearTurbopackCache(): void {
   chunkCodeCache.clear();
   turbopackProjectRoot = undefined;
   turbopackRootRetryAfter = 0;
@@ -493,9 +493,7 @@ function parseInspectElementSource(
  *
  * Returns compiled position, needs source-map reverse lookup
  */
-export function getSourceViaRendererInterface(
-  domElement: HTMLElement
-): Source | null {
+function getSourceViaRendererInterface(domElement: HTMLElement): Source | null {
   const renderer = getFirstRendererInterface();
   if (!renderer) {
     return null;
@@ -565,9 +563,7 @@ export function getSourceViaRendererInterface(
  * Get source location via Fiber and rendererInterfaces API
  * For cases where we have a Fiber but need its source
  */
-export function getSourceViaRendererInterfaceByFiber(
-  fiber: Fiber
-): Source | null {
+function getSourceViaRendererInterfaceByFiber(fiber: Fiber): Source | null {
   const renderer = getFirstRendererInterface();
   if (!renderer) {
     return null;

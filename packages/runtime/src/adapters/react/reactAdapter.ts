@@ -50,7 +50,7 @@ function readCached<T>(
   return undefined;
 }
 
-export function getElementInfo(found: HTMLElement): FullElementInfo | null {
+function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
   const labels: LabelData[] = [];
 
@@ -106,7 +106,7 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-export class ReactTreeNodeElement extends HtmlElementTreeNode {
+class ReactTreeNodeElement extends HtmlElementTreeNode {
   protected createNode(element: HTMLElement): ReactTreeNodeElement {
     return new ReactTreeNodeElement(element);
   }
@@ -436,7 +436,7 @@ async function diagnoseAllElements(): Promise<void> {
 // Register diagnose so it's available as window.locatorDiagnose()
 registerDiagnose(diagnoseAllElements);
 
-export function resetReactAdapterCaches(): void {
+function resetReactAdapterCaches(): void {
   asyncElementSources = new WeakMap();
   asyncComponents = new WeakMap();
 }

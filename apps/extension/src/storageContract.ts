@@ -165,7 +165,7 @@ export function ensureExtensionStorageReady(): Promise<LocatorOptions> {
 
 let pendingMutation: Promise<unknown> = Promise.resolve();
 
-export function mutateUserOptions(
+function mutateUserOptions(
   mutation: (current: LocatorOptions) => LocatorOptions
 ): Promise<WriteResult> {
   const run = pendingMutation.then(async () => {

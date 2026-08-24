@@ -21,7 +21,7 @@ import {
   getParentElementAcrossShadow,
 } from "../../functions/domTraversal";
 
-export function getElementInfo(target: HTMLElement): FullElementInfo | null {
+function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = closestAcrossShadow(
     target,
     "[data-locatorjs-id], [data-locatorjs]"
@@ -141,7 +141,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-export class JSXTreeNodeElement extends HtmlElementTreeNode {
+class JSXTreeNodeElement extends HtmlElementTreeNode {
   protected createNode(element: HTMLElement): JSXTreeNodeElement {
     return new JSXTreeNodeElement(element);
   }

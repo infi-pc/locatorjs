@@ -40,7 +40,7 @@ export type Group = {
   ci?: false;
 };
 
-export const groups = {
+const groups = {
   /**
    * The only group that needs seven servers, because the thing it varies is the
    * framework: one shallow test per app, each checking that the runtime mounts
@@ -93,7 +93,7 @@ const groupNames = Object.keys(groups) as GroupName[];
 const groupOf = (name: GroupName): Group => groups[name];
 
 /** The groups the CI matrix is expected to contain. */
-export const ciGroups = groupNames.filter((name) => groupOf(name).ci !== false);
+const ciGroups = groupNames.filter((name) => groupOf(name).ci !== false);
 
 const TESTS_DIR = path.join(__dirname, "tests");
 const CI_WORKFLOW = path.join(

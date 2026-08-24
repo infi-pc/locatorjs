@@ -16,7 +16,7 @@ type VueElement = HTMLElement & {
   __vueParentComponent?: ComponentInternalInstance;
 };
 
-export function getElementInfo(found: VueElement): FullElementInfo | null {
+function getElementInfo(found: VueElement): FullElementInfo | null {
   const parentComponent = found.__vueParentComponent;
   if (parentComponent) {
     if (!parentComponent.type) {
@@ -58,7 +58,7 @@ export function getElementInfo(found: VueElement): FullElementInfo | null {
   return null;
 }
 
-export class VueTreeNodeElement extends HtmlElementTreeNode {
+class VueTreeNodeElement extends HtmlElementTreeNode {
   protected createNode(element: HTMLElement): VueTreeNodeElement {
     return new VueTreeNodeElement(element);
   }
