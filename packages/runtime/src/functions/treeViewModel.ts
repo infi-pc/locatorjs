@@ -60,8 +60,16 @@ function safeSource(node: TreeNode): Source | null {
   }
 }
 
-function componentRowId(nodeId: string) {
-  return `component:${nodeId}`;
+const COMPONENT_ROW_PREFIX = "component:";
+
+export function componentRowId(nodeId: string) {
+  return `${COMPONENT_ROW_PREFIX}${nodeId}`;
+}
+
+export function nodeIdFromRowId(rowId: string) {
+  return rowId.startsWith(COMPONENT_ROW_PREFIX)
+    ? rowId.slice(COMPONENT_ROW_PREFIX.length)
+    : rowId;
 }
 
 function sameComponent(

@@ -7,6 +7,8 @@ import { TreeState } from "../adapters/adapterApi";
 import { useOptions } from "../functions/optionsStore";
 import {
   buildTreeViewModel,
+  componentRowId,
+  nodeIdFromRowId,
   sourceRefToLinkProps,
 } from "../functions/treeViewModel";
 import { TreeNode } from "../types/TreeNode";
@@ -81,7 +83,7 @@ export function TreeView(props: {
 
   /** Nodes are keyed by id, so find the live node a row was mapped from. */
   function findNode(id: string): TreeNode | null {
-    const nodeId = id.replace(/^component:/, "");
+    const nodeId = nodeIdFromRowId(id);
     const walk = (node: TreeNode): TreeNode | null => {
       if (node.uniqueId === nodeId) return node;
       for (const child of node.getChildren()) {
@@ -101,7 +103,7 @@ export function TreeView(props: {
           .filter(
             (item) =>
               !item.row.source &&
-              !attemptedNodeIds.has(item.row.id.replace(/^component:/, ""))
+              !attemptedNodeIds.has(nodeIdFromRowId(item.row.id))
           )
           .map((item) => {
             const node = findNode(item.row.id);
@@ -122,7 +124,7 @@ export function TreeView(props: {
     onCleanup(() => controller.abort());
     setPendingIds(
       new Set(
-        nodes.flatMap((node) => [node.uniqueId, `component:${node.uniqueId}`])
+        nodes.flatMap((node) => [node.uniqueId, componentRowId(node.uniqueId)])
       )
     );
     let nextNode = 0;
@@ -176,7 +178,7 @@ export function TreeView(props: {
           onToggle={(id) => {
             const state = props.treeState;
             const expandedIds = new Set(state.expandedIds);
-            const nodeId = id.replace(/^component:/, "");
+            const nodeId = nodeIdFromRowId(id);
             if (expandedIds.has(id)) {
               expandedIds.delete(id);
               expandedIds.delete(nodeId);
@@ -192,7 +194,7 @@ export function TreeView(props: {
             if (!parent) return;
             const expandedIds = new Set(state.expandedIds);
             expandedIds.add(parent.uniqueId);
-            expandedIds.add(`component:${parent.uniqueId}`);
+            expandedIds.add(componentRowId(parent.uniqueId));
             props.setTreeState({ ...state, root: parent, expandedIds });
           }}
           onHover={(id) => {
