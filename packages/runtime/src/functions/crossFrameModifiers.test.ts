@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  __resetCrossFrameModifiersForTesting,
   broadcastModifiers,
   listenToFrameModifiers,
   modifiersFromEvent,
@@ -16,6 +17,7 @@ afterEach(() => {
   while (cleanups.length) cleanups.pop()!();
   document.body.innerHTML = "";
   __resetShadowRootsForTesting();
+  __resetCrossFrameModifiersForTesting();
   vi.restoreAllMocks();
 });
 
@@ -55,6 +57,61 @@ describe("modifiersFromEvent", () => {
 });
 
 describe("broadcastModifiers", () => {
+  test("does not rescan or repost an unchanged modifier state", () => {
+    const post = frameIn(document.body);
+    const query = vi.spyOn(document, "querySelectorAll");
+    const state = {
+      altKey: true,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+    };
+
+    broadcastModifiers(state);
+    broadcastModifiers({ ...state });
+
+    expect(
+      query.mock.calls.filter(([selector]) => selector === "iframe")
+    ).toHaveLength(1);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  test("reuses neighbours until an iframe mutation invalidates them", async () => {
+    const first = frameIn(document.body);
+    const query = vi.spyOn(document, "querySelectorAll");
+
+    broadcastModifiers({
+      altKey: true,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+    });
+    broadcastModifiers({
+      altKey: false,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+    });
+    expect(
+      query.mock.calls.filter(([selector]) => selector === "iframe")
+    ).toHaveLength(1);
+
+    const second = frameIn(document.body);
+    await Promise.resolve();
+    broadcastModifiers({
+      altKey: false,
+      ctrlKey: false,
+      metaKey: true,
+      shiftKey: false,
+    });
+
+    expect(
+      query.mock.calls.filter(([selector]) => selector === "iframe")
+    ).toHaveLength(2);
+    expect(first).toHaveBeenCalledTimes(3);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   test("posts to the child frames of this document", () => {
     const frame = document.createElement("iframe");
     document.body.appendChild(frame);
