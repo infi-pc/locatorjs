@@ -9,7 +9,8 @@
   },
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "ICON-LICENSES.md"
   ],
   "exports": {
     ".": {
@@ -22,9 +23,9 @@
     "dev": "concurrently pnpm:dev:*",
     "dev:babel": "babel src --watch --out-dir dist --extensions .ts,.tsx --copy-files",
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
-    "build": "concurrently pnpm:build:*",
-    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx --copy-files",
-    "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
+    "build": "node ../../scripts/clean-package-dist.js && concurrently pnpm:build:babel pnpm:build:ts",
+    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx --copy-files --no-copy-ignored --ignore '**/*.test.ts,**/*.test.tsx'",
+    "build:ts": "tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist",
     "ts": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src --ext .ts,.tsx",

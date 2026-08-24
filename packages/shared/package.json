@@ -5,12 +5,13 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
-    "build": "tsc --declaration --outDir dist",
+    "build": "node ../../scripts/clean-package-dist.js && tsc -p tsconfig.build.json --declaration --outDir dist",
     "//build-cjs": "tsc --module commonjs --outDir dist/cjs",
     "ts": "tsc --noEmit",
     "test": "vitest run",
     "test:dev": "vitest watch",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",

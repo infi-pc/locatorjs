@@ -1,14 +1,19 @@
 {
   "name": "@locator/babel-jsx",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "version": "2.0.0",
   "scripts": {
     "test": "jest tests/",
     "test:update": "jest tests/ -u",
     "dev": "tsc --watch --outDir dist --preserveWatchOutput",
-    "build": "tsc --outDir dist --declaration",
+    "build": "node ../../scripts/clean-package-dist.js && tsc --outDir dist --declaration",
     "ts": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "@babel/parser": "^7.29.2",

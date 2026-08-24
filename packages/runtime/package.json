@@ -1,9 +1,14 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": "./dist/index.js",
       "worker": "./dist/index.server.js",
       "node": "./dist/index.server.js",
       "deno": "./dist/index.server.js",
@@ -21,14 +26,15 @@
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
     "dev:panda": "panda cssgen --outfile dist/panda.css --watch",
     "dev:wrapCSS": "WATCH=true node ./scripts/wrapCSS.js",
-    "build": "pnpm build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts",
-    "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx",
+    "build": "node ../../scripts/clean-package-dist.js && pnpm build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts",
+    "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --ignore '**/*.test.ts,**/*.test.tsx'",
     "//build:babel-cjs": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
-    "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
+    "build:ts": "tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist",
     "build:panda": "panda cssgen --clean --outfile dist/panda.css",
     "build:wrapCSS": "node ./scripts/wrapCSS.js",
     "ts": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "@ark-ui/solid": "^5.37.1",

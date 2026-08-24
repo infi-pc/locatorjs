@@ -23,6 +23,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "build/**"]
     },
+    "build:firefox": {
+      "dependsOn": ["^build"],
+      "outputs": ["build/production_firefox/**"]
+    },
     "lint": {
       "dependsOn": ["^build"],
       "outputs": []

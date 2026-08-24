@@ -10,7 +10,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "panda codegen",
+    "build": "node ../../scripts/clean-package-dist.js && panda codegen",
     "dev": "panda codegen --watch",
     "lint": "eslint . --ext .ts,.tsx",
     "ts": "tsc --noEmit",

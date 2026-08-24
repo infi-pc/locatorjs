@@ -1,4 +1,5 @@
 import { isValidRenderer } from "./isValidRenderer";
+export { isValidRenderer };
 export * from "./types";
 export * from "./targets";
 export * from "./modifiers";

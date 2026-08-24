@@ -47,6 +47,9 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.19.17)(jsdom@20.0.3)
+      webpack:
+        specifier: ^5.106.2
+        version: 5.106.2(webpack-cli@5.1.4)
 
   apps/extension:
     dependencies:
@@ -355,13 +358,14 @@ importers:
         version: 5.9.3
 
   packages/react-devtools-hook:
+    dependencies:
+      '@locator/shared':
+        specifier: workspace:^
+        version: link:../shared
     devDependencies:
       '@locator/dev-config':
         specifier: workspace:^
         version: link:../dev-config
-      '@locator/shared':
-        specifier: workspace:^
-        version: link:../shared
       '@types/node':
         specifier: ^22.19.17
         version: 22.19.17

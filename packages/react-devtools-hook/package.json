@@ -2,18 +2,25 @@
   "name": "@locator/react-devtools-hook",
   "version": "2.0.0",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
   "scripts": {
     "//test": "jest tests/",
     "//test:update": "jest tests/ -u",
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
-    "build": "tsc --declaration --outDir dist",
+    "build": "node ../../scripts/clean-package-dist.js && tsc --declaration --outDir dist",
     "ts": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@locator/shared": "workspace:^"
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",
-    "@locator/shared": "workspace:^",
     "@types/node": "^22.19.17",
     "typescript": "^5.9.3"
   },

@@ -34,6 +34,11 @@
     }
   ],
   "permissions": ["storage"],
+  "browser_specific_settings": {
+    "gecko": {
+      "strict_min_version": "128.0"
+    }
+  },
   "web_accessible_resources": [
     "client.bundle.js",
     "locator-runtime-ui.chunk.js",
