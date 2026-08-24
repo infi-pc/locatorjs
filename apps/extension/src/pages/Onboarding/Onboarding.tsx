@@ -1,11 +1,13 @@
 import {
   DEFAULT_LAYER,
   allTargets,
+  asEditorSelection,
+  clearPrimaryEditorOverride,
   getModifiersMap,
   primaryEditorBinding,
   resolve,
   type Binding,
-  type BindingAction,
+  type EditorSelection,
 } from '@locator/shared';
 import {
   EDITOR_CARD_CUSTOM,
@@ -73,11 +75,6 @@ const styles = {
   okText: css({ color: 'teal.plain.fg', fontSize: 'sm' }),
   missText: css({ color: 'amber.plain.fg', fontSize: 'sm' }),
 };
-
-type EditorPatch = Pick<
-  Extract<BindingAction, { kind: 'open-editor' }>,
-  'targetId' | 'targetTemplate'
->;
 
 const DEFAULT_CUSTOM_TEMPLATE =
   'vscode://file/${projectPath}${filePath}:${line}:${column}';
@@ -186,10 +183,7 @@ export function Onboarding() {
       default: DEFAULT_LAYER,
       'user-extension': userExtension(),
     }).effective;
-  const editorAction = () => {
-    const action = primaryEditorBinding(effective().bindings)?.action;
-    return action?.kind === 'open-editor' ? action : undefined;
-  };
+  const editor = () => effective().editor;
   const modifiers = () => {
     const binding = primaryEditorBinding(effective().bindings);
     return binding?.trigger.kind === 'modifier-click'
@@ -199,25 +193,20 @@ export function Onboarding() {
   const setBindings = async (bindings: Binding[] | undefined) =>
     (await setUserExtension({ bindings })).ok;
 
-  const updatePrimaryEditor = async (patch: EditorPatch) => {
-    const bindings = effective().bindings ?? [];
-    const primary = primaryEditorBinding(bindings);
-    const action = primary?.action;
-    if (!primary || action?.kind !== 'open-editor') return false;
-    return setBindings(
-      bindings.map((binding) =>
-        binding === primary
-          ? { ...binding, action: { ...action, ...patch } }
-          : binding
-      )
-    );
+  const updateEditor = async (selection: EditorSelection) => {
+    const bindings = clearPrimaryEditorOverride(effective().bindings ?? []);
+    const result = await setUserExtension({
+      editor: selection,
+      ...(bindings ? { bindings, mouseModifiers: undefined } : {}),
+    });
+    return result.ok;
   };
   const updateModifiers = (value: string | undefined) => {
     if (!value) return;
     const bindings = effective().bindings ?? [];
     const primary = primaryEditorBinding(bindings);
     if (!primary) return;
-    setBindings(
+    return setBindings(
       bindings.map((binding) =>
         binding === primary
           ? {
@@ -231,25 +220,22 @@ export function Onboarding() {
 
   const selectEditor = async (value: string) => {
     if (value === EDITOR_CARD_CUSTOM) {
-      setCustomDraft(editorAction()?.targetTemplate ?? DEFAULT_CUSTOM_TEMPLATE);
+      setCustomDraft(editor()?.targetTemplate ?? DEFAULT_CUSTOM_TEMPLATE);
       setShowCustom(true);
       return;
     }
     setShowCustom(false);
-    await updatePrimaryEditor({
-      targetId: value,
-      targetTemplate: undefined,
-    });
-    setActive('shortcut');
+    if (await updateEditor(asEditorSelection(value))) setActive('shortcut');
   };
 
   const saveCustomTemplate = async () => {
-    await updatePrimaryEditor({
+    const saved = await updateEditor({
       targetTemplate: customDraft().trim() || undefined,
-      targetId: undefined,
     });
-    setShowCustom(false);
-    setActive('shortcut');
+    if (saved) {
+      setShowCustom(false);
+      setActive('shortcut');
+    }
   };
 
   const steps = (): WizardStep[] => [
@@ -257,13 +243,13 @@ export function Onboarding() {
       id: 'editor',
       // eslint-disable-next-line solid/reactivity -- steps() runs inside a tracked JSX scope
       title: showCustom() ? 'Custom link template' : 'Pick your editor',
-      // eslint-disable-next-line solid/reactivity
+      // eslint-disable-next-line solid/reactivity -- step access runs inside the tracked Wizard render callback.
       description: showCustom()
         ? 'Enter a URL template for your custom editor.'
         : 'This sets your primary Open in editor action.',
-      // eslint-disable-next-line solid/reactivity
+      // eslint-disable-next-line solid/reactivity -- step access runs inside the tracked Wizard render callback.
       onNext: showCustom() ? () => saveCustomTemplate() : undefined,
-      // eslint-disable-next-line solid/reactivity
+      // eslint-disable-next-line solid/reactivity -- step access runs inside the tracked Wizard render callback.
       onBack: showCustom() ? () => setShowCustom(false) : undefined,
       content: () => (
         <Show
@@ -271,8 +257,8 @@ export function Onboarding() {
           fallback={
             <EditorCardPicker
               targets={allTargets}
-              targetId={editorAction()?.targetId}
-              targetTemplate={editorAction()?.targetTemplate}
+              targetId={editor()?.targetId}
+              targetTemplate={editor()?.targetTemplate}
               onSelect={selectEditor}
             />
           }

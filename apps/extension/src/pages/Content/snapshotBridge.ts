@@ -1,7 +1,14 @@
-import type { BindingAction } from '@locator/shared';
+import {
+  decodeLocatorLayers,
+  decodeLocatorOptions,
+  decodeProvenance,
+  decodeTargets,
+  type BindingAction,
+} from '@locator/shared';
 import browser from '../../browser';
 
 const REPLY_TIMEOUT_MS = 1000;
+export const EXTENSION_PROTOCOL_VERSION = 2 as const;
 
 type PopupMessage =
   | { from: 'popup'; subject: 'requestSnapshot' }
@@ -30,9 +37,18 @@ export function mountSnapshotBridge() {
           validateSnapshot,
           (payload) => {
             if (payload === null) {
-              sendResponse({ ok: false, reason: 'no-runtime' });
+              sendResponse({
+                ok: false,
+                protocolVersion: EXTENSION_PROTOCOL_VERSION,
+                reason: 'no-runtime',
+                diagnostic: hookDiagnostic(),
+              });
             } else {
-              sendResponse({ ok: true, snapshot: payload });
+              sendResponse({
+                ok: true,
+                protocolVersion: EXTENSION_PROTOCOL_VERSION,
+                snapshot: payload,
+              });
             }
           }
         );
@@ -86,6 +102,13 @@ export function mountSnapshotBridge() {
   );
 }
 
+function hookDiagnostic() {
+  return (
+    document.head?.dataset.locatorDisabled ||
+    document.head?.dataset.locatorHookStatusMessage
+  );
+}
+
 /**
  * Trust boundary.
  *
@@ -119,15 +142,18 @@ function validateWriteResult(value: unknown): ValidatedPayload | null {
 function validateSnapshot(value: unknown): ValidatedPayload | null {
   if (!isPlainObject(value)) return null;
   const { effective, provenance, layers, allTargets } = value;
-  if (
-    !isPlainObject(effective) ||
-    !isPlainObject(provenance) ||
-    !isPlainObject(layers) ||
-    !isPlainObject(allTargets)
-  ) {
-    return null;
-  }
-  return { effective, provenance, layers, allTargets };
+  const safeEffective = decodeLocatorOptions(effective);
+  const safeProvenance = decodeProvenance(provenance);
+  const safeLayers = decodeLocatorLayers(layers);
+  const safeTargets = decodeTargets(allTargets);
+  return safeEffective && safeProvenance && safeLayers && safeTargets
+    ? {
+        effective: safeEffective,
+        provenance: safeProvenance,
+        layers: safeLayers,
+        allTargets: safeTargets,
+      }
+    : null;
 }
 
 type Validator = (value: unknown) => ValidatedPayload | null;
@@ -164,11 +190,15 @@ function relayRequestToPage(
   }
 
   window.addEventListener('message', handler);
-  window.postMessage({ ...request, requestId }, window.location.origin);
+  window.postMessage({ ...request, requestId }, postMessageOrigin());
 
   setTimeout(() => finish(null), REPLY_TIMEOUT_MS);
 }
 
 function generateRequestId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function postMessageOrigin() {
+  return window.location.origin === 'null' ? '*' : window.location.origin;
 }

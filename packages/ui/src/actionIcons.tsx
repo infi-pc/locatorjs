@@ -1,10 +1,10 @@
 import {
-  hasEditorOverride,
   resolveBindingTarget,
   type BindingAction,
   type EditorSelection,
   type Targets,
 } from "@locator/shared";
+export { actionLabel } from "@locator/shared";
 import {
   Clipboard,
   FileCode2,
@@ -93,40 +93,5 @@ export function actionIconFor(
       return actionTypeIconFor(action.kind);
     default:
       return <FileCode2 size={16} />;
-  }
-}
-
-export function actionLabel(
-  action: BindingAction,
-  targets?: Targets,
-  editor?: EditorSelection
-): string {
-  switch (action.kind) {
-    case "open-editor": {
-      // Actions without an override follow the global Editor setting, so the
-      // label stays generic; only a pinned destination names an editor.
-      if (!hasEditorOverride(action)) return "Open in editor";
-      if (targets) {
-        const target = resolveBindingTarget(action, targets, editor);
-        if (target.kind === "template") return "Open custom editor link";
-        return `Open in ${
-          targets[target.id]?.label ?? (target.id || "editor")
-        }`;
-      }
-      if (action.targetTemplate) return "Open custom editor link";
-      return `Open in ${action.targetId}`;
-    }
-    case "copy-path":
-      return "Copy path";
-    case "copy-prompt":
-      return "Copy AI prompt";
-    case "open-prompt":
-      return `Open prompt in ${
-        action.app === "cursor" ? "Cursor" : "Windsurf"
-      }`;
-    case "show-tree":
-      return "Tree view";
-    case "show-parents":
-      return "Parents";
   }
 }

@@ -9,7 +9,7 @@ import {
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { MousePointer2, Play, Plus, Trash2 } from "lucide-solid";
-import { Show, onMount } from "solid-js";
+import { Show } from "solid-js";
 import { actionIconFor, actionLabel, actionSelectItems } from "./actionIcons";
 import { Button } from "./Button";
 import { EditorPicker } from "./EditorPicker";
@@ -79,11 +79,6 @@ export function ActionInspector(props: {
   onCancel?: () => void;
   onTry?: (action: BindingAction) => void | Promise<void>;
 }) {
-  let heading: HTMLHeadingElement | undefined;
-  onMount(() => {
-    if (props.draft)
-      queueMicrotask(() => heading?.focus({ preventScroll: true }));
-  });
   const label = () =>
     actionLabel(props.binding.action, props.targets, props.editor);
   const setAction = (action: BindingAction) =>
@@ -99,11 +94,7 @@ export function ActionInspector(props: {
             ? "Shortcut rule"
             : "Toolbar button"}
         </span>
-        <h2
-          ref={(element) => (heading = element)}
-          class={styles.title}
-          tabIndex={-1}
-        >
+        <h2 class={styles.title}>
           {props.binding.trigger.kind === "modifier-click" ? (
             <MousePointer2 size={18} />
           ) : (

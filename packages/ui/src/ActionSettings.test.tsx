@@ -29,7 +29,7 @@ function Harness(props: {
   onTry?: (action: import("@locator/shared").BindingAction) => void;
 }) {
   // The test harness intentionally captures its one-time seed value.
-  // eslint-disable-next-line solid/reactivity
+  // eslint-disable-next-line solid/reactivity -- the harness intentionally captures its seed once.
   const [values, setValues] = createSignal<LocatorOptions>(props.initial ?? {});
   return (
     <ActionSettings

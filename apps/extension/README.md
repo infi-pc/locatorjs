@@ -83,21 +83,25 @@ pnpm dev:firefox
 
 ## Build & Release
 
-### Using Node script (recommended)
+### Dependency-aware release pipeline
 
 ```bash
 # Package Chrome version (builds deps + extension + zip)
-pnpm run release:node
+pnpm run release:chrome
 
 # Package Firefox version
-pnpm run release:node:firefox
+pnpm run release:firefox
 
 # Package all versions
-pnpm run release:node:all
+pnpm run release
 
 # Skip dependency build (re-package extension only)
 node utils/release.js --skip-runtime
 ```
+
+The `release:node*` commands remain compatibility aliases for existing release
+automation. All release entry points now run the same dependency-aware Node
+pipeline before packaging.
 
 ### Step-by-step build
 

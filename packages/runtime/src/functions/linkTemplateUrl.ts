@@ -39,6 +39,9 @@ export function editorNeedsSetup(
   options: OptionsStore,
   localLinkTypeOrTemplate?: string
 ): boolean {
+  if (!localLinkTypeOrTemplate && options.provenance?.().editor === "default") {
+    return true;
+  }
   return needsEditorSetup(
     resolveEditorLink(targets, options, localLinkTypeOrTemplate)
   );

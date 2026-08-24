@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   storageGet: vi.fn(),
   storageSet: vi.fn(),
+  storageRemove: vi.fn(),
   storageChangedAddListener: vi.fn(),
   tabsQuery: vi.fn(),
   tabsSendMessage: vi.fn(),
+  tabsReload: vi.fn(),
 }));
 
 vi.mock('../../browser', () => ({
@@ -15,6 +17,7 @@ vi.mock('../../browser', () => ({
       local: {
         get: mocks.storageGet,
         set: mocks.storageSet,
+        remove: mocks.storageRemove,
       },
       onChanged: {
         addListener: mocks.storageChangedAddListener,
@@ -23,6 +26,7 @@ vi.mock('../../browser', () => ({
     tabs: {
       query: mocks.tabsQuery,
       sendMessage: mocks.tabsSendMessage,
+      reload: mocks.tabsReload,
     },
   },
 }));
@@ -32,6 +36,7 @@ import {
   useSyncedState,
   type Snapshot,
 } from './syncedState';
+import { __resetStorageContractForTesting } from '../../storageContract';
 
 let syncedState: ReturnType<typeof useSyncedState>;
 
@@ -56,10 +61,16 @@ describe('SyncedStateProvider', () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    __resetStorageContractForTesting();
     mocks.storageGet.mockResolvedValue({ userOptions: {} });
     mocks.storageSet.mockResolvedValue(undefined);
+    mocks.storageRemove.mockResolvedValue(undefined);
     mocks.tabsQuery.mockResolvedValue([{ id: 42 }]);
-    mocks.tabsSendMessage.mockResolvedValue({ ok: true, snapshot });
+    mocks.tabsSendMessage.mockResolvedValue({
+      ok: true,
+      protocolVersion: 2,
+      snapshot,
+    });
     render(() => (
       <SyncedStateProvider>
         <Harness />
@@ -102,14 +113,20 @@ describe('SyncedStateProvider', () => {
     });
 
     expect(mocks.storageSet).toHaveBeenCalledWith({
-      userOptions: { debugMode: true },
+      userOptions: { version: 2, options: { debugMode: true } },
+      target: 'vscode',
+      controls: 'alt',
     });
   });
 
   test('clears extension defaults without touching site-local state', async () => {
     const result = await syncedState.clearUserExtension();
     expect(result).toEqual({ ok: true });
-    expect(mocks.storageSet).toHaveBeenCalledWith({ userOptions: {} });
+    expect(mocks.storageSet).toHaveBeenCalledWith({
+      userOptions: { version: 2, options: {} },
+      target: 'vscode',
+      controls: 'alt',
+    });
     expect(syncedState.userExtension()).toEqual({});
   });
 
@@ -150,9 +167,12 @@ describe('SyncedStateProvider', () => {
       action: { kind: 'open-editor' },
     });
     expect(mocks.storageSet).toHaveBeenCalledWith({
-      userOptions: expect.objectContaining({
-        bindings: expect.any(Array),
-      }),
+      userOptions: {
+        version: 2,
+        options: expect.objectContaining({ bindings: expect.any(Array) }),
+      },
+      target: 'vscode',
+      controls: 'meta',
     });
   });
 

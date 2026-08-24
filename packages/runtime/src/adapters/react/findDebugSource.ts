@@ -4,6 +4,7 @@ import {
   getSourceFromCache,
 } from "./clickSourceResolver";
 import { firstUserFrame } from "./stackFrame";
+import type { SourceResolutionContext } from "./sourceMapResolver";
 import {
   SourceMethod,
   logSourceFound,
@@ -21,7 +22,7 @@ import {
 function getSourceFromFiber(
   fiber: Fiber
 ): [Source | null, SourceMethodType | null] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
   const fiberAny = fiber as any;
 
   // 1. Traditional: get directly from _debugSource
@@ -153,7 +154,8 @@ export function findDebugSource(
  * For Next.js 15+ / React 19+ with new bundlers
  */
 export async function findDebugSourceAsync(
-  fiber: Fiber
+  fiber: Fiber,
+  context?: SourceResolutionContext
 ): Promise<{ fiber: Fiber; source: Source } | null> {
   // 1. Try synchronous method first
   const syncResult = findDebugSource(fiber);
@@ -163,7 +165,7 @@ export async function findDebugSourceAsync(
 
   const debug = isDebugEnabled();
   if (debug) {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- opt-in debug mode reports resolver strategy changes.
     console.log(
       "%c[LocatorJS] Sync methods failed, trying async resolution...",
       "color: #2196F3; font-style: italic"
@@ -173,7 +175,7 @@ export async function findDebugSourceAsync(
   // 2. Sync failed, try async resolution via _debugOwner chain
   let current: Fiber | null = fiber;
   while (current) {
-    const source = await resolveSourceFromFiber(current);
+    const source = await resolveSourceFromFiber(current, context);
     if (source) {
       return { fiber: current, source };
     }
@@ -183,14 +185,14 @@ export async function findDebugSourceAsync(
   // 3. _debugOwner chain exhausted — try fiber.return chain (actual parent tree)
   // This catches cases where _debugOwner skips intermediate components
   // (e.g. Server Component owns <p> directly, but <p> is rendered inside <Card>)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the return chain is a private React fiber field.
   let parent: any = (fiber as any).return;
   const visited = new Set<any>();
   while (parent && !visited.has(parent)) {
     visited.add(parent);
     // Only try function components (tag 0 = FunctionComponent, tag 11 = ForwardRef)
     if (typeof parent.type === "function") {
-      const source = await resolveSourceFromFiber(parent);
+      const source = await resolveSourceFromFiber(parent, context);
       if (source) {
         return { fiber: parent, source };
       }

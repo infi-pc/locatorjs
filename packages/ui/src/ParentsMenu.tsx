@@ -94,6 +94,7 @@ export function ParentsMenu(props: {
   /** Real href so the row supports open-in-new-tab and shows its target. */
   hrefFor?: (row: ParentRow) => string | undefined;
   autofocus?: boolean;
+  pending?: boolean;
 }) {
   let list: HTMLDivElement | undefined;
   const [focused, setFocused] = createSignal(-1);
@@ -169,7 +170,11 @@ export function ParentsMenu(props: {
       <div class={styles.list}>
         <Show
           when={props.rows.length > 0}
-          fallback={<div class={styles.empty}>No parents with a source.</div>}
+          fallback={
+            <div class={styles.empty} role="status">
+              {props.pending ? "Finding sources…" : "No parents with a source."}
+            </div>
+          }
         >
           <For each={props.rows}>
             {(row, index) => {

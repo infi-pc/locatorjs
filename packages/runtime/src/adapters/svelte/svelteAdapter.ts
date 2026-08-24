@@ -43,6 +43,9 @@ export function getElementInfo(found: SvelteElement): FullElementInfo | null {
 }
 
 export class SvelteTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): SvelteTreeNodeElement {
+    return new SvelteTreeNodeElement(element);
+  }
   getSource(): Source | null {
     const element = this.element as SvelteElement;
     if (element.__svelte_meta) {

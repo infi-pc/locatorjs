@@ -70,7 +70,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     const styledExpData =
       styledFileData && styledFileData.styledDefinitions[Number(styledId)];
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- this adapter intentionally has no framework component model.
     const styledLink = styledExpData && {
       filePath: styledFileData.filePath,
       projectPath: styledFileData.projectPath,
@@ -142,6 +142,9 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
 }
 
 export class JSXTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): JSXTreeNodeElement {
+    return new JSXTreeNodeElement(element);
+  }
   getSource(): Source | null {
     const dataId = this.element.dataset.locatorjsId;
     const dataPath = this.element.dataset.locatorjs;

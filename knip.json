@@ -10,7 +10,7 @@
     "unresolved"
   ],
   "treatConfigHintsAsErrors": true,
-  "ignoreWorkspaces": ["test-apps/**", "packages/locatorjs"],
+  "ignoreWorkspaces": ["test-apps/**"],
   "ignoreFiles": ["**/tests/fixtures/**"],
   "ignoreDependencies": ["archiver"],
   "workspaces": {

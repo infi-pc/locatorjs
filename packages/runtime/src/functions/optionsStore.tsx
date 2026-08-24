@@ -22,6 +22,7 @@ import {
   Targets,
   WriteResult,
   allTargets,
+  decodeLocatorOptions,
 } from "@locator/shared";
 import { setDebugMode } from "../adapters/react/debug";
 import { getTeamLayerSignal, getTeamTargetsSignal } from "./teamLayerStore";
@@ -45,10 +46,7 @@ function readUserExtensionGlobal(): LocatorOptions | undefined {
   const raw = document.documentElement?.dataset?.locatorUserExtensionOptions;
   if (!raw) return undefined;
   try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") {
-      return parsed as LocatorOptions;
-    }
+    return decodeLocatorOptions(JSON.parse(raw)) ?? undefined;
   } catch {
     // ignore corrupt JSON
   }
@@ -138,12 +136,7 @@ export function initOptions(): OptionsStore {
   };
 
   if (typeof window !== "undefined") {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    window.enableLocator = () => {
-      store.setUserOrigin({ disabled: false });
-      return "Locator enabled";
-    };
+    window.enableLocator = () => store.setUserOrigin({ disabled: false });
   }
 
   return store;

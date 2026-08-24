@@ -68,6 +68,7 @@ describe('mountSnapshotBridge', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
+      protocolVersion: 2,
       snapshot: {
         effective: {
           bindings: [
@@ -92,7 +93,9 @@ describe('mountSnapshotBridge', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
+      protocolVersion: 2,
       reason: 'no-runtime',
+      diagnostic: undefined,
     });
   });
 
@@ -115,7 +118,9 @@ describe('mountSnapshotBridge', () => {
     vi.advanceTimersByTime(1000);
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
+      protocolVersion: 2,
       reason: 'no-runtime',
+      diagnostic: undefined,
     });
   });
 
@@ -242,7 +247,9 @@ describe('mountSnapshotBridge payload validation', () => {
     vi.advanceTimersByTime(1000);
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
+      protocolVersion: 2,
       reason: 'no-runtime',
+      diagnostic: undefined,
     });
   });
 

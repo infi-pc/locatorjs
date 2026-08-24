@@ -120,8 +120,8 @@ the e2e suite drives. Excluded from `pnpm build` and `pnpm check`.
 
 ## Tests
 
-Unit tests are colocated `*.test.ts(x)` next to the source, run by **vitest**:
-`runtime` (22 files), `ui` (11), `shared` (5), `extension` (4).
+Unit tests are colocated `*.test.ts(x)` next to the source and run by
+**vitest** in runtime, UI, shared, and extension packages.
 `packages/babel-jsx` is the one **jest** package, with fixture snapshots under
 `tests/fixtures/`.
 

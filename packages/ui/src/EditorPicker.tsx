@@ -43,6 +43,7 @@ export function EditorPicker(props: {
   targetTemplate?: string;
   disabled?: boolean;
   portalMount?: Node;
+  controlId?: string;
   /**
    * Offers a "follow the Editor setting" choice, for per-action pickers where
    * no override is the default.
@@ -140,6 +141,7 @@ export function EditorPicker(props: {
   return (
     <div class={styles.stack}>
       <Select
+        id={props.controlId}
         aria-label="Editor"
         items={items()}
         value={value()}

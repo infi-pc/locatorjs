@@ -28,6 +28,7 @@
   "permissions": ["storage"],
   "web_accessible_resources": [
     "client.bundle.js",
+    "locator-runtime-ui.chunk.js",
     "hook.bundle.js",
     "content.styles.css",
     "icon-32.png",

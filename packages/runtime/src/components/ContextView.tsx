@@ -1,8 +1,11 @@
 import type { Targets } from "@locator/shared";
 import { ParentsMenu, type ParentRow } from "@locator/ui";
 import { css } from "@locator/styled-system/css";
-import { createMemo } from "solid-js";
-import { getParentsPaths } from "../adapters/getParentsPath";
+import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import {
+  getParentsPaths,
+  getParentsPathsAsync,
+} from "../adapters/getParentsPath";
 import type { AdapterId } from "../consts";
 import { buildLink } from "../functions/buildLink";
 import { useOptions } from "../functions/optionsStore";
@@ -40,6 +43,28 @@ export function ContextView(props: {
       getParentsPaths(props.contextMenuState.target, props.adapterId)
     )
   );
+  const [asyncRows, setAsyncRows] = createSignal<ParentRow[]>();
+  const [pending, setPending] = createSignal(false);
+  createEffect(() => {
+    const target = props.contextMenuState.target;
+    const adapter = props.adapterId;
+    if (rows().length > 1 || (adapter && adapter !== "react")) return;
+    const controller = new AbortController();
+    setPending(true);
+    void getParentsPathsAsync(target, adapter, {
+      signal: controller.signal,
+      deadline: Date.now() + 4_000,
+    })
+      .then((items) => {
+        if (!controller.signal.aborted) setAsyncRows(buildParentRows(items));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setPending(false);
+      });
+    onCleanup(() => controller.abort());
+  });
+  const displayedRows = () => asyncRows() ?? rows();
 
   return (
     <div
@@ -56,7 +81,8 @@ export function ContextView(props: {
         }}
       >
         <ParentsMenu
-          rows={rows()}
+          rows={displayedRows()}
+          pending={pending()}
           autofocus
           hrefFor={(row: ParentRow) =>
             row.source

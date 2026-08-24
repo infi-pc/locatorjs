@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { extractSourceNearPosition } from "./clickSourceResolver";
+import {
+  extractComponentSourceFromChunk,
+  extractSourceNearPosition,
+} from "./clickSourceResolver";
 
 /**
  * How a JSX transform compiles `<div className="card"><span>x</span></div>`:
@@ -63,5 +66,24 @@ describe("extractSourceNearPosition - fields come from one object", () => {
     )}{ fileName: "/app/a.tsx", lineNumber: 1, columnNumber: 1 }`;
 
     expect(extractSourceNearPosition(far, 0, 0)).toBeNull();
+  });
+});
+
+describe("extractComponentSourceFromChunk", () => {
+  test("includes the delimiter after the component name in its boundary", () => {
+    expect(extractComponentSourceFromChunk(COMPONENT, "Card")).toEqual({
+      fileName: "/app/App.tsx",
+      lineNumber: 12,
+      columnNumber: 7,
+    });
+  });
+
+  test("does not confuse ordinary function calls with JSX", () => {
+    expect(
+      extractComponentSourceFromChunk(
+        `memo(Card, { fileName: "/wrong.tsx", lineNumber: 9, columnNumber: 1 })`,
+        "Card"
+      )
+    ).toBeNull();
   });
 });

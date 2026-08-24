@@ -1,5 +1,7 @@
 import { canonicalModifiers } from "./modifiers";
+import { LOCATOR_OPTION_KEYS } from "./optionsCodec";
 import type { Targets } from "./targets";
+import { isSafeTargetTemplate } from "./targetTemplate";
 
 export type PromptApp = "cursor" | "windsurf";
 
@@ -211,7 +213,7 @@ export function resolve(
       }
     }
 
-    for (const rawKey of Object.keys(source) as (keyof LocatorOptions)[]) {
+    for (const rawKey of LOCATOR_OPTION_KEYS) {
       const value = source[rawKey];
       if (value === undefined) continue;
       (effective as Record<string, unknown>)[rawKey] = value;
@@ -298,7 +300,7 @@ export type ResolvedTarget =
       kind: "fallback";
       id: string;
       url: string;
-      reason: "unknown-id" | "none-selected" | "empty";
+      reason: "unknown-id" | "none-selected" | "empty" | "unsafe-template";
     };
 
 export function resolveTarget(
@@ -306,7 +308,18 @@ export function resolveTarget(
   targets: Targets
 ): ResolvedTarget {
   if (effective.targetTemplate) {
-    return { kind: "template", url: effective.targetTemplate };
+    if (isSafeTargetTemplate(effective.targetTemplate)) {
+      return { kind: "template", url: effective.targetTemplate };
+    }
+    const firstEntry = Object.entries(targets)[0];
+    return firstEntry
+      ? {
+          kind: "fallback",
+          id: firstEntry[0],
+          url: firstEntry[1].url,
+          reason: "unsafe-template",
+        }
+      : { kind: "fallback", id: "", url: "", reason: "empty" };
   }
   const selectedTarget = effective.targetId
     ? targets[effective.targetId]

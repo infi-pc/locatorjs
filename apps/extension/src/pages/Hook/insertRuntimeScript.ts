@@ -12,7 +12,7 @@ export function insertRuntimeScript() {
 
   function sendStatusMessage(message: string) {
     document.head.dataset.locatorHookStatusMessage = message;
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- injection failure must be diagnosable from the page console.
     console.warn(`[locatorjs]: ${message}`);
   }
 

@@ -23,14 +23,42 @@ async function enableDebug(page: Page) {
   });
 }
 
-async function getLastResolvedFile(page: Page): Promise<string | null> {
+type ResolvedSource = {
+  fileName: string;
+  lineNumber: number;
+  columnNumber?: number;
+};
+
+async function configureEditor(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "LOCATOR_USER_OPTIONS",
+      JSON.stringify({
+        editor: { targetId: "vscode" },
+        uiState: {
+          welcomeScreenDismissed: true,
+          onboarding: { dismissed: true, step: "done" },
+        },
+      })
+    );
+    window.open = ((url?: string | URL) => {
+      (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl =
+        String(url);
+      return null;
+    }) as typeof window.open;
+  });
+}
+
+async function getLastResolvedSource(
+  page: Page
+): Promise<ResolvedSource | null> {
   const history = await page.evaluate(
     () => (window as any).__LOCATORJS_DEBUG_HISTORY__
   );
   if (!Array.isArray(history)) return null;
   const withSource = history.filter((h: any) => h?.source?.fileName);
   if (withSource.length === 0) return null;
-  return withSource[withSource.length - 1].source.fileName as string;
+  return withSource[withSource.length - 1].source as ResolvedSource;
 }
 
 // Permissive assertion: file is resolved to somewhere in the app's source tree
@@ -39,29 +67,72 @@ async function getLastResolvedFile(page: Page): Promise<string | null> {
 // verify the resolver stayed within the user's code.
 async function expectFileInAppSource(page: Page, appPath: RegExp) {
   await expect
-    .poll(() => getLastResolvedFile(page), { timeout: ASYNC_TIMEOUT })
+    .poll(
+      () => getLastResolvedSource(page).then((source) => source?.fileName),
+      {
+        timeout: ASYNC_TIMEOUT,
+      }
+    )
     .toMatch(appPath);
+}
+
+async function expectExactUserSource(
+  page: Page,
+  expected: { file: RegExp; line: number }
+) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (window as Window & { __locatorOpenedUrl?: string })
+              .__locatorOpenedUrl
+        ),
+      { timeout: ASYNC_TIMEOUT }
+    )
+    .toMatch(/\.tsx:\d+:\d+$/);
+
+  const openedUrl = await page.evaluate(
+    () =>
+      (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl ??
+      ""
+  );
+  expect(openedUrl).not.toMatch(
+    /(?:node_modules|webpack-internal:|react-jsx-dev-runtime|\/_next\/|\/\.next\/)/
+  );
+  expect(decodeURIComponent(openedUrl).replace(/:\d+:\d+$/, "")).toMatch(
+    expected.file
+  );
+  expect(openedUrl).toMatch(new RegExp(`:${expected.line}:\\d+$`));
 }
 
 test.describe("Next.js 16 + Webpack (React 19)", () => {
   test("heading", async ({ page }) => {
+    await configureEditor(page);
     await page.goto(projects.next16);
     await expectLocatorReady(page);
     await enableDebug(page);
 
     await locateElement(page, "text=To get started");
 
-    await expectWelcome(page);
+    await expectExactUserSource(page, {
+      file: /test-apps\/next-16\/app\/page\.tsx$/,
+      line: 8,
+    });
   });
 
   test("anchor element", async ({ page }) => {
+    await configureEditor(page);
     await page.goto(projects.next16);
     await expectLocatorReady(page);
     await enableDebug(page);
 
     await locateElement(page, "text=Deploy Now");
 
-    await expectWelcome(page);
+    await expectExactUserSource(page, {
+      file: /test-apps\/next-16\/app\/page\.tsx$/,
+      line: 30,
+    });
   });
 });
 

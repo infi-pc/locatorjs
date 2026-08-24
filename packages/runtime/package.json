@@ -11,7 +11,7 @@
     },
     "./dist/*": "./dist/*"
   },
-  "version": "0.5.1",
+  "version": "2.0.0",
   "scripts": {
     "test": "vitest run",
     "test:dev": "vitest watch",
@@ -40,6 +40,7 @@
     "solid-js": "^1.9.12"
   },
   "devDependencies": {
+    "@locator/dev-config": "workspace:^",
     "@babel/cli": "^7.28.6",
     "@babel/core": "^7.29.0",
     "@pandacss/dev": "^1.11.4",

@@ -79,6 +79,7 @@ test("legacy mouseModifiers still dispatch and migrate to bindings", async ({
     },
     {
       options: {
+        editor: { targetId: "vscode" },
         mouseModifiers: "ctrl",
         uiState: dismissedUiState,
       },

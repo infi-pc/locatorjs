@@ -56,7 +56,7 @@ export function WelcomeScreen(props: {
   initialStep?: string;
 }) {
   const options = useOptions();
-  // eslint-disable-next-line solid/reactivity
+  // eslint-disable-next-line solid/reactivity -- the wizard intentionally snapshots its initial step.
   const requestedStep = props.initialStep;
   const savedStep = options.uiState().onboarding?.step;
   const startingStep = [requestedStep, savedStep].find(

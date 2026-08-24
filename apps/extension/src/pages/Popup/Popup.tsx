@@ -40,7 +40,8 @@ const styles = {
 };
 
 const Popup = () => {
-  const { status, snapshot, setSiteLocal } = useSyncedState();
+  const { status, snapshot, setSiteLocal, diagnostic, reloadActiveTab } =
+    useSyncedState();
   const [enableError, setEnableError] = createSignal<string>();
 
   const siteDisabled = () => !!snapshot()?.effective.disabled;
@@ -77,7 +78,11 @@ const Popup = () => {
         */}
         <div class={styles.stack}>
           <Show when={status() !== 'connected'}>
-            <NoRuntimeView />
+            <NoRuntimeView
+              reloadRequired={status() === 'reload-required'}
+              diagnostic={diagnostic()}
+              onReload={reloadActiveTab}
+            />
           </Show>
           <Show when={status() === 'connected' && siteDisabled()}>
             <div class={styles.card}>
@@ -107,9 +112,22 @@ const Popup = () => {
   );
 };
 
-function NoRuntimeView() {
+function NoRuntimeView(props: {
+  reloadRequired: boolean;
+  diagnostic?: string;
+  onReload: () => Promise<void>;
+}) {
   return (
-    <div class={styles.notice}>Page not connected — editing All sites.</div>
+    <div class={styles.notice}>
+      {props.reloadRequired
+        ? 'Reload this page to finish updating LocatorJS.'
+        : props.diagnostic ?? 'Page not connected — editing All sites.'}
+      <Show when={props.reloadRequired}>
+        <Button variant="outline" onClick={() => void props.onReload()}>
+          Reload page
+        </Button>
+      </Show>
+    </div>
   );
 }
 

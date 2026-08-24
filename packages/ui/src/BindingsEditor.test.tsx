@@ -15,7 +15,7 @@ function Harness(props: {
   onChange?: (next: Binding[] | undefined) => void;
 }) {
   // The harness intentionally captures its one-time seed value.
-  // eslint-disable-next-line solid/reactivity
+  // eslint-disable-next-line solid/reactivity -- the test harness intentionally captures its initial value.
   const initial = props.initial;
   const [value, setValue] = createSignal(
     initial ?? DEFAULT_LAYER.bindings ?? []

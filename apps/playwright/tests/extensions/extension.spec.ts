@@ -1,4 +1,4 @@
-/* eslint-disable no-empty-pattern */
+/* eslint-disable no-empty-pattern -- Playwright fixtures must be destructured to select the configured project. */
 import {
   test as base,
   expect,

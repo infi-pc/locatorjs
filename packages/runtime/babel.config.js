@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-undef
+// eslint-disable-next-line no-undef -- Babel loads this file as CommonJS.
 module.exports = (api) => {
   const isTest = api.env("test");
   return {

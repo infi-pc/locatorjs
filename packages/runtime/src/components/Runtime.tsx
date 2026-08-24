@@ -1,6 +1,7 @@
 import {
   detectSvelte,
   primaryEditorBinding,
+  actionLabel,
   type BindingAction,
 } from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
@@ -42,7 +43,7 @@ import { performAction } from "../functions/performAction";
 import { goToLinkPropsOrSetup } from "../functions/goTo";
 import { idsOnPathToRoot } from "../functions/treeViewModel";
 import type { FullElementInfo } from "../adapters/adapterApi";
-import { actionLabel } from "@locator/ui";
+import { PortalMountProvider } from "@locator/ui";
 import { resolveEventTarget } from "../functions/resolveEventTarget";
 import {
   observeShadowRoots,
@@ -53,6 +54,7 @@ import {
   listenToFrameModifiers,
   modifiersFromEvent,
 } from "../functions/crossFrameModifiers";
+import generatedStyles from "../_generated_styles";
 
 const styles = {
   dialogBackdrop: css({
@@ -107,6 +109,23 @@ function Runtime(props: {
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
     null
   );
+  const [resolutionPending, setResolutionPending] = createSignal(false);
+  let resolutionSequence = 0;
+  let activeResolution: { id: number; controller: AbortController } | undefined;
+
+  const cancelResolution = () => {
+    activeResolution?.controller.abort();
+    activeResolution = undefined;
+    setResolutionPending(false);
+  };
+  let previousTryAction: BindingAction | null | undefined;
+  createEffect(() => {
+    const nextTryAction = props.tryAction;
+    if (nextTryAction !== previousTryAction) {
+      previousTryAction = nextTryAction;
+      cancelResolution();
+    }
+  });
 
   const [dialog, setDialog] = createSignal<
     | ["no-link"]
@@ -146,9 +165,12 @@ function Runtime(props: {
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    if (e.key === "Escape" && props.tryAction) {
-      props.setTryAction(null);
-      return;
+    if (e.key === "Escape") {
+      cancelResolution();
+      if (props.tryAction) {
+        props.setTryAction(null);
+        return;
+      }
     }
     setActivationHeld(matchesActivation(bindings(), e));
     broadcastModifiers(modifiersFromEvent(e));
@@ -168,6 +190,9 @@ function Runtime(props: {
       if (isLocatorsOwnElement(target)) {
         return;
       }
+      // A click is the unit of intent. Even a synchronously resolvable second
+      // click supersedes an older async operation.
+      cancelResolution();
 
       setActivationHeld(matchesActivation(bindings(), e));
 
@@ -267,13 +292,38 @@ function Runtime(props: {
 
       // Try async resolution (source-map, Turbopack, etc.)
       const tryActionAtClick = props.tryAction;
+      const operation = {
+        id: ++resolutionSequence,
+        controller: new AbortController(),
+      };
+      activeResolution = operation;
+      setResolutionPending(true);
+      const context = {
+        signal: operation.controller.signal,
+        deadline: Date.now() + 4_000,
+      };
       if (!elInfo?.thisElement.link) {
-        elInfo = await getElementInfoAsync(target, adapterId());
+        try {
+          elInfo = await getElementInfoAsync(target, adapterId(), context);
+        } catch (error) {
+          if (!(error instanceof DOMException && error.name === "AbortError")) {
+            throw error;
+          }
+          elInfo = null;
+        }
       }
 
       // Resolution can take a while, and Esc or a mode change during it means
       // the user no longer wants this action to fire.
-      if (props.tryAction !== tryActionAtClick) return;
+      if (
+        activeResolution?.id !== operation.id ||
+        operation.controller.signal.aborted ||
+        props.tryAction !== tryActionAtClick
+      ) {
+        return;
+      }
+      activeResolution = undefined;
+      setResolutionPending(false);
 
       if (elInfo) {
         const linkProps = elInfo.thisElement.link;
@@ -291,7 +341,7 @@ function Runtime(props: {
             if (props.tryAction && succeeded) props.setTryAction(null);
           }
         } else {
-          // eslint-disable-next-line no-console
+          // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
           console.error(
             "[LocatorJS]: Could not find link: Element info: ",
             elInfo
@@ -299,7 +349,7 @@ function Runtime(props: {
           setDialog(["no-link"]);
         }
       } else {
-        // eslint-disable-next-line no-console
+        // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
         console.error(
           "[LocatorJS]: Could not find element info. Element: ",
           target
@@ -360,6 +410,7 @@ function Runtime(props: {
   });
 
   onCleanup(() => {
+    cancelResolution();
     document.removeEventListener("keyup", keyUpListener as EventListener);
     document.removeEventListener("keydown", keyDownListener as EventListener);
     document.removeEventListener(
@@ -528,6 +579,11 @@ function Runtime(props: {
           component. Esc to cancel.
         </div>
       ) : null}
+      {resolutionPending() ? (
+        <div class={styles.tryPill} role="status">
+          Finding source… Esc to cancel.
+        </div>
+      ) : null}
       {uiMode()[0] === "disable-confirmation" ? (
         <DisableConfirmation
           onClose={() => {
@@ -614,12 +670,24 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
 }
 
 export function initRender(solidLayer: HTMLDivElement) {
+  const root = solidLayer.getRootNode();
+  if (
+    root instanceof ShadowRoot &&
+    !root.getElementById("locatorjs-feature-style")
+  ) {
+    const featureStyle = document.createElement("style");
+    featureStyle.id = "locatorjs-feature-style";
+    featureStyle.textContent = generatedStyles;
+    root.prepend(featureStyle);
+  }
   render(
     () => (
       <EnvironmentProvider value={() => solidLayer.getRootNode() as ShadowRoot}>
-        <OptionsProvider>
-          <RuntimeWrapper portalMount={solidLayer} />
-        </OptionsProvider>
+        <PortalMountProvider mount={solidLayer}>
+          <OptionsProvider>
+            <RuntimeWrapper portalMount={solidLayer} />
+          </OptionsProvider>
+        </PortalMountProvider>
       </EnvironmentProvider>
     ),
     solidLayer

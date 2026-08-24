@@ -59,6 +59,9 @@ export function getElementInfo(found: VueElement): FullElementInfo | null {
 }
 
 export class VueTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): VueTreeNodeElement {
+    return new VueTreeNodeElement(element);
+  }
   getSource(): Source | null {
     const element = this.element as VueElement;
     const parentComponent = element.__vueParentComponent;

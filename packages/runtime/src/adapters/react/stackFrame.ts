@@ -66,6 +66,20 @@ export function isLocatorFrame(fileName: string): boolean {
 }
 
 /**
+ * Locations emitted by a bundler rather than an original user source file.
+ * Keep this predicate at the stack boundary so every resolver strategy applies
+ * exactly the same acceptance rule.
+ */
+export function isCompiledSourceLocation(fileName: string): boolean {
+  const normalized = fileName.replace(/\\/g, "/");
+  return (
+    /^(?:https?:|webpack(?:-internal)?:|blob:)/i.test(normalized) ||
+    normalized.includes("/_next/") ||
+    normalized.includes("/.next/")
+  );
+}
+
+/**
  * Clean up a stack frame file path.
  * `about://React/Server/file:///path` -> `/path`, and chunk query params go.
  */

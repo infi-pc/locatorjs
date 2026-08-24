@@ -97,3 +97,6 @@ export * from "./sourcePath";
 export * from "./bindingEditorModel";
 export * from "./migrateLegacyStorage";
 export * from "./patchCodec";
+export * from "./optionsCodec";
+export * from "./actionLabel";
+export * from "./targetTemplate";

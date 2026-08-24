@@ -7,10 +7,11 @@ import {
   type LocatorOptions,
   type Targets,
   type WriteResult,
+  type WriteResponse,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { RotateCcw } from "lucide-solid";
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createSignal, createUniqueId } from "solid-js";
 import { Field } from "./Field";
 import { FoldableSection } from "./FoldableSection";
 import { IconButton } from "./IconButton";
@@ -110,9 +111,9 @@ export function AdvancedSettings(props: {
             ? "Could not save because storage is full."
             : "Could not save this setting.",
       }));
-      return false;
+      return result;
     }
-    return true;
+    return result;
   };
 
   return (
@@ -225,14 +226,16 @@ function TextSetting(
     fieldKey: "projectPath" | "tmuxSession";
     placeholder?: string;
     error?: string;
-    write: (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
+    write: (patch: Partial<LocatorOptions>) => WriteResponse;
   }
 ) {
+  const controlId = `locator-text-${createUniqueId()}`;
   const state = () =>
     layerFieldState(props.layers, props.scope.layer, props.fieldKey);
   return (
     <Field
       label={props.label}
+      controlId={controlId}
       meta={
         <FieldMeta
           {...props}
@@ -242,6 +245,7 @@ function TextSetting(
       error={props.error}
     >
       <TextInput
+        id={controlId}
         value={(state().value as string | undefined) ?? ""}
         placeholder={props.placeholder}
         onChange={(event) =>
@@ -257,7 +261,7 @@ function TextSetting(
 function ReplacePathField(
   props: CommonProps & {
     error?: string;
-    write: (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
+    write: (patch: Partial<LocatorOptions>) => WriteResponse;
   }
 ) {
   const state = () =>
@@ -313,7 +317,7 @@ function BooleanSetting(
     toChecked?: (value: unknown) => boolean;
     toValue?: (checked: boolean) => LocatorOptions[keyof LocatorOptions];
     error?: string;
-    write: (patch: Partial<LocatorOptions>) => void | Promise<boolean>;
+    write: (patch: Partial<LocatorOptions>) => WriteResponse;
   }
 ) {
   const state = () =>

@@ -10,7 +10,7 @@ function getFiberFromElement(element: HTMLElement): Fiber | null {
   // React 17+ uses __reactFiber$ prefix
   const fiberKey = keys.find((key) => key.startsWith("__reactFiber$"));
   if (fiberKey) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React stores fibers under generated private DOM keys.
     return (element as any)[fiberKey] as Fiber;
   }
   // React 16 uses __reactInternalInstance$ prefix
@@ -18,7 +18,7 @@ function getFiberFromElement(element: HTMLElement): Fiber | null {
     key.startsWith("__reactInternalInstance$")
   );
   if (internalKey) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React stores fibers under generated private DOM keys.
     return (element as any)[internalKey] as Fiber;
   }
   return null;
@@ -35,7 +35,7 @@ export function findFiberByHtmlElement(
   if (renderersValues) {
     for (const renderer of Array.from(renderersValues) as Renderer[]) {
       if (renderer.findFiberByHostInstance) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React stores fibers under generated private DOM keys.
         const found = renderer.findFiberByHostInstance(target as any);
         if (found) {
           if (shouldHaveDebugSource) {

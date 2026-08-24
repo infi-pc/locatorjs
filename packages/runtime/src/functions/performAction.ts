@@ -1,5 +1,6 @@
 import {
   needsEditorSetup,
+  hasEditorOverride,
   resolveBindingTarget,
   resolveSourcePath,
   type BindingAction,
@@ -42,7 +43,11 @@ export async function performAction(
         targets,
         options.effective().editor
       );
-      if (needsEditorSetup(target)) {
+      if (
+        needsEditorSetup(target) ||
+        (!hasEditorOverride(action) &&
+          options.provenance?.().editor === "default")
+      ) {
         context.requestEditorSetup?.(link);
         return false;
       }

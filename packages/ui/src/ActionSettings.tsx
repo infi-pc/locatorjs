@@ -44,6 +44,12 @@ export type ActionSettingsScope = {
   layer: LocatorLayer;
   label: string;
   write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  /**
+   * Optional trusted layer set used while editing this scope. This lets an
+   * extension keep page-provided team/site layers visible in SettingsSources
+   * without ever using those untrusted values as the base of a global write.
+   */
+  editLayers?: Partial<Record<LocatorLayer, LocatorOptions>>;
   disabled?: boolean;
   disabledReason?: string;
   note?: string;
@@ -188,11 +194,14 @@ export function ActionSettings(props: {
   const activeScope = () =>
     props.scopes.find((scope) => scope.layer === currentLayer()) ??
     props.scopes[0];
-  const scopedLayers = () => layersThroughScope(props.layers, currentLayer());
+  const editableLayers = () => activeScope()?.editLayers ?? props.layers;
+  const scopedLayers = () =>
+    layersThroughScope(editableLayers(), currentLayer());
   const snapshot = () => resolve(normalizedLayers(scopedLayers()));
   const bindings = () => snapshot().effective.bindings ?? [];
   const canInherit = () =>
-    normalizeLayer(props.layers[currentLayer()] ?? {}).bindings !== undefined;
+    normalizeLayer(editableLayers()[currentLayer()] ?? {}).bindings !==
+    undefined;
   const selection = createMemo(() => {
     const state = inspectorState();
     return state?.kind === "selected" ? state.selection : undefined;

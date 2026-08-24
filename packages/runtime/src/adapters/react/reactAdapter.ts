@@ -24,6 +24,15 @@ import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { registerDiagnose } from "./debug";
 import { resolveSourceFromFiber } from "./clickSourceResolver";
+import type { SourceResolutionContext } from "./sourceMapResolver";
+
+// Tree wrappers are rebuilt whenever expansion or async-resolution state
+// changes. Cache successful async results by the stable DOM element so the
+// next wrapper's synchronous getters can expose them to the view model. Misses
+// deliberately remain retryable, matching the fiber resolver's positive-only
+// cache contract.
+const asyncElementSources = new WeakMap<HTMLElement, Source>();
+const asyncComponents = new WeakMap<HTMLElement, TreeNodeComponent>();
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
@@ -76,7 +85,12 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
 }
 
 export class ReactTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): ReactTreeNodeElement {
+    return new ReactTreeNodeElement(element);
+  }
   getSource(): Source | null {
+    const resolved = asyncElementSources.get(this.element);
+    if (resolved) return resolved;
     const fiber = findFiberByHtmlElement(this.element, false);
     if (fiber) {
       const result = findDebugSource(fiber);
@@ -86,7 +100,19 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
     }
     return null;
   }
+  async getSourceAsync(
+    context?: SourceResolutionContext
+  ): Promise<Source | null> {
+    const fiber = findFiberByHtmlElement(this.element, false);
+    const source = fiber
+      ? (await findDebugSourceAsync(fiber, context))?.source ?? null
+      : null;
+    if (source) asyncElementSources.set(this.element, source);
+    return source;
+  }
   getComponent(): TreeNodeComponent | null {
+    const resolved = asyncComponents.get(this.element);
+    if (resolved) return resolved;
     const fiber = findFiberByHtmlElement(this.element, false);
     const componentFiber = fiber?._debugOwner;
 
@@ -109,6 +135,21 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
       };
     }
     return null;
+  }
+  async getComponentAsync(
+    context?: SourceResolutionContext
+  ): Promise<TreeNodeComponent | null> {
+    const fiber = findFiberByHtmlElement(this.element, false)?._debugOwner;
+    if (!fiber) return null;
+    const source =
+      findOwnDebugSource(fiber) ??
+      (await resolveSourceFromFiber(fiber, context));
+    const component = {
+      label: getUsableName(fiber),
+      callLink: source ?? undefined,
+    };
+    if (source) asyncComponents.set(this.element, component);
+    return component;
   }
 }
 
@@ -151,12 +192,40 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
   return pathItems;
 }
 
+export async function getParentsPathsAsync(
+  element: HTMLElement,
+  context?: SourceResolutionContext
+): Promise<ParentPathItem[]> {
+  const fiber = findFiberByHtmlElement(element, false);
+  if (!fiber) return [];
+  const items: ParentPathItem[] = [];
+  const seen = new Set<Fiber>();
+  let current: Fiber | null = fiber;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    const owner: Fiber | null = current._debugOwner || null;
+    const source =
+      findOwnDebugSource(current) ??
+      (await resolveSourceFromFiber(current, context));
+    const label = getFiberLabel(current, source ?? undefined);
+    items.push({
+      title: label.label,
+      link: label.link,
+      component: owner ? getUsableName(owner) : undefined,
+      kind: "call-site",
+    });
+    current = owner;
+  }
+  return items;
+}
+
 /**
  * Async version of getElementInfo
  * When sync cannot get source, try source-map resolution
  */
 export async function getElementInfoAsync(
-  found: HTMLElement
+  found: HTMLElement,
+  context?: SourceResolutionContext
 ): Promise<FullElementInfo | null> {
   const labels: LabelData[] = [];
 
@@ -169,7 +238,7 @@ export async function getElementInfoAsync(
 
     // Use async method to get source
     for (const f of allPotentialComponentFibers) {
-      const fiberWithSource = await findDebugSourceAsync(f);
+      const fiberWithSource = await findDebugSourceAsync(f, context);
       if (fiberWithSource) {
         const label = getFiberLabel(
           fiberWithSource.fiber,
@@ -180,7 +249,7 @@ export async function getElementInfoAsync(
     }
 
     // Get current element's source (async)
-    const currentSource = await findDebugSourceAsync(fiber);
+    const currentSource = await findDebugSourceAsync(fiber, context);
     const thisLabel = getFiberLabel(fiber, currentSource?.source);
 
     if (isStyledElement(fiber)) {
@@ -220,7 +289,7 @@ async function diagnoseAllElements(): Promise<void> {
 
   const rows: DiagnoseRow[] = [];
 
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan table.
   console.log(
     `%c[LocatorJS-diag] Scanning ${allElements.length} elements...`,
     "color: #FF9800; font-weight: bold"
@@ -300,12 +369,12 @@ async function diagnoseAllElements(): Promise<void> {
     });
   }
 
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan table.
   console.log(
     `%c[LocatorJS-diag] Results:`,
     "color: #4CAF50; font-weight: bold"
   );
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan table.
   console.table(rows);
 
   // Summary
@@ -316,7 +385,7 @@ async function diagnoseAllElements(): Promise<void> {
       r.asyncSource !== "-" &&
       r.asyncSource !== "error"
   );
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan summary.
   console.log(
     `%c[LocatorJS-diag] Summary: ${rows.length} elements, ${withFiber.length} with fiber, ${resolved.length} resolved`,
     "color: #2196F3; font-weight: bold"

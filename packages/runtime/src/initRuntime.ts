@@ -1,5 +1,4 @@
 import { fontFamily } from "./consts";
-import generatedStyles from "./_generated_styles";
 import { MAX_ZINDEX } from "./index";
 import { installShadowRootTracking } from "./functions/shadowRoots";
 
@@ -35,7 +34,6 @@ export function initRuntime() {
       .locatorjs-tree-node:hover {
         background-color: #eee;
       }
-      ${generatedStyles}
     `;
 
   const globalStyle = document.createElement("style");
@@ -66,17 +64,7 @@ export function initRuntime() {
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
 
-  // This weird import is needed because:
-  // SSR React (Next.js) breaks when importing any SolidJS compiled file, so the import has to be conditional
-  // Browser Extension breaks when importing with "import()"
-  // Vite breaks when importing with "require()"
-  if (typeof require !== "undefined") {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { initRender } = require("./components/Runtime");
-    initRender(layer);
-  } else {
-    import("./components/Runtime").then(({ initRender }) => {
-      initRender(layer);
-    });
-  }
+  import(
+    /* webpackChunkName: "locator-runtime-ui" */ "./components/Runtime"
+  ).then(({ initRender }) => initRender(layer));
 }

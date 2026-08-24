@@ -117,10 +117,10 @@ describe("optionsStore integration", () => {
     await options.setUserOrigin({ disabled: true });
     expect(options.effective().disabled).toBe(true);
 
-    type WinWithEnable = { enableLocator?: () => string };
-    const result = (window as unknown as WinWithEnable).enableLocator?.();
+    type WinWithEnable = { enableLocator?: () => Promise<{ ok: boolean }> };
+    const result = await (window as unknown as WinWithEnable).enableLocator?.();
 
-    expect(result).toBe("Locator enabled");
+    expect(result).toEqual({ ok: true });
     expect(options.effective().disabled).toBe(false);
     expect(options.provenance().disabled).toBe("user-origin");
   });

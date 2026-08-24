@@ -1,10 +1,14 @@
 import { Source, Fiber, RendererInterface } from "@locator/shared";
-import { resolveOriginalPosition, fileUrlToPath } from "./sourceMapResolver";
+import {
+  resolveOriginalPosition,
+  fileUrlToPath,
+  throwIfResolutionCancelled,
+  type SourceResolutionContext,
+} from "./sourceMapResolver";
 import {
   cleanStackFileName,
-  isInternalFrame,
-  parseStackFrame,
-  type StackFrame,
+  firstUserFrame,
+  isCompiledSourceLocation,
 } from "./stackFrame";
 import { createTtlCache } from "./ttlCache";
 import {
@@ -19,15 +23,6 @@ import {
 /**
  * Check if a fileName looks like a compiled chunk (not an original source file)
  */
-function isChunkUrl(fileName: string): boolean {
-  return (
-    fileName.startsWith("http://") ||
-    fileName.startsWith("https://") ||
-    fileName.includes("/_next/") ||
-    fileName.includes(".next/dev/server/chunks/")
-  );
-}
-
 /**
  * Inferred project roots. `undefined` means "not tried yet".
  *
@@ -78,7 +73,10 @@ function bestRoot(candidates: string[]): string | undefined {
 }
 
 /** Resolve Turbopack's `[project]/` prefix to an absolute path. */
-async function resolveProjectPrefix(fileName: string): Promise<string> {
+async function resolveProjectPrefix(
+  fileName: string,
+  context?: SourceResolutionContext
+): Promise<string> {
   if (!fileName.startsWith("[project]/")) return fileName;
 
   const relativePath = fileName.slice("[project]/".length);
@@ -88,14 +86,13 @@ async function resolveProjectPrefix(fileName: string): Promise<string> {
   }
   if (Date.now() < turbopackRootRetryAfter) return fileName;
 
-  const scripts = Array.from(
-    document.querySelectorAll('script[src*="/_next/static/chunks"]')
-  ) as HTMLScriptElement[];
+  const scripts = candidateChunkUrls(context);
 
   const candidates: string[] = [];
-  for (const script of scripts) {
+  for (const scriptUrl of scripts) {
+    throwIfResolutionCancelled(context);
     try {
-      const res = await fetch(script.src + ".map");
+      const res = await boundedFetch(scriptUrl + ".map", context);
       if (!res.ok) continue;
       const map = await res.json();
 
@@ -146,7 +143,10 @@ type DevToolsHookWithInterfaces = {
  * instance of a component. Two `<Row/>`s rendered on different lines both
  * opened whichever one was clicked first.
  */
-const componentSourceCache = new WeakMap<Fiber, Source | null>();
+let componentSourceCache = new WeakMap<
+  Fiber,
+  { source: Source; expiresAt: number }
+>();
 
 /**
  * Fetched chunk text. Bounded and short-lived: this holds whole JS bundles,
@@ -159,30 +159,52 @@ const chunkCodeCache = createTtlCache<string>(CHUNK_TTL_MS, MAX_CACHED_CHUNKS);
 /**
  * Get all chunk codes (with caching)
  */
-async function getAllChunkCodes(): Promise<string[]> {
-  const scripts = Array.from(
-    document.querySelectorAll('script[src*="/_next/static/chunks"]')
-  ) as HTMLScriptElement[];
+function candidateChunkUrls(context?: SourceResolutionContext): string[] {
+  const urls = context?.candidateChunkUrls ?? [];
+  return [...new Set(urls)].filter((url) => isCompiledSourceLocation(url));
+}
 
-  const codes: string[] = [];
-  for (const script of scripts) {
-    const src = script.src;
-    if (!src) continue;
-
-    let code = chunkCodeCache.get(src);
-    if (code === undefined) {
-      try {
-        const res = await fetch(src);
-        if (!res.ok) continue;
-        code = await res.text();
-        chunkCodeCache.set(src, code);
-      } catch {
-        continue;
-      }
-    }
-    codes.push(code);
+async function boundedFetch(
+  url: string,
+  context?: SourceResolutionContext
+): Promise<Response> {
+  throwIfResolutionCancelled(context);
+  const controller = new AbortController();
+  const remaining = context
+    ? Math.max(0, context.deadline - Date.now())
+    : 4_000;
+  const timeout = window.setTimeout(() => controller.abort(), remaining);
+  const abort = () => controller.abort();
+  context?.signal.addEventListener("abort", abort, { once: true });
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+    context?.signal.removeEventListener("abort", abort);
   }
-  return codes;
+}
+
+async function getCandidateChunkCodes(
+  context?: SourceResolutionContext
+): Promise<string[]> {
+  const urls = candidateChunkUrls(context);
+  const codes = await Promise.all(
+    urls.slice(0, 4).map(async (src) => {
+      const cached = chunkCodeCache.get(src);
+      if (cached !== undefined) return cached;
+      try {
+        const response = await boundedFetch(src, context);
+        if (!response.ok) return null;
+        const code = await response.text();
+        throwIfResolutionCancelled(context);
+        chunkCodeCache.set(src, code);
+        return code;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return codes.filter((code): code is string => code !== null);
 }
 
 /**
@@ -285,20 +307,17 @@ function hasJsxCallBefore(code: string, index: number, name: string): boolean {
 async function extractSourceFromTurbopackChunksForElement(
   tagName: string,
   className?: string,
-  id?: string
+  id?: string,
+  context?: SourceResolutionContext
 ): Promise<Source | null> {
   if (!className && !id) return null;
 
   try {
-    const codes = await getAllChunkCodes();
+    const codes = await getCandidateChunkCodes(context);
 
     const searchPatterns: string[] = [];
     if (id) searchPatterns.push(id);
-    if (className) {
-      searchPatterns.push(
-        ...className.split(/\s+/).filter((item) => item.length > 2)
-      );
-    }
+    if (className) searchPatterns.push(className);
     if (searchPatterns.length === 0) return null;
 
     for (const code of codes) {
@@ -334,28 +353,15 @@ async function extractSourceFromTurbopackChunksForElement(
  * which is exactly why the result is no longer memoised under the bare name.
  */
 async function extractSourceFromTurbopackChunks(
-  componentName: string
+  componentName: string,
+  context?: SourceResolutionContext
 ): Promise<Source | null> {
   try {
-    const codes = await getAllChunkCodes();
+    const codes = await getCandidateChunkCodes(context);
 
     for (const code of codes) {
-      let searchIndex = 0;
-      while (searchIndex < code.length) {
-        const callIndex = code.indexOf(componentName, searchIndex);
-        if (callIndex === -1) break;
-
-        const afterName = callIndex + componentName.length;
-        if (
-          code.startsWith(",", afterName) &&
-          hasJsxCallBefore(code, afterName, componentName)
-        ) {
-          const source = extractSourceNearPosition(code, callIndex, 0);
-          if (source) return source;
-        }
-
-        searchIndex = callIndex + 1;
-      }
+      const source = extractComponentSourceFromChunk(code, componentName);
+      if (source) return source;
     }
 
     return null;
@@ -364,11 +370,34 @@ async function extractSourceFromTurbopackChunks(
   }
 }
 
+/** Pure single-chunk scanner used by the bounded fallback and its tests. */
+export function extractComponentSourceFromChunk(
+  code: string,
+  componentName: string
+): Source | null {
+  let searchIndex = 0;
+  while (searchIndex < code.length) {
+    const callIndex = code.indexOf(componentName, searchIndex);
+    if (callIndex === -1) break;
+    const afterName = callIndex + componentName.length;
+    if (
+      code.startsWith(",", afterName) &&
+      hasJsxCallBefore(code, afterName + 1, componentName)
+    ) {
+      const source = extractSourceNearPosition(code, callIndex, 0);
+      if (source) return source;
+    }
+    searchIndex = callIndex + 1;
+  }
+  return null;
+}
+
 /** Drops cached chunk text immediately, ahead of the TTL. */
 export function clearTurbopackCache(): void {
   chunkCodeCache.clear();
   turbopackProjectRoot = undefined;
   nextjsAppRoot = undefined;
+  componentSourceCache = new WeakMap();
 }
 
 /**
@@ -378,7 +407,7 @@ function getFirstRendererInterface(): {
   rendererID: number;
   rendererInterface: RendererInterface;
 } | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React DevTools exposes version-specific private fields.
   const hook = (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__ as
     | DevToolsHookWithInterfaces
     | undefined;
@@ -503,7 +532,7 @@ export function getSourceViaRendererInterface(
   } catch (e) {
     // Fail silently, fall back to other methods
     if (process.env.NODE_ENV === "development") {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- debug mode deliberately emits resolver diagnostics.
       console.debug("[LocatorJS] getSourceViaRendererInterface error:", e);
     }
   }
@@ -560,7 +589,7 @@ export function getSourceViaRendererInterfaceByFiber(
     }
   } catch (e) {
     if (process.env.NODE_ENV === "development") {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- debug mode deliberately emits resolver diagnostics.
       console.debug(
         "[LocatorJS] getSourceViaRendererInterfaceByFiber error:",
         e
@@ -603,7 +632,7 @@ function extractSourceFromFunctionBody(funcStr: string): Source | null {
  * Extract stack info from React 19+ _debugInfo
  */
 function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
   const fiberAny = fiber as any;
 
   if (!fiberAny._debugInfo || !Array.isArray(fiberAny._debugInfo)) {
@@ -613,7 +642,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
   for (const info of fiberAny._debugInfo) {
     // React Server Components stack info
     if (info.stack && typeof info.stack === "string") {
-      const frame = firstFrameInStack(info.stack);
+      const frame = firstUserFrame(info.stack);
       if (frame) {
         return {
           fileName: frame.fileName,
@@ -644,7 +673,7 @@ function extractSourceFromFunctionMeta(type: unknown): Source | null {
     return null;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
   const typeAny = type as any;
 
   // Check various possible source properties
@@ -676,7 +705,7 @@ function extractSourceFromFunctionMeta(type: unknown): Source | null {
  * Try to get source info from React DevTools hook
  */
 function getSourceFromDevTools(fiber: Fiber): Source | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
   const hook = (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__;
   if (!hook) {
     return null;
@@ -711,23 +740,12 @@ interface DebugStackResult {
   methodName: string;
 }
 
-/** The first frame in a stack string that is not React or LocatorJS internals. */
-function firstFrameInStack(stack: string): StackFrame | null {
-  for (const line of stack.split("\n")) {
-    if (isInternalFrame(line)) continue;
-    const frame = parseStackFrame(line);
-    if (!frame || isInternalFrame(frame.fileName)) continue;
-    return frame;
-  }
-  return null;
-}
-
 /**
  * Parse Fiber's `_debugStack` (React 19 dev mode), which holds an Error
  * captured at the JSX call site.
  */
 function parseDebugStack(fiber: Fiber): DebugStackResult | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React DevTools renderers are version-specific private APIs.
   const fiberAny = fiber as any;
 
   const rawStack = fiberAny._debugStack || fiberAny.__debugStack;
@@ -749,7 +767,7 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
     return null;
   }
 
-  const frame = firstFrameInStack(stackStr);
+  const frame = firstUserFrame(stackStr);
   if (!frame) return null;
 
   return {
@@ -769,7 +787,8 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
  */
 async function resolveNextjsRelativePath(
   relativePath: string,
-  rawChunkUrl: string
+  rawChunkUrl: string,
+  context?: SourceResolutionContext
 ): Promise<string> {
   if (nextjsAppRoot !== undefined) {
     return nextjsAppRoot + "/" + relativePath;
@@ -778,8 +797,9 @@ async function resolveNextjsRelativePath(
 
   const candidates: string[] = [];
   try {
-    const mapRes = await fetch(
-      `/__nextjs_source-map?filename=${encodeURIComponent(rawChunkUrl)}`
+    const mapRes = await boundedFetch(
+      `/__nextjs_source-map?filename=${encodeURIComponent(rawChunkUrl)}`,
+      context
     );
     if (mapRes.ok) {
       const map = await mapRes.json();
@@ -811,12 +831,22 @@ async function resolveViaNextDevServer(
   rawFileUrl: string,
   line: number,
   column: number,
-  methodName: string
+  methodName: string,
+  context?: SourceResolutionContext
 ): Promise<Source | null> {
   try {
+    throwIfResolutionCancelled(context);
+    const controller = new AbortController();
+    const remaining = context
+      ? Math.max(0, context.deadline - Date.now())
+      : 4_000;
+    const timeout = window.setTimeout(() => controller.abort(), remaining);
+    const abort = () => controller.abort();
+    context?.signal.addEventListener("abort", abort, { once: true });
     const res = await fetch("/__nextjs_original-stack-frames", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         frames: [
           {
@@ -829,6 +859,9 @@ async function resolveViaNextDevServer(
         isServer: true,
         isAppDirectory: true,
       }),
+    }).finally(() => {
+      window.clearTimeout(timeout);
+      context?.signal.removeEventListener("abort", abort);
     });
 
     if (!res.ok) return null;
@@ -848,7 +881,7 @@ async function resolveViaNextDevServer(
     // Resolve to absolute via SSR chunk source map
     let fileName = sf.file;
     if (!fileName.startsWith("/")) {
-      fileName = await resolveNextjsRelativePath(fileName, rawFileUrl);
+      fileName = await resolveNextjsRelativePath(fileName, rawFileUrl, context);
     }
 
     return {
@@ -866,11 +899,16 @@ async function resolveViaNextDevServer(
  * Supports async source-map resolution
  */
 export async function resolveSourceFromFiber(
-  fiber: Fiber
+  fiber: Fiber,
+  context?: SourceResolutionContext
 ): Promise<Source | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
   const fiberAny = fiber as any;
   const debug = isDebugEnabled();
+  const candidateChunks = new Set(context?.candidateChunkUrls ?? []);
+  const operationContext = (): SourceResolutionContext | undefined =>
+    context && { ...context, candidateChunkUrls: [...candidateChunks] };
+  throwIfResolutionCancelled(context);
 
   // 1. Cache, keyed on this fiber -- see `componentSourceCache`.
   const cached = readCachedSource(fiber);
@@ -888,8 +926,12 @@ export async function resolveSourceFromFiber(
    * strategies below from ever running.
    */
   const accept = (source: Source, method: SourceMethodType): Source | null => {
-    if (isChunkUrl(source.fileName)) return null;
-    componentSourceCache.set(fiber, source);
+    throwIfResolutionCancelled(context);
+    if (isCompiledSourceLocation(source.fileName)) return null;
+    componentSourceCache.set(fiber, {
+      source,
+      expiresAt: Date.now() + CHUNK_TTL_MS,
+    });
     if (debug) {
       logSourceFound(method, fiber, source, true);
       logSourceComplete(true, method, source);
@@ -903,13 +945,17 @@ export async function resolveSourceFromFiber(
     const rendererSource = getSourceViaRendererInterfaceByFiber(fiber);
     if (rendererSource?.fileName) {
       const cleaned = cleanStackFileName(rendererSource.fileName);
+      if (isCompiledSourceLocation(cleaned)) candidateChunks.add(cleaned);
       const resolved =
         (await resolveOriginalPosition(
           cleaned,
           rendererSource.lineNumber,
-          rendererSource.columnNumber ?? 1
+          rendererSource.columnNumber ?? 1,
+          operationContext()
         )) ??
-        (isChunkUrl(cleaned) ? null : { ...rendererSource, fileName: cleaned });
+        (isCompiledSourceLocation(cleaned)
+          ? null
+          : { ...rendererSource, fileName: cleaned });
       const accepted =
         resolved && accept(resolved, SourceMethod.RENDERER_INTERFACE);
       if (accepted) return accepted;
@@ -926,7 +972,8 @@ export async function resolveSourceFromFiber(
         (await resolveOriginalPosition(
           debugInfoSource.fileName,
           debugInfoSource.lineNumber,
-          debugInfoSource.columnNumber ?? 1
+          debugInfoSource.columnNumber ?? 1,
+          operationContext()
         )) ?? debugInfoSource;
       const accepted = accept(resolved, SourceMethod.DEBUG_INFO);
       if (accepted) return accepted;
@@ -945,11 +992,13 @@ export async function resolveSourceFromFiber(
         methodName,
       } = debugStackResult;
 
-      if (isChunkUrl(debugStackSource.fileName)) {
+      if (isCompiledSourceLocation(debugStackSource.fileName)) {
+        candidateChunks.add(rawFileUrl);
         const resolved = await resolveOriginalPosition(
           debugStackSource.fileName,
           debugStackSource.lineNumber,
-          debugStackSource.columnNumber ?? 1
+          debugStackSource.columnNumber ?? 1,
+          operationContext()
         );
         const accepted = resolved && accept(resolved, SourceMethod.DEBUG_STACK);
         if (accepted) return accepted;
@@ -960,7 +1009,8 @@ export async function resolveSourceFromFiber(
           rawFileUrl,
           debugStackSource.lineNumber,
           debugStackSource.columnNumber ?? 1,
-          methodName
+          methodName,
+          operationContext()
         );
         const acceptedNext =
           nextResolved && accept(nextResolved, SourceMethod.DEBUG_STACK);
@@ -984,7 +1034,8 @@ export async function resolveSourceFromFiber(
         (await resolveOriginalPosition(
           metaSource.fileName,
           metaSource.lineNumber,
-          metaSource.columnNumber ?? 1
+          metaSource.columnNumber ?? 1,
+          operationContext()
         )) ?? metaSource;
       const accepted = accept(resolved, SourceMethod.FUNCTION_META);
       if (accepted) return accepted;
@@ -1001,7 +1052,8 @@ export async function resolveSourceFromFiber(
         (await resolveOriginalPosition(
           devToolsSource.fileName,
           devToolsSource.lineNumber,
-          devToolsSource.columnNumber ?? 1
+          devToolsSource.columnNumber ?? 1,
+          operationContext()
         )) ?? devToolsSource;
       const accepted = accept(resolved, SourceMethod.DEVTOOLS_RENDERERS);
       if (accepted) return accepted;
@@ -1025,7 +1077,10 @@ export async function resolveSourceFromFiber(
 
       const bodySource = extractSourceFromFunctionBody(funcStr);
       if (bodySource?.fileName) {
-        bodySource.fileName = await resolveProjectPrefix(bodySource.fileName);
+        bodySource.fileName = await resolveProjectPrefix(
+          bodySource.fileName,
+          operationContext()
+        );
         const accepted = accept(bodySource, SourceMethod.FUNCTION_BODY_JSX);
         if (accepted) return accepted;
       }
@@ -1046,11 +1101,13 @@ export async function resolveSourceFromFiber(
       const turbopackSource = await extractSourceFromTurbopackChunksForElement(
         fiberAny.type as string,
         props.className,
-        props.id
+        props.id,
+        operationContext()
       );
       if (turbopackSource) {
         turbopackSource.fileName = await resolveProjectPrefix(
-          turbopackSource.fileName
+          turbopackSource.fileName,
+          operationContext()
         );
         const accepted = accept(
           turbopackSource,
@@ -1064,11 +1121,13 @@ export async function resolveSourceFromFiber(
   } else if (componentName && componentName !== "Anonymous") {
     try {
       const turbopackSource = await extractSourceFromTurbopackChunks(
-        componentName
+        componentName,
+        operationContext()
       );
       if (turbopackSource) {
         turbopackSource.fileName = await resolveProjectPrefix(
-          turbopackSource.fileName
+          turbopackSource.fileName,
+          operationContext()
         );
         const accepted = accept(
           turbopackSource,
@@ -1081,10 +1140,6 @@ export async function resolveSourceFromFiber(
     }
   }
 
-  // 9. Nothing worked. Remember that, so the whole chain is not re-run for
-  //    this fiber on the next click.
-  componentSourceCache.set(fiber, null);
-
   return null;
 }
 
@@ -1092,11 +1147,17 @@ export async function resolveSourceFromFiber(
  * A fiber and its alternate describe the same instance across renders, so
  * either may carry the cached result. `undefined` means "not cached".
  */
-function readCachedSource(fiber: Fiber): Source | null | undefined {
-  if (componentSourceCache.has(fiber)) return componentSourceCache.get(fiber);
+function readCachedSource(fiber: Fiber): Source | undefined {
+  const direct = componentSourceCache.get(fiber);
+  if (direct) {
+    if (direct.expiresAt > Date.now()) return direct.source;
+    componentSourceCache.delete(fiber);
+  }
   const alternate = (fiber as unknown as { alternate?: Fiber }).alternate;
-  if (alternate && componentSourceCache.has(alternate)) {
-    return componentSourceCache.get(alternate);
+  const alternateEntry = alternate && componentSourceCache.get(alternate);
+  if (alternate && alternateEntry) {
+    if (alternateEntry.expiresAt > Date.now()) return alternateEntry.source;
+    componentSourceCache.delete(alternate);
   }
   return undefined;
 }
@@ -1106,6 +1167,11 @@ function readCachedSource(fiber: Fiber): Source | null | undefined {
  */
 export function getSourceFromCache(fiber: Fiber): Source | null {
   return readCachedSource(fiber) ?? null;
+}
+
+/** Test/HMR seam for all positive resolver caches. */
+export function resetSourceResolutionCaches(): void {
+  clearTurbopackCache();
 }
 
 // Note: componentSourceCache is a WeakMap which auto-GCs when keys are dereferenced.

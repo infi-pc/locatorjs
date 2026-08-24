@@ -9,6 +9,6 @@ const assetBaseUrl = assetBaseUrlFromClientUrl(clientUrl);
 
 if (assetBaseUrl) {
   // Webpack reads this assignment while bootstrapping asset modules.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- assignment is consumed by webpack's runtime loader.
   __webpack_public_path__ = assetBaseUrl;
 }

@@ -7,14 +7,8 @@ import {
   ExternalLink,
   X,
 } from "lucide-solid";
-import {
-  For,
-  Show,
-  createEffect,
-  createMemo,
-  createSignal,
-  untrack,
-} from "solid-js";
+import { For, Show, createEffect, createSignal, untrack } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { IconButton } from "./IconButton";
 import { visibleTreeRows, type TreeRow, type TreeViewModel } from "./treeModel";
 
@@ -155,6 +149,7 @@ const styles = {
 export function TreePanel(props: {
   model: TreeViewModel;
   expandedIds: ReadonlySet<string>;
+  pendingIds?: ReadonlySet<string>;
   onToggle: (id: string) => void;
   onOpen: (row: TreeRow) => void;
   onHover: (id: string | null) => void;
@@ -168,10 +163,20 @@ export function TreePanel(props: {
   let list: HTMLDivElement | undefined;
   const [focused, setFocused] = createSignal(0);
   const [hovered, setHovered] = createSignal<string | null>(null);
-
-  const flat = createMemo(() =>
-    visibleTreeRows(props.model.rows, props.expandedIds)
-  );
+  const [flat, setFlat] = createStore<
+    Array<ReturnType<typeof visibleTreeRows>[number] & { key: string }>
+  >([]);
+  createEffect(() => {
+    setFlat(
+      reconcile(
+        visibleTreeRows(props.model.rows, props.expandedIds).map((item) => ({
+          ...item,
+          key: item.row.id,
+        })),
+        { key: "key" }
+      )
+    );
+  });
 
   /**
    * Focus follows the selection, but only when the selection actually changes.
@@ -187,7 +192,9 @@ export function TreePanel(props: {
     if (hasSyncedSelection && selectedId === previousSelectedId) return;
     hasSyncedSelection = true;
     previousSelectedId = selectedId;
-    const index = untrack(flat).findIndex((item) => item.row.id === selectedId);
+    const index = untrack(() => flat).findIndex(
+      (item) => item.row.id === selectedId
+    );
     if (index >= 0) setFocused(index);
   });
 
@@ -196,7 +203,7 @@ export function TreePanel(props: {
   });
 
   const moveFocus = (delta: number) => {
-    const rows = flat();
+    const rows = untrack(() => flat);
     if (!rows.length) return;
     const next = Math.min(Math.max(focused() + delta, 0), rows.length - 1);
     setFocused(next);
@@ -207,7 +214,7 @@ export function TreePanel(props: {
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    const current = flat()[focused()];
+    const current = flat[focused()];
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
@@ -237,11 +244,11 @@ export function TreePanel(props: {
         break;
       case "Home":
         event.preventDefault();
-        moveFocus(-flat().length);
+        moveFocus(-flat.length);
         break;
       case "End":
         event.preventDefault();
-        moveFocus(flat().length);
+        moveFocus(flat.length);
         break;
       case "Enter":
       case " ":
@@ -267,11 +274,27 @@ export function TreePanel(props: {
         </IconButton>
       </div>
 
+      <Show when={props.model.canGoUp}>
+        <button
+          type="button"
+          class={styles.goUp}
+          aria-label="Show parent"
+          onClick={() => props.onGoUp()}
+        >
+          <ChevronsUp size={13} /> Show parent
+        </button>
+      </Show>
+
       <div
         ref={list}
         class={styles.body}
         role="tree"
         aria-label="Component tree"
+        aria-activedescendant={
+          flat[focused()]?.row.id
+            ? treeItemId(flat[focused()]!.row.id)
+            : undefined
+        }
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onMouseLeave={() => {
@@ -279,22 +302,11 @@ export function TreePanel(props: {
           props.onHover(null);
         }}
       >
-        <Show when={props.model.canGoUp}>
-          <button
-            type="button"
-            class={styles.goUp}
-            aria-label="Show parent"
-            onClick={() => props.onGoUp()}
-          >
-            <ChevronsUp size={13} /> Show parent
-          </button>
-        </Show>
-
         <Show
-          when={flat().length > 0}
+          when={flat.length > 0}
           fallback={<div class={styles.empty}>Nothing to show here.</div>}
         >
-          <For each={flat()}>
+          <For each={flat}>
             {(item, index) => (
               <Row
                 row={item.row}
@@ -304,7 +316,9 @@ export function TreePanel(props: {
                 selected={props.model.selectedId === item.row.id}
                 focused={focused() === index()}
                 hovered={hovered() === item.row.id}
+                pending={props.pendingIds?.has(item.row.id) ?? false}
                 onToggle={() => props.onToggle(item.row.id)}
+                onReturnFocus={() => list?.focus({ preventScroll: true })}
                 onOpen={() => props.onOpen(item.row)}
                 onEnter={() => {
                   setHovered(item.row.id);
@@ -332,13 +346,16 @@ function Row(props: {
   selected: boolean;
   focused: boolean;
   hovered: boolean;
+  pending: boolean;
   onToggle: () => void;
+  onReturnFocus: () => void;
   onOpen: () => void;
   onEnter: () => void;
 }) {
   const clickable = () => Boolean(props.row.source);
   return (
     <div
+      id={treeItemId(props.row.id)}
       role="treeitem"
       data-row-index={props.index}
       data-row-kind={props.row.kind}
@@ -355,6 +372,8 @@ function Row(props: {
       title={
         clickable()
           ? `${props.row.source!.filePath}:${props.row.source!.line}`
+          : props.pending
+          ? `${props.row.label} — finding source`
           : `${props.row.label} — no source location`
       }
       onMouseEnter={() => props.onEnter()}
@@ -368,11 +387,13 @@ function Row(props: {
       >
         <button
           type="button"
+          tabIndex={-1}
           class={styles.twisty}
           aria-label={props.expanded ? "Collapse" : "Expand"}
           onClick={(event) => {
             event.stopPropagation();
             props.onToggle();
+            props.onReturnFocus();
           }}
         >
           {props.expanded ? (
@@ -407,7 +428,9 @@ function Row(props: {
         </Show>
       </span>
 
-      <span class={styles.detail}>{props.row.detail}</span>
+      <span class={styles.detail}>
+        {props.pending ? "Finding source…" : props.row.detail}
+      </span>
 
       <ExternalLink
         size={11}
@@ -418,4 +441,8 @@ function Row(props: {
       />
     </div>
   );
+}
+
+function treeItemId(rowId: string): string {
+  return `locator-treeitem-${encodeURIComponent(rowId)}`;
 }

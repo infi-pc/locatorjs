@@ -10,14 +10,14 @@
   "scripts": {
     "build": "turbo run build --filter=./packages/* --filter=./apps/*",
     "dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
-    "lint": "turbo run lint --filter=./packages/* --filter=./apps/*",
+    "lint": "node scripts/check-eslint-suppressions.js && turbo run lint --filter=./packages/* --filter=./apps/*",
     "test": "turbo run test --filter=./packages/* --filter=./apps/*",
     "ts": "turbo run ts --filter=./packages/* --filter=./apps/*",
     "knip": "knip",
     "dup": "jscpd apps packages --reporters console",
     "e2e": "turbo run e2e --filter=./apps/playwright",
     "typecheck": "pnpm ts",
-    "check": "pnpm format:check && pnpm dependency-versions && pnpm knip && pnpm dup && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
+    "check": "pnpm format:check && pnpm dependency-versions && node scripts/check-eslint-suppressions.js && pnpm knip && pnpm dup && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
     "check:fix": "pnpm format && pnpm dependency-versions:fix",
     "test-apps:dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./test-apps/*",
     "test-apps:build": "turbo run build --filter=./test-apps/*",
@@ -33,7 +33,8 @@
     "clean:turbo": "rm -rf */*/.turbo",
     "clean:next": "rm -rf */*/.next",
     "dependency-versions": "check-dependency-version-consistency . --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
-    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/' --ignore-dep=prettier"
+    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
+    "package-contract": "node scripts/check-package-contract.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",

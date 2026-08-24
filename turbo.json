@@ -15,6 +15,7 @@
     "PORT_NEXT_14",
     "PORT_NEXT_16",
     "PORT_NEXT_16_TURBO",
+    "PORT_EXTENSION",
     "E2E_GROUP"
   ],
   "tasks": {

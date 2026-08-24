@@ -1,3 +1,5 @@
+import { getShadowRootOf as getTrackedShadowRoot } from "./shadowRoots";
+
 /**
  * DOM traversal that crosses shadow boundaries.
  *
@@ -20,6 +22,28 @@ export function getParentElementAcrossShadow(
     return root.host as HTMLElement;
   }
   return null;
+}
+
+/**
+ * Direct element children in composed traversal order: light DOM first, then
+ * the host's own shadow tree. Assigned slot content remains represented by its
+ * light-DOM parent and is deliberately not visited twice.
+ */
+export function getChildElementsAcrossShadow(
+  element: HTMLElement
+): HTMLElement[] {
+  const lightChildren = Array.from(element.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement
+  );
+  // Imported lazily at module evaluation rather than duplicating the closed
+  // root registry in traversal code.
+  const shadow = getTrackedShadowRoot(element);
+  const shadowChildren = shadow
+    ? Array.from(shadow.children).filter(
+        (child): child is HTMLElement => child instanceof HTMLElement
+      )
+    : [];
+  return [...lightChildren, ...shadowChildren];
 }
 
 /** `closest()` that keeps going once it runs out of light-DOM ancestors. */

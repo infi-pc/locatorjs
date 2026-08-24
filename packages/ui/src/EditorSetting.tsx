@@ -7,7 +7,7 @@ import {
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { RotateCcw } from "lucide-solid";
-import { Show } from "solid-js";
+import { Show, createUniqueId } from "solid-js";
 import { EditorPicker } from "./EditorPicker";
 import { Field } from "./Field";
 import { IconButton } from "./IconButton";
@@ -41,6 +41,7 @@ export function EditorSetting(props: {
   error?: string;
   write: (patch: Partial<LocatorOptions>) => WriteResponse;
 }) {
+  const controlId = `locator-editor-${createUniqueId()}`;
   const state = () => layerFieldState(props.layers, props.layer, "editor");
   const editor = () => state().value ?? {};
   const unresolved = () =>
@@ -49,6 +50,7 @@ export function EditorSetting(props: {
   return (
     <Field
       label="Editor"
+      controlId={controlId}
       meta={
         <span class={styles.meta}>
           <Show when={state().source && state().source !== props.layer}>
@@ -74,6 +76,7 @@ export function EditorSetting(props: {
       }
     >
       <EditorPicker
+        controlId={controlId}
         targets={props.targets}
         targetId={editor().targetId}
         targetTemplate={editor().targetTemplate}

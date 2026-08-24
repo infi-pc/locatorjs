@@ -1,4 +1,4 @@
-/* eslint-disable solid/reactivity */
+/* eslint-disable solid/reactivity -- provider callbacks intentionally expose stable imperative methods over signals. */
 import {
   createSignal,
   createContext,
@@ -9,7 +9,6 @@ import {
 } from 'solid-js';
 import {
   serializePatch,
-  normalizeLayer,
   type LocatorOptions,
   type LocatorLayer,
   type Targets,
@@ -17,8 +16,14 @@ import {
   type BindingAction,
 } from '@locator/shared';
 import browser from '../../browser';
-
-const USER_OPTIONS_KEY = 'userOptions';
+import {
+  USER_OPTIONS_KEY,
+  decodeStoredUserOptions,
+  encodeStoredUserOptions,
+  patchUserOptions,
+  readUserOptions,
+  replaceUserOptions,
+} from '../../storageContract';
 /** The tab's main document. Content scripts also run in every iframe. */
 const TOP_FRAME_ID = 0;
 
@@ -29,16 +34,22 @@ export type Snapshot = {
   allTargets: Targets;
 };
 
-export type ConnectivityStatus = 'loading' | 'connected' | 'no-runtime';
+export type ConnectivityStatus =
+  | 'loading'
+  | 'connected'
+  | 'no-runtime'
+  | 'reload-required';
 
 type SyncedState = {
   userExtension: Accessor<LocatorOptions>;
   snapshot: Accessor<Snapshot | null>;
   status: Accessor<ConnectivityStatus>;
+  diagnostic: Accessor<string | undefined>;
   setUserExtension: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   setSiteLocal: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   clearSiteLocal: () => Promise<WriteResult>;
   clearUserExtension: () => Promise<WriteResult>;
+  reloadActiveTab: () => Promise<void>;
   tryAction: (
     action: BindingAction
   ) => Promise<{ ok: true } | { ok: false; reason: string }>;
@@ -52,24 +63,27 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   );
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
   const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
+  const [diagnostic, setDiagnostic] = createSignal<string>();
 
-  browser.storage.local.get([USER_OPTIONS_KEY]).then((result) => {
-    const stored = (result?.[USER_OPTIONS_KEY] ?? {}) as LocatorOptions;
-    const normalized = normalizeLayer(stored);
-    setUserExtensionSignal(normalized);
-    if (stored.mouseModifiers !== undefined && stored.bindings === undefined) {
-      browser.storage.local.set({ [USER_OPTIONS_KEY]: normalized });
-    }
-  });
+  let storageRevision = 0;
+  const initialRevision = storageRevision;
+  readUserOptions()
+    .then((options) => {
+      if (storageRevision === initialRevision) setUserExtensionSignal(options);
+    })
+    .catch(() => markNoRuntime('Could not read extension settings.'));
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
     if (USER_OPTIONS_KEY in changes) {
-      const next = (changes[USER_OPTIONS_KEY].newValue ?? {}) as LocatorOptions;
-      const normalized = normalizeLayer(next);
-      setUserExtensionSignal(normalized);
-      if (next.mouseModifiers !== undefined && next.bindings === undefined) {
-        browser.storage.local.set({ [USER_OPTIONS_KEY]: normalized });
+      storageRevision += 1;
+      const raw = changes[USER_OPTIONS_KEY].newValue;
+      const decoded = decodeStoredUserOptions(raw);
+      setUserExtensionSignal(decoded);
+      if (
+        JSON.stringify(raw) !== JSON.stringify(encodeStoredUserOptions(decoded))
+      ) {
+        void replaceUserOptions(decoded);
       }
     }
   });
@@ -96,64 +110,80 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         // the top-level document.
         { frameId: TOP_FRAME_ID }
       )) as
-        | { ok: true; snapshot: Snapshot }
-        | { ok: false; reason: string }
+        | { ok: true; protocolVersion: 2; snapshot: Snapshot }
+        | {
+            ok: false;
+            protocolVersion: 2;
+            reason: string;
+            diagnostic?: string;
+          }
         | undefined;
-      if (response?.ok) {
+      if (response?.protocolVersion !== 2) {
+        await classifyLegacyTab(currentTab.id);
+      } else if (response.ok) {
         // Only swap the snapshot when it actually changed — the poll would
         // otherwise recreate the settings DOM every 1.5s and drop focus.
         if (JSON.stringify(response.snapshot) !== JSON.stringify(snapshot())) {
           setSnapshot(response.snapshot);
         }
         setStatus('connected');
+        setDiagnostic(undefined);
       } else {
         setStatus('no-runtime');
         setSnapshot(null);
+        setDiagnostic(response.diagnostic);
       }
     } catch {
-      // no content script in the active tab (chrome:// pages etc.)
-      setStatus('no-runtime');
-      setSnapshot(null);
+      markNoRuntime();
+      const tabs = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const currentTab = tabs[0];
+      if (currentTab?.id) await classifyLegacyTab(currentTab.id);
+      else markNoRuntime();
     }
+  }
+
+  function markNoRuntime(message?: string) {
+    setStatus('no-runtime');
+    setSnapshot(null);
+    setDiagnostic(message);
+  }
+
+  async function classifyLegacyTab(tabId: number) {
+    try {
+      const legacyStatus = await browser.tabs.sendMessage(
+        tabId,
+        { from: 'popup', subject: 'requestStatusMessage' },
+        { frameId: TOP_FRAME_ID }
+      );
+      if (typeof legacyStatus === 'string') {
+        setStatus('reload-required');
+        setSnapshot(null);
+        setDiagnostic(legacyStatus);
+        return;
+      }
+    } catch {
+      // A missing content script is the normal case on restricted pages.
+    }
+    markNoRuntime();
   }
 
   requestSnapshot();
   const refreshInterval = setInterval(requestSnapshot, 1500);
   onCleanup(() => clearInterval(refreshInterval));
 
-  /**
-   * Writes are read-modify-write over the whole options blob, so two of them
-   * in flight at once would both merge onto the same starting value and the
-   * first change would be lost. Queueing keeps each one reading what the
-   * previous one wrote.
-   */
-  let pendingWrite: Promise<unknown> = Promise.resolve();
-  function queueUserExtensionWrite(
-    patch: Partial<LocatorOptions>
-  ): Promise<WriteResult> {
-    const run = pendingWrite.then(async (): Promise<WriteResult> => {
-      const next = { ...userExtension(), ...patch };
-      // Strip undefined to keep storage clean
-      for (const key of Object.keys(next) as (keyof LocatorOptions)[]) {
-        if (next[key] === undefined) delete next[key];
-      }
-      try {
-        await browser.storage.local.set({ [USER_OPTIONS_KEY]: next });
-        setUserExtensionSignal(next);
-        return { ok: true };
-      } catch {
-        return { ok: false, reason: 'blocked' };
-      }
-    });
-    pendingWrite = run.catch(() => undefined);
-    return run;
-  }
-
   const state: SyncedState = {
     userExtension,
     snapshot,
     status,
-    setUserExtension: (patch) => queueUserExtensionWrite(patch),
+    diagnostic,
+    setUserExtension: async (patch) => {
+      const result = await patchUserOptions(patch);
+      if (result.ok) setUserExtensionSignal(await readUserOptions());
+      return result;
+    },
     setSiteLocal: async (patch) => {
       try {
         const tabs = await browser.tabs.query({
@@ -193,13 +223,19 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       return response ?? { ok: false, reason: 'blocked' };
     },
     clearUserExtension: async () => {
-      try {
-        await browser.storage.local.set({ [USER_OPTIONS_KEY]: {} });
-        setUserExtensionSignal({});
-        return { ok: true };
-      } catch {
-        return { ok: false, reason: 'blocked' };
-      }
+      const result = await replaceUserOptions({});
+      if (result.ok) setUserExtensionSignal({});
+      return result;
+    },
+    reloadActiveTab: async () => {
+      const tabs = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const tabId = tabs[0]?.id;
+      if (tabId) await browser.tabs.reload(tabId);
+      setStatus('loading');
+      await requestSnapshot();
     },
     tryAction: async (action) => {
       const response = await sendToActiveTab<

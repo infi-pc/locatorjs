@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   clearSiteLocal: vi.fn(async () => ({ ok: true as const })),
   clearUserExtension: vi.fn(async () => ({ ok: true as const })),
   tryAction: vi.fn(async () => ({ ok: true as const })),
+  reloadActiveTab: vi.fn(async () => undefined),
   createTab: vi.fn(),
   // Assigned by the mock factory below. Connectivity is a signal so a test can
   // flip it mid-session, which is the only way to observe a remount.
@@ -30,6 +31,7 @@ vi.mock('./syncedState', async () => {
   return {
     useSyncedState: () => ({
       status,
+      diagnostic: () => undefined,
       snapshot,
       userExtension: () => mocks.userExtension,
       setUserExtension: mocks.setUserExtension,
@@ -37,6 +39,7 @@ vi.mock('./syncedState', async () => {
       clearSiteLocal: mocks.clearSiteLocal,
       clearUserExtension: mocks.clearUserExtension,
       tryAction: mocks.tryAction,
+      reloadActiveTab: mocks.reloadActiveTab,
     }),
   };
 });

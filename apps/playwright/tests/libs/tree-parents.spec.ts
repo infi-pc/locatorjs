@@ -306,16 +306,17 @@ test.describe("editor configuration", () => {
       .toEqual({ targetId: "vscode", targetTemplate: undefined });
   });
 
-  test("the default editor is a visible setting, not a hidden constant", async ({
-    page,
-  }) => {
-    // Nothing chosen: the default layer supplies VS Code, so a click still
-    // works — but it is a resolved setting the user can see and change.
+  test("the default editor asks for an explicit choice", async ({ page }) => {
+    // The compiled default is visible in settings but is not evidence that the
+    // user chose a working editor integration on this machine.
     await setup(page, { bindings: toolbarBindings });
 
     const panel = await openTree(page);
     await panel.locator(SOURCED_ROW).first().click();
-    await expect.poll(() => openedUrl(page)).toMatch(/^vscode:\/\/file\//);
+    await expect(
+      page.getByRole("heading", { name: "Pick your editor" })
+    ).toBeVisible();
+    expect(await openedUrl(page)).toBeUndefined();
   });
 });
 

@@ -8,6 +8,7 @@ import {
   type JSX,
 } from "solid-js";
 import { Portal } from "solid-js/web";
+import { usePortalMount } from "./PortalMount";
 
 const styles = {
   backdrop: css({
@@ -81,6 +82,7 @@ export function InspectorDialog(props: {
   children: JSX.Element;
   onOpenChange: (open: boolean) => void;
 }) {
+  const portalMount = usePortalMount(() => props.portalMount);
   let content: HTMLDivElement | undefined;
   const titleId = `locator-interaction-dialog-${createUniqueId()}`;
   const activeElement = () => {
@@ -93,7 +95,7 @@ export function InspectorDialog(props: {
   createEffect(() => {
     if (!props.open) return;
 
-    const root = props.portalMount?.getRootNode();
+    const root = portalMount().getRootNode();
     const previouslyFocused =
       root && "activeElement" in root
         ? (root.activeElement as Element | null)
@@ -145,7 +147,7 @@ export function InspectorDialog(props: {
 
   return (
     <Show when={props.open}>
-      <Portal mount={props.portalMount ?? document.body}>
+      <Portal mount={portalMount()}>
         <div
           class={cx(
             styles.backdrop,

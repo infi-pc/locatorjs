@@ -90,6 +90,9 @@ importers:
       '@locator/babel-jsx':
         specifier: workspace:^
         version: link:../../packages/babel-jsx
+      '@locator/dev-config':
+        specifier: workspace:^
+        version: link:../../packages/dev-config
       '@pandacss/dev':
         specifier: ^1.11.4
         version: 1.11.4(jsdom@20.0.3)(typescript@5.9.3)
@@ -330,8 +333,26 @@ importers:
       eslint-plugin-solid:
         specifier: ^0.7.4
         version: 0.7.4(eslint@8.57.1)(typescript@5.9.3)
+    devDependencies:
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
-  packages/locatorjs: {}
+  packages/locatorjs:
+    dependencies:
+      '@locator/runtime':
+        specifier: workspace:^
+        version: link:../runtime
+    devDependencies:
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/react-devtools-hook:
     devDependencies:
@@ -378,6 +399,9 @@ importers:
       '@babel/core':
         specifier: ^7.29.0
         version: 7.29.0
+      '@locator/dev-config':
+        specifier: workspace:^
+        version: link:../dev-config
       '@pandacss/dev':
         specifier: ^1.11.4
         version: 1.11.4(jsdom@20.0.3)(typescript@5.9.3)
@@ -418,6 +442,9 @@ importers:
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
+      jsdom:
+        specifier: ^20.0.3
+        version: 20.0.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -474,6 +501,9 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.28.5
         version: 7.29.7(@babel/core@7.29.0)
+      '@locator/dev-config':
+        specifier: workspace:^
+        version: link:../dev-config
       '@solidjs/testing-library':
         specifier: ^0.8.10
         version: 0.8.10(solid-js@1.9.12)
@@ -4519,7 +4549,7 @@ packages:
     resolution: {integrity: sha512-je+kkrfcvPcwL5Tg8JRENRqlbzjdlZXyaR88UcnCdNW0AJ1jX9IfHRys1X7AwSroU2ug8ESNC+suoBw1vX833Q==}
     engines: {node: '>=16.0.0'}
     dependencies:
-      chalk: 4.1.0
+      chalk: 4.1.2
       execa: 5.0.0
       strong-log-transformer: 2.1.0
     dev: true
@@ -16971,7 +17001,7 @@ packages:
     resolution: {integrity: sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      chalk: 4.1.0
+      chalk: 4.1.2
       diff-sequences: 29.6.3
       jest-get-type: 29.6.3
       pretty-format: 29.7.0
@@ -18862,7 +18892,7 @@ packages:
       array-differ: 3.0.0
       array-union: 2.1.0
       arrify: 2.0.1
-      minimatch: 3.0.5
+      minimatch: 3.1.5
     dev: true
 
   /multimatch@6.0.0:
@@ -19495,7 +19525,7 @@ packages:
       '@yarnpkg/parsers': 3.0.0-rc.46
       '@zkochan/js-yaml': 0.0.6
       axios: 1.15.0
-      chalk: 4.1.0
+      chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
       cliui: 8.0.1

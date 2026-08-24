@@ -2,11 +2,44 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
   closestAcrossShadow,
+  getChildElementsAcrossShadow,
   getParentElementAcrossShadow,
 } from "./domTraversal";
+import { installShadowRootTracking } from "./shadowRoots";
 
 beforeEach(() => {
   document.body.innerHTML = "";
+});
+
+describe("getChildElementsAcrossShadow", () => {
+  test.each(["open", "closed"] as const)(
+    "returns light children followed by %s-shadow children",
+    (mode) => {
+      installShadowRootTracking();
+      const host = document.createElement("div");
+      const light = document.createElement("span");
+      host.append(light);
+      const shadow = host.attachShadow({ mode });
+      const inside = document.createElement("button");
+      shadow.append(inside);
+
+      expect(getChildElementsAcrossShadow(host)).toEqual([light, inside]);
+      expect(getParentElementAcrossShadow(inside)).toBe(host);
+    }
+  );
+
+  test("does not append assigned slot elements a second time", () => {
+    const host = document.createElement("div");
+    const assigned = document.createElement("span");
+    host.append(assigned);
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.append(document.createElement("slot"));
+
+    expect(getChildElementsAcrossShadow(host)).toEqual([
+      assigned,
+      shadow.querySelector("slot"),
+    ]);
+  });
 });
 
 describe("getParentElementAcrossShadow", () => {

@@ -6,7 +6,7 @@ import {
 
 export function getDataForDataId(dataId: string) {
   let fileFullPath: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- injected JSX metadata is intentionally framework-agnostic.
   let expData: any;
   let filePath = "";
   let projectPath = "";
@@ -23,7 +23,7 @@ export function getDataForDataId(dataId: string) {
       const fileData = data[fileFullPath];
       if (fileData) {
         // Find expression by location
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- injected JSX metadata is intentionally framework-agnostic.
         expData = fileData.expressions.find(
           (exp: any) =>
             exp.loc.start.line === line && exp.loc.start.column === column

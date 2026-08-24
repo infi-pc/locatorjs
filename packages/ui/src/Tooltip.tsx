@@ -1,6 +1,7 @@
 import { JSX, Show, createSignal, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { css, cx } from "@locator/styled-system/css";
+import { usePortalMount } from "./PortalMount";
 
 const styles = {
   trigger: css({ display: "inline-flex" }),
@@ -26,6 +27,7 @@ export function Tooltip(props: {
   portalMount?: Node;
   class?: string;
 }) {
+  const portalMount = usePortalMount(() => props.portalMount);
   const [open, setOpen] = createSignal(false);
   const [rect, setRect] = createSignal<DOMRect | undefined>();
   const id = `locatorjs-tooltip-${Math.random().toString(36).slice(2)}`;
@@ -85,7 +87,7 @@ export function Tooltip(props: {
     >
       {props.children}
       <Show when={open()}>
-        <Portal mount={props.portalMount ?? document.body}>{overlay()}</Portal>
+        <Portal mount={portalMount()}>{overlay()}</Portal>
       </Show>
     </span>
   );

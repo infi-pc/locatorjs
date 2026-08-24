@@ -15,27 +15,25 @@ import {
   migrateLegacyExtensionStorage,
   USER_OPTIONS_KEY,
 } from './migrateLegacyExtensionStorage';
+import {
+  __resetStorageContractForTesting,
+  USER_OPTIONS_SCHEMA_VERSION,
+} from '../../storageContract';
 
 /** Stands in for `storage.local` holding exactly `stored`. */
 function withStorage(stored: Record<string, unknown>) {
-  mocks.get.mockImplementation(
-    (keys: string[], done: (result: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const key of keys) {
-        if (key in stored) result[key] = stored[key];
-      }
-      done(result);
+  mocks.get.mockImplementation(async (keys: string[]) => {
+    const result: Record<string, unknown> = {};
+    for (const key of keys) {
+      if (key in stored) result[key] = stored[key];
     }
-  );
-  mocks.set.mockImplementation(
-    (patch: Record<string, unknown>, done?: () => void) => {
-      Object.assign(stored, patch);
-      done?.();
-    }
-  );
-  mocks.remove.mockImplementation((keys: string[], done?: () => void) => {
+    return result;
+  });
+  mocks.set.mockImplementation(async (patch: Record<string, unknown>) => {
+    Object.assign(stored, patch);
+  });
+  mocks.remove.mockImplementation(async (keys: string[]) => {
     for (const key of keys) delete stored[key];
-    done?.();
   });
   return stored;
 }
@@ -74,9 +72,10 @@ describe('migrateLegacyExtensionOptions', () => {
 describe('migrateLegacyExtensionStorage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __resetStorageContractForTesting();
   });
 
-  test('carries a 1.3.x user across and drops the v1 keys', async () => {
+  test('carries a 1.3.x user across and retains mirrored v1 keys', async () => {
     const stored = withStorage({
       target: 'webstorm',
       controls: 'ctrl+shift',
@@ -86,11 +85,14 @@ describe('migrateLegacyExtensionStorage', () => {
     await migrateLegacyExtensionStorage();
 
     expect(stored[USER_OPTIONS_KEY]).toEqual({
-      editor: { targetId: 'webstorm' },
-      mouseModifiers: 'ctrl+shift',
+      version: USER_OPTIONS_SCHEMA_VERSION,
+      options: {
+        editor: { targetId: 'webstorm' },
+        bindings: expect.any(Array),
+      },
     });
-    expect(stored).not.toHaveProperty('target');
-    expect(stored).not.toHaveProperty('controls');
+    expect(stored.target).toBe('webstorm');
+    expect(stored.controls).toBe('ctrl+shift');
     expect(stored).not.toHaveProperty('clickCount');
   });
 
@@ -102,8 +104,11 @@ describe('migrateLegacyExtensionStorage', () => {
 
     await migrateLegacyExtensionStorage();
 
-    expect(stored[USER_OPTIONS_KEY]).toEqual({ editor: { targetId: 'zed' } });
-    expect(stored).not.toHaveProperty('target');
+    expect(stored[USER_OPTIONS_KEY]).toEqual({
+      version: USER_OPTIONS_SCHEMA_VERSION,
+      options: { editor: { targetId: 'zed' } },
+    });
+    expect(stored.target).toBe('zed');
   });
 
   test('removes obsolete telemetry keys without writing anything', async () => {
@@ -111,8 +116,11 @@ describe('migrateLegacyExtensionStorage', () => {
 
     await migrateLegacyExtensionStorage();
 
-    expect(mocks.set).not.toHaveBeenCalled();
-    expect(stored).toEqual({});
+    expect(stored[USER_OPTIONS_KEY]).toEqual({
+      version: USER_OPTIONS_SCHEMA_VERSION,
+      options: {},
+    });
+    expect(stored).not.toHaveProperty('clickCount');
   });
 
   test('is idempotent', async () => {
@@ -122,7 +130,8 @@ describe('migrateLegacyExtensionStorage', () => {
     await migrateLegacyExtensionStorage();
 
     expect(stored[USER_OPTIONS_KEY]).toEqual({
-      editor: { targetId: 'webstorm' },
+      version: USER_OPTIONS_SCHEMA_VERSION,
+      options: { editor: { targetId: 'webstorm' } },
     });
   });
 
@@ -131,14 +140,11 @@ describe('migrateLegacyExtensionStorage', () => {
 
     await migrateLegacyExtensionStorage();
 
-    expect(mocks.set).not.toHaveBeenCalled();
-    expect(mocks.remove).not.toHaveBeenCalled();
+    expect(mocks.set).toHaveBeenCalledTimes(1);
   });
 
   test('resolves rather than throwing when storage is unavailable', async () => {
-    mocks.get.mockImplementation(() => {
-      throw new Error('no storage');
-    });
+    mocks.get.mockRejectedValue(new Error('no storage'));
 
     await expect(migrateLegacyExtensionStorage()).resolves.toBeUndefined();
   });

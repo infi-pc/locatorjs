@@ -27,6 +27,7 @@ const styles = {
 
 export function Field(props: {
   label: JSX.Element;
+  controlId?: string;
   meta?: JSX.Element;
   helper?: JSX.Element;
   error?: JSX.Element;
@@ -36,7 +37,9 @@ export function Field(props: {
   return (
     <div class={cx(styles.root, props.class)}>
       <div class={styles.header}>
-        <label class={styles.label}>{props.label}</label>
+        <label class={styles.label} for={props.controlId}>
+          {props.label}
+        </label>
         <div class={styles.meta}>{props.meta}</div>
       </div>
       {props.children}

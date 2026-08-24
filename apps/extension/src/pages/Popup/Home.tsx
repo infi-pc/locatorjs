@@ -126,6 +126,10 @@ export function Home() {
             layer: 'user-extension',
             label: 'All sites',
             write: setUserExtension,
+            editLayers: {
+              default: DEFAULT_LAYER,
+              'user-extension': userExtension(),
+            },
           },
         ]}
         activeScope={activeScope()}
