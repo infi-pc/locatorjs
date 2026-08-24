@@ -53,7 +53,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           snapshot: bridge.getSnapshot(),
         },
-        "*"
+        postMessageOrigin()
       );
       return;
     }
@@ -68,7 +68,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           result,
         },
-        "*"
+        postMessageOrigin()
       );
       return;
     }
@@ -81,7 +81,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           result,
         },
-        "*"
+        postMessageOrigin()
       );
       return;
     }
@@ -106,7 +106,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           result,
         },
-        "*"
+        postMessageOrigin()
       );
     }
   };
@@ -121,6 +121,10 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
       }
     });
   }
+}
+
+function postMessageOrigin() {
+  return window.location.origin === "null" ? "*" : window.location.origin;
 }
 
 function validBindingAction(value: unknown): BindingAction | undefined {
