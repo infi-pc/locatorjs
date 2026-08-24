@@ -1,6 +1,8 @@
 import { getOwner, onCleanup } from "solid-js";
 import {
+  decodeBindingAction,
   deserializePatch,
+  postMessageOrigin,
   type BindingAction,
   type LocatorOptions,
 } from "@locator/shared";
@@ -53,7 +55,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           snapshot: bridge.getSnapshot(),
         },
-        postMessageOrigin()
+        postMessageOrigin(window.location)
       );
       return;
     }
@@ -68,7 +70,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           result,
         },
-        postMessageOrigin()
+        postMessageOrigin(window.location)
       );
       return;
     }
@@ -81,7 +83,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           result,
         },
-        postMessageOrigin()
+        postMessageOrigin(window.location)
       );
       return;
     }
@@ -106,7 +108,7 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
           requestId: data.requestId,
           result,
         },
-        postMessageOrigin()
+        postMessageOrigin(window.location)
       );
     }
   };
@@ -123,47 +125,6 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
   }
 }
 
-function postMessageOrigin() {
-  return window.location.origin === "null" ? "*" : window.location.origin;
-}
-
 function validBindingAction(value: unknown): BindingAction | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const action = value as Record<string, unknown>;
-  switch (action.kind) {
-    case "copy-path":
-    case "show-tree":
-    case "show-parents":
-      return { kind: action.kind };
-    case "copy-prompt":
-      return typeof action.template === "string" ||
-        action.template === undefined
-        ? {
-            kind: "copy-prompt",
-            template: action.template as string | undefined,
-          }
-        : undefined;
-    case "open-prompt":
-      return (action.app === "cursor" || action.app === "windsurf") &&
-        (typeof action.template === "string" || action.template === undefined)
-        ? {
-            kind: "open-prompt",
-            app: action.app,
-            template: action.template as string | undefined,
-          }
-        : undefined;
-    case "open-editor":
-      return (typeof action.targetId === "string" ||
-        action.targetId === undefined) &&
-        (typeof action.targetTemplate === "string" ||
-          action.targetTemplate === undefined)
-        ? {
-            kind: "open-editor",
-            targetId: action.targetId as string | undefined,
-            targetTemplate: action.targetTemplate as string | undefined,
-          }
-        : undefined;
-    default:
-      return undefined;
-  }
+  return decodeBindingAction(value) ?? undefined;
 }

@@ -1,10 +1,12 @@
 import { isValidRenderer } from '@locator/shared/dist/isValidRenderer';
-import { detectSvelte, detectVue } from '@locator/shared';
+import { detectSvelte, detectVue, postMessageOrigin } from '@locator/shared';
 
 type Renderer = any;
 
 export function insertRuntimeScript() {
   let scriptLoaded = false;
+  let settingsRequested = false;
+  let pendingClientUrl: string | undefined;
   let attemptsNecessaryToShowError = 4; // but not necessarily all attempts, we want to show loading for a while
 
   function sendStatusMessage(message: string) {
@@ -16,6 +18,23 @@ export function insertRuntimeScript() {
   }
 
   document.addEventListener('DOMContentLoaded', loadedHandler);
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_READY') return;
+    if (!pendingClientUrl || scriptLoaded) return;
+    if (event.data.disabled === true) {
+      sendStatusMessage('Locator is disabled on this page.');
+      pendingClientUrl = undefined;
+      settingsRequested = false;
+      return;
+    }
+    if (insertScript(pendingClientUrl)) {
+      delete document.documentElement.dataset.locatorClientUrl;
+      scriptLoaded = true;
+      pendingClientUrl = undefined;
+      sendStatusMessage('ok');
+    }
+  });
   setTimeout(loadedHandler, 1000);
   setTimeout(loadedHandler, 2000);
   setTimeout(loadedHandler, 5000);
@@ -43,22 +62,12 @@ export function insertRuntimeScript() {
     }
 
     if (detectSvelte() || detectVue()) {
-      const inserted = insertScript(locatorClientUrl);
-      if (inserted) {
-        delete document.documentElement.dataset.locatorClientUrl;
-        scriptLoaded = true;
-        return 'ok';
-      }
+      return requestSettings(locatorClientUrl);
     }
 
     // JSX adapter
     if (document.querySelector('[data-locatorjs-id]')) {
-      const inserted = insertScript(locatorClientUrl);
-      if (inserted) {
-        delete document.documentElement.dataset.locatorClientUrl;
-        scriptLoaded = true;
-        return 'ok';
-      }
+      return requestSettings(locatorClientUrl);
     }
 
     // React Devtools hook
@@ -73,14 +82,7 @@ export function insertRuntimeScript() {
         }
       );
       if (renderers.length) {
-        const inserted = insertScript(locatorClientUrl);
-        if (inserted) {
-          delete document.documentElement.dataset.locatorClientUrl;
-          scriptLoaded = true;
-          return 'ok';
-        } else {
-          return `Could not insert script`;
-        }
+        return requestSettings(locatorClientUrl);
       } else {
         if (problematicRenderers.length) {
           return problematicRenderers.join('\n');
@@ -91,6 +93,21 @@ export function insertRuntimeScript() {
     } else {
       return 'React devtools hook was not found. It can be caused by collision with other extension using devtools hook.';
     }
+  }
+
+  function requestSettings(locatorClientUrl: string): string {
+    pendingClientUrl = locatorClientUrl;
+    if (!settingsRequested) {
+      settingsRequested = true;
+      window.postMessage(
+        { type: 'LOCATOR_RUNTIME_SETTINGS_REQUEST' },
+        postMessageOrigin(window.location)
+      );
+      setTimeout(() => {
+        if (!scriptLoaded) settingsRequested = false;
+      }, 500);
+    }
+    return 'Waiting for extension settings';
   }
 }
 

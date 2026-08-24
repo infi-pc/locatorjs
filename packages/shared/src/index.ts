@@ -100,3 +100,4 @@ export * from "./patchCodec";
 export * from "./optionsCodec";
 export * from "./actionLabel";
 export * from "./targetTemplate";
+export * from "./windowMessaging";

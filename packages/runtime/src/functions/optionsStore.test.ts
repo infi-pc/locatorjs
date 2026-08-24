@@ -83,18 +83,13 @@ describe("optionsStore integration", () => {
     expect(options.provenance().bindings).toBe("user-extension");
   });
 
-  test("postMessage updates user-extension layer after runtime mount", async () => {
+  test("dataset changes update user-extension layer after runtime mount", async () => {
     const options = withRoot(() => initOptions());
 
     expect(options.provenance().bindings).toBe("default");
 
     setUserExtensionGlobal({ mouseModifiers: "shift" });
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        data: { type: "LOCATOR_USER_EXTENSION_OPTIONS_UPDATED" },
-        source: window,
-      })
-    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(primaryModifiers(options.effective())).toBe("shift");
     expect(options.provenance().bindings).toBe("user-extension");
@@ -379,6 +374,22 @@ describe("mountRuntimePopupBridge", () => {
     expect((tried.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
       kind: "copy-path",
     });
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          type: "LOCATOR_PAGE_TRY_ACTION",
+          requestId: "try-unsafe",
+          action: {
+            kind: "open-editor",
+            targetTemplate: "javascript:alert(1)",
+          },
+        },
+        source: window,
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(tried).toHaveBeenCalledTimes(1);
     window.removeEventListener("locatorjs:try-action", tried);
     void options;
   });

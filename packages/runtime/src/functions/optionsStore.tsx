@@ -89,20 +89,16 @@ export function initOptions(): OptionsStore {
   });
   if (getOwner()) onCleanup(stopListeningToUserOrigin);
 
-  if (typeof window !== "undefined") {
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== window) return;
-      const data = event.data;
-      if (!data || typeof data !== "object") return;
-      if (data.type === "LOCATOR_USER_EXTENSION_OPTIONS_UPDATED") {
-        setUserExtension(readUserExtensionGlobal());
-      }
-    };
-    window.addEventListener("message", onMessage, false);
+  if (typeof MutationObserver !== "undefined" && document.documentElement) {
+    const observer = new MutationObserver(() => {
+      setUserExtension(readUserExtensionGlobal());
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-locator-user-extension-options"],
+    });
     if (getOwner()) {
-      onCleanup(() => {
-        window.removeEventListener("message", onMessage, false);
-      });
+      onCleanup(() => observer.disconnect());
     }
   }
 

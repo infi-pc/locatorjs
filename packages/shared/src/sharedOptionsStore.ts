@@ -18,11 +18,15 @@ function reportNoLocalStorage() {
 }
 
 function hasLocalStorage() {
-  if (typeof localStorage === "undefined" || localStorage == null) {
-    reportNoLocalStorage();
-    return false;
+  try {
+    if (typeof localStorage !== "undefined" && localStorage != null) {
+      return true;
+    }
+  } catch {
+    // Access itself can throw in sandboxed or opaque-origin documents.
   }
-  return true;
+  reportNoLocalStorage();
+  return false;
 }
 
 let legacyMigrationRan = false;

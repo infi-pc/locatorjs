@@ -6,22 +6,22 @@ import {
   decodeStoredUserOptions,
   readUserOptions,
 } from '../../storageContract';
-import type { Binding, LocatorOptions } from '@locator/shared';
+import { postMessageOrigin, type LocatorOptions } from '@locator/shared';
+import { safeFrameProjection } from './settingsProjection';
+
+let latestOptions: LocatorOptions = {};
+let fullSettingsRequested = false;
+let initialOptionsReady = false;
+let pendingSettingsRequest = false;
 
 // The migration writes `userOptions`, so the first read waits for it. Reading
 // in parallel would race a v1 user's settings against their own upgrade.
 migrateLegacyExtensionStorage()
-  .then(() => {
-    readUserOptions().then((options) => {
-      injectUserExtensionGlobal(options);
-      window.postMessage(
-        {
-          type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
-          options,
-        },
-        window.location.origin
-      );
-    });
+  .then(() => readUserOptions())
+  .then((options) => {
+    initialOptionsReady = true;
+    publishUserExtensionOptions(options);
+    if (pendingSettingsRequest) respondToSettingsRequest();
   })
   .catch(() => undefined);
 
@@ -32,56 +32,45 @@ browser.storage.onChanged.addListener((changes, areaName) => {
   const newOptions = decodeStoredUserOptions(
     changes[USER_OPTIONS_KEY].newValue
   );
-  injectUserExtensionGlobal(newOptions);
+  publishUserExtensionOptions(newOptions);
+});
+
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+  if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_REQUEST') return;
+  if (!initialOptionsReady) {
+    pendingSettingsRequest = true;
+    return;
+  }
+  respondToSettingsRequest();
+});
+
+function respondToSettingsRequest() {
+  pendingSettingsRequest = false;
+  if (!latestOptions.disabled) fullSettingsRequested = true;
+  injectUserExtensionGlobal(latestOptions);
   window.postMessage(
     {
-      type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
-      options: newOptions,
+      type: 'LOCATOR_RUNTIME_SETTINGS_READY',
+      disabled: latestOptions.disabled === true,
     },
-    window.location.origin
+    postMessageOrigin(window.location)
   );
-});
+}
+
+function publishUserExtensionOptions(options: LocatorOptions) {
+  latestOptions = options;
+  injectUserExtensionGlobal(options);
+}
 
 function injectUserExtensionGlobal(options: LocatorOptions) {
   withDocumentElement((element) => {
     element.dataset.locatorUserExtensionOptions = JSON.stringify(
-      canReceiveFullSettings() ? options : safeFrameProjection(options)
+      fullSettingsRequested && !options.disabled
+        ? options
+        : safeFrameProjection(options)
     );
   });
-}
-
-function canReceiveFullSettings(): boolean {
-  if (window === window.top) return true;
-  try {
-    return window.top?.location.origin === window.location.origin;
-  } catch {
-    return false;
-  }
-}
-
-/** Never expose editor URLs, project paths, sessions, or prompt text cross-origin. */
-export function safeFrameProjection(options: LocatorOptions): LocatorOptions {
-  const bindings = options.bindings?.flatMap((binding): Binding[] => {
-    const trigger = binding.trigger;
-    switch (binding.action.kind) {
-      case 'open-editor':
-        return [{ trigger, action: { kind: 'open-editor' } }];
-      case 'copy-path':
-      case 'show-tree':
-      case 'show-parents':
-        return [{ trigger, action: { kind: binding.action.kind } }];
-      case 'copy-prompt':
-      case 'open-prompt':
-        return [];
-    }
-  });
-  return {
-    bindings,
-    disabled: options.disabled,
-    hrefTarget: options.hrefTarget,
-    showIntro: options.showIntro,
-    adapterId: options.adapterId,
-  };
 }
 
 function withDocumentElement(callback: (element: HTMLElement) => void) {

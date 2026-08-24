@@ -3,6 +3,7 @@ import {
   decodeLocatorOptions,
   decodeProvenance,
   decodeTargets,
+  postMessageOrigin,
   type BindingAction,
 } from '@locator/shared';
 import browser from '../../browser';
@@ -190,15 +191,14 @@ function relayRequestToPage(
   }
 
   window.addEventListener('message', handler);
-  window.postMessage({ ...request, requestId }, postMessageOrigin());
+  window.postMessage(
+    { ...request, requestId },
+    postMessageOrigin(window.location)
+  );
 
   setTimeout(() => finish(null), REPLY_TIMEOUT_MS);
 }
 
 function generateRequestId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function postMessageOrigin() {
-  return window.location.origin === 'null' ? '*' : window.location.origin;
 }

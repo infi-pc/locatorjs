@@ -656,14 +656,18 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
     }
   });
 
+  let tryActionTimeout: number | undefined;
   const onTryAction = (event: Event) => {
     const action = (event as CustomEvent<BindingAction>).detail;
     setTryAction(action);
+    window.clearTimeout(tryActionTimeout);
+    tryActionTimeout = window.setTimeout(() => setTryAction(null), 5_000);
   };
   window.addEventListener("locatorjs:try-action", onTryAction);
-  onCleanup(() =>
-    window.removeEventListener("locatorjs:try-action", onTryAction)
-  );
+  onCleanup(() => {
+    window.clearTimeout(tryActionTimeout);
+    window.removeEventListener("locatorjs:try-action", onTryAction);
+  });
 
   return (
     <Show when={!isDisabled()}>
