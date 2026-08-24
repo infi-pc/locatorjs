@@ -16,38 +16,36 @@ import {
 import { editorIconFor } from "./editorIcons";
 import type { SelectItem } from "./Select";
 
-export const actionSelectItems: SelectItem[] = [
-  {
-    value: "open-editor",
+const actionSelectItemByKind = {
+  "open-editor": {
     label: "Open in editor",
     icon: () => actionTypeIconFor("open-editor"),
   },
-  {
-    value: "copy-path",
+  "copy-path": {
     label: "Copy path",
     icon: () => actionTypeIconFor("copy-path"),
   },
-  {
-    value: "copy-prompt",
+  "copy-prompt": {
     label: "Copy AI prompt",
     icon: () => actionTypeIconFor("copy-prompt"),
   },
-  {
-    value: "open-prompt",
-    label: "Open AI prompt in…",
+  "open-prompt": {
+    label: "Open prompt in…",
     icon: () => actionTypeIconFor("open-prompt"),
   },
-  {
-    value: "show-tree",
+  "show-tree": {
     label: "Tree view",
     icon: () => actionTypeIconFor("show-tree"),
   },
-  {
-    value: "show-parents",
+  "show-parents": {
     label: "Parents",
     icon: () => actionTypeIconFor("show-parents"),
   },
-];
+} satisfies Record<BindingAction["kind"], Omit<SelectItem, "value">>;
+
+export const actionSelectItems: SelectItem[] = Object.entries(
+  actionSelectItemByKind
+).map(([value, item]) => ({ value, ...item }));
 
 export function actionTypeIconFor(kind: BindingAction["kind"]) {
   switch (kind) {
