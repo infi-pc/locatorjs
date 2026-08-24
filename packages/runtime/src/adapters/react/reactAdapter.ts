@@ -23,7 +23,10 @@ import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { registerDiagnose } from "./debug";
-import { resolveSourceFromFiber } from "./clickSourceResolver";
+import {
+  registerAdapterCacheReset,
+  resolveSourceFromFiber,
+} from "./clickSourceResolver";
 import type { SourceResolutionContext } from "./sourceMapResolver";
 
 // Tree wrappers are rebuilt whenever expansion or async-resolution state
@@ -31,8 +34,21 @@ import type { SourceResolutionContext } from "./sourceMapResolver";
 // next wrapper's synchronous getters can expose them to the view model. Misses
 // deliberately remain retryable, matching the fiber resolver's positive-only
 // cache contract.
-const asyncElementSources = new WeakMap<HTMLElement, Source>();
-const asyncComponents = new WeakMap<HTMLElement, TreeNodeComponent>();
+const ASYNC_RESULT_TTL_MS = 5_000;
+type Cached<T> = { value: T; expiresAt: number };
+let asyncElementSources = new WeakMap<HTMLElement, Cached<Source>>();
+let asyncComponents = new WeakMap<HTMLElement, Cached<TreeNodeComponent>>();
+
+function readCached<T>(
+  cache: WeakMap<HTMLElement, Cached<T>>,
+  element: HTMLElement
+): T | undefined {
+  const entry = cache.get(element);
+  if (!entry) return undefined;
+  if (entry.expiresAt > Date.now()) return entry.value;
+  cache.delete(element);
+  return undefined;
+}
 
 export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
@@ -63,7 +79,8 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
       }
     });
 
-    const thisLabel = getFiberLabel(fiber, findDebugSource(fiber)?.source);
+    const ownOrAncestor = findDebugSource(fiber);
+    const thisLabel = getFiberLabel(fiber, ownOrAncestor?.source);
 
     if (isStyledElement(fiber)) {
       thisLabel.label = `${thisLabel.label} (styled)`;
@@ -73,6 +90,11 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
       thisElement: {
         box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
         ...thisLabel,
+        sourceProvenance: ownOrAncestor
+          ? ownOrAncestor.fiber === fiber
+            ? "own"
+            : "ancestor"
+          : undefined,
       },
       htmlElement: found,
       parentElements: parentElements,
@@ -89,7 +111,7 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
     return new ReactTreeNodeElement(element);
   }
   getSource(): Source | null {
-    const resolved = asyncElementSources.get(this.element);
+    const resolved = readCached(asyncElementSources, this.element);
     if (resolved) return resolved;
     const fiber = findFiberByHtmlElement(this.element, false);
     if (fiber) {
@@ -107,11 +129,16 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
     const source = fiber
       ? (await findDebugSourceAsync(fiber, context))?.source ?? null
       : null;
-    if (source) asyncElementSources.set(this.element, source);
+    if (source) {
+      asyncElementSources.set(this.element, {
+        value: source,
+        expiresAt: Date.now() + ASYNC_RESULT_TTL_MS,
+      });
+    }
     return source;
   }
   getComponent(): TreeNodeComponent | null {
-    const resolved = asyncComponents.get(this.element);
+    const resolved = readCached(asyncComponents, this.element);
     if (resolved) return resolved;
     const fiber = findFiberByHtmlElement(this.element, false);
     const componentFiber = fiber?._debugOwner;
@@ -148,7 +175,12 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
       label: getUsableName(fiber),
       callLink: source ?? undefined,
     };
-    if (source) asyncComponents.set(this.element, component);
+    if (source) {
+      asyncComponents.set(this.element, {
+        value: component,
+        expiresAt: Date.now() + ASYNC_RESULT_TTL_MS,
+      });
+    }
     return component;
   }
 }
@@ -204,9 +236,13 @@ export async function getParentsPathsAsync(
   while (current && !seen.has(current)) {
     seen.add(current);
     const owner: Fiber | null = current._debugOwner || null;
-    const source =
-      findOwnDebugSource(current) ??
-      (await resolveSourceFromFiber(current, context));
+    let source = findOwnDebugSource(current);
+    try {
+      source ??= await resolveSourceFromFiber(current, context);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") break;
+      throw error;
+    }
     const label = getFiberLabel(current, source ?? undefined);
     items.push({
       title: label.label,
@@ -260,6 +296,11 @@ export async function getElementInfoAsync(
       thisElement: {
         box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
         ...thisLabel,
+        sourceProvenance: currentSource
+          ? currentSource.fiber === fiber
+            ? "own"
+            : "ancestor"
+          : undefined,
       },
       htmlElement: found,
       parentElements: parentElements,
@@ -394,6 +435,13 @@ async function diagnoseAllElements(): Promise<void> {
 
 // Register diagnose so it's available as window.locatorDiagnose()
 registerDiagnose(diagnoseAllElements);
+
+export function resetReactAdapterCaches(): void {
+  asyncElementSources = new WeakMap();
+  asyncComponents = new WeakMap();
+}
+
+registerAdapterCacheReset(resetReactAdapterCaches);
 
 const reactAdapter: AdapterObject = {
   getElementInfo,

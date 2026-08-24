@@ -14,6 +14,7 @@ import {
   sourceRefToLinkProps,
 } from "../functions/treeViewModel";
 import type { ContextMenuState, LinkProps } from "../types/types";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 const styles = {
   backdrop: css({
@@ -51,10 +52,11 @@ export function ContextView(props: {
     if (rows().length > 1 || (adapter && adapter !== "react")) return;
     const controller = new AbortController();
     setPending(true);
-    void getParentsPathsAsync(target, adapter, {
-      signal: controller.signal,
-      deadline: Date.now() + 4_000,
-    })
+    void getParentsPathsAsync(
+      target,
+      adapter,
+      createSourceResolutionContext(controller.signal)
+    )
       .then((items) => {
         if (!controller.signal.aborted) setAsyncRows(buildParentRows(items));
       })

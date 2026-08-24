@@ -3,7 +3,7 @@ import {
   resolveSourceFromFiber,
   getSourceFromCache,
 } from "./clickSourceResolver";
-import { firstUserFrame } from "./stackFrame";
+import { firstUserFrame, isCompiledSourceLocation } from "./stackFrame";
 import type { SourceResolutionContext } from "./sourceMapResolver";
 import {
   SourceMethod,
@@ -26,28 +26,43 @@ function getSourceFromFiber(
   const fiberAny = fiber as any;
 
   // 1. Traditional: get directly from _debugSource
-  if (fiber._debugSource) {
+  if (
+    fiber._debugSource &&
+    !isCompiledSourceLocation(fiber._debugSource.fileName)
+  ) {
     return [fiber._debugSource, SourceMethod.FIBER_DEBUG_SOURCE];
   }
 
   // 2. React 19+: try from type or elementType
   // Get from elementType._source
-  if (fiberAny.elementType?._source) {
+  if (
+    fiberAny.elementType?._source &&
+    !isCompiledSourceLocation(fiberAny.elementType._source.fileName)
+  ) {
     return [fiberAny.elementType._source, SourceMethod.ELEMENT_TYPE_SOURCE];
   }
 
   // Get from type._source
-  if (fiberAny.type?._source) {
+  if (
+    fiberAny.type?._source &&
+    !isCompiledSourceLocation(fiberAny.type._source.fileName)
+  ) {
     return [fiberAny.type._source, SourceMethod.TYPE_SOURCE];
   }
 
   // 3. Next.js / Turbopack: try from __debugSource
-  if (fiberAny.__debugSource) {
+  if (
+    fiberAny.__debugSource &&
+    !isCompiledSourceLocation(fiberAny.__debugSource.fileName)
+  ) {
     return [fiberAny.__debugSource, SourceMethod.FIBER_DEBUG_SOURCE_ALT];
   }
 
   // 4. Try __source from memoizedProps (JSX transform injection)
-  if (fiberAny.memoizedProps?.__source) {
+  if (
+    fiberAny.memoizedProps?.__source &&
+    !isCompiledSourceLocation(fiberAny.memoizedProps.__source.fileName)
+  ) {
     return [
       fiberAny.memoizedProps.__source,
       SourceMethod.MEMOIZED_PROPS_SOURCE,
@@ -55,7 +70,10 @@ function getSourceFromFiber(
   }
 
   // 5. Try __source from pendingProps
-  if (fiberAny.pendingProps?.__source) {
+  if (
+    fiberAny.pendingProps?.__source &&
+    !isCompiledSourceLocation(fiberAny.pendingProps.__source.fileName)
+  ) {
     return [fiberAny.pendingProps.__source, SourceMethod.PENDING_PROPS_SOURCE];
   }
 
@@ -67,7 +85,7 @@ function getSourceFromFiber(
         // which cannot match any scheme-prefixed name, so this branch never
         // fired for real input.
         const frame = firstUserFrame(info.stack);
-        if (frame) {
+        if (frame && !isCompiledSourceLocation(frame.fileName)) {
           return [
             {
               fileName: frame.fileName,
@@ -83,7 +101,11 @@ function getSourceFromFiber(
 
   // 7. Try inferring from type function (last resort)
   // May get component definition file info
-  if (typeof fiberAny.type === "function" && fiberAny.type.__componentSource) {
+  if (
+    typeof fiberAny.type === "function" &&
+    fiberAny.type.__componentSource &&
+    !isCompiledSourceLocation(fiberAny.type.__componentSource.fileName)
+  ) {
     return [
       fiberAny.type.__componentSource,
       SourceMethod.TYPE_COMPONENT_SOURCE,
@@ -159,7 +181,7 @@ export async function findDebugSourceAsync(
 ): Promise<{ fiber: Fiber; source: Source } | null> {
   // 1. Try synchronous method first
   const syncResult = findDebugSource(fiber);
-  if (syncResult) {
+  if (syncResult?.fiber === fiber) {
     return syncResult;
   }
 
@@ -204,5 +226,5 @@ export async function findDebugSourceAsync(
     logSourceComplete(false);
   }
 
-  return null;
+  return syncResult;
 }

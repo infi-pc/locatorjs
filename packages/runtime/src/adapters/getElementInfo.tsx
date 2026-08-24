@@ -42,7 +42,10 @@ export async function getElementInfoAsync(
 ): Promise<FullElementInfo | null> {
   // Try synchronous method first
   const syncResult = getElementInfo(target, adapterId);
-  if (syncResult && syncResult.thisElement.link) {
+  if (
+    syncResult?.thisElement.link &&
+    syncResult.thisElement.sourceProvenance !== "ancestor"
+  ) {
     return syncResult;
   }
 

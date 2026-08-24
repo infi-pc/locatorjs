@@ -2,6 +2,8 @@ import { Source, Fiber, RendererInterface } from "@locator/shared";
 import {
   resolveOriginalPosition,
   fileUrlToPath,
+  clearSourceMapCache,
+  RESOLUTION_DEADLINE_MS,
   throwIfResolutionCancelled,
   type SourceResolutionContext,
 } from "./sourceMapResolver";
@@ -89,18 +91,21 @@ async function resolveProjectPrefix(
   const scripts = candidateChunkUrls(context);
 
   const candidates: string[] = [];
-  for (const scriptUrl of scripts) {
+  for (const scriptUrl of scripts.slice(0, 4)) {
     throwIfResolutionCancelled(context);
     try {
-      const res = await boundedFetch(scriptUrl + ".map", context);
-      if (!res.ok) continue;
-      const map = await res.json();
+      const map = await boundedJson<{
+        sections?: { map?: { sources?: string[] } }[];
+        sources?: string[];
+      }>(scriptUrl + ".map", context);
+      if (!map) continue;
 
       for (const source of sourcesOf(map)) {
         if (!source.startsWith("file:///")) continue;
         const root = rootFromSource(fileUrlToPath(source), relativePath);
         if (root) candidates.push(root);
       }
+      if (candidates.some((root) => !root.includes("/node_modules/"))) break;
     } catch {
       continue;
     }
@@ -164,25 +169,41 @@ function candidateChunkUrls(context?: SourceResolutionContext): string[] {
   return [...new Set(urls)].filter((url) => isCompiledSourceLocation(url));
 }
 
-async function boundedFetch(
+async function boundedRead<T>(
   url: string,
-  context?: SourceResolutionContext
-): Promise<Response> {
+  read: (response: Response) => Promise<T>,
+  context?: SourceResolutionContext,
+  init?: RequestInit
+): Promise<T | null> {
   throwIfResolutionCancelled(context);
   const controller = new AbortController();
   const remaining = context
     ? Math.max(0, context.deadline - Date.now())
-    : 4_000;
+    : RESOLUTION_DEADLINE_MS;
   const timeout = window.setTimeout(() => controller.abort(), remaining);
   const abort = () => controller.abort();
   context?.signal.addEventListener("abort", abort, { once: true });
   try {
-    return await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) return null;
+    const result = await read(response);
+    throwIfResolutionCancelled(context);
+    return result;
   } finally {
     window.clearTimeout(timeout);
     context?.signal.removeEventListener("abort", abort);
   }
 }
+
+const boundedText = (url: string, context?: SourceResolutionContext) =>
+  boundedRead(url, (response) => response.text(), context);
+
+const boundedJson = <T>(
+  url: string,
+  context?: SourceResolutionContext,
+  init?: RequestInit
+) =>
+  boundedRead(url, (response) => response.json() as Promise<T>, context, init);
 
 async function getCandidateChunkCodes(
   context?: SourceResolutionContext
@@ -193,10 +214,8 @@ async function getCandidateChunkCodes(
       const cached = chunkCodeCache.get(src);
       if (cached !== undefined) return cached;
       try {
-        const response = await boundedFetch(src, context);
-        if (!response.ok) return null;
-        const code = await response.text();
-        throwIfResolutionCancelled(context);
+        const code = await boundedText(src, context);
+        if (code === null) return null;
         chunkCodeCache.set(src, code);
         return code;
       } catch {
@@ -396,7 +415,9 @@ export function extractComponentSourceFromChunk(
 export function clearTurbopackCache(): void {
   chunkCodeCache.clear();
   turbopackProjectRoot = undefined;
+  turbopackRootRetryAfter = 0;
   nextjsAppRoot = undefined;
+  nextjsRootRetryAfter = 0;
   componentSourceCache = new WeakMap();
 }
 
@@ -797,12 +818,14 @@ async function resolveNextjsRelativePath(
 
   const candidates: string[] = [];
   try {
-    const mapRes = await boundedFetch(
+    const map = await boundedJson<{
+      sections?: { map?: { sources?: string[] } }[];
+      sources?: string[];
+    }>(
       `/__nextjs_source-map?filename=${encodeURIComponent(rawChunkUrl)}`,
       context
     );
-    if (mapRes.ok) {
-      const map = await mapRes.json();
+    if (map) {
       for (const source of sourcesOf(map)) {
         if (!source.startsWith("file:///")) continue;
         const root = rootFromSource(fileUrlToPath(source), relativePath);
@@ -836,17 +859,21 @@ async function resolveViaNextDevServer(
 ): Promise<Source | null> {
   try {
     throwIfResolutionCancelled(context);
-    const controller = new AbortController();
-    const remaining = context
-      ? Math.max(0, context.deadline - Date.now())
-      : 4_000;
-    const timeout = window.setTimeout(() => controller.abort(), remaining);
-    const abort = () => controller.abort();
-    context?.signal.addEventListener("abort", abort, { once: true });
-    const res = await fetch("/__nextjs_original-stack-frames", {
+    const result = await boundedJson<
+      Array<{
+        status: string;
+        value?: {
+          originalStackFrame?: {
+            file?: string;
+            ignored?: boolean;
+            line1?: number;
+            column1?: number;
+          };
+        };
+      }>
+    >("/__nextjs_original-stack-frames", context, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
       body: JSON.stringify({
         frames: [
           {
@@ -859,17 +886,11 @@ async function resolveViaNextDevServer(
         isServer: true,
         isAppDirectory: true,
       }),
-    }).finally(() => {
-      window.clearTimeout(timeout);
-      context?.signal.removeEventListener("abort", abort);
     });
-
-    if (!res.ok) return null;
-
-    const result = await res.json();
     if (!Array.isArray(result) || result.length === 0) return null;
 
     const entry = result[0];
+    if (!entry) return null;
     if (entry.status !== "fulfilled" || !entry.value?.originalStackFrame) {
       return null;
     }
@@ -993,7 +1014,10 @@ export async function resolveSourceFromFiber(
       } = debugStackResult;
 
       if (isCompiledSourceLocation(debugStackSource.fileName)) {
-        candidateChunks.add(rawFileUrl);
+        const cleanedChunk = cleanStackFileName(rawFileUrl);
+        if (isCompiledSourceLocation(cleanedChunk)) {
+          candidateChunks.add(cleanedChunk);
+        }
         const resolved = await resolveOriginalPosition(
           debugStackSource.fileName,
           debugStackSource.lineNumber,
@@ -1170,9 +1194,14 @@ export function getSourceFromCache(fiber: Fiber): Source | null {
 }
 
 /** Test/HMR seam for all positive resolver caches. */
-export function resetSourceResolutionCaches(): void {
-  clearTurbopackCache();
+let resetAdapterCaches: () => void = () => undefined;
+
+export function registerAdapterCacheReset(reset: () => void): void {
+  resetAdapterCaches = reset;
 }
 
-// Note: componentSourceCache is a WeakMap which auto-GCs when keys are dereferenced.
-// No explicit clear function is needed.
+export function resetSourceResolutionCaches(): void {
+  clearTurbopackCache();
+  clearSourceMapCache();
+  resetAdapterCaches();
+}

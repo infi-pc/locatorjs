@@ -11,6 +11,7 @@ import {
 } from "../functions/treeViewModel";
 import { TreeNode } from "../types/TreeNode";
 import { LinkProps } from "../types/types";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 const styles = {
   backdrop: css({
@@ -116,34 +117,38 @@ export function TreeView(props: {
       setPendingIds(new Set<string>());
       return;
     }
-    nodes.forEach((node) => attemptedNodeIds.add(node.uniqueId));
     const controller = new AbortController();
     activeControllers.add(controller);
+    onCleanup(() => controller.abort());
     setPendingIds(
       new Set(
         nodes.flatMap((node) => [node.uniqueId, `component:${node.uniqueId}`])
       )
     );
-    void Promise.all(
-      nodes.map(async (node) => {
-        const context = {
-          signal: controller.signal,
-          deadline: Date.now() + 4_000,
-        };
-        await Promise.all([
+    let nextNode = 0;
+    const resolveNext = async () => {
+      while (!controller.signal.aborted) {
+        const node = nodes[nextNode++];
+        if (!node) return;
+        const context = createSourceResolutionContext(controller.signal);
+        await Promise.allSettled([
           node.getSourceAsync?.(context),
           node.getComponentAsync?.(context),
         ]);
-      })
-    )
-      .catch(() => undefined)
-      .finally(() => {
-        activeControllers.delete(controller);
         if (!controller.signal.aborted) {
-          setPendingIds(new Set<string>());
-          setResolutionRevision((value) => value + 1);
+          attemptedNodeIds.add(node.uniqueId);
         }
-      });
+      }
+    };
+    void Promise.allSettled(
+      Array.from({ length: Math.min(4, nodes.length) }, resolveNext)
+    ).finally(() => {
+      activeControllers.delete(controller);
+      if (!controller.signal.aborted) {
+        setPendingIds(new Set<string>());
+        setResolutionRevision((value) => value + 1);
+      }
+    });
   });
 
   return (

@@ -43,6 +43,7 @@ import { performAction } from "../functions/performAction";
 import { goToLinkPropsOrSetup } from "../functions/goTo";
 import { idsOnPathToRoot } from "../functions/treeViewModel";
 import type { FullElementInfo } from "../adapters/adapterApi";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 import { PortalMountProvider } from "@locator/ui";
 import { resolveEventTarget } from "../functions/resolveEventTarget";
 import {
@@ -265,7 +266,9 @@ function Runtime(props: {
 
       if (
         elInfo &&
-        (elInfo.thisElement.link || !actionNeedsSourceLink(binding.action))
+        ((elInfo.thisElement.link &&
+          elInfo.thisElement.sourceProvenance !== "ancestor") ||
+          !actionNeedsSourceLink(binding.action))
       ) {
         // Sync found a link — prevent default and navigate
         e.preventDefault();
@@ -298,10 +301,9 @@ function Runtime(props: {
       };
       activeResolution = operation;
       setResolutionPending(true);
-      const context = {
-        signal: operation.controller.signal,
-        deadline: Date.now() + 4_000,
-      };
+      const context = createSourceResolutionContext(
+        operation.controller.signal
+      );
       const finishResolution = () => {
         if (activeResolution?.id !== operation.id) return;
         activeResolution = undefined;

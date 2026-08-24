@@ -7,6 +7,7 @@ import {
 } from "../adapters/getElementInfo";
 import { Outline } from "./Outline";
 import { css } from "@locator/styled-system/css";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 const styles = {
   viewport: css({
@@ -53,10 +54,11 @@ export function MaybeOutline(props: {
     if (sync?.thisElement.link || (adapter && adapter !== "react")) return;
     const controller = new AbortController();
     setPending(true);
-    void getElementInfoAsync(element, adapter, {
-      signal: controller.signal,
-      deadline: Date.now() + 4_000,
-    })
+    void getElementInfoAsync(
+      element,
+      adapter,
+      createSourceResolutionContext(controller.signal)
+    )
       .then((result) => {
         if (!controller.signal.aborted) setAsyncInfo(result);
       })

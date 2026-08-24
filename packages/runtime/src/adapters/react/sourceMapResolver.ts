@@ -22,13 +22,30 @@ const sourceMapCache = createTtlCache<SourceMapConsumer>(
 
 // Loading promise cache to avoid duplicate requests
 const loadingPromises = new Map<string, Promise<SourceMapConsumer | null>>();
-const SOURCE_MAP_FETCH_TIMEOUT_MS = 4_000;
+export const RESOLUTION_DEADLINE_MS = 4_000;
+const SOURCE_MAP_FETCH_TIMEOUT_MS = RESOLUTION_DEADLINE_MS;
 
 export type SourceResolutionContext = {
   signal: AbortSignal;
   deadline: number;
   candidateChunkUrls?: readonly string[];
 };
+
+export function createSourceResolutionContext(
+  signal: AbortSignal
+): SourceResolutionContext {
+  const candidateChunkUrls =
+    typeof document === "undefined"
+      ? []
+      : Array.from(document.querySelectorAll<HTMLScriptElement>("script[src]"))
+          .map((script) => script.src)
+          .filter(isCompiledSourceLocation);
+  return {
+    signal,
+    deadline: Date.now() + RESOLUTION_DEADLINE_MS,
+    candidateChunkUrls,
+  };
+}
 
 export function throwIfResolutionCancelled(
   context?: SourceResolutionContext
