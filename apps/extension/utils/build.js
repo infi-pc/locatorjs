@@ -104,7 +104,9 @@ function assertStartupBundles(outputPath) {
     const text = source.toString('utf8');
     for (const marker of forbiddenMarkers) {
       if (text.includes(marker)) {
-        throw new Error(`Startup bundle ${file} contains heavy marker ${marker}`);
+        throw new Error(
+          `Startup bundle ${file} contains heavy marker ${marker}`
+        );
       }
     }
   }
@@ -123,7 +125,7 @@ webpack(config, function (err, stats) {
 
   // Print the human-readable summary before deciding the exit code, so a failing
   // build still leaves a usable log behind.
-  console.log(stats.toString({ colors: true }));
+  console.info(stats.toString({ colors: true }));
 
   const info = stats.toJson();
   if (stats.hasWarnings()) {

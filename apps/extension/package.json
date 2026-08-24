@@ -12,7 +12,7 @@
     "test": "vitest run",
     "build:firefox": "TARGET_BROWSER=firefox node utils/build.js",
     "build:all": "run-s build build:firefox",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src utils --ext .js,.ts,.tsx",
     "dev": "node utils/webserver.js",
     "dev:firefox": "TARGET_BROWSER=firefox node utils/webserver.js",
     "start:firefox": "web-ext run --source-dir ./build/production_firefox",
