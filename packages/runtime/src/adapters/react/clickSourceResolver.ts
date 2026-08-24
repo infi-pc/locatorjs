@@ -11,6 +11,7 @@ import {
   cleanStackFileName,
   firstUserFrame,
   isCompiledSourceLocation,
+  isOriginalUserSource,
 } from "./stackFrame";
 import { createTtlCache } from "./ttlCache";
 import {
@@ -938,13 +939,13 @@ export async function resolveSourceFromFiber(
 
   /**
    * Records a resolution and reports it. Every strategy funnels through here
-   * so none of them can accept a compiled chunk URL as an answer: doing that
-   * emits `vscode://file/webpack-internal:///...` and, worse, stops the
+   * so none of them can accept a compiled chunk URL or framework source as an
+   * answer: doing that opens an unusable/wrong file and, worse, stops the
    * strategies below from ever running.
    */
   const accept = (source: Source, method: SourceMethodType): Source | null => {
     throwIfResolutionCancelled(context);
-    if (isCompiledSourceLocation(source.fileName)) return null;
+    if (!isOriginalUserSource(source.fileName)) return null;
     componentSourceCache.set(fiber, {
       source,
       expiresAt: Date.now() + CHUNK_TTL_MS,

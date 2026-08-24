@@ -5,6 +5,7 @@ import {
   isInternalFrame,
   isCompiledSourceLocation,
   isLocatorFrame,
+  isOriginalUserSource,
   parseStackFrame,
 } from "./stackFrame";
 
@@ -21,6 +22,20 @@ describe("isCompiledSourceLocation", () => {
 
   test("accepts an original source file", () => {
     expect(isCompiledSourceLocation("/repo/app/page.tsx")).toBe(false);
+  });
+});
+
+describe("isOriginalUserSource", () => {
+  test.each([
+    "webpack-internal:///app/page.js",
+    "/repo/node_modules/react/jsx-runtime.js",
+    "/repo/node_modules/@locator/runtime/dist/index.js",
+  ])("rejects non-application source %s", (fileName) => {
+    expect(isOriginalUserSource(fileName)).toBe(false);
+  });
+
+  test("accepts an original application source", () => {
+    expect(isOriginalUserSource("/repo/app/page.tsx")).toBe(true);
   });
 });
 

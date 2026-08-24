@@ -79,6 +79,15 @@ export function isCompiledSourceLocation(fileName: string): boolean {
   );
 }
 
+/** A final resolver result must be original application code, not tooling. */
+export function isOriginalUserSource(fileName: string): boolean {
+  return (
+    !isCompiledSourceLocation(fileName) &&
+    !isInternalFrame(fileName) &&
+    !isLocatorFrame(fileName)
+  );
+}
+
 /**
  * Clean up a stack frame file path.
  * `about://React/Server/file:///path` -> `/path`, and chunk query params go.
