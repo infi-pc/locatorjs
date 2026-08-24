@@ -15,7 +15,6 @@
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",
-    "@types/semver": "^7.7.1",
     "jsdom": "^20.0.3",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
@@ -24,8 +23,5 @@
   "files": [
     "dist",
     "src"
-  ],
-  "dependencies": {
-    "semver": "^7.7.4"
-  }
+  ]
 }

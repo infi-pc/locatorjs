@@ -5,13 +5,12 @@ import { isExtension } from "./functions/isExtension";
 import { setTeamTargets, updateTeamLayer } from "./functions/teamLayerStore";
 import { installShadowRootTracking } from "./functions/shadowRoots";
 export * from "./adapters/jsx/runtimeStore";
+export { MAX_ZINDEX } from "./consts";
 
 if (typeof window !== "undefined" && isExtension()) {
   installShadowRootTracking();
   setTimeout(() => initRuntime(), 0);
 }
-
-export const MAX_ZINDEX = 2147483647;
 
 export type SetupOptions = LocatorOptions & {
   adapter?: AdapterId;

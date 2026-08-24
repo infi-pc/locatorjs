@@ -29,7 +29,11 @@ import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
-import { OptionsProvider, useOptions } from "../functions/optionsStore";
+import {
+  OptionsProvider,
+  useOptions,
+  type OptionsStore,
+} from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
 import { css } from "@locator/styled-system/css";
@@ -101,14 +105,17 @@ function Runtime(props: {
   portalMount: HTMLDivElement;
   tryAction: BindingAction | null;
   setTryAction: (action: BindingAction | null) => void;
+  initialActivation?: { held: boolean; target?: HTMLElement };
 }) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   // Holding an activation modifier reveals the outline and its toolbar. It is
   // deliberately separate from binding matching: a config with only toolbar
   // actions still needs a way to bring the toolbar up.
-  const [activationHeld, setActivationHeld] = createSignal(false);
+  const [activationHeld, setActivationHeld] = createSignal(
+    props.initialActivation?.held ?? false
+  );
   const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
-    null
+    props.initialActivation?.target ?? null
   );
   const [resolutionPending, setResolutionPending] = createSignal(false);
   const [actionNotice, setActionNotice] = createSignal<string>();
@@ -664,9 +671,15 @@ function actionNeedsSourceLink(action: BindingAction) {
   return action.kind === "open-editor" || action.kind === "copy-path";
 }
 
-function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
+function RuntimeWrapper(props: {
+  portalMount: HTMLDivElement;
+  initialActivation?: { held: boolean; target?: HTMLElement };
+  initialTryAction?: BindingAction;
+}) {
   const options = useOptions();
-  const [tryAction, setTryAction] = createSignal<BindingAction | null>(null);
+  const [tryAction, setTryAction] = createSignal<BindingAction | null>(
+    props.initialTryAction ?? null
+  );
 
   const isDisabled = () => options.effective().disabled || false;
 
@@ -679,6 +692,9 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
   });
 
   let tryActionTimeout: number | undefined;
+  if (props.initialTryAction) {
+    tryActionTimeout = window.setTimeout(() => setTryAction(null), 5_000);
+  }
   const onTryAction = (event: Event) => {
     const action = (event as CustomEvent<BindingAction>).detail;
     setTryAction(action);
@@ -697,12 +713,20 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
         portalMount={props.portalMount}
         tryAction={tryAction()}
         setTryAction={setTryAction}
+        initialActivation={props.initialActivation}
       />
     </Show>
   );
 }
 
-export function initRender(solidLayer: HTMLDivElement) {
+export function initRender(
+  solidLayer: HTMLDivElement,
+  options: OptionsStore,
+  initial?: {
+    activation?: { held: boolean; target?: HTMLElement };
+    tryAction?: BindingAction;
+  }
+) {
   const root = solidLayer.getRootNode();
   if (
     root instanceof ShadowRoot &&
@@ -717,8 +741,12 @@ export function initRender(solidLayer: HTMLDivElement) {
     () => (
       <EnvironmentProvider value={() => solidLayer.getRootNode() as ShadowRoot}>
         <PortalMountProvider mount={solidLayer}>
-          <OptionsProvider>
-            <RuntimeWrapper portalMount={solidLayer} />
+          <OptionsProvider store={options}>
+            <RuntimeWrapper
+              portalMount={solidLayer}
+              initialActivation={initial?.activation}
+              initialTryAction={initial?.tryAction}
+            />
           </OptionsProvider>
         </PortalMountProvider>
       </EnvironmentProvider>

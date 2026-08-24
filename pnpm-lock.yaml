@@ -435,17 +435,10 @@ importers:
         version: 3.5.32(typescript@5.9.3)
 
   packages/shared:
-    dependencies:
-      semver:
-        specifier: ^7.7.4
-        version: 7.7.4
     devDependencies:
       '@locator/dev-config':
         specifier: workspace:^
         version: link:../dev-config
-      '@types/semver':
-        specifier: ^7.7.1
-        version: 7.7.1
       jsdom:
         specifier: ^20.0.3
         version: 20.0.3
@@ -8095,6 +8088,7 @@ packages:
 
   /@types/semver@7.7.1:
     resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
+    dev: false
 
   /@types/send@0.17.6:
     resolution: {integrity: sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og==}

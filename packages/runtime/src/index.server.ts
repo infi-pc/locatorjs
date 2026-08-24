@@ -1,7 +1,7 @@
 import type { LocatorOptions, Target } from "@locator/shared";
 import type { AdapterId } from "./consts";
 
-export const MAX_ZINDEX = 2147483647;
+export { MAX_ZINDEX } from "./consts";
 
 export type SetupOptions = LocatorOptions & {
   adapter?: AdapterId;

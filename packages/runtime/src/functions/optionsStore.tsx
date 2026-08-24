@@ -5,6 +5,7 @@ import {
   createSignal,
   getOwner,
   onCleanup,
+  untrack,
   useContext,
 } from "solid-js";
 import {
@@ -22,11 +23,11 @@ import {
   Targets,
   WriteResult,
   allTargets,
-  decodeLocatorOptions,
 } from "@locator/shared";
 import { setDebugMode } from "../adapters/react/debug";
 import { getTeamLayerSignal, getTeamTargetsSignal } from "./teamLayerStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
+import { readUserExtensionGlobal } from "./runtimeOptionsSnapshot";
 
 export type UiState = NonNullable<LocatorUserOriginStored["uiState"]>;
 
@@ -41,18 +42,6 @@ export type OptionsStore = {
   clearUserOrigin: () => Promise<WriteResult>;
   setUiState: (patch: Partial<UiState>) => Promise<WriteResult>;
 };
-
-function readUserExtensionGlobal(): LocatorOptions | undefined {
-  if (typeof document === "undefined") return undefined;
-  const raw = document.documentElement?.dataset?.locatorUserExtensionOptions;
-  if (!raw) return undefined;
-  try {
-    return decodeLocatorOptions(JSON.parse(raw)) ?? undefined;
-  } catch {
-    // ignore corrupt JSON
-  }
-  return undefined;
-}
 
 function readEditorWithheld(): boolean {
   return (
@@ -156,9 +145,13 @@ export function initOptions(): OptionsStore {
 
 const OptionsContext = createContext<OptionsStore>();
 
-export function OptionsProvider(props: { children: any }) {
-  const options = initOptions();
-  mountRuntimePopupBridge(options);
+export function OptionsProvider(props: {
+  children: any;
+  store?: OptionsStore;
+}) {
+  const externalStore = untrack(() => props.store);
+  const options = externalStore ?? initOptions();
+  if (!externalStore) mountRuntimePopupBridge(options);
 
   return (
     <OptionsContext.Provider value={options}>

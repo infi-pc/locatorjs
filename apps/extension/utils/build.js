@@ -86,6 +86,30 @@ function assertBuiltManifest(outputPath) {
   }
 }
 
+function assertStartupBundles(outputPath) {
+  const policies = {
+    'client.bundle.js': 50_000,
+    'contentScript.bundle.js': 20_000,
+    'hook.bundle.js': 10_000,
+  };
+  const forbiddenMarkers = ['lucide', '--colors-', 'SEMVER_SPEC_VERSION'];
+
+  for (const [file, maxBytes] of Object.entries(policies)) {
+    const source = fs.readFileSync(path.join(outputPath, file));
+    if (source.byteLength > maxBytes) {
+      throw new Error(
+        `Startup bundle ${file} exceeds ${maxBytes} bytes: ${source.byteLength}`
+      );
+    }
+    const text = source.toString('utf8');
+    for (const marker of forbiddenMarkers) {
+      if (text.includes(marker)) {
+        throw new Error(`Startup bundle ${file} contains heavy marker ${marker}`);
+      }
+    }
+  }
+}
+
 assertManifestParity();
 
 webpack(config, function (err, stats) {
@@ -112,11 +136,6 @@ webpack(config, function (err, stats) {
   }
 
   const outputPath = config.output.path;
-  const client = fs.readFileSync(path.join(outputPath, 'client.bundle.js'));
-  if (client.byteLength > 50_000) {
-    throw new Error(
-      `Injected startup shell exceeds 50 KB: ${client.byteLength}`
-    );
-  }
+  assertStartupBundles(outputPath);
   assertBuiltManifest(outputPath);
 });
