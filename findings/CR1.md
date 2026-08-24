@@ -558,6 +558,8 @@ All production fixes below landed in `7f43449` (`fix: remediate CR1 root causes`
 
 Related latent hazards L1, L3, L5, L6, L8, and L9 are covered in `7f43449` by the allowlisted decoders/resolver, storage envelope, no-compiled fallback, unified writer type, portal context, and error-level Solid reactivity rule. L4's origin-targeted runtime bridge is completed in `61225de`. L7's nearest-owner behavior is intentionally preserved. L2 required no Firefox-specific change.
 
+Headed acceptance exposed one additional extension bootstrap race: appending the React hook as an external page script at `document_start` did not guarantee that it ran before React. `80d3c1c` declares the hook itself as a main-world `document_start` content script in both manifests, leaves settings/storage code in the isolated world, and makes client-URL publication safe before `document.documentElement` exists. The same commit updates the headed smoke assertions for the v2 onboarding, settings scopes, and storage envelope.
+
 Final automated verification:
 
 - `pnpm check` — 41/41 tasks.
@@ -566,5 +568,7 @@ Final automated verification:
 - Isolated full `pnpm e2e` — 168/168 tests.
 - `pnpm package-contract` — clean build, tarball inspection, temporary-consumer install/import.
 - Unified Chrome and Firefox release pipeline — both production builds and ZIPs completed; startup graph gate passed.
+- Headed Chromium extension smoke — React activation, Svelte onboarding, and popup v2 persistence: 3/3.
+- Firefox `web-ext lint` — 0 errors and 0 notices (seven pre-existing generated-bundle `innerHTML` warnings).
 
-The manual headed extension-upgrade smoke test remains a release checklist item; it was not represented as an automated pass here.
+A true installed-v1-to-v2 profile upgrade remains a manual release checklist item; the automated headed pass uses a fresh temporary extension profile.
