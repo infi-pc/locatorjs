@@ -25,12 +25,12 @@ Supported:
 | Pointer cursor over shadow content                      | yes   | The page-level rule cannot cross the boundary, so the rule is pushed into each root.                               |
 
 \* Closed roots hide themselves: `host.shadowRoot` is `null` and the composed
-path stops at the host. Locator records closed roots by patching
-`Element.prototype.attachShadow` at startup - see
-[`shadowRoots`](../packages/runtime/src/functions/shadowRoots.ts) - and then
-finds the element under the pointer with `ShadowRoot.elementFromPoint`. A closed
-root attached **before** Locator loaded cannot be tracked; clicks on it resolve
-the host instead of the inner element.
+path stops at the host. The extension's small MAIN-world hook patches
+`Element.prototype.attachShadow` at `document_start` and records roots in the
+shared [`shadowRootRegistry`](../packages/shared/src/shadowRootRegistry.ts).
+The runtime then finds the element under the pointer with
+`ShadowRoot.elementFromPoint`. A closed root attached before that hook executes
+cannot be tracked; clicks on it resolve the host instead of the inner element.
 
 ## Iframes
 
@@ -41,10 +41,14 @@ tree, so the overlay of a child frame is clipped to that frame's viewport.
 ### Browser extension
 
 The content script declares `all_frames`, so every frame in the tab - including
-cross-origin ones - gets the hook and the client, each with its own retry
-loop. `match_origin_as_fallback` covers `srcdoc`, `about:blank` and `data:`
-frames. The popup talks to frame 0 only, so the settings it shows are always the
-top document's.
+cross-origin ones - gets the hook and the client. `match_origin_as_fallback`
+covers `srcdoc`, `about:blank` and `data:` frames. Same-origin and inherited-
+origin frames receive the complete extension settings. Cross-origin frames get
+a safe projection that omits editor, prompt and path configuration; actions
+that need the withheld editor explain that they are unavailable there instead
+of opening a setup wizard that could only write to the third party's origin.
+The popup talks to frame 0 only, so the settings it shows are always the top
+document's.
 
 ### Library setup
 
