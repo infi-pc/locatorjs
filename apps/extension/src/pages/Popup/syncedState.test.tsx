@@ -109,6 +109,15 @@ describe('SyncedStateProvider', () => {
     );
   });
 
+  test('does not admit an arbitrary write reason from the active page', async () => {
+    mocks.tabsSendMessage.mockClear();
+    mocks.tabsSendMessage.mockResolvedValue({ ok: false, reason: 'hunter2' });
+
+    await expect(
+      syncedState.setSiteLocal({ projectPath: '/repo' })
+    ).resolves.toEqual({ ok: false, reason: 'unknown' });
+  });
+
   test('strips undefined values before writing extension storage', async () => {
     await syncedState.setUserExtension({
       debugMode: true,

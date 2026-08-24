@@ -296,4 +296,16 @@ describe('mountSnapshotBridge payload validation', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({ ok: false, reason: 'quota' });
   });
+
+  test('maps an unrecognised write reason to the closed fallback', () => {
+    const sendResponse = replyTo('applySiteLocal', 'result', {
+      ok: false,
+      reason: 'hunter2',
+    });
+
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      reason: 'unknown',
+    });
+  });
 });

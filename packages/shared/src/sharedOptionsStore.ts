@@ -75,9 +75,36 @@ function readStored(): LocatorUserOriginStored {
   }
 }
 
+export type WriteFailureReason = "blocked" | "quota" | "corrupt" | "unknown";
+
 export type WriteResult =
   | { ok: true }
-  | { ok: false; reason: "blocked" | "quota" | "corrupt" | "unknown" };
+  | { ok: false; reason: WriteFailureReason };
+
+function isWriteFailureReason(value: unknown): value is WriteFailureReason {
+  return (
+    value === "blocked" ||
+    value === "quota" ||
+    value === "corrupt" ||
+    value === "unknown"
+  );
+}
+
+/** Rebuilds a write response received across an untyped messaging boundary. */
+export function decodeWriteResult(value: unknown): WriteResult | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (candidate.ok === true) return { ok: true };
+  if (candidate.ok !== false) return null;
+  return {
+    ok: false,
+    reason: isWriteFailureReason(candidate.reason)
+      ? candidate.reason
+      : "unknown",
+  };
+}
 
 /**
  * What a component hands back from a settings write.

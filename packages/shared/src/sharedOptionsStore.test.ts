@@ -1,10 +1,36 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
   clearUserOriginOptions,
+  decodeWriteResult,
   getUserOriginOptions,
   setUserOriginOptions,
   USER_ORIGIN_STORAGE_KEY,
 } from "./sharedOptionsStore";
+
+describe("decodeWriteResult", () => {
+  test("rebuilds valid results and discards extra fields", () => {
+    expect(decodeWriteResult({ ok: true, extra: "ignored" })).toEqual({
+      ok: true,
+    });
+    expect(
+      decodeWriteResult({ ok: false, reason: "quota", extra: "ignored" })
+    ).toEqual({ ok: false, reason: "quota" });
+  });
+
+  test("maps unknown failure reasons into the closed union", () => {
+    expect(decodeWriteResult({ ok: false, reason: "hunter2" })).toEqual({
+      ok: false,
+      reason: "unknown",
+    });
+  });
+
+  test.each([null, [], {}, { ok: "yes" }])(
+    "rejects a malformed result: %j",
+    (value) => {
+      expect(decodeWriteResult(value)).toBeNull();
+    }
+  );
+});
 
 class MemoryLocalStorage {
   private store = new Map<string, string>();

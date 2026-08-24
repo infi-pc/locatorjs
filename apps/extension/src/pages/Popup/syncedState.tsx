@@ -8,11 +8,14 @@ import {
   onCleanup,
 } from 'solid-js';
 import {
+  decodeWriteResult,
+  decodeTryActionResult,
   serializePatch,
   type LocatorOptions,
   type LocatorLayer,
   type Targets,
   type WriteResult,
+  type TryActionResult,
   type BindingAction,
 } from '@locator/shared';
 import browser from '../../browser';
@@ -55,9 +58,7 @@ type SyncedState = {
   clearSiteLocal: () => Promise<WriteResult>;
   clearUserExtension: () => Promise<WriteResult>;
   reloadActiveTab: () => Promise<void>;
-  tryAction: (
-    action: BindingAction
-  ) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  tryAction: (action: BindingAction) => Promise<TryActionResult>;
 };
 
 const SyncedStateContext = createContext<SyncedState>();
@@ -241,16 +242,18 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
           return { ok: false, reason: 'blocked' };
         }
         const serialized = serializePatch(patch);
-        const response = (await browser.tabs.sendMessage(
-          currentTab.id,
-          {
-            from: 'popup',
-            subject: 'applySiteLocal',
-            patch: serialized.patch,
-            unset: serialized.unset,
-          },
-          { frameId: TOP_FRAME_ID }
-        )) as WriteResult | undefined;
+        const response = decodeWriteResult(
+          await browser.tabs.sendMessage(
+            currentTab.id,
+            {
+              from: 'popup',
+              subject: 'applySiteLocal',
+              patch: serialized.patch,
+              unset: serialized.unset,
+            },
+            { frameId: TOP_FRAME_ID }
+          )
+        );
         if (!response) {
           return { ok: false, reason: 'blocked' };
         }
@@ -261,10 +264,12 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       }
     },
     clearSiteLocal: async () => {
-      const response = await sendToActiveTab<WriteResult>({
-        from: 'popup',
-        subject: 'clearSiteLocal',
-      });
+      const response = decodeWriteResult(
+        await sendToActiveTab({
+          from: 'popup',
+          subject: 'clearSiteLocal',
+        })
+      );
       if (response?.ok) await requestSnapshot();
       return response ?? { ok: false, reason: 'blocked' };
     },
@@ -287,9 +292,9 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       await requestSnapshot();
     },
     tryAction: async (action) => {
-      const response = await sendToActiveTab<
-        { ok: true } | { ok: false; reason: string }
-      >({ from: 'popup', subject: 'tryAction', action });
+      const response = decodeTryActionResult(
+        await sendToActiveTab({ from: 'popup', subject: 'tryAction', action })
+      );
       return response ?? { ok: false, reason: 'blocked' };
     },
   };
@@ -301,7 +306,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   );
 }
 
-async function sendToActiveTab<T>(message: Record<string, unknown>) {
+async function sendToActiveTab(message: Record<string, unknown>) {
   try {
     const tabs = await browser.tabs.query({
       active: true,
@@ -309,9 +314,9 @@ async function sendToActiveTab<T>(message: Record<string, unknown>) {
     });
     const currentTab = tabs[0];
     if (!currentTab?.id) return undefined;
-    return (await browser.tabs.sendMessage(currentTab.id, message, {
+    return await browser.tabs.sendMessage(currentTab.id, message, {
       frameId: TOP_FRAME_ID,
-    })) as T | undefined;
+    });
   } catch {
     return undefined;
   }

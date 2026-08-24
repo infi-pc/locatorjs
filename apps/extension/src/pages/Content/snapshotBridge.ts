@@ -3,6 +3,8 @@ import {
   decodeLocatorOptions,
   decodeProvenance,
   decodeTargets,
+  decodeTryActionResult,
+  decodeWriteResult,
   postMessageOrigin,
   type BindingAction,
 } from '@locator/shared';
@@ -67,7 +69,7 @@ export function mountSnapshotBridge() {
             unset: msg.unset ?? [],
           },
           'LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT',
-          validateWriteResult,
+          decodeWriteResult,
           (payload) => {
             if (payload === null) {
               sendResponse({ ok: false, reason: 'no-runtime' });
@@ -83,7 +85,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           { type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' },
           'LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT',
-          validateWriteResult,
+          decodeWriteResult,
           (payload) =>
             sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
@@ -94,7 +96,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           { type: 'LOCATOR_PAGE_TRY_ACTION', action: msg.action },
           'LOCATOR_PAGE_TRY_ACTION_RESULT',
-          validateWriteResult,
+          decodeTryActionResult,
           (payload) =>
             sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
@@ -132,16 +134,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** A `WriteResult`: `{ok: true}` or `{ok: false, reason: string}`. */
-function validateWriteResult(value: unknown): ValidatedPayload | null {
-  if (!isPlainObject(value) || typeof value.ok !== 'boolean') return null;
-  if (value.ok) return { ok: true };
-  return {
-    ok: false,
-    reason: typeof value.reason === 'string' ? value.reason : 'unknown',
-  };
-}
-
 /** A `Snapshot`: four plain-object fields, rebuilt rather than passed through. */
 function validateSnapshot(value: unknown): ValidatedPayload | null {
   if (!isPlainObject(value)) return null;
@@ -160,25 +152,23 @@ function validateSnapshot(value: unknown): ValidatedPayload | null {
     : null;
 }
 
-type Validator = (value: unknown) => ValidatedPayload | null;
-
 function snapshotHasSiteLocal(value: unknown): boolean {
   if (!isPlainObject(value) || !isPlainObject(value.layers)) return false;
   const siteLocal = value.layers['user-origin'];
   return isPlainObject(siteLocal) && Object.keys(siteLocal).length > 0;
 }
 
-function relayRequestToPage(
+function relayRequestToPage<T extends object>(
   request: Record<string, unknown>,
   responseType: string,
-  validate: Validator,
-  done: (payload: ValidatedPayload | null, rejectedValue?: unknown) => void
+  validate: (value: unknown) => T | null,
+  done: (payload: T | null, rejectedValue?: unknown) => void
 ) {
   const requestId = generateRequestId();
   let settled = false;
   let rejectedValue: unknown;
 
-  function finish(payload: ValidatedPayload | null) {
+  function finish(payload: T | null) {
     if (settled) return;
     settled = true;
     window.removeEventListener('message', handler);
