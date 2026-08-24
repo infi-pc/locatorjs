@@ -1,7 +1,7 @@
 import { allTargets, DEFAULT_LAYER, resolve } from '@locator/shared';
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { Snapshot } from './syncedState';
+import type { ConnectivityStatus, Snapshot } from './syncedState';
 
 const mocks = vi.hoisted(() => ({
   userExtension: {},
@@ -14,17 +14,13 @@ const mocks = vi.hoisted(() => ({
   createTab: vi.fn(),
   // Assigned by the mock factory below. Connectivity is a signal so a test can
   // flip it mid-session, which is the only way to observe a remount.
-  setStatus: undefined as unknown as (
-    value: 'connected' | 'no-runtime'
-  ) => void,
+  setStatus: undefined as unknown as (value: ConnectivityStatus) => void,
   setSnapshot: undefined as unknown as (value: Snapshot | null) => void,
 }));
 
 vi.mock('./syncedState', async () => {
   const { createSignal } = await import('solid-js');
-  const [status, setStatus] = createSignal<'connected' | 'no-runtime'>(
-    'connected'
-  );
+  const [status, setStatus] = createSignal<ConnectivityStatus>('connected');
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
   mocks.setStatus = setStatus;
   mocks.setSnapshot = (value) => setSnapshot(value);
@@ -139,6 +135,16 @@ describe('Popup settings navigation', () => {
       .getByRole('button', { name: 'Edit action 1: Open in editor' })
       .click();
     expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  test('reloads the active tab when an update requires it', async () => {
+    mocks.setStatus('reload-required');
+    mocks.setSnapshot(null);
+    render(() => <Popup />);
+
+    await screen.getByRole('button', { name: 'Reload page' }).click();
+
+    expect(mocks.reloadActiveTab).toHaveBeenCalledTimes(1);
   });
 
   test('resets the selected scope and keeps disable page-specific', async () => {

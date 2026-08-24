@@ -189,6 +189,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
     await locateElement(page, "text=React 19 + Turbopack");
 
     await expectWelcome(page);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("nested text element", async ({ page }) => {

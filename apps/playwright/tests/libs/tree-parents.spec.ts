@@ -155,13 +155,21 @@ test.describe("tree panel", () => {
     const tree = panel.getByRole("tree");
     const before = await panel.getByRole("treeitem").count();
 
-    // The list is focused on open, so arrows work without clicking first.
-    await tree.press("Home");
-    await tree.press("ArrowLeft");
+    // Expanding through the actual twisty used to leave focus on <body> when
+    // the row list was rebuilt, which Locator.press() cannot reveal because it
+    // focuses the target before every key.
+    await panel.getByRole("button", { name: "Collapse" }).first().click();
+    await expect(tree).toBeFocused();
     await expect
       .poll(async () => panel.getByRole("treeitem").count())
       .toBeLessThan(before);
-    await tree.press("ArrowRight");
+    const activeAfterCollapse = await tree.getAttribute(
+      "aria-activedescendant"
+    );
+    expect(activeAfterCollapse).toMatch(/^locator-treeitem-/);
+    await expect(panel.locator(`[id="${activeAfterCollapse}"]`)).toBeAttached();
+    await panel.getByRole("button", { name: "Expand" }).first().click();
+    await expect(tree).toBeFocused();
     await expect
       .poll(async () => panel.getByRole("treeitem").count())
       .toBe(before);

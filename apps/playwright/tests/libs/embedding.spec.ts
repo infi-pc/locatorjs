@@ -246,11 +246,17 @@ test.describe("iframes", () => {
     await page.goto(projects.reactEmbedding);
     await expectRuntimeReady(page);
 
-    await childFrame(page, "iframe-same-origin-runtime")
+    const childHandle = await page
+      .getByTestId("iframe-same-origin-runtime")
+      .elementHandle();
+    const child = await childHandle?.contentFrame();
+    if (!child) throw new Error("same-origin iframe did not create a frame");
+    await expectRuntimeReady(child);
+    await child
       .locator("text=iframe child paragraph")
       .first()
       .dispatchEvent("mouseover", { altKey: true });
-
+    await expect.poll(() => outlineVisible(child)).toBe(true);
     // The parent must not draw an outline for something it never hovered.
     expect(await outlineVisible(page)).toBe(false);
   });
@@ -273,21 +279,14 @@ test.describe("iframes", () => {
     await page.goto(projects.reactEmbedding);
     await expectRuntimeReady(page);
 
+    const framesBeforeClick = new Set(page.frames());
     await page.getByTestId("add-late-iframe").click();
-    await expect(page.getByTestId("iframe-late")).toBeAttached();
-
-    const frame = await expect
-      .poll(
-        () =>
-          page.frames().filter((f) => f.url().includes("iframe-child.html"))
-            .length
-      )
-      .toBeGreaterThan(1)
-      .then(() =>
-        page.frames().filter((f) => f.url().includes("iframe-child.html"))
-      );
-
-    const late = frame[frame.length - 1];
+    const iframe = page.getByTestId("iframe-late");
+    await expect(iframe).toBeAttached();
+    const handle = await iframe.elementHandle();
+    const late = await handle?.contentFrame();
+    if (!late) throw new Error("late iframe did not create a frame");
+    expect(framesBeforeClick.has(late)).toBe(false);
     await expectRuntimeReady(late);
     await altClick(late, "text=iframe child paragraph");
 

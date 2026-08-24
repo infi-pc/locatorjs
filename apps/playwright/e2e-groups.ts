@@ -113,11 +113,11 @@ const fail = (message: string): never => {
   );
 };
 
-/** Every *.spec.ts under tests/, as a tests/-relative posix path. */
+/** Every Playwright *.spec.ts or *.test.ts, as a tests/-relative posix path. */
 function specsOnDisk(): string[] {
   return fs
     .readdirSync(TESTS_DIR, { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".spec.ts"))
+    .filter((file) => /\.(?:spec|test)\.ts$/.test(file))
     .map((file) => file.split(path.sep).join("/"));
 }
 
