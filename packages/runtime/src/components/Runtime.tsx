@@ -241,6 +241,27 @@ function Runtime(props: {
     );
   }
 
+  async function dispatchClickAction(
+    action: BindingAction,
+    elementInfo: FullElementInfo
+  ) {
+    if (
+      action.kind === "open-editor" &&
+      (!isExtension() || detectSvelte()) &&
+      !onboardingDismissed() &&
+      !props.tryAction
+    ) {
+      const link = elementInfo.thisElement.link;
+      if (!link) return;
+      setDialog(["choose-editor", link]);
+      return;
+    }
+
+    if (action.kind === "open-editor") trackClickStats();
+    const succeeded = await runAction(action, elementInfo);
+    if (props.tryAction && succeeded) props.setTryAction(null);
+  }
+
   function rightClickListener(e: MouseEvent) {
     if (!matchBinding(bindings(), e, { ignoreCtrl: true })) {
       return;
@@ -291,18 +312,7 @@ function Runtime(props: {
         // Sync found a link — prevent default and navigate
         e.preventDefault();
         e.stopPropagation();
-        if (
-          binding.action.kind === "open-editor" &&
-          (!isExtension() || detectSvelte()) &&
-          !onboardingDismissed() &&
-          !props.tryAction
-        ) {
-          setDialog(["choose-editor", elInfo.thisElement.link!]);
-        } else {
-          if (binding.action.kind === "open-editor") trackClickStats();
-          const succeeded = await runAction(binding.action, elInfo);
-          if (props.tryAction && succeeded) props.setTryAction(null);
-        }
+        await dispatchClickAction(binding.action, elInfo);
         return;
       }
 
@@ -346,18 +356,7 @@ function Runtime(props: {
         if (elInfo) {
           const linkProps = elInfo.thisElement.link;
           if (linkProps || !actionNeedsSourceLink(binding.action)) {
-            if (
-              binding.action.kind === "open-editor" &&
-              (!isExtension() || detectSvelte()) &&
-              !onboardingDismissed() &&
-              !props.tryAction
-            ) {
-              setDialog(["choose-editor", linkProps!]);
-            } else {
-              if (binding.action.kind === "open-editor") trackClickStats();
-              const succeeded = await runAction(binding.action, elInfo);
-              if (props.tryAction && succeeded) props.setTryAction(null);
-            }
+            await dispatchClickAction(binding.action, elInfo);
           } else {
             // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
             console.error(
