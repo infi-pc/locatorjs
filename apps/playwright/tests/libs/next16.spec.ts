@@ -56,6 +56,13 @@ async function getLastResolvedSource(
   return withSource[withSource.length - 1].source as ResolvedSource;
 }
 
+async function expectNoSource(page: Page) {
+  await expect(
+    page.getByText("No source info found for this element!")
+  ).toBeVisible({ timeout: ASYNC_TIMEOUT });
+  expect(await getLastResolvedSource(page)).toBeNull();
+}
+
 // Permissive assertion: file is resolved to somewhere in the app's source tree
 // (not node_modules / framework internals). Browser-specific _debugOwner traversal
 // means the exact file (page.tsx vs components/Card.tsx) varies, so we only
@@ -102,7 +109,7 @@ async function expectExactUserSource(
 }
 
 test.describe("Next.js 16 + Webpack (React 19)", () => {
-  test("heading", async ({ page }) => {
+  test("heading", async ({ page, browserName }) => {
     await configureEditor(page);
     await page.goto(projects.next16);
     await expectLocatorReady(page);
@@ -110,13 +117,19 @@ test.describe("Next.js 16 + Webpack (React 19)", () => {
 
     await locateElement(page, "text=To get started");
 
+    // JavaScriptCore omits the Page frame's location and exposes only
+    // framework frames. Refusing to open one is the only safe result.
+    if (browserName === "webkit") {
+      await expectNoSource(page);
+      return;
+    }
     await expectExactUserSource(page, {
-      file: /test-apps\/next-16\/app\/page\.tsx$/,
+      file: /(?:test-apps\/next-16)?\/app\/page\.tsx$/,
       line: 8,
     });
   });
 
-  test("anchor element", async ({ page }) => {
+  test("anchor element", async ({ page, browserName }) => {
     await configureEditor(page);
     await page.goto(projects.next16);
     await expectLocatorReady(page);
@@ -124,8 +137,12 @@ test.describe("Next.js 16 + Webpack (React 19)", () => {
 
     await locateElement(page, "text=Deploy Now");
 
+    if (browserName === "webkit") {
+      await expectNoSource(page);
+      return;
+    }
     await expectExactUserSource(page, {
-      file: /test-apps\/next-16\/app\/page\.tsx$/,
+      file: /(?:test-apps\/next-16)?\/app\/page\.tsx$/,
       line: 30,
     });
   });
@@ -176,13 +193,19 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
     await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
-  test("server component heading", async ({ page }) => {
+  test("server component heading", async ({ page, browserName }) => {
     await page.goto(projects.next16Turbopack);
     await expectLocatorReady(page);
     await enableDebug(page);
 
     await locateElement(page, "text=React 19 + Turbopack");
 
+    // React's WebKit server-component owner record contains a name but no
+    // source location. It must not fall back to react-jsx-runtime.
+    if (browserName === "webkit") {
+      await expectNoSource(page);
+      return;
+    }
     await expectWelcome(page);
     await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
