@@ -4,6 +4,7 @@ export * from "./types";
 export * from "./targets";
 export * from "./modifiers";
 export * from "./environmentDetection";
+export * from "./shadowRootRegistry";
 
 export type SourceLocation = {
   start: {

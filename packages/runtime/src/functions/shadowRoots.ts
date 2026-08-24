@@ -1,135 +1,67 @@
-/**
- * Registry of every shadow root on the page.
- *
- * Open shadow roots can be walked from the document, but only the ones that
- * exist at the moment of the walk, and `querySelectorAll` never crosses a
- * shadow boundary so nested roots stay invisible. Closed shadow roots cannot be
- * found from the outside at all - `host.shadowRoot` is `null`.
- *
- * So we do both: an initial recursive scan for roots that already exist, and a
- * patched `attachShadow` that records everything created afterwards, closed
- * roots included. The patch returns the untouched native root, so pages cannot
- * tell the difference.
- */
+import {
+  __resetSharedShadowRootsForTesting,
+  getSharedShadowRootOf,
+  getSharedShadowRoots,
+  installSharedShadowRootTracking,
+  observeSharedShadowRoots,
+} from "@locator/shared";
 
-const LOCATOR_WRAPPER_ID = "locatorjs-wrapper";
-
-const shadowRoots = new Set<ShadowRoot>();
-/** Closed roots are not reachable via `host.shadowRoot`, so we keep the link. */
-const closedRootsByHost = new WeakMap<Element, ShadowRoot>();
-const listeners = new Set<(root: ShadowRoot) => void>();
-
-let initialized = false;
-
-function isLocatorRoot(root: ShadowRoot) {
-  return (root.host as HTMLElement | null)?.id === LOCATOR_WRAPPER_ID;
+export function __resetShadowRootsForTesting() {
+  stopPointerObservation?.();
+  stopPointerObservation = undefined;
+  __resetSharedShadowRootsForTesting();
+  pointerCursorActive = false;
 }
 
-function register(root: ShadowRoot) {
-  if (shadowRoots.has(root) || isLocatorRoot(root)) {
-    return;
-  }
-  shadowRoots.add(root);
-  if (root.mode === "closed") {
-    closedRootsByHost.set(root.host, root);
-  }
-  if (pointerCursorActive) {
-    applyPointerCursor(root, true);
-  }
-  for (const listener of listeners) {
+export function installShadowRootTracking() {
+  installSharedShadowRootTracking();
+}
+
+export function observeShadowRoots(listener: (root: ShadowRoot) => void) {
+  return observeSharedShadowRoots((root) => {
+    if (pointerCursorActive) applyPointerCursor(root, true);
     listener(root);
-  }
-}
-
-function scan(root: Document | ShadowRoot) {
-  root.querySelectorAll("*").forEach((node) => {
-    const nested = node.shadowRoot;
-    if (nested) {
-      register(nested);
-      scan(nested);
-    }
   });
 }
 
-function patchAttachShadow() {
-  const proto = Element.prototype as Element & {
-    __locatorPatchedAttachShadow?: boolean;
-  };
-  if (proto.__locatorPatchedAttachShadow || !proto.attachShadow) {
-    return;
-  }
-  const original = proto.attachShadow;
-  proto.attachShadow = function attachShadow(
-    this: Element,
-    init: ShadowRootInit
-  ) {
-    const root = original.call(this, init);
-    try {
-      register(root);
-    } catch {
-      // Never let bookkeeping break the page's own component.
-    }
-    return root;
-  };
-  proto.__locatorPatchedAttachShadow = true;
-}
-
-function init() {
-  if (initialized || typeof document === "undefined") {
-    return;
-  }
-  initialized = true;
-  patchAttachShadow();
-  scan(document);
-}
-
-/** Clears the registry so a test can start from a known state. */
-export function __resetShadowRootsForTesting() {
-  shadowRoots.clear();
-  listeners.clear();
-  pointerCursorActive = false;
-  initialized = false;
-}
-
-/**
- * Start tracking shadow roots. Safe to call repeatedly; only the first call
- * does anything. Worth calling as early as possible, because closed roots
- * attached before the patch is in place cannot be recovered later.
- */
-export function installShadowRootTracking() {
-  init();
-}
-
-/**
- * Subscribe to every shadow root, current and future. Returns an unsubscribe
- * function; the `attachShadow` patch itself stays in place because other page
- * code may have captured the patched reference.
- */
-export function observeShadowRoots(listener: (root: ShadowRoot) => void) {
-  init();
-  listeners.add(listener);
-  for (const root of shadowRoots) {
-    listener(root);
-  }
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-/** All known shadow roots, in registration order. */
 export function getShadowRoots(): ShadowRoot[] {
-  init();
-  return Array.from(shadowRoots);
+  return getSharedShadowRoots();
+}
+
+export function getShadowRootOf(element: Element): ShadowRoot | null {
+  return getSharedShadowRootOf(element);
 }
 
 /**
- * The shadow root hosted by `element`, including closed roots we recorded when
- * they were attached.
+ * Scroll does not cross shadow boundaries. Track it without retaining roots
+ * after their hosts leave the document.
  */
-export function getShadowRootOf(element: Element): ShadowRoot | null {
-  init();
-  if ((element as HTMLElement).id === LOCATOR_WRAPPER_ID) return null;
-  return element.shadowRoot ?? closedRootsByHost.get(element) ?? null;
+export function listenForShadowRootScrolls(listener: EventListener) {
+  const roots = new Set<ShadowRoot>();
+  const prune = () => {
+    for (const root of roots) {
+      if (root.host.isConnected) continue;
+      root.removeEventListener("scroll", listener, { capture: true });
+      roots.delete(root);
+    }
+  };
+  const mutationObserver = new MutationObserver(prune);
+  mutationObserver.observe(document, { childList: true, subtree: true });
+  const stop = observeShadowRoots((root) => {
+    prune();
+    if (roots.has(root)) return;
+    roots.add(root);
+    root.addEventListener("scroll", listener, { capture: true });
+    mutationObserver.observe(root, { childList: true, subtree: true });
+  });
+  return () => {
+    stop();
+    mutationObserver.disconnect();
+    for (const root of roots) {
+      root.removeEventListener("scroll", listener, { capture: true });
+    }
+    roots.clear();
+  };
 }
 
 const POINTER_CURSOR_CSS = "*{cursor:pointer !important}";
@@ -137,11 +69,10 @@ const STYLE_ELEMENT_ID = "locatorjs-shadow-cursor";
 
 let pointerCursorActive = false;
 let pointerCursorSheet: CSSStyleSheet | null | undefined;
+let stopPointerObservation: (() => void) | undefined;
 
 function getPointerCursorSheet() {
-  if (pointerCursorSheet !== undefined) {
-    return pointerCursorSheet;
-  }
+  if (pointerCursorSheet !== undefined) return pointerCursorSheet;
   try {
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(POINTER_CURSOR_CSS);
@@ -178,14 +109,17 @@ function applyPointerCursor(root: ShadowRoot, active: boolean) {
   }
 }
 
-/**
- * The page-level `.locatorjs-active-pointer *` rule cannot cross a shadow
- * boundary, so the pointer cursor has to be pushed into every shadow root.
- */
+/** Pushes the page-level pointer cursor rule across every shadow boundary. */
 export function setPointerCursorInShadowRoots(active: boolean) {
-  init();
   pointerCursorActive = active;
-  for (const root of shadowRoots) {
-    applyPointerCursor(root, active);
+  if (active) {
+    stopPointerObservation ??= observeSharedShadowRoots((root) => {
+      if (pointerCursorActive) applyPointerCursor(root, true);
+    });
+  }
+  for (const root of getSharedShadowRoots()) applyPointerCursor(root, active);
+  if (!active) {
+    stopPointerObservation?.();
+    stopPointerObservation = undefined;
   }
 }

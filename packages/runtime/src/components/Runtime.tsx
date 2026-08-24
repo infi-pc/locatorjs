@@ -51,7 +51,7 @@ import { createSourceResolutionContext } from "../adapters/react/sourceMapResolv
 import { PortalMountProvider } from "@locator/ui";
 import { resolveEventTarget } from "../functions/resolveEventTarget";
 import {
-  observeShadowRoots,
+  listenForShadowRootScrolls,
   setPointerCursorInShadowRoots,
 } from "../functions/shadowRoots";
 import {
@@ -427,12 +427,9 @@ function Runtime(props: {
   });
   document.addEventListener("scroll", scrollListener, { capture: true });
 
-  const scrollRoots = new Set<ShadowRoot>();
-  const stopObservingShadowRoots = observeShadowRoots((root) => {
-    if (scrollRoots.has(root)) return;
-    scrollRoots.add(root);
-    root.addEventListener("scroll", scrollListener, { capture: true });
-  });
+  const stopListeningToShadowScrolls = listenForShadowRootScrolls(
+    scrollListener as EventListener
+  );
 
   onCleanup(() => {
     cancelResolution();
@@ -470,11 +467,7 @@ function Runtime(props: {
     );
     document.removeEventListener("scroll", scrollListener, { capture: true });
 
-    stopObservingShadowRoots();
-    for (const root of scrollRoots) {
-      root.removeEventListener("scroll", scrollListener, { capture: true });
-    }
-    scrollRoots.clear();
+    stopListeningToShadowScrolls();
   });
 
   function showTreeFromElement(element: HTMLElement) {
