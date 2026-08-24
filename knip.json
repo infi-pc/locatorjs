@@ -1,0 +1,55 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "include": [
+    "files",
+    "dependencies",
+    "devDependencies",
+    "optionalPeerDependencies",
+    "unlisted",
+    "binaries",
+    "unresolved"
+  ],
+  "treatConfigHintsAsErrors": true,
+  "ignoreWorkspaces": ["test-apps/**", "packages/locatorjs"],
+  "ignoreFiles": ["**/tests/fixtures/**"],
+  "ignoreDependencies": ["archiver"],
+  "workspaces": {
+    ".": {
+      "ignoreDependencies": ["vitest"]
+    },
+    "apps/extension": {
+      "entry": ["panda.config.ts"],
+      "ignoreDependencies": ["@types/chrome"]
+    },
+    "apps/ui-lab": {
+      "entry": ["panda.config.ts", "postcss.config.cjs"]
+    },
+    "apps/web": {
+      "ignoreDependencies": ["sharp"]
+    },
+    "packages/babel-jsx": {
+      "ignoreDependencies": [
+        "@babel/plugin-syntax-jsx",
+        "@babel/preset-typescript",
+        "prettier"
+      ]
+    },
+    "packages/dev-config": {
+      "ignoreDependencies": [
+        "@typescript-eslint/eslint-plugin",
+        "eslint-config-next",
+        "eslint-config-prettier",
+        "eslint-plugin-solid"
+      ]
+    },
+    "packages/runtime": {
+      "entry": ["src/index.server.ts", "panda.config.ts"]
+    },
+    "packages/styled-system": {
+      "entry": ["panda.config.ts"]
+    },
+    "packages/webpack-loader": {
+      "ignoreDependencies": ["@babel/preset-typescript", "webpack"]
+    }
+  }
+}

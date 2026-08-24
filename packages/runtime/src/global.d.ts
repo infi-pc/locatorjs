@@ -1,9 +1,8 @@
-import { ReactDevtoolsHook } from "@locator/shared";
-import { FileStorage } from "./types/types";
+import type { FileStorage, ReactDevtoolsHook } from "@locator/shared";
 
 declare global {
   interface Window {
     __REACT_DEVTOOLS_GLOBAL_HOOK__: ReactDevtoolsHook;
-    __LOCATOR_DATA__: { [filename: string]: FileStorage };
+    __LOCATOR_DATA__?: Record<string, FileStorage>;
   }
 }

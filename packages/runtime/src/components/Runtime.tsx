@@ -4,7 +4,7 @@ import {
   type BindingAction,
 } from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
-import { batch, createEffect, createSignal, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
 import { trackClickStats } from "../functions/trackClickStats";
@@ -171,24 +171,7 @@ function Runtime(props: {
 
       setActivationHeld(matchesActivation(bindings(), e));
 
-      batch(() => {
-        setCurrentElement(target);
-        // TODO: this is for highlighting elements in the tree, but need to move it to the adapter
-        // if (solidMode()[0] === "tree" || solidMode()[0] === "treeFromElement") {
-        //   const fiber = findFiberByHtmlElement(target, false);
-        //   if (fiber) {
-        //     const id = fiberToSimple(fiber, []);
-        //     setHighlightedNode(id);
-        //   }
-        // }
-      });
-
-      // const found =
-      //   target.closest("[data-locatorjs-id]") ||
-      //   searchDevtoolsRenderersForClosestTarget(target);
-      // if (found && found instanceof HTMLElement) {
-      //   setCurrentElement(found);
-      // }
+      setCurrentElement(target);
     }
   }
 
