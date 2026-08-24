@@ -65,12 +65,23 @@ function publishUserExtensionOptions(options: LocatorOptions) {
 
 function injectUserExtensionGlobal(options: LocatorOptions) {
   withDocumentElement((element) => {
+    const canReceiveEditor = canReceiveFullSettings();
+    element.dataset.locatorEditorWithheld = canReceiveEditor ? 'false' : 'true';
     element.dataset.locatorUserExtensionOptions = JSON.stringify(
-      fullSettingsRequested && !options.disabled
+      fullSettingsRequested && canReceiveEditor && !options.disabled
         ? options
         : safeFrameProjection(options)
     );
   });
+}
+
+function canReceiveFullSettings(): boolean {
+  if (window === window.top) return true;
+  try {
+    return window.top?.location.origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }
 
 function withDocumentElement(callback: (element: HTMLElement) => void) {

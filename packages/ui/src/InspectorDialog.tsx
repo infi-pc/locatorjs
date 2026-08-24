@@ -9,6 +9,7 @@ import {
 } from "solid-js";
 import { Portal } from "solid-js/web";
 import { usePortalMount } from "./PortalMount";
+import { trapOverlayFocus } from "./focusTrap";
 
 const styles = {
   backdrop: css({
@@ -66,15 +67,6 @@ const styles = {
   }),
 };
 
-const focusableSelector = [
-  "button:not([disabled])",
-  "[href]",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
-].join(",");
-
 export function InspectorDialog(props: {
   open: boolean;
   portalMount?: Node;
@@ -85,13 +77,6 @@ export function InspectorDialog(props: {
   const portalMount = usePortalMount(() => props.portalMount);
   let content: HTMLDivElement | undefined;
   const titleId = `locator-interaction-dialog-${createUniqueId()}`;
-  const activeElement = () => {
-    const root = content?.getRootNode();
-    return root && "activeElement" in root
-      ? (root.activeElement as Element | null)
-      : document.activeElement;
-  };
-
   createEffect(() => {
     if (!props.open) return;
 
@@ -113,36 +98,8 @@ export function InspectorDialog(props: {
   const handleKeyDown: JSX.EventHandlerUnion<HTMLDivElement, KeyboardEvent> = (
     event
   ) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      props.onOpenChange(false);
-      return;
-    }
-
-    if (event.key !== "Tab" || !content) return;
-
-    const focusable = Array.from(
-      content.querySelectorAll<HTMLElement>(focusableSelector)
-    ).filter((element) => !element.hidden);
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (!first || !last) {
-      event.preventDefault();
-      content.focus();
-      return;
-    }
-
-    if (
-      event.shiftKey &&
-      (activeElement() === first || activeElement() === content)
-    ) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && activeElement() === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    if (content)
+      trapOverlayFocus(event, content, () => props.onOpenChange(false));
   };
 
   return (

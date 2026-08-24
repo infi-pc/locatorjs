@@ -60,9 +60,9 @@ export function visibleTreeRows(
   rows: TreeRow[],
   expandedIds: ReadonlySet<string>,
   depth = 0
-): { row: TreeRow; depth: number }[] {
-  return rows.flatMap((row) => [
-    { row, depth },
+): { row: TreeRow; depth: number; posInSet: number; setSize: number }[] {
+  return rows.flatMap((row, index) => [
+    { row, depth, posInSet: index + 1, setSize: rows.length },
     ...(expandedIds.has(row.id)
       ? visibleTreeRows(row.children, expandedIds, depth + 1)
       : []),

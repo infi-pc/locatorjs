@@ -40,6 +40,20 @@ describe("getChildElementsAcrossShadow", () => {
       shadow.querySelector("slot"),
     ]);
   });
+
+  test("never walks into Locator's own overlay", () => {
+    const page = document.createElement("main");
+    const wrapper = document.createElement("div");
+    wrapper.id = "locatorjs-wrapper";
+    const ownRoot = wrapper.attachShadow({ mode: "open" });
+    ownRoot.innerHTML =
+      '<div id="locatorjs-layer"><button>Close</button></div>';
+    document.body.append(page, wrapper);
+
+    const children = getChildElementsAcrossShadow(document.body);
+    expect(children).toEqual([page, wrapper]);
+    expect(getChildElementsAcrossShadow(wrapper)).toEqual([]);
+  });
 });
 
 describe("getParentElementAcrossShadow", () => {

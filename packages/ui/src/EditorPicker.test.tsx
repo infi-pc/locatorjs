@@ -152,4 +152,46 @@ describe("EditorPicker", () => {
       ).value
     ).toBe("cursor://failed/${filePath}");
   });
+
+  test("rejects a custom template without a URL scheme", async () => {
+    const onChange = vi.fn(() => ({ ok: true } as const));
+    render(() => (
+      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Custom link template",
+    });
+    await fireEvent.input(input, { target: { value: "missing-scheme" } });
+    await fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain(
+      "must start with a URL scheme"
+    );
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  test("treats an empty custom draft as cancel, preserving the editor", async () => {
+    const onChange = vi.fn(() => ({ ok: true } as const));
+    render(() => (
+      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Custom link template",
+    });
+    await fireEvent.input(input, { target: { value: "  " } });
+    await fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByText(targets.cursor.url)).toBeTruthy();
+  });
 });

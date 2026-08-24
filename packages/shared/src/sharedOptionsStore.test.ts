@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import {
   clearUserOriginOptions,
   getUserOriginOptions,
+  setUserOriginOptions,
   USER_ORIGIN_STORAGE_KEY,
 } from "./sharedOptionsStore";
 
@@ -122,5 +123,32 @@ describe("clearUserOriginOptions", () => {
       ],
       uiState: { onboarding: { step: "editor" } },
     });
+  });
+
+  test("drops unreadable stored fields while preserving valid options", () => {
+    localStorage.setItem(
+      USER_ORIGIN_STORAGE_KEY,
+      JSON.stringify({
+        projectPath: "/repo",
+        editor: { targetTemplate: "javascript:alert(1)" },
+        futureOption: true,
+      })
+    );
+
+    expect(getUserOriginOptions()).toEqual({ projectPath: "/repo" });
+  });
+
+  test("does not let an invalid site patch replace a valid editor", () => {
+    localStorage.setItem(
+      USER_ORIGIN_STORAGE_KEY,
+      JSON.stringify({ editor: { targetId: "cursor" } })
+    );
+
+    expect(
+      setUserOriginOptions({
+        editor: { targetTemplate: "missing-scheme" },
+      })
+    ).toEqual({ ok: true });
+    expect(getUserOriginOptions()).toEqual({ editor: { targetId: "cursor" } });
   });
 });

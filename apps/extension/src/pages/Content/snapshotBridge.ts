@@ -36,18 +36,21 @@ export function mountSnapshotBridge() {
           },
           'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
           validateSnapshot,
-          (payload) => {
+          (payload, rejectedValue) => {
             if (payload === null) {
               sendResponse({
                 ok: false,
                 protocolVersion: EXTENSION_PROTOCOL_VERSION,
-                reason: 'no-runtime',
+                extensionVersion: browser.runtime.getManifest().version,
+                reason: rejectedValue ? 'snapshot-rejected' : 'no-runtime',
+                siteLocalPresent: snapshotHasSiteLocal(rejectedValue),
                 diagnostic: hookDiagnostic(),
               });
             } else {
               sendResponse({
                 ok: true,
                 protocolVersion: EXTENSION_PROTOCOL_VERSION,
+                extensionVersion: browser.runtime.getManifest().version,
                 snapshot: payload,
               });
             }
@@ -159,20 +162,27 @@ function validateSnapshot(value: unknown): ValidatedPayload | null {
 
 type Validator = (value: unknown) => ValidatedPayload | null;
 
+function snapshotHasSiteLocal(value: unknown): boolean {
+  if (!isPlainObject(value) || !isPlainObject(value.layers)) return false;
+  const siteLocal = value.layers['user-origin'];
+  return isPlainObject(siteLocal) && Object.keys(siteLocal).length > 0;
+}
+
 function relayRequestToPage(
   request: Record<string, unknown>,
   responseType: string,
   validate: Validator,
-  done: (payload: ValidatedPayload | null) => void
+  done: (payload: ValidatedPayload | null, rejectedValue?: unknown) => void
 ) {
   const requestId = generateRequestId();
   let settled = false;
+  let rejectedValue: unknown;
 
   function finish(payload: ValidatedPayload | null) {
     if (settled) return;
     settled = true;
     window.removeEventListener('message', handler);
-    done(payload);
+    done(payload, rejectedValue);
   }
 
   function handler(event: MessageEvent) {
@@ -185,7 +195,10 @@ function relayRequestToPage(
     // A malformed reply is treated as no reply, so a page cannot settle the
     // request early with junk and lock out the runtime's real answer.
     const payload = validate(data.snapshot ?? data.result);
-    if (payload === null) return;
+    if (payload === null) {
+      rejectedValue = data.snapshot ?? data.result;
+      return;
+    }
 
     finish(payload);
   }

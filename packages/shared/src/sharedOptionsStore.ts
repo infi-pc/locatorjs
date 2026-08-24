@@ -4,6 +4,10 @@ import {
   type LocatorUserOriginStored,
 } from "./layeredOptions";
 import { migrateLegacyLocalStorage } from "./migrateLegacyStorage";
+import {
+  LOCATOR_OPTION_KEYS,
+  decodeStoredLocatorOptions,
+} from "./optionsCodec";
 
 export const USER_ORIGIN_STORAGE_KEY = "LOCATOR_USER_OPTIONS";
 
@@ -45,8 +49,17 @@ function readStored(): LocatorUserOriginStored {
     const raw = localStorage.getItem(USER_ORIGIN_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    const stored = parsed as LocatorUserOriginStored;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    const { uiState, ...rawOptions } = parsed as LocatorUserOriginStored;
+    const decoded = decodeStoredLocatorOptions(rawOptions) ?? {};
+    const stored: LocatorUserOriginStored = {
+      ...decoded,
+      ...(uiState && typeof uiState === "object" && !Array.isArray(uiState)
+        ? { uiState }
+        : {}),
+    };
     if (stored.mouseModifiers !== undefined && stored.bindings === undefined) {
       const { uiState, ...options } = stored;
       const migrated: LocatorUserOriginStored = {
@@ -114,10 +127,20 @@ export function setUserOriginOptions(
 ): WriteResult {
   const current = readStored();
   const { uiState, ...currentOpts } = current;
+  const cleanPatch = decodeStoredLocatorOptions(patch);
+  if (!cleanPatch) return { ok: false, reason: "corrupt" };
   const next: LocatorUserOriginStored = {
     ...currentOpts,
-    ...patch,
+    ...cleanPatch,
   };
+  for (const key of LOCATOR_OPTION_KEYS) {
+    if (
+      Object.prototype.hasOwnProperty.call(patch, key) &&
+      patch[key] === undefined
+    ) {
+      delete next[key];
+    }
+  }
   if (
     Object.prototype.hasOwnProperty.call(patch, "mouseModifiers") &&
     !Object.prototype.hasOwnProperty.call(patch, "bindings")

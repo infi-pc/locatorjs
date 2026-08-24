@@ -1,10 +1,15 @@
-import { isValidRenderer } from '@locator/shared/dist/isValidRenderer';
-import { detectSvelte, detectVue, postMessageOrigin } from '@locator/shared';
+import {
+  detectSvelte,
+  detectVue,
+  isValidRenderer,
+  postMessageOrigin,
+} from '@locator/shared';
 
 type Renderer = any;
 
 export function insertRuntimeScript() {
   let scriptLoaded = false;
+  let scriptLoading = false;
   let settingsRequested = false;
   let pendingClientUrl: string | undefined;
   let attemptsNecessaryToShowError = 4; // but not necessarily all attempts, we want to show loading for a while
@@ -21,19 +26,28 @@ export function insertRuntimeScript() {
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_READY') return;
-    if (!pendingClientUrl || scriptLoaded) return;
+    if (!pendingClientUrl || scriptLoaded || scriptLoading) return;
     if (event.data.disabled === true) {
       sendStatusMessage('Locator is disabled on this page.');
       pendingClientUrl = undefined;
       settingsRequested = false;
       return;
     }
-    if (insertScript(pendingClientUrl)) {
-      delete document.documentElement.dataset.locatorClientUrl;
-      scriptLoaded = true;
-      pendingClientUrl = undefined;
-      sendStatusMessage('ok');
-    }
+    scriptLoading = insertScript(
+      pendingClientUrl,
+      () => {
+        delete document.documentElement.dataset.locatorClientUrl;
+        scriptLoading = false;
+        scriptLoaded = true;
+        pendingClientUrl = undefined;
+        sendStatusMessage('ok');
+      },
+      () => {
+        scriptLoading = false;
+        settingsRequested = false;
+        sendStatusMessage('Locator client failed to load. Retrying…');
+      }
+    );
   });
   setTimeout(loadedHandler, 1000);
   setTimeout(loadedHandler, 2000);
@@ -42,7 +56,7 @@ export function insertRuntimeScript() {
   setTimeout(loadedHandler, 12000);
 
   function loadedHandler() {
-    if (scriptLoaded) {
+    if (scriptLoaded || scriptLoading) {
       return;
     }
     attemptsNecessaryToShowError--;
@@ -111,19 +125,28 @@ export function insertRuntimeScript() {
   }
 }
 
-function insertScript(locatorClientUrl: string) {
+function insertScript(
+  locatorClientUrl: string,
+  onLoad: () => void,
+  onError: () => void
+) {
   const script = document.createElement('script');
   script.className = 'locatorjs-extension-script';
   script.src = locatorClientUrl;
+  script.addEventListener('load', onLoad, { once: true });
+  script.addEventListener(
+    'error',
+    () => {
+      script.remove();
+      onError();
+    },
+    { once: true }
+  );
 
   if (document.head) {
     document.head.appendChild(script);
-    // TODO: cleanup would be nice, but cuttently we need to keep the script to check it it was loaded from extension
-    // if (script.parentNode) {
-    //   script.parentNode.removeChild(script);
-    //   // TODO maybe add back
-    //   // delete document.documentElement.dataset.locatorClientUrl;
-    // }
+    // Keep the loaded marker script: isExtension() uses it to identify this
+    // runtime without exposing another page-global flag.
     // Iframes are handled by the content script itself: the manifest declares
     // `all_frames`, so every frame - cross-origin ones included - runs the hook
     // and inserts the client with the same retry logic as the top document.

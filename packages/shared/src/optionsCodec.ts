@@ -157,7 +157,7 @@ const OPTION_DECODERS = {
     ) {
       return null;
     }
-    return {
+    const editor = {
       ...(typeof value.targetId === "string"
         ? { targetId: value.targetId }
         : {}),
@@ -165,6 +165,7 @@ const OPTION_DECODERS = {
         ? { targetTemplate: value.targetTemplate }
         : {}),
     };
+    return Object.keys(editor).length > 0 ? editor : undefined;
   },
   bindings: (value) => {
     if (!Array.isArray(value)) return null;
@@ -207,7 +208,9 @@ function decodeOptions(
       if (tolerateInvalidFields) continue;
       return null;
     }
-    (decoded as Record<string, unknown>)[key] = decodedField;
+    if (decodedField !== undefined) {
+      (decoded as Record<string, unknown>)[key] = decodedField;
+    }
   }
   return decoded;
 }

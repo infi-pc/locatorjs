@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../browser', () => ({
   default: {
     runtime: {
+      getManifest: () => ({ version: '2.0.0' }),
       onMessage: {
         addListener: mocks.addListener,
       },
@@ -69,6 +70,7 @@ describe('mountSnapshotBridge', () => {
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
       protocolVersion: 2,
+      extensionVersion: '2.0.0',
       snapshot: {
         effective: {
           bindings: [
@@ -94,7 +96,9 @@ describe('mountSnapshotBridge', () => {
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
       protocolVersion: 2,
+      extensionVersion: '2.0.0',
       reason: 'no-runtime',
+      siteLocalPresent: false,
       diagnostic: undefined,
     });
   });
@@ -119,7 +123,9 @@ describe('mountSnapshotBridge', () => {
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
       protocolVersion: 2,
+      extensionVersion: '2.0.0',
       reason: 'no-runtime',
+      siteLocalPresent: false,
       diagnostic: undefined,
     });
   });
@@ -248,7 +254,9 @@ describe('mountSnapshotBridge payload validation', () => {
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
       protocolVersion: 2,
-      reason: 'no-runtime',
+      extensionVersion: '2.0.0',
+      reason: 'snapshot-rejected',
+      siteLocalPresent: false,
       diagnostic: undefined,
     });
   });

@@ -10,6 +10,7 @@ function createMockOptions(effective: LocatorOptions): OptionsStore {
     layers: () => ({}),
     uiState: () => ({}),
     allTargets: () => ({}),
+    editorWithheld: () => false,
     setUserOrigin: async () => ({ ok: true as const }),
     clearUserOrigin: async () => ({ ok: true }),
     setUiState: async () => ({ ok: true as const }),

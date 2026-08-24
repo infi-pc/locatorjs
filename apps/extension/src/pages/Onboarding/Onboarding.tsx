@@ -6,6 +6,7 @@ import {
   getModifiersMap,
   primaryEditorBinding,
   resolve,
+  isSafeTargetTemplate,
   type Binding,
   type EditorSelection,
 } from '@locator/shared';
@@ -74,6 +75,7 @@ const styles = {
   }),
   okText: css({ color: 'teal.plain.fg', fontSize: 'sm' }),
   missText: css({ color: 'amber.plain.fg', fontSize: 'sm' }),
+  errorText: css({ color: 'red.plain.fg', fontSize: 'sm' }),
 };
 
 const DEFAULT_CUSTOM_TEMPLATE =
@@ -178,6 +180,7 @@ export function Onboarding() {
   const [active, setActive] = createSignal('editor');
   const [showCustom, setShowCustom] = createSignal(false);
   const [customDraft, setCustomDraft] = createSignal('');
+  const [customError, setCustomError] = createSignal<string>();
   const effective = () =>
     resolve({
       default: DEFAULT_LAYER,
@@ -221,6 +224,7 @@ export function Onboarding() {
   const selectEditor = async (value: string) => {
     if (value === EDITOR_CARD_CUSTOM) {
       setCustomDraft(editor()?.targetTemplate ?? DEFAULT_CUSTOM_TEMPLATE);
+      setCustomError(undefined);
       setShowCustom(true);
       return;
     }
@@ -229,9 +233,20 @@ export function Onboarding() {
   };
 
   const saveCustomTemplate = async () => {
-    const saved = await updateEditor({
-      targetTemplate: customDraft().trim() || undefined,
-    });
+    const template = customDraft().trim();
+    if (!template) {
+      setCustomError(undefined);
+      setShowCustom(false);
+      setActive('shortcut');
+      return;
+    }
+    if (!isSafeTargetTemplate(template)) {
+      setCustomError(
+        'Template must start with a URL scheme, for example vscode://.'
+      );
+      return;
+    }
+    const saved = await updateEditor({ targetTemplate: template });
     if (saved) {
       setShowCustom(false);
       setActive('shortcut');
@@ -268,8 +283,12 @@ export function Onboarding() {
               mono
               aria-label="Custom link template"
               value={customDraft()}
+              aria-invalid={customError() ? true : undefined}
               placeholder="editor://file/${projectPath}${filePath}:${line}:${column}"
-              onInput={(event) => setCustomDraft(event.currentTarget.value)}
+              onInput={(event) => {
+                setCustomDraft(event.currentTarget.value);
+                setCustomError(undefined);
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
@@ -284,6 +303,11 @@ export function Onboarding() {
               Available variables: projectPath, filePath, line, column,
               tmuxSession
             </p>
+            <Show when={customError()}>
+              <p class={styles.errorText} role="alert">
+                {customError()}
+              </p>
+            </Show>
           </div>
         </Show>
       ),

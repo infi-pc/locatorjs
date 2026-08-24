@@ -49,6 +49,11 @@ describe("options codec", () => {
     ).toEqual({ projectPath: "/repo" });
   });
 
+  test("normalizes an empty editor object to no override", () => {
+    expect(decodeLocatorOptions({ editor: {} })).toEqual({});
+    expect(decodeStoredLocatorOptions({ editor: {} })).toEqual({});
+  });
+
   test.each(["javascript:alert(1)", "data:text/html,x", "blob:https://x/y"])(
     "rejects active template %s",
     (template) => {

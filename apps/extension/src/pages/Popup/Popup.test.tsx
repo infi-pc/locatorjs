@@ -16,18 +16,25 @@ const mocks = vi.hoisted(() => ({
   // flip it mid-session, which is the only way to observe a remount.
   setStatus: undefined as unknown as (value: ConnectivityStatus) => void,
   setSnapshot: undefined as unknown as (value: Snapshot | null) => void,
+  setDiagnostic: undefined as unknown as (value: string | undefined) => void,
+  setSiteLocalPresent: undefined as unknown as (value: boolean) => void,
 }));
 
 vi.mock('./syncedState', async () => {
   const { createSignal } = await import('solid-js');
   const [status, setStatus] = createSignal<ConnectivityStatus>('connected');
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
+  const [diagnostic, setDiagnostic] = createSignal<string>();
+  const [siteLocalPresent, setSiteLocalPresent] = createSignal(false);
   mocks.setStatus = setStatus;
   mocks.setSnapshot = (value) => setSnapshot(value);
+  mocks.setDiagnostic = setDiagnostic;
+  mocks.setSiteLocalPresent = setSiteLocalPresent;
   return {
     useSyncedState: () => ({
       status,
-      diagnostic: () => undefined,
+      diagnostic,
+      siteLocalPresent,
       snapshot,
       userExtension: () => mocks.userExtension,
       setUserExtension: mocks.setUserExtension,
@@ -67,6 +74,8 @@ describe('Popup settings navigation', () => {
     mocks.setStatus('connected');
     mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
+    mocks.setDiagnostic(undefined);
+    mocks.setSiteLocalPresent(false);
     vi.clearAllMocks();
   });
 
@@ -147,6 +156,40 @@ describe('Popup settings navigation', () => {
     expect(mocks.reloadActiveTab).toHaveBeenCalledTimes(1);
   });
 
+  test('translates startup diagnostics and hides internals behind Details', () => {
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setDiagnostic('ok');
+    const view = render(() => <Popup />);
+
+    expect(screen.getByText(/still starting on this page/)).toBeTruthy();
+    expect(screen.queryByText('ok')).toBeNull();
+
+    view.unmount();
+    mocks.setDiagnostic('React hook collision diagnostic');
+    render(() => <Popup />);
+    expect(
+      screen.getByText('Page not connected — editing All sites.')
+    ).toBeTruthy();
+    expect(screen.getByText('Details')).toBeTruthy();
+    expect(screen.getByText('React hook collision diagnostic')).toBeTruthy();
+  });
+
+  test('keeps recovery for rejected site settings available', async () => {
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setSiteLocalPresent(true);
+    render(() => <Popup />);
+
+    expect(
+      screen.getByText('Site settings were detected and can still be reset.')
+    ).toBeTruthy();
+    await screen.getByRole('button', { name: 'Reset' }).click();
+    expect(screen.getByText('Reset settings for this site?')).toBeTruthy();
+    await screen.getByRole('button', { name: 'Reset This site' }).click();
+    expect(mocks.clearSiteLocal).toHaveBeenCalledTimes(1);
+  });
+
   test('resets the selected scope and keeps disable page-specific', async () => {
     render(() => <Popup />);
 
@@ -170,6 +213,8 @@ describe('Popup connectivity changes', () => {
     mocks.setStatus('connected');
     mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
+    mocks.setDiagnostic(undefined);
+    mocks.setSiteLocalPresent(false);
     vi.clearAllMocks();
   });
 

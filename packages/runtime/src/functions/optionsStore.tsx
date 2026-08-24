@@ -36,6 +36,7 @@ export type OptionsStore = {
   layers: () => Partial<Record<LocatorLayer, LocatorOptions>>;
   uiState: () => UiState;
   allTargets: () => Targets;
+  editorWithheld: () => boolean;
   setUserOrigin: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   clearUserOrigin: () => Promise<WriteResult>;
   setUiState: (patch: Partial<UiState>) => Promise<WriteResult>;
@@ -53,6 +54,13 @@ function readUserExtensionGlobal(): LocatorOptions | undefined {
   return undefined;
 }
 
+function readEditorWithheld(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement?.dataset?.locatorEditorWithheld === "true"
+  );
+}
+
 export function initOptions(): OptionsStore {
   const teamLayer = getTeamLayerSignal();
   const teamTargets = getTeamTargetsSignal();
@@ -62,6 +70,9 @@ export function initOptions(): OptionsStore {
   >(readUserExtensionGlobal());
   const [userOrigin, setUserOrigin] = createSignal<LocatorOptions>(
     getUserOriginOptions()
+  );
+  const [editorWithheld, setEditorWithheld] = createSignal(
+    readEditorWithheld()
   );
   const [uiState, setUiState] = createSignal<UiState>(getUserOriginUiState());
 
@@ -92,10 +103,14 @@ export function initOptions(): OptionsStore {
   if (typeof MutationObserver !== "undefined" && document.documentElement) {
     const observer = new MutationObserver(() => {
       setUserExtension(readUserExtensionGlobal());
+      setEditorWithheld(readEditorWithheld());
     });
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-locator-user-extension-options"],
+      attributeFilter: [
+        "data-locator-user-extension-options",
+        "data-locator-editor-withheld",
+      ],
     });
     if (getOwner()) {
       onCleanup(() => observer.disconnect());
@@ -108,6 +123,7 @@ export function initOptions(): OptionsStore {
     layers,
     uiState,
     allTargets: () => teamTargets() ?? allTargets,
+    editorWithheld,
     setUserOrigin: async (patch) => {
       const result = setUserOriginOptions(patch);
       if (result.ok) {

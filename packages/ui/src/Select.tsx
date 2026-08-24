@@ -117,6 +117,7 @@ export function Select(
     "class",
     "variant",
     "size",
+    "id",
   ]);
   const ghost = () => local.variant === "ghost";
   const portalMount = usePortalMount(() => local.portalMount);
@@ -133,6 +134,7 @@ export function Select(
 
   return (
     <ArkSelect.Root
+      ids={local.id ? { trigger: local.id } : undefined}
       class={cx(ghost() ? styles.rootInline : styles.root, local.class)}
       collection={collection()}
       value={local.value ? [local.value] : []}

@@ -128,6 +128,7 @@ export function getShadowRoots(): ShadowRoot[] {
  */
 export function getShadowRootOf(element: Element): ShadowRoot | null {
   init();
+  if ((element as HTMLElement).id === LOCATOR_WRAPPER_ID) return null;
   return element.shadowRoot ?? closedRootsByHost.get(element) ?? null;
 }
 

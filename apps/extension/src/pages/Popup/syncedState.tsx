@@ -24,6 +24,10 @@ import {
   readUserOptions,
   replaceUserOptions,
 } from '../../storageContract';
+import {
+  clearTabReloadRequirement,
+  tabRequiresReload,
+} from '../../extensionUpdateState';
 /** The tab's main document. Content scripts also run in every iframe. */
 const TOP_FRAME_ID = 0;
 
@@ -45,6 +49,7 @@ type SyncedState = {
   snapshot: Accessor<Snapshot | null>;
   status: Accessor<ConnectivityStatus>;
   diagnostic: Accessor<string | undefined>;
+  siteLocalPresent: Accessor<boolean>;
   setUserExtension: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   setSiteLocal: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
   clearSiteLocal: () => Promise<WriteResult>;
@@ -64,8 +69,10 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
   const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
   const [diagnostic, setDiagnostic] = createSignal<string>();
+  const [siteLocalPresent, setSiteLocalPresent] = createSignal(false);
 
   let storageRevision = 0;
+  let reloadRequirementClearedForTab: number | undefined;
   const initialRevision = storageRevision;
   readUserOptions()
     .then((options) => {
@@ -118,27 +125,47 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         // the top-level document.
         { frameId: TOP_FRAME_ID }
       )) as
-        | { ok: true; protocolVersion: 2; snapshot: Snapshot }
+        | {
+            ok: true;
+            protocolVersion: 2;
+            extensionVersion: string;
+            snapshot: Snapshot;
+          }
         | {
             ok: false;
             protocolVersion: 2;
+            extensionVersion: string;
             reason: string;
+            siteLocalPresent?: boolean;
             diagnostic?: string;
           }
         | undefined;
-      if (response?.protocolVersion !== 2) {
+      if (
+        response?.extensionVersion &&
+        response.extensionVersion !== browser.runtime.getManifest().version
+      ) {
+        markReloadRequired();
+      } else if (response?.protocolVersion !== 2) {
         await classifyLegacyTab(currentTab.id);
       } else if (response.ok) {
+        if (reloadRequirementClearedForTab !== currentTab.id) {
+          reloadRequirementClearedForTab = currentTab.id;
+          void clearTabReloadRequirement(currentTab.id).catch(() => undefined);
+        }
         // Only swap the snapshot when it actually changed — the poll would
         // otherwise recreate the settings DOM every 1.5s and drop focus.
         if (JSON.stringify(response.snapshot) !== JSON.stringify(snapshot())) {
           setSnapshot(response.snapshot);
         }
         setStatus('connected');
+        setSiteLocalPresent(
+          Object.keys(response.snapshot.layers['user-origin'] ?? {}).length > 0
+        );
         setDiagnostic(undefined);
       } else {
         setStatus('no-runtime');
         setSnapshot(null);
+        setSiteLocalPresent(response.siteLocalPresent ?? false);
         setDiagnostic(response.diagnostic);
       }
     } catch {
@@ -156,10 +183,22 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   function markNoRuntime(message?: string) {
     setStatus('no-runtime');
     setSnapshot(null);
+    setSiteLocalPresent(false);
+    setDiagnostic(message);
+  }
+
+  function markReloadRequired(message?: string) {
+    setStatus('reload-required');
+    setSnapshot(null);
+    setSiteLocalPresent(false);
     setDiagnostic(message);
   }
 
   async function classifyLegacyTab(tabId: number) {
+    if (await tabRequiresReload(tabId)) {
+      markReloadRequired();
+      return;
+    }
     try {
       const legacyStatus = await browser.tabs.sendMessage(
         tabId,
@@ -167,9 +206,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         { frameId: TOP_FRAME_ID }
       );
       if (typeof legacyStatus === 'string') {
-        setStatus('reload-required');
-        setSnapshot(null);
-        setDiagnostic(legacyStatus);
+        markReloadRequired(legacyStatus);
         return;
       }
     } catch {
@@ -187,6 +224,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     snapshot,
     status,
     diagnostic,
+    siteLocalPresent,
     setUserExtension: async (patch) => {
       const result = await patchUserOptions(patch);
       if (result.ok) setUserExtensionSignal(await readUserOptions());
@@ -241,7 +279,10 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         currentWindow: true,
       });
       const tabId = tabs[0]?.id;
-      if (tabId) await browser.tabs.reload(tabId);
+      if (tabId) {
+        await browser.tabs.reload(tabId);
+        await clearTabReloadRequirement(tabId).catch(() => undefined);
+      }
       setStatus('loading');
       await requestSnapshot();
     },

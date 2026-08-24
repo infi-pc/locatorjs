@@ -28,6 +28,9 @@ vi.mock('../../browser', () => ({
       sendMessage: mocks.tabsSendMessage,
       reload: mocks.tabsReload,
     },
+    runtime: {
+      getManifest: () => ({ version: '2.0.0' }),
+    },
   },
 }));
 
@@ -53,8 +56,7 @@ const snapshot: Snapshot = {
 };
 
 async function flushPromises() {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let index = 0; index < 8; index += 1) await Promise.resolve();
 }
 
 describe('SyncedStateProvider', () => {
@@ -69,6 +71,7 @@ describe('SyncedStateProvider', () => {
     mocks.tabsSendMessage.mockResolvedValue({
       ok: true,
       protocolVersion: 2,
+      extensionVersion: '2.0.0',
       snapshot,
     });
     render(() => (
@@ -180,5 +183,51 @@ describe('SyncedStateProvider', () => {
 
     expect(syncedState.status()).toBe('no-runtime');
     expect(syncedState.snapshot()).toBeNull();
+  });
+
+  test('requires a reload when a failed tab predates the extension update', async () => {
+    mocks.storageGet.mockResolvedValue({
+      userOptions: {},
+      locatorExtensionUpdateVersion: '2.0.0',
+      'locatorExtensionStaleTab:42': '2.0.0',
+    });
+    mocks.tabsSendMessage.mockRejectedValue(
+      new Error('orphaned content script')
+    );
+
+    vi.advanceTimersByTime(1500);
+    await flushPromises();
+
+    expect(syncedState.status()).toBe('reload-required');
+  });
+
+  test('requires a reload when a responding content script has another version', async () => {
+    mocks.tabsSendMessage.mockResolvedValue({
+      ok: true,
+      protocolVersion: 2,
+      extensionVersion: '1.9.0',
+      snapshot,
+    });
+
+    vi.advanceTimersByTime(1500);
+    await flushPromises();
+
+    expect(syncedState.status()).toBe('reload-required');
+  });
+
+  test('keeps site reset recoverable when its snapshot is rejected', async () => {
+    mocks.tabsSendMessage.mockResolvedValue({
+      ok: false,
+      protocolVersion: 2,
+      extensionVersion: '2.0.0',
+      reason: 'snapshot-rejected',
+      siteLocalPresent: true,
+    });
+
+    vi.advanceTimersByTime(1500);
+    await flushPromises();
+
+    expect(syncedState.status()).toBe('no-runtime');
+    expect(syncedState.siteLocalPresent()).toBe(true);
   });
 });

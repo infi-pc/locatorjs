@@ -111,6 +111,8 @@ function Runtime(props: {
     null
   );
   const [resolutionPending, setResolutionPending] = createSignal(false);
+  const [actionNotice, setActionNotice] = createSignal<string>();
+  let actionNoticeTimeout: number | undefined;
   let resolutionSequence = 0;
   let activeResolution: { id: number; controller: AbortController } | undefined;
 
@@ -119,6 +121,15 @@ function Runtime(props: {
     activeResolution = undefined;
     setResolutionPending(false);
   };
+  const showActionNotice = (message: string) => {
+    setActionNotice(message);
+    window.clearTimeout(actionNoticeTimeout);
+    actionNoticeTimeout = window.setTimeout(
+      () => setActionNotice(undefined),
+      8_000
+    );
+  };
+  onCleanup(() => window.clearTimeout(actionNoticeTimeout));
   let previousTryAction: BindingAction | null | undefined;
   createEffect(() => {
     const nextTryAction = props.tryAction;
@@ -477,6 +488,12 @@ function Runtime(props: {
   }
 
   function requestEditorSetup(link: LinkProps) {
+    if (options.editorWithheld()) {
+      showActionNotice(
+        "Open in editor is not available inside a cross-origin frame."
+      );
+      return;
+    }
     setDialog(["setup-editor", link]);
   }
 
@@ -580,10 +597,15 @@ function Runtime(props: {
           }}
         />
       ) : null}
-      {props.tryAction ? (
+      {props.tryAction && !actionNotice() ? (
         <div class={styles.tryPill}>
           Trying “{actionLabel(props.tryAction, targets())}” — click a
           component. Esc to cancel.
+        </div>
+      ) : null}
+      {actionNotice() ? (
+        <div class={styles.tryPill} role="alert">
+          {actionNotice()}
         </div>
       ) : null}
       {resolutionPending() ? (

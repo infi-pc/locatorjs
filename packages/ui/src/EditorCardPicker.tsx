@@ -50,13 +50,12 @@ export function EditorCardPicker(props: {
     Object.entries(props.targets);
 
   return (
-    <div class={styles.grid} role="radiogroup" aria-label="Editor">
+    <div class={styles.grid} aria-label="Editor">
       <For each={entries()}>
         {([value, target]) => (
           <button
             type="button"
-            role="radio"
-            aria-checked={selected() === value}
+            aria-pressed={selected() === value}
             class={cx(styles.card, selected() === value && styles.cardSelected)}
             onClick={() => props.onSelect(value)}
           >
@@ -69,8 +68,7 @@ export function EditorCardPicker(props: {
       </For>
       <button
         type="button"
-        role="radio"
-        aria-checked={selected() === CUSTOM_VALUE}
+        aria-pressed={selected() === CUSTOM_VALUE}
         class={cx(
           styles.card,
           selected() === CUSTOM_VALUE && styles.cardSelected

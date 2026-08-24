@@ -52,6 +52,7 @@ export function Home() {
     snapshot,
     userExtension,
     status,
+    siteLocalPresent,
   } = useSyncedState();
   const connected = () => status() === 'connected' && !!snapshot();
   /**
@@ -90,17 +91,21 @@ export function Home() {
   };
   const targets = () => snapshot()?.allTargets ?? allTargets;
   const tryUnavailable = () => !connected() || !!snapshot()?.effective.disabled;
+  const resetLayer = (): LocatorLayer =>
+    !connected() && siteLocalPresent() && chosenScope() === 'user-origin'
+      ? 'user-origin'
+      : activeScope();
   const resetLabel = () =>
-    activeScope() === 'user-origin' ? 'This site' : 'All sites';
+    resetLayer() === 'user-origin' ? 'This site' : 'All sites';
   const resetPrompt = () =>
-    activeScope() === 'user-origin'
+    resetLayer() === 'user-origin'
       ? 'Reset settings for this site?'
       : 'Reset your All sites defaults?';
 
   const reset = async () => {
     setSaveStatus('saving');
     const result =
-      activeScope() === 'user-origin'
+      resetLayer() === 'user-origin'
         ? await clearSiteLocal()
         : await clearUserExtension();
     setSaveStatus(result.ok ? 'saved' : 'error');
@@ -203,6 +208,17 @@ export function Home() {
         </div>
       </Show>
       <div class={styles.footer}>
+        <Show
+          when={
+            !connected() &&
+            siteLocalPresent() &&
+            chosenScope() === 'user-origin'
+          }
+        >
+          <span class={styles.footerText}>
+            Site settings were detected and can still be reset.
+          </span>
+        </Show>
         <span class={styles.footerText} role="status">
           {saveStatus() === 'saving'
             ? 'Saving…'

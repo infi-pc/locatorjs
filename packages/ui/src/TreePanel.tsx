@@ -10,6 +10,7 @@ import {
 import { For, Show, createEffect, createSignal, untrack } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { IconButton } from "./IconButton";
+import { trapOverlayFocus } from "./focusTrap";
 import { visibleTreeRows, type TreeRow, type TreeViewModel } from "./treeModel";
 
 const INDENT_REM = 0.875;
@@ -160,6 +161,7 @@ export function TreePanel(props: {
   /** Focuses the row list on mount so arrow keys work without a click. */
   autofocus?: boolean;
 }) {
+  let panel: HTMLDivElement | undefined;
   let list: HTMLDivElement | undefined;
   const [focused, setFocused] = createSignal(0);
   const [hovered, setHovered] = createSignal<string | null>(null);
@@ -256,16 +258,20 @@ export function TreePanel(props: {
         event.preventDefault();
         props.onOpen(current.row);
         break;
-      case "Escape":
-        event.preventDefault();
-        event.stopPropagation();
-        props.onClose();
-        break;
     }
   };
 
   return (
-    <div class={styles.panel} role="dialog" aria-label="Component tree">
+    <div
+      ref={panel}
+      class={styles.panel}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Component tree"
+      onKeyDown={(event) => {
+        if (panel) trapOverlayFocus(event, panel, props.onClose);
+      }}
+    >
       <div class={styles.header}>
         <Component size={13} class={styles.componentIcon} />
         <span class={styles.title}>{props.title ?? "Component tree"}</span>
@@ -311,9 +317,12 @@ export function TreePanel(props: {
               <Row
                 row={item.row}
                 depth={item.depth}
+                posInSet={item.posInSet}
+                setSize={item.setSize}
                 index={index()}
                 expanded={props.expandedIds.has(item.row.id)}
                 selected={props.model.selectedId === item.row.id}
+                active={focused() === index()}
                 focused={focused() === index()}
                 hovered={hovered() === item.row.id}
                 pending={props.pendingIds?.has(item.row.id) ?? false}
@@ -341,9 +350,12 @@ export function TreePanel(props: {
 function Row(props: {
   row: TreeRow;
   depth: number;
+  posInSet: number;
+  setSize: number;
   index: number;
   expanded: boolean;
   selected: boolean;
+  active: boolean;
   focused: boolean;
   hovered: boolean;
   pending: boolean;
@@ -360,7 +372,10 @@ function Row(props: {
       data-row-index={props.index}
       data-row-kind={props.row.kind}
       aria-expanded={props.row.hasChildren ? props.expanded : undefined}
-      aria-selected={props.selected}
+      aria-level={props.depth + 1}
+      aria-posinset={props.posInSet}
+      aria-setsize={props.setSize}
+      aria-selected={props.active}
       aria-disabled={clickable() ? undefined : true}
       class={cx(
         styles.row,

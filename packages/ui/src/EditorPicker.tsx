@@ -1,5 +1,10 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
-import type { EditorSelection, Targets, WriteResponse } from "@locator/shared";
+import {
+  isSafeTargetTemplate,
+  type EditorSelection,
+  type Targets,
+  type WriteResponse,
+} from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
 import { IconButton } from "./IconButton";
@@ -14,6 +19,7 @@ const INHERIT_VALUE = "__inherit__";
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
   helper: css({ color: "fg.muted", textStyle: "caption" }),
+  error: css({ color: "error", textStyle: "caption" }),
   templateRow: css({
     alignItems: "center",
     bg: "gray.subtle.bg",
@@ -54,6 +60,7 @@ export function EditorPicker(props: {
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
   const [saving, setSaving] = createSignal(false);
+  const [validationError, setValidationError] = createSignal<string>();
   let input: HTMLInputElement | undefined;
   const items = createMemo<SelectItem[]>(() => [
     ...(props.inheritLabel
@@ -104,17 +111,30 @@ export function EditorPicker(props: {
 
   function beginEditing() {
     setDraft(selectedTemplate());
+    setValidationError(undefined);
     setEditing(true);
   }
 
   function cancelEditing() {
     setDraft(selectedTemplate());
+    setValidationError(undefined);
     setEditing(false);
   }
 
   async function commitEditing() {
     if (!editing() || saving()) return;
     const next = draft().trim();
+    if (!next) {
+      cancelEditing();
+      return;
+    }
+    if (!isSafeTargetTemplate(next)) {
+      setValidationError(
+        "Template must start with a URL scheme, for example vscode://."
+      );
+      input?.focus();
+      return;
+    }
     // Compared against what is *stored* as a template, not against what is
     // rendered. The draft is seeded from the selected editor's built-in
     // template, so comparing with that would make "pick Custom link, accept the
@@ -190,9 +210,11 @@ export function EditorPicker(props: {
           value={draft()}
           disabled={props.disabled}
           aria-busy={saving() || undefined}
+          aria-invalid={validationError() ? true : undefined}
           placeholder="editor://file/${projectPath}${filePath}:${line}:${column}"
           onInput={(event) => {
             setDraft(event.currentTarget.value);
+            setValidationError(undefined);
           }}
           onBlur={commitEditing}
           onKeyDown={(event) => {
@@ -208,6 +230,11 @@ export function EditorPicker(props: {
         <div class={styles.helper}>
           Available variables: projectPath, filePath, line, column, tmuxSession
         </div>
+        <Show when={validationError()}>
+          <div class={styles.error} role="alert">
+            {validationError()}
+          </div>
+        </Show>
       </Show>
     </div>
   );

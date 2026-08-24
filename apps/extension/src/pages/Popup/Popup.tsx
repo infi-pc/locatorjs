@@ -23,6 +23,13 @@ const styles = {
   bodyText: css({ color: 'fg.muted', fontSize: 'sm', mt: '1' }),
   actionRow: css({ display: 'flex', justifyContent: 'flex-end', mt: '3' }),
   notice: css({ color: 'fg.muted', fontSize: 'xs', px: '1' }),
+  diagnostic: css({ mt: '1.5' }),
+  diagnosticSummary: css({ color: 'fg.default', cursor: 'pointer' }),
+  diagnosticText: css({
+    overflowWrap: 'anywhere',
+    pt: '1',
+    whiteSpace: 'pre-wrap',
+  }),
   error: css({ color: 'red.plain.fg', fontSize: 'xs', mt: '2' }),
   disabledIcon: css({
     alignItems: 'center',
@@ -117,15 +124,27 @@ function NoRuntimeView(props: {
   diagnostic?: string;
   onReload: () => Promise<void>;
 }) {
+  const stillStarting = () =>
+    props.diagnostic === 'ok' || props.diagnostic?.startsWith('loading:');
+  const showDiagnostic = () =>
+    !!props.diagnostic && !props.reloadRequired && !stillStarting();
   return (
     <div class={styles.notice}>
       {props.reloadRequired
         ? 'Reload this page to finish updating LocatorJS.'
-        : props.diagnostic ?? 'Page not connected — editing All sites.'}
+        : stillStarting()
+        ? 'LocatorJS is still starting on this page. You can edit All sites while it connects.'
+        : 'Page not connected — editing All sites.'}
       <Show when={props.reloadRequired}>
         <Button variant="outline" onClick={() => void props.onReload()}>
           Reload page
         </Button>
+      </Show>
+      <Show when={showDiagnostic()}>
+        <details class={styles.diagnostic}>
+          <summary class={styles.diagnosticSummary}>Details</summary>
+          <div class={styles.diagnosticText}>{props.diagnostic}</div>
+        </details>
       </Show>
     </div>
   );

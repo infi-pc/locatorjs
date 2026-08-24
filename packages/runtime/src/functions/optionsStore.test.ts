@@ -53,6 +53,7 @@ function resetState() {
   while (disposers.length) disposers.pop()!();
   localStorage.clear();
   delete document.documentElement.dataset.locatorUserExtensionOptions;
+  delete document.documentElement.dataset.locatorEditorWithheld;
   delete (window as unknown as Record<string, unknown>).__LOCATOR_RUNTIME__;
   delete (window as unknown as Record<string, unknown>).enableLocator;
   __resetTeamLayerForTesting();
@@ -93,6 +94,16 @@ describe("optionsStore integration", () => {
 
     expect(primaryModifiers(options.effective())).toBe("shift");
     expect(options.provenance().bindings).toBe("user-extension");
+  });
+
+  test("reports when editor configuration is withheld from this frame", async () => {
+    document.documentElement.dataset.locatorEditorWithheld = "true";
+    const options = withRoot(() => initOptions());
+    expect(options.editorWithheld()).toBe(true);
+
+    document.documentElement.dataset.locatorEditorWithheld = "false";
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(options.editorWithheld()).toBe(false);
   });
 
   test("user-origin layer overrides user-extension and team layers", async () => {

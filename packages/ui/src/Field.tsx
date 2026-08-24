@@ -1,4 +1,4 @@
-import { JSX, Show } from "solid-js";
+import { JSX, Show, createUniqueId } from "solid-js";
 import { css, cx } from "@locator/styled-system/css";
 
 const styles = {
@@ -34,12 +34,28 @@ export function Field(props: {
   class?: string;
   children: JSX.Element;
 }) {
+  const fallbackLabelId = `locator-field-label-${createUniqueId()}`;
   return (
-    <div class={cx(styles.root, props.class)}>
+    <div
+      class={cx(styles.root, props.class)}
+      role={props.controlId ? undefined : "group"}
+      aria-labelledby={props.controlId ? undefined : fallbackLabelId}
+    >
       <div class={styles.header}>
-        <label class={styles.label} for={props.controlId}>
-          {props.label}
-        </label>
+        <Show
+          when={props.controlId}
+          fallback={
+            <span id={fallbackLabelId} class={styles.label}>
+              {props.label}
+            </span>
+          }
+        >
+          {(controlId) => (
+            <label class={styles.label} for={controlId()}>
+              {props.label}
+            </label>
+          )}
+        </Show>
         <div class={styles.meta}>{props.meta}</div>
       </div>
       {props.children}

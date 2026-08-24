@@ -42,6 +42,22 @@ describe("visibleTreeRows", () => {
     ]);
   });
 
+  test("reports each row's position among its real siblings", () => {
+    expect(
+      visibleTreeRows(tree, new Set(["a", "a1"])).map((item) => [
+        item.row.id,
+        item.posInSet,
+        item.setSize,
+      ])
+    ).toEqual([
+      ["a", 1, 2],
+      ["a1", 1, 2],
+      ["a1x", 1, 1],
+      ["a2", 2, 2],
+      ["b", 2, 2],
+    ]);
+  });
+
   test("expanding a row whose children are not mapped yet adds nothing", () => {
     // The runtime only maps children of expanded rows, so an id can be
     // expanded a frame before its children arrive.
