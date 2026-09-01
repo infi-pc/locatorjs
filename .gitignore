@@ -50,3 +50,6 @@ all-blob-reports/
 
 # personal Claude Code overrides - keep local
 .claude/settings.local.json
+
+# Code-review findings are process artifacts, not product. Keep them local.
+findings/
