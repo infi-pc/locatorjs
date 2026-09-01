@@ -114,4 +114,35 @@ describe("setup", () => {
     expect(initRuntime).not.toHaveBeenCalled();
     expect(installShadowRootTracking).not.toHaveBeenCalled();
   });
+
+  test("reports every rejection to the console, since callers ignore the result", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      setup({ editor: { kind: "template", template: "javascript:alert(1)" } });
+
+      expect(consoleError).toHaveBeenCalledTimes(1);
+      const [message] = consoleError.mock.calls[0] as [string];
+      expect(message).toContain("did not start");
+      expect(message).toContain("/editor/template");
+      expect(message).toContain("unsafe-template");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  test("stays silent when the configuration is accepted", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    try {
+      expect(setup({ projectPath: "/valid" })).toEqual({ ok: true });
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });

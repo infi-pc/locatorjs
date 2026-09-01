@@ -1,8 +1,21 @@
 # Migrating configuration to LocatorJS v2
 
 LocatorJS v2 uses one strict configuration shape at every public boundary.
-Configuration is parsed before it reaches the runtime; an invalid `setup()`
-call returns typed errors and leaves the last valid configuration active.
+Configuration is parsed before it reaches the runtime, and an invalid `setup()`
+call applies nothing: it returns `{ ok: false, errors }` and reports every
+error to the console. A later `setup()` call is unaffected by an earlier
+rejected one, so whatever configuration was already accepted stays active — but
+if the rejected call was the first, LocatorJS does not start at all.
+
+`setup()` returned `void` in v1. Check the result if you want to handle the
+failure yourself:
+
+```ts
+const result = setup({ projectPath: "/src" });
+if (!result.ok) {
+  // result.errors: { path, code, message }[]
+}
+```
 
 ## One editor destination
 
