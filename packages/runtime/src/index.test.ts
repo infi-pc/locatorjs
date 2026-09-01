@@ -125,7 +125,7 @@ describe("setup", () => {
 
       expect(consoleError).toHaveBeenCalledTimes(1);
       const [message] = consoleError.mock.calls[0] as [string];
-      expect(message).toContain("did not start");
+      expect(message).toContain("No part of it was applied");
       expect(message).toContain("/editor/template");
       expect(message).toContain("unsafe-template");
     } finally {

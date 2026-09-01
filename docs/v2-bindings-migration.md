@@ -3,9 +3,11 @@
 LocatorJS v2 uses one strict configuration shape at every public boundary.
 Configuration is parsed before it reaches the runtime, and an invalid `setup()`
 call applies nothing: it returns `{ ok: false, errors }` and reports every
-error to the console. A later `setup()` call is unaffected by an earlier
-rejected one, so whatever configuration was already accepted stays active — but
-if the rejected call was the first, LocatorJS does not start at all.
+error to the console, from both the browser and the server entry point. A later
+`setup()` call is unaffected by an earlier rejected one, so whatever
+configuration was already accepted stays active — but if you install LocatorJS
+as a library and the rejected call was the only one, the runtime never starts.
+(The browser extension starts on its own and is unaffected.)
 
 `setup()` returned `void` in v1. Check the result if you want to handle the
 failure yourself:
