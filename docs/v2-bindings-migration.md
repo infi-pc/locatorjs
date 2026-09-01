@@ -1,75 +1,100 @@
-# Migrating editor actions to v2 bindings
+# Migrating configuration to LocatorJS v2
 
-LocatorJS v2 replaces the top-level `targetId` and `targetTemplate` options with
-a single `editor` setting plus per-action overrides. This is an intentional
-breaking change: the removed top-level fields are ignored rather than
-translated.
+LocatorJS v2 uses one strict configuration shape at every public boundary.
+Configuration is parsed before it reaches the runtime; an invalid `setup()`
+call returns typed errors and leaves the last valid configuration active.
 
-## One editor setting
+## One editor destination
 
-`editor` is where every source link opens — modifier-click and hover-toolbar
-actions, the tree panel, the parents menu, and the welcome preview:
+`editor` is a tagged choice. A known editor uses `kind: "target"`:
 
 ```ts
-setup({
-  editor: { targetId: "cursor" },
+const result = setup({
+  editor: { kind: "target", id: "cursor" },
 });
 ```
 
-Use `targetTemplate` instead of `targetId` for an editor Locator does not know:
+A custom link uses `kind: "template"`:
 
 ```ts
 setup({
-  editor: { targetTemplate: "my-editor://open?file=${filePath}&line=${line}" },
+  editor: {
+    kind: "template",
+    template: "my-editor://open?file=${filePath}&line=${line}",
+  },
 });
 ```
 
-`editor` resolves atomically through the four configuration layers: a layer that
-sets it replaces both fields from the layers below, so a team config cannot end
-up with one layer's `targetId` and another's `targetTemplate`.
+These alternatives cannot be combined. The selected destination applies to
+modifier-click actions, tree and parents links, and link previews.
 
-## Per-action overrides
+## Per-action destinations
 
-An `open-editor` action with no target of its own follows the `editor` setting.
-Give it a `targetId` or `targetTemplate` only when that one action should go
-somewhere else:
+An `open-editor` action with no `destination` inherits the `editor` setting.
+Add a destination only when that action must open somewhere else:
 
 ```ts
 setup({
-  editor: { targetId: "cursor" },
+  editor: { kind: "target", id: "cursor" },
   bindings: [
-    // Follows the setting — opens Cursor.
     {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
+      trigger: { kind: "modifier-click", modifiers: ["alt"] },
       action: { kind: "open-editor" },
     },
-    // Overrides it — always opens Zed.
     {
       trigger: { kind: "hover-toolbar" },
-      action: { kind: "open-editor", targetTemplate: "zed://file/${filePath}" },
+      action: {
+        kind: "open-editor",
+        destination: {
+          kind: "template",
+          template: "zed://file/${filePath}",
+        },
+      },
     },
   ],
 });
 ```
 
-In the settings UI this is the difference between an action labelled "Open in
-editor" (following the setting) and one labelled "Open in Zed" (pinned). The
-per-action editor picker offers "Editor setting (…)" as its first choice to hand
-an action back to the global setting.
+Modifier chords are non-empty arrays, not `"+"`-joined strings. Duplicate
+modifiers, duplicate shortcuts, duplicate toolbar actions, unsafe templates,
+and more than six actions in either trigger group are rejected at setup.
 
-When nothing resolves — an `editor` naming a target this build does not know, for
-instance — Locator asks which editor to use instead of opening a guessed link.
+If a stored target no longer exists, the runtime enters an explicit
+`needs-selection` state and asks the user to choose an editor. It never guesses
+a destination.
 
-## Triggers and activation
+## Custom target maps
 
-Other bindings can run copy, prompt, tree, or parents actions. Holding an
-activation modifier reveals the outline and its hover toolbar; the activation
-combinations are derived from whatever `modifier-click` bindings exist, falling
-back to `alt` when a config has only hover-toolbar actions. Deleting every
-shortcut therefore still leaves the toolbar reachable.
+Supplying `targets` replaces the built-in registry. If `editor` is omitted,
+the first target becomes the app's team-level selection:
 
-## Deprecated input
+```ts
+setup({
+  targets: {
+    github: {
+      label: "GitHub",
+      url: "https://github.com/acme/repo/blob/main${filePath}#L${line}",
+    },
+    githubDev: {
+      label: "GitHub.dev",
+      url: "https://github.dev/acme/repo/blob/main${filePath}#L${line}",
+    },
+  },
+  editor: { kind: "target", id: "githubDev" },
+});
+```
 
-The old `mouseModifiers` field remains temporarily supported as a deprecated
-input. It is lazily converted to a modifier-click editor binding that follows the
-`editor` setting, but new configuration should write `bindings` directly.
+The explicit `editor` must name an entry in the supplied registry.
+
+## Removed preview fields
+
+The unreleased v2 preview fields are not accepted:
+
+- `mouseModifiers`
+- editor objects with optional `targetId` or `targetTemplate`
+- per-action `targetId` or `targetTemplate`
+- `"+"`-joined modifier strings
+
+Released v1 site and extension storage is migrated once, field by field, into
+the versioned v3 envelope. Unversioned or preview-v2 storage is reported as
+`reset-required`; it is not guessed into the new model.

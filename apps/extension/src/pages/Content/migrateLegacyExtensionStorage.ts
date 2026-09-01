@@ -1,13 +1,13 @@
 import {
-  USER_OPTIONS_KEY,
+  USER_CONFIG_KEY,
   ensureExtensionStorageReady,
 } from '../../storageContract';
 
-export { USER_OPTIONS_KEY };
+export { USER_CONFIG_KEY };
 
 /**
  * Ensures the versioned store is ready before any consumer reads it.
- * Compatibility keys stay mirrored for already-open v1 content scripts.
+ * Released legacy fields are imported once, then removed after the v3 write.
  */
 export async function migrateLegacyExtensionStorage(): Promise<void> {
   await ensureExtensionStorageReady().catch(() => undefined);

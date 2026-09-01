@@ -1,4 +1,4 @@
-import type { Binding, BindingAction, Targets } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { getParentsPaths } from "../adapters/getParentsPath";
 import type { AdapterId } from "../consts";
@@ -58,13 +58,13 @@ export type AllBoxes = {
 export function Outline(props: {
   element: FullElementInfo;
   showTreeFromElement: (element: HTMLElement) => void;
-  bindings: Binding[];
+  bindings: readonly strictConfig.ConfiguredBinding[];
   performAction: (
-    action: BindingAction,
+    action: strictConfig.ConfiguredAction,
     element: FullElementInfo,
     position: { x: number; y: number }
   ) => Promise<boolean>;
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
   adapterId?: AdapterId | undefined;
 }) {
   const box = () => props.element.thisElement.box;
@@ -265,7 +265,6 @@ export function Outline(props: {
           bbox={props.element.componentBox}
           element={props.element.htmlElement}
           showTreeFromElement={props.showTreeFromElement}
-          targets={props.targets}
         />
       )}
     </>
@@ -273,8 +272,8 @@ export function Outline(props: {
 }
 
 function OutlineActionButton(props: {
-  binding: Binding;
-  targets: Targets;
+  binding: strictConfig.ConfiguredBinding;
+  targets: strictConfig.TargetViewMap;
   onAction: () => Promise<boolean>;
 }) {
   const [complete, setComplete] = createSignal(false);
@@ -286,9 +285,17 @@ function OutlineActionButton(props: {
     props.binding.action.kind === "copy-path" ||
     props.binding.action.kind === "copy-prompt";
   return (
-    <Tooltip tooltipText={actionLabel(props.binding.action, props.targets)}>
+    <Tooltip
+      tooltipText={actionLabel(
+        strictConfig.encodeAction(props.binding.action),
+        props.targets
+      )}
+    >
       <HoverToolbarButton
-        aria-label={actionLabel(props.binding.action, props.targets)}
+        aria-label={actionLabel(
+          strictConfig.encodeAction(props.binding.action),
+          props.targets
+        )}
         onClick={async () => {
           const succeeded = await props.onAction();
           if (succeeded && isCopy()) {
@@ -304,7 +311,10 @@ function OutlineActionButton(props: {
         {complete() ? (
           <Check size={16} />
         ) : (
-          actionIconFor(props.binding.action, props.targets)
+          actionIconFor(
+            strictConfig.encodeAction(props.binding.action),
+            props.targets
+          )
         )}
       </HoverToolbarButton>
     </Tooltip>

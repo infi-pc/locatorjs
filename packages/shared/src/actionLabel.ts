@@ -1,29 +1,16 @@
-import {
-  hasEditorOverride,
-  resolveBindingTarget,
-  type BindingAction,
-  type EditorSelection,
-} from "./layeredOptions";
-import type { Targets } from "./targets";
+import type { BindingAction, TargetViewMap } from "./config";
 
 /** Pure action copy, kept outside the icon/component graph. */
 export function actionLabel(
   action: BindingAction,
-  targets?: Targets,
-  editor?: EditorSelection
+  targets?: TargetViewMap
 ): string {
   switch (action.kind) {
     case "open-editor": {
-      if (!hasEditorOverride(action)) return "Open in editor";
-      if (targets) {
-        const target = resolveBindingTarget(action, targets, editor);
-        if (target.kind === "template") return "Open custom editor link";
-        return `Open in ${
-          targets[target.id]?.label ?? (target.id || "editor")
-        }`;
-      }
-      if (action.targetTemplate) return "Open custom editor link";
-      return `Open in ${action.targetId}`;
+      const destination = action.destination;
+      if (!destination) return "Open in editor";
+      if (destination.kind === "template") return "Open custom editor link";
+      return `Open in ${targets?.[destination.id]?.label ?? destination.id}`;
     }
     case "copy-path":
       return "Copy path";

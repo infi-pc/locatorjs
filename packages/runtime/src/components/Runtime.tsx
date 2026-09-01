@@ -1,9 +1,4 @@
-import {
-  detectSvelte,
-  primaryEditorBinding,
-  actionLabel,
-  type BindingAction,
-} from "@locator/shared";
+import { detectSvelte, actionLabel, strictConfig } from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
@@ -29,11 +24,8 @@ import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
-import {
-  OptionsProvider,
-  useOptions,
-  type OptionsStore,
-} from "../functions/optionsStore";
+import { OptionsProvider, useOptions } from "../functions/optionsContext";
+import type { OptionsStore } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
 import { css } from "@locator/styled-system/css";
@@ -103,8 +95,8 @@ type UiMode =
 
 function Runtime(props: {
   portalMount: HTMLDivElement;
-  tryAction: BindingAction | null;
-  setTryAction: (action: BindingAction | null) => void;
+  tryAction: strictConfig.ConfiguredAction | null;
+  setTryAction: (action: strictConfig.ConfiguredAction | null) => void;
   initialActivation?: { held: boolean; target?: HTMLElement };
 }) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
@@ -137,7 +129,7 @@ function Runtime(props: {
     );
   };
   onCleanup(() => window.clearTimeout(actionNoticeTimeout));
-  let previousTryAction: BindingAction | null | undefined;
+  let previousTryAction: strictConfig.ConfiguredAction | null | undefined;
   createEffect(() => {
     const nextTryAction = props.tryAction;
     if (nextTryAction !== previousTryAction) {
@@ -160,8 +152,10 @@ function Runtime(props: {
   );
 
   const options = useOptions();
-  const adapterId = () =>
-    options.effective().adapterId as AdapterId | undefined;
+  const adapterId = () => {
+    const adapter = options.effective().adapter;
+    return adapter.kind === "fixed" ? (adapter.id as AdapterId) : undefined;
+  };
   const targets = () => options.allTargets();
   const bindings = () => effectiveBindings(options.effective());
 
@@ -242,7 +236,7 @@ function Runtime(props: {
   }
 
   async function dispatchClickAction(
-    action: BindingAction,
+    action: strictConfig.ConfiguredAction,
     elementInfo: FullElementInfo
   ) {
     if (
@@ -502,18 +496,17 @@ function Runtime(props: {
    * into the void.
    */
   function openLink(link: LinkProps): void {
-    if (goToLinkPropsOrSetup(link, targets(), options)) return;
+    if (goToLinkPropsOrSetup(link, options)) return;
     requestEditorSetup(link);
   }
 
   function runAction(
-    action: BindingAction,
+    action: strictConfig.ConfiguredAction,
     element: FullElementInfo,
     position?: { x: number; y: number }
   ) {
     return performAction(action, {
       element,
-      targets: targets(),
       options,
       showTree: showTreeFromElement,
       showParents: showContextMenu,
@@ -532,7 +525,6 @@ function Runtime(props: {
           treeState={uiMode()[1]! as TreeState}
           close={() => setUiMode(["off"])}
           setTreeState={(newState) => setUiMode(["tree", newState])}
-          targets={targets()}
           setHighlightedNode={setHighlightedNode}
           openLink={openLink}
         />
@@ -542,7 +534,6 @@ function Runtime(props: {
           contextMenuState={uiMode()[1]! as ContextMenuState}
           close={() => setUiMode(["off"])}
           adapterId={adapterId()}
-          targets={targets()}
           openLink={openLink}
         />
       ) : null}
@@ -591,15 +582,19 @@ function Runtime(props: {
             setUiMode(["disable-confirmation"]);
           }}
           onTryAction={(action) => {
-            props.setTryAction(action);
-            setUiMode(["off"]);
+            const parsed = strictConfig.parseAction(action);
+            if (parsed.ok) {
+              props.setTryAction(parsed.value);
+              setUiMode(["off"]);
+            }
           }}
         />
       ) : null}
       {props.tryAction && !actionNotice() ? (
         <div class={styles.tryPill}>
-          Trying “{actionLabel(props.tryAction, targets())}” — click a
-          component. Esc to cancel.
+          Trying “
+          {actionLabel(strictConfig.encodeAction(props.tryAction), targets())}”
+          — click a component. Esc to cancel.
         </div>
       ) : null}
       {actionNotice() ? (
@@ -643,9 +638,9 @@ function Runtime(props: {
                 // Without an editor binding there is still one thing to try:
                 // opening the editor that was just picked.
                 props.setTryAction(
-                  primaryEditorBinding(bindings())?.action ?? {
-                    kind: "open-editor",
-                  }
+                  strictConfig.primaryEditorBinding(
+                    options.effective().bindings
+                  )?.action ?? strictConfig.DEFAULT_OPEN_EDITOR_ACTION
                 );
               }}
               onClose={() => {
@@ -659,19 +654,20 @@ function Runtime(props: {
   );
 }
 
-function actionNeedsSourceLink(action: BindingAction) {
+function actionNeedsSourceLink(action: strictConfig.ConfiguredAction) {
   return action.kind === "open-editor" || action.kind === "copy-path";
 }
 
 function RuntimeWrapper(props: {
   portalMount: HTMLDivElement;
   initialActivation?: { held: boolean; target?: HTMLElement };
-  initialTryAction?: BindingAction;
+  initialTryAction?: strictConfig.ConfiguredAction;
 }) {
   const options = useOptions();
-  const [tryAction, setTryAction] = createSignal<BindingAction | null>(
-    props.initialTryAction ?? null
-  );
+  const [tryAction, setTryAction] =
+    createSignal<strictConfig.ConfiguredAction | null>(
+      props.initialTryAction ?? null
+    );
 
   const isDisabled = () => options.effective().disabled || false;
 
@@ -688,7 +684,7 @@ function RuntimeWrapper(props: {
     tryActionTimeout = window.setTimeout(() => setTryAction(null), 5_000);
   }
   const onTryAction = (event: Event) => {
-    const action = (event as CustomEvent<BindingAction>).detail;
+    const action = (event as CustomEvent<strictConfig.ConfiguredAction>).detail;
     setTryAction(action);
     window.clearTimeout(tryActionTimeout);
     tryActionTimeout = window.setTimeout(() => setTryAction(null), 5_000);
@@ -716,7 +712,7 @@ export function initRender(
   options: OptionsStore,
   initial?: {
     activation?: { held: boolean; target?: HTMLElement };
-    tryAction?: BindingAction;
+    tryAction?: strictConfig.ConfiguredAction;
   }
 ) {
   const root = solidLayer.getRootNode();

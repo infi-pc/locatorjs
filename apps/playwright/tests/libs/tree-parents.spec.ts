@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { projects } from "../consts";
 import { expectLocatorReady } from "../activateLocator";
+import { seedLocatorStorage } from "../locatorStorage";
 
 /**
  * The tree panel and the parents menu. Both used to be unreachable or silently
@@ -16,7 +17,7 @@ const dismissedUiState = {
 
 const toolbarBindings = [
   {
-    trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+    trigger: { kind: "modifier-click" as const, modifiers: ["alt"] },
     action: { kind: "open-editor" as const },
   },
   {
@@ -39,16 +40,13 @@ async function setup(
   options: Record<string, unknown>,
   activation: "Alt" | "Meta+Shift" = "Alt"
 ): Promise<void> {
-  await page.addInitScript(
-    ({ options: stored }) => {
-      localStorage.setItem("LOCATOR_USER_OPTIONS", JSON.stringify(stored));
-      window.open = ((url?: string | URL) => {
-        (window as OpenedWindow).__locatorOpenedUrl = String(url);
-        return null;
-      }) as typeof window.open;
-    },
-    { options: { uiState: dismissedUiState, ...options } }
-  );
+  await seedLocatorStorage(page, options, dismissedUiState);
+  await page.addInitScript(() => {
+    window.open = ((url?: string | URL) => {
+      (window as OpenedWindow).__locatorOpenedUrl = String(url);
+      return null;
+    }) as typeof window.open;
+  });
   await page.goto(projects.react);
   // Mount the lazy runtime before the scenario's first inspected mouseover.
   await expectLocatorReady(page, activation);
@@ -90,7 +88,7 @@ test.describe("tree panel", () => {
     page,
   }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -113,7 +111,7 @@ test.describe("tree panel", () => {
     page,
   }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -131,7 +129,7 @@ test.describe("tree panel", () => {
     page,
   }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -146,7 +144,7 @@ test.describe("tree panel", () => {
 
   test("keyboard navigation moves, expands, and opens", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -179,7 +177,7 @@ test.describe("tree panel", () => {
 
   test("Escape closes the panel without opening anything", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -191,7 +189,7 @@ test.describe("tree panel", () => {
 
   test("the close button dismisses the panel", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -204,7 +202,7 @@ test.describe("tree panel", () => {
 test.describe("parents menu", () => {
   test("entries carry a distinct file:line and open it", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -227,7 +225,7 @@ test.describe("parents menu", () => {
 
   test("names the component that renders each ancestor", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -240,7 +238,7 @@ test.describe("parents menu", () => {
 
   test("arrow keys and Enter open an entry", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -258,11 +256,14 @@ test.describe("editor configuration", () => {
     await setup(page, {
       // The binding pins VS Code; the global setting says WebStorm. Tree rows
       // are not tied to a binding, so they must follow the setting.
-      editor: { targetId: "webstorm" },
+      editor: { kind: "target", id: "webstorm" },
       bindings: [
         {
-          trigger: { kind: "modifier-click", modifiers: "alt" },
-          action: { kind: "open-editor", targetId: "vscode" },
+          trigger: { kind: "modifier-click", modifiers: ["alt"] },
+          action: {
+            kind: "open-editor",
+            destination: { kind: "target", id: "vscode" },
+          },
         },
         ...toolbarBindings.slice(1),
       ],
@@ -280,7 +281,7 @@ test.describe("editor configuration", () => {
     // A stored editor that is not in the target list — a stale id, or a team
     // config naming something this build does not know.
     await setup(page, {
-      editor: { targetId: "not-installed-editor" },
+      editor: { kind: "target", id: "not-installed-editor" },
       bindings: toolbarBindings,
     });
 
@@ -306,11 +307,11 @@ test.describe("editor configuration", () => {
     await expect
       .poll(() =>
         page.evaluate(() => {
-          const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-          return raw ? JSON.parse(raw).editor : undefined;
+          const raw = localStorage.getItem("LOCATOR_USER_CONFIG");
+          return raw ? JSON.parse(raw).layer?.editor : undefined;
         })
       )
-      .toEqual({ targetId: "vscode", targetTemplate: undefined });
+      .toEqual({ kind: "target", id: "vscode" });
   });
 
   test("the default editor asks for an explicit choice", async ({ page }) => {
@@ -332,7 +333,7 @@ test.describe("toolbar activation", () => {
     // Deleting every shortcut used to make the outline — and with it the tree
     // and parents actions — permanently unreachable.
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings.slice(1),
     });
 
@@ -348,10 +349,13 @@ test.describe("toolbar activation", () => {
     await setup(
       page,
       {
-        editor: { targetId: "vscode" },
+        editor: { kind: "target", id: "vscode" },
         bindings: [
           {
-            trigger: { kind: "modifier-click", modifiers: "meta+shift" },
+            trigger: {
+              kind: "modifier-click",
+              modifiers: ["meta", "shift"],
+            },
             action: { kind: "open-editor" },
           },
           ...toolbarBindings.slice(1),

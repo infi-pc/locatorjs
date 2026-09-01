@@ -1,4 +1,4 @@
-import { allTargets, DEFAULT_LAYER, resolve } from '@locator/shared';
+import { strictConfig } from '@locator/shared';
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ConnectivityStatus, Snapshot } from './syncedState';
@@ -36,6 +36,7 @@ vi.mock('./syncedState', async () => {
       diagnostic,
       siteLocalPresent,
       snapshot,
+      extensionConfigRead: () => ({ kind: 'empty' as const }),
       userExtension: () => mocks.userExtension,
       setUserExtension: mocks.setUserExtension,
       setSiteLocal: mocks.setSiteLocal,
@@ -58,14 +59,28 @@ import Popup from './Popup';
 
 function connectedSnapshot(): Snapshot {
   const layers = {
-    default: DEFAULT_LAYER,
+    default: strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER),
     'user-extension': { projectPath: '/all-sites' },
     'user-origin': { projectPath: '/this-site' },
   };
+  const extension = strictConfig.parseLayer(layers['user-extension']);
+  const origin = strictConfig.parseLayer(layers['user-origin']);
+  if (!extension.ok || !origin.ok) throw new Error('Invalid popup fixture.');
+  const resolved = strictConfig.resolveConfig(
+    {
+      default: strictConfig.DEFAULT_LAYER,
+      'user-extension': extension.value,
+      'user-origin': origin.value,
+    },
+    strictConfig.BUILT_IN_TARGETS
+  );
   return {
-    ...resolve(layers),
+    effective: strictConfig.effectiveOptionsView(
+      strictConfig.effectiveOptions(resolved)
+    ),
+    provenance: strictConfig.configProvenance(resolved),
     layers,
-    allTargets,
+    allTargets: strictConfig.targetRegistryView(strictConfig.BUILT_IN_TARGETS),
   };
 }
 
@@ -204,7 +219,9 @@ describe('Popup settings navigation', () => {
     expect(mocks.clearSiteLocal).not.toHaveBeenCalled();
 
     await screen.getByRole('button', { name: 'Disable on this page' }).click();
-    expect(mocks.setSiteLocal).toHaveBeenCalledWith({ disabled: true });
+    expect(mocks.setSiteLocal).toHaveBeenCalledWith({
+      set: { disabled: true },
+    });
   });
 });
 

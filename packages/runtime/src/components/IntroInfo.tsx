@@ -1,13 +1,9 @@
-import {
-  getModifiersMap,
-  modifiersTitles,
-  primaryEditorShortcut,
-} from "@locator/shared";
+import { modifiersTitles, strictConfig } from "@locator/shared";
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import { activationModifiers, effectiveBindings } from "../functions/bindings";
 import { css, cx } from "@locator/styled-system/css";
 import { kbd } from "@locator/styled-system/recipes";
@@ -67,12 +63,12 @@ export function IntroInfo(props: {
    * `matchBinding` will not match.
    */
   const editorShortcut = () => {
-    const trigger = primaryEditorShortcut(bindings())?.trigger;
-    return trigger?.kind === "modifier-click" ? trigger.modifiers : undefined;
+    return strictConfig.primaryEditorShortcut(options.effective().bindings)
+      ?.trigger.chord;
   };
   const modifiers = () =>
-    getModifiersMap(
-      editorShortcut() ?? activationModifiers(bindings())[0] ?? "alt"
+    strictConfig.modifiersForChord(
+      editorShortcut() ?? activationModifiers(bindings())[0]!
     );
   return (
     <div
@@ -86,14 +82,12 @@ export function IntroInfo(props: {
         {editorShortcut()
           ? "Go to component code with "
           : "Show the LocatorJS toolbar with "}
-        <For each={Object.keys(modifiers())}>
+        <For each={modifiers()}>
           {(key, i) => {
             return (
               <>
                 {i() === 0 ? "" : " + "}
-                <div class={styles.key}>
-                  {modifiersTitles[key as keyof typeof modifiersTitles]}
-                </div>
+                <div class={styles.key}>{modifiersTitles[key]}</div>
               </>
             );
           }}
@@ -116,7 +110,9 @@ export function IntroInfo(props: {
           disabled={saveState() === "saving"}
           onClick={async () => {
             setSaveState("saving");
-            const result = await options.setUserOrigin({ showIntro: false });
+            const result = await options.setUserOrigin({
+              set: { showIntro: false },
+            });
             if (result.ok) {
               setShowIntro(false);
             } else {

@@ -1,9 +1,4 @@
-import {
-  DEFAULT_PROMPT_TEMPLATE,
-  resolveSourcePath,
-  type LocatorOptions,
-  type PromptApp,
-} from "@locator/shared";
+import { resolveSourcePath, strictConfig } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { getParentsPaths } from "../adapters/getParentsPath";
 import { evalTemplate } from "./evalTemplate";
@@ -14,8 +9,8 @@ const MAX_DEEPLINK_LENGTH = 8000;
 
 export function buildPrompt(
   element: FullElementInfo,
-  effective: LocatorOptions,
-  template?: string
+  effective: strictConfig.EffectiveOptions,
+  template?: string | null
 ): string {
   const link = element.thisElement.link;
   // Unlike a link template, a prompt template has never joined the root itself
@@ -31,7 +26,9 @@ export function buildPrompt(
   const componentLabels = element.componentsLabels
     .map((item) => item.label)
     .filter(Boolean);
-  const parentLabels = getParentsPaths(element.htmlElement, effective.adapterId)
+  const adapterId =
+    effective.adapter.kind === "fixed" ? effective.adapter.id : undefined;
+  const parentLabels = getParentsPaths(element.htmlElement, adapterId)
     .map((item) => item.title)
     .filter(Boolean);
   const componentTree = [...parentLabels, ...componentLabels]
@@ -39,7 +36,7 @@ export function buildPrompt(
     .slice(-MAX_COMPONENTS)
     .join(" > ");
 
-  return evalTemplate(template ?? DEFAULT_PROMPT_TEMPLATE, {
+  return evalTemplate(template ?? strictConfig.DEFAULT_PROMPT_TEMPLATE, {
     filePath: source.absolute,
     projectPath: source.projectPath,
     line: link ? String(link.line) : "",
@@ -51,7 +48,10 @@ export function buildPrompt(
   });
 }
 
-export function buildPromptDeeplink(app: PromptApp, prompt: string): string {
+export function buildPromptDeeplink(
+  app: strictConfig.PromptApp,
+  prompt: string
+): string {
   const prefix =
     app === "cursor"
       ? "cursor://anysphere.cursor-deeplink/prompt?text="

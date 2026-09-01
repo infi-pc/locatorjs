@@ -6,12 +6,8 @@ import {
   duplicateShortcutModifiers,
   hasShortcutConflict,
   insertBinding,
-  type Binding,
-  type BindingAction,
-  type BindingTrigger,
-  type EditorSelection,
-  type Targets,
-  type WriteResponse,
+  strictConfig,
+  strictConfigStorage,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Copy, Plus, Trash2 } from "lucide-solid";
@@ -24,6 +20,13 @@ import { ModifierChips } from "./ModifierChips";
 import { Select } from "./Select";
 import { TextArea } from "./TextArea";
 import { actionSelectItems } from "./actionIcons";
+
+type Binding = strictConfig.BindingInput;
+type BindingAction = strictConfig.BindingAction;
+type BindingTrigger = strictConfig.BindingTrigger;
+type EditorSelection = strictConfig.EditorDestination;
+type Targets = strictConfig.TargetViewMap;
+type WriteResponse = strictConfigStorage.WriteResponse;
 
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
@@ -177,7 +180,7 @@ export function BindingsEditor(props: {
 function isDuplicate(binding: Binding, duplicates: Set<string>): boolean {
   return (
     binding.trigger.kind === "modifier-click" &&
-    duplicates.has(binding.trigger.modifiers)
+    duplicates.has(binding.trigger.modifiers.join("+"))
   );
 }
 
@@ -340,20 +343,18 @@ function BindingRow(props: {
       <Show when={props.binding.action.kind === "open-editor"}>
         <EditorPicker
           targets={props.targets}
-          targetId={
+          value={
             props.binding.action.kind === "open-editor"
-              ? props.binding.action.targetId
-              : undefined
-          }
-          targetTemplate={
-            props.binding.action.kind === "open-editor"
-              ? props.binding.action.targetTemplate
+              ? props.binding.action.destination
               : undefined
           }
           inheritLabel={editorSettingLabel(props.editor, props.targets)}
           portalMount={props.portalMount}
-          onChange={(target) =>
-            updateAction({ kind: "open-editor", ...target })
+          onChange={(destination) =>
+            updateAction({
+              kind: "open-editor",
+              ...(destination ? { destination } : {}),
+            })
           }
         />
       </Show>

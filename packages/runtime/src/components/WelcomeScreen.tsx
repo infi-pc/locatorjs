@@ -1,8 +1,4 @@
-import {
-  clearPrimaryEditorOverride,
-  type EditorSelection,
-  type Targets,
-} from "@locator/shared";
+import { clearPrimaryEditorOverride, strictConfig } from "@locator/shared";
 import {
   BindingsEditor,
   Button,
@@ -14,11 +10,9 @@ import {
 import { css, cx } from "@locator/styled-system/css";
 import { button } from "@locator/styled-system/recipes";
 import { createSignal } from "solid-js";
-import { HREF_TARGET } from "../consts";
-import { effectiveBindings } from "../functions/bindings";
 import { buildLink } from "../functions/buildLink";
 import { isExtension } from "../functions/isExtension";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import { LinkProps } from "../types/types";
 
 const styles = {
@@ -44,7 +38,7 @@ const STEP_IDS = ["welcome", "editor", "shortcuts", "test", "done"];
 
 export function WelcomeScreen(props: {
   originalLinkProps: LinkProps | null;
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
   onClose: () => void;
   onTry: () => void;
   portalMount: HTMLDivElement;
@@ -88,20 +82,35 @@ export function WelcomeScreen(props: {
       setSaveError(true);
     }
   };
-  const currentLink = () =>
-    props.originalLinkProps
-      ? buildLink(props.originalLinkProps, props.targets, options)
+  const currentLink = () => {
+    const editor = options.effective().editor;
+    return props.originalLinkProps && editor.kind === "selected"
+      ? buildLink(props.originalLinkProps, options, editor)
       : undefined;
-  const editor = () => options.effective().editor;
-  const updateEditor = (patch: EditorSelection) => {
+  };
+  const editor = (): strictConfig.EditorDestination | undefined => {
+    const effective = options.effective().editor;
+    return effective.kind === "selected"
+      ? strictConfig.encodeEditorDestination(effective.destination)
+      : undefined;
+  };
+  const updateEditor = (
+    destination: strictConfig.EditorDestination | undefined
+  ) => {
     // An override left on the primary action would silently shadow the pick.
     const bindings = clearPrimaryEditorOverride(
-      effectiveBindings(options.effective())
+      strictConfig.encodeBindings(options.effective().bindings)
     );
-    return options.setUserOrigin({
-      editor: patch,
-      ...(bindings ? { bindings, mouseModifiers: undefined } : {}),
-    });
+    return options.setUserOrigin(
+      destination
+        ? {
+            set: {
+              editor: destination,
+              ...(bindings ? { bindings } : {}),
+            },
+          }
+        : { unset: ["editor"] }
+    );
   };
 
   const steps = (): WizardStep[] => [
@@ -130,8 +139,7 @@ export function WelcomeScreen(props: {
       content: () => (
         <EditorPicker
           targets={options.allTargets()}
-          targetId={editor()?.targetId}
-          targetTemplate={editor()?.targetTemplate}
+          value={editor()}
           portalMount={props.portalMount}
           onChange={updateEditor}
         />
@@ -143,13 +151,15 @@ export function WelcomeScreen(props: {
       description: "Map modifier-click shortcuts to different actions.",
       content: () => (
         <BindingsEditor
-          value={effectiveBindings(options.effective())}
+          value={[...strictConfig.encodeBindings(options.effective().bindings)]}
           targets={options.allTargets()}
           editor={editor()}
           triggers={["modifier-click"]}
           portalMount={props.portalMount}
           onChange={(bindings) =>
-            options.setUserOrigin({ bindings, mouseModifiers: undefined })
+            bindings
+              ? options.setUserOrigin({ set: { bindings } })
+              : options.setUserOrigin({ unset: ["bindings"] })
           }
         />
       ),
@@ -163,7 +173,7 @@ export function WelcomeScreen(props: {
           <div class={styles.actions}>
             <a
               href={currentLink()}
-              target={options.effective().hrefTarget || HREF_TARGET}
+              target={options.effective().hrefTarget}
               class={styles.testLink}
             >
               Test link

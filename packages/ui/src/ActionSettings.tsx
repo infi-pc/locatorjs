@@ -1,5 +1,4 @@
 import {
-  LAYER_ORDER,
   bindingAt,
   canAddBinding,
   createBindingDraft,
@@ -7,16 +6,8 @@ import {
   globalIndexForTrigger,
   hasShortcutConflict,
   insertBinding,
-  normalizeLayer,
-  resolve,
-  type Binding,
-  type BindingAction,
-  type BindingTrigger,
-  type LocatorLayer,
-  type LocatorOptions,
-  type Targets,
-  type WriteResponse,
-  type WriteResult,
+  strictConfig,
+  strictConfigStorage,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { ArrowLeft, Ellipsis, SlidersHorizontal } from "lucide-solid";
@@ -39,17 +30,30 @@ import { InspectorDialog } from "./InspectorDialog";
 import { InteractionStudio, type StudioSelection } from "./InteractionStudio";
 import { AdvancedSettings, SettingsSources } from "./AdvancedSettings";
 import { EditorSetting } from "./EditorSetting";
+import {
+  effectiveEditorDestination,
+  layersThroughScope,
+  resolveLayerViews,
+  type LayerViews,
+} from "./configModel";
+
+type Binding = strictConfig.BindingInput;
+type BindingAction = strictConfig.BindingAction;
+type BindingTrigger = strictConfig.BindingTrigger;
+type LocatorLayer = strictConfig.LocatorLayerId;
+type WriteResponse = strictConfigStorage.WriteResponse;
+type WriteResult = strictConfigStorage.WriteResult;
 
 export type ActionSettingsScope = {
   layer: LocatorLayer;
   label: string;
-  write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  write: (patch: strictConfig.LayerPatchInput) => Promise<WriteResult>;
   /**
    * Optional trusted layer set used while editing this scope. This lets an
    * extension keep page-provided team/site layers visible in SettingsSources
    * without ever using those untrusted values as the base of a global write.
    */
-  editLayers?: Partial<Record<LocatorLayer, LocatorOptions>>;
+  editLayers?: LayerViews;
   disabled?: boolean;
   disabledReason?: string;
   note?: string;
@@ -132,7 +136,7 @@ const styles = {
 };
 
 export function ActionSettings(props: {
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
+  layers: LayerViews;
   scopes: ActionSettingsScope[];
   activeScope?: LocatorLayer;
   defaultScope?: LocatorLayer;
@@ -141,7 +145,7 @@ export function ActionSettings(props: {
   tryDisabled?: boolean;
   tryDisabledReason?: string;
   onSaveStatusChange?: (status: ActionSettingsSaveStatus) => void;
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
   portalMount?: Node;
   inspectorMount?: Node;
   unavailableLayers?: LocatorLayer[];
@@ -197,11 +201,11 @@ export function ActionSettings(props: {
   const editableLayers = () => activeScope()?.editLayers ?? props.layers;
   const scopedLayers = () =>
     layersThroughScope(editableLayers(), currentLayer());
-  const snapshot = () => resolve(normalizedLayers(scopedLayers()));
-  const bindings = () => snapshot().effective.bindings ?? [];
+  const snapshot = () => resolveLayerViews(scopedLayers(), props.targets);
+  const effective = () => strictConfig.effectiveOptions(snapshot());
+  const bindings = () => strictConfig.encodeBindings(effective().bindings);
   const canInherit = () =>
-    normalizeLayer(editableLayers()[currentLayer()] ?? {}).bindings !==
-    undefined;
+    editableLayers()[currentLayer()]?.bindings !== undefined;
   const selection = createMemo(() => {
     const state = inspectorState();
     return state?.kind === "selected" ? state.selection : undefined;
@@ -254,7 +258,7 @@ export function ActionSettings(props: {
   };
 
   let writeSequence = 0;
-  const write = async (patch: Partial<LocatorOptions>) => {
+  const write = async (patch: strictConfig.LayerPatchInput) => {
     const scope = activeScope();
     if (!scope) return { ok: false, reason: "blocked" } as const;
     const sequence = ++writeSequence;
@@ -277,7 +281,7 @@ export function ActionSettings(props: {
   };
 
   const writeBindings = (next: Binding[] | undefined) =>
-    write({ bindings: next, mouseModifiers: undefined });
+    next ? write({ set: { bindings: next } }) : write({ unset: ["bindings"] });
 
   const beginAdd = (triggerKind: BindingTrigger["kind"]) => {
     if (!canAddBinding(bindings(), triggerKind)) return;
@@ -344,7 +348,9 @@ export function ActionSettings(props: {
   const selectedDuplicate = () => {
     const binding = selectedBinding();
     return binding?.trigger.kind === "modifier-click"
-      ? duplicateShortcutModifiers(bindings()).has(binding.trigger.modifiers)
+      ? duplicateShortcutModifiers(bindings()).has(
+          binding.trigger.modifiers.join("+")
+        )
       : false;
   };
   const advancedScope = () => {
@@ -359,7 +365,7 @@ export function ActionSettings(props: {
           <ActionInspector
             binding={draftBinding()}
             targets={props.targets}
-            editor={snapshot().effective.editor}
+            editor={effectiveEditorDestination(effective().editor)}
             portalMount={props.inspectorMount ?? props.portalMount}
             draft
             duplicate={hasShortcutConflict(draftBinding(), bindings())}
@@ -379,7 +385,7 @@ export function ActionSettings(props: {
           <ActionInspector
             binding={binding()}
             targets={props.targets}
-            editor={snapshot().effective.editor}
+            editor={effectiveEditorDestination(effective().editor)}
             portalMount={props.inspectorMount ?? props.portalMount}
             duplicate={selectedDuplicate()}
             tryDisabled={props.tryDisabled}
@@ -485,7 +491,7 @@ export function ActionSettings(props: {
           <InteractionStudio
             bindings={bindings()}
             targets={props.targets}
-            editor={snapshot().effective.editor}
+            editor={effectiveEditorDestination(effective().editor)}
             selection={selection()}
             onSelect={(next) => {
               setInspectorState({ kind: "selected", selection: next });
@@ -540,27 +546,4 @@ export function ActionSettings(props: {
       </Show>
     </div>
   );
-}
-
-function normalizedLayers(
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>
-) {
-  return Object.fromEntries(
-    Object.entries(layers).map(([layer, options]) => [
-      layer,
-      normalizeLayer(options),
-    ])
-  ) as Partial<Record<LocatorLayer, LocatorOptions>>;
-}
-
-function layersThroughScope(
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>,
-  scope: LocatorLayer
-) {
-  const lastIndex = LAYER_ORDER.indexOf(scope);
-  return Object.fromEntries(
-    LAYER_ORDER.slice(0, lastIndex + 1)
-      .filter((layer) => layers[layer] !== undefined)
-      .map((layer) => [layer, layers[layer]])
-  ) as Partial<Record<LocatorLayer, LocatorOptions>>;
 }

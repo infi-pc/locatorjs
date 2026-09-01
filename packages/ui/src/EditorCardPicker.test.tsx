@@ -9,7 +9,7 @@ describe("EditorCardPicker", () => {
     render(() => (
       <EditorCardPicker
         targets={{ cursor: { label: "Cursor", url: "cursor://${filePath}" } }}
-        targetId="cursor"
+        value={{ kind: "target", id: "cursor" }}
         onSelect={() => undefined}
       />
     ));

@@ -1,12 +1,4 @@
-import {
-  DEFAULT_LAYER,
-  allTargets,
-  type Binding,
-  type BindingAction,
-  type LocatorLayer,
-  type LocatorOptions,
-  type WriteResult,
-} from "@locator/shared";
+import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css, cx } from "@locator/styled-system/css";
 import {
   ActionSettings,
@@ -50,6 +42,15 @@ import {
   Trash2,
 } from "lucide-solid";
 import { For, Show, createSignal, type JSX } from "solid-js";
+
+type Binding = strictConfig.BindingInput;
+type BindingAction = strictConfig.BindingAction;
+type LocatorLayer = strictConfig.LocatorLayerId;
+type WriteResult = strictConfigStorage.WriteResult;
+const DEFAULT_LAYER = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
+const allTargets = strictConfig.targetRegistryView(
+  strictConfig.BUILT_IN_TARGETS
+);
 
 type Provenance = "park" | "hybrid" | "local";
 
@@ -421,7 +422,10 @@ const parentRows: ParentRow[] = [
 ];
 
 const actionSamples: BindingAction[] = [
-  { kind: "open-editor", targetId: "vscode" },
+  {
+    kind: "open-editor",
+    destination: { kind: "target", id: "vscode" },
+  },
   { kind: "copy-path" },
   { kind: "copy-prompt" },
   { kind: "open-prompt", app: "cursor" },
@@ -431,11 +435,14 @@ const actionSamples: BindingAction[] = [
 
 const sampleBindings: Binding[] = [
   {
-    trigger: { kind: "modifier-click", modifiers: "alt" },
-    action: { kind: "open-editor", targetId: "cursor" },
+    trigger: { kind: "modifier-click", modifiers: ["alt"] },
+    action: {
+      kind: "open-editor",
+      destination: { kind: "target", id: "cursor" },
+    },
   },
   {
-    trigger: { kind: "modifier-click", modifiers: "meta+shift" },
+    trigger: { kind: "modifier-click", modifiers: ["shift", "meta"] },
     action: { kind: "copy-prompt" },
   },
   { trigger: { kind: "hover-toolbar" }, action: { kind: "show-tree" } },
@@ -446,7 +453,9 @@ const editorSelectItems = Object.entries(allTargets)
   .slice(0, 5)
   .map(([value, target]) => ({ value, label: target.label }));
 
-const initialLayers: Partial<Record<LocatorLayer, LocatorOptions>> = {
+const initialLayers: Partial<
+  Record<LocatorLayer, strictConfig.SerializedLayerV3>
+> = {
   default: DEFAULT_LAYER,
   team: {
     projectPath: "/workspace/locatorjs/",
@@ -465,13 +474,13 @@ export function App() {
   const [plainSelectValue, setPlainSelectValue] = createSignal("vscode");
   const [ghostScope, setGhostScope] = createSignal("site");
   const [pickedEditor, setPickedEditor] = createSignal<string>();
-  const [modifiers, setModifiers] = createSignal<string | undefined>(
-    "alt+shift"
-  );
-  const [editor, setEditor] = createSignal<{
-    targetId?: string;
-    targetTemplate?: string;
-  }>({ targetId: "vscode" });
+  const [modifiers, setModifiers] = createSignal<
+    readonly [strictConfig.Modifier, ...strictConfig.Modifier[]] | undefined
+  >(["alt", "shift"]);
+  const [editor, setEditor] = createSignal<strictConfig.EditorDestination>({
+    kind: "target",
+    id: "vscode",
+  });
   const [bindings, setBindings] = createSignal<Binding[]>(sampleBindings);
   const [layers, setLayers] = createSignal(initialLayers);
   const [wizardStep, setWizardStep] = createSignal("choose");
@@ -490,23 +499,33 @@ export function App() {
     });
 
   // The lab has no storage behind it, so every write trivially succeeds.
-  const updateEditor = (next: {
-    targetId?: string;
-    targetTemplate?: string;
-  }): WriteResult => {
+  const updateEditor = (
+    next: strictConfig.EditorDestination | undefined
+  ): WriteResult => {
+    if (!next) return { ok: false, reason: "corrupt" };
     setEditor(next);
     return { ok: true };
   };
 
-  const writeLayer =
-    (layer: LocatorLayer) =>
-    async (patch: Partial<LocatorOptions>): Promise<WriteResult> => {
-      setLayers((current) => ({
-        ...current,
-        [layer]: { ...current[layer], ...patch },
-      }));
-      return { ok: true };
-    };
+  const writeLayer = async (
+    layer: LocatorLayer,
+    patch: strictConfig.LayerPatchInput
+  ): Promise<WriteResult> => {
+    const currentLayer = strictConfig.parseLayer(layers()[layer] ?? {});
+    const parsedPatch = strictConfig.parseLayerPatch(patch);
+    if (!currentLayer.ok || !parsedPatch.ok) {
+      return { ok: false, reason: "corrupt" };
+    }
+    const next = strictConfig.applyLayerPatch(
+      currentLayer.value,
+      parsedPatch.value
+    );
+    setLayers((current) => ({
+      ...current,
+      [layer]: strictConfig.encodeLayer(next.layer),
+    }));
+    return { ok: true };
+  };
 
   return (
     <div class={styles.page}>
@@ -848,7 +867,9 @@ export function App() {
                     />
                   </div>
                 </div>
-                <span class={styles.muted}>Value: {modifiers() || "None"}</span>
+                <span class={styles.muted}>
+                  Value: {modifiers()?.join("+") || "None"}
+                </span>
               </div>
             </Specimen>
 
@@ -921,8 +942,7 @@ export function App() {
             >
               <EditorPicker
                 targets={allTargets}
-                targetId={editor().targetId}
-                targetTemplate={editor().targetTemplate}
+                value={editor()}
                 onChange={updateEditor}
               />
             </Specimen>
@@ -1059,12 +1079,12 @@ export function App() {
                       {
                         layer: "user-origin",
                         label: "This site",
-                        write: writeLayer("user-origin"),
+                        write: (patch) => writeLayer("user-origin", patch),
                       },
                       {
                         layer: "user-extension",
                         label: "All sites",
-                        write: writeLayer("user-extension"),
+                        write: (patch) => writeLayer("user-extension", patch),
                       },
                     ]}
                     defaultScope="user-origin"
@@ -1139,8 +1159,7 @@ export function App() {
                           content: (
                             <EditorPicker
                               targets={allTargets}
-                              targetId={editor().targetId}
-                              targetTemplate={editor().targetTemplate}
+                              value={editor()}
                               onChange={updateEditor}
                             />
                           ),

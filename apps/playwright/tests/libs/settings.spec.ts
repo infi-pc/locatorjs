@@ -111,9 +111,9 @@ test("action settings persist editor-owned and advanced origin values", async ({
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-        const binding = raw ? JSON.parse(raw).bindings?.[0] : undefined;
-        return binding?.action?.targetId;
+        const raw = localStorage.getItem("LOCATOR_USER_CONFIG");
+        const binding = raw ? JSON.parse(raw).layer?.bindings?.[0] : undefined;
+        return binding?.action?.destination?.id;
       })
     )
     .toBe("webstorm");
@@ -131,8 +131,8 @@ test("action settings persist editor-owned and advanced origin values", async ({
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-        return raw ? JSON.parse(raw).projectPath : undefined;
+        const raw = localStorage.getItem("LOCATOR_USER_CONFIG");
+        return raw ? JSON.parse(raw).layer?.projectPath : undefined;
       })
     )
     .toBe("/tmp/locator-project");
@@ -182,8 +182,8 @@ test("separate trigger sections share action editing and navigation state", asyn
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-        const bindings = raw ? JSON.parse(raw).bindings : undefined;
+        const raw = localStorage.getItem("LOCATOR_USER_CONFIG");
+        const bindings = raw ? JSON.parse(raw).layer?.bindings : undefined;
         return bindings?.length ?? 0;
       })
     )
@@ -224,8 +224,8 @@ test("separate trigger sections share action editing and navigation state", asyn
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-        const bindings = raw ? JSON.parse(raw).bindings : [];
+        const raw = localStorage.getItem("LOCATOR_USER_CONFIG");
+        const bindings = raw ? JSON.parse(raw).layer?.bindings : [];
         return bindings?.map(
           (binding: { trigger?: { kind?: string } }) => binding.trigger?.kind
         );
@@ -304,8 +304,8 @@ test("welcome dismissal survives resetting origin settings", async ({
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-        return raw ? JSON.parse(raw).uiState?.onboarding?.dismissed : undefined;
+        const raw = localStorage.getItem("LOCATOR_UI_STATE");
+        return raw ? JSON.parse(raw).state?.onboarding?.dismissed : undefined;
       })
     )
     .toBe(true);
@@ -317,10 +317,14 @@ test("welcome dismissal survives resetting origin settings", async ({
 
   expect(
     await page.evaluate(() => {
-      const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-      return raw ? JSON.parse(raw) : null;
+      const rawUiState = localStorage.getItem("LOCATOR_UI_STATE");
+      return {
+        config: localStorage.getItem("LOCATOR_USER_CONFIG"),
+        uiState: rawUiState ? JSON.parse(rawUiState).state : null,
+      };
     })
   ).toEqual({
+    config: null,
     uiState: {
       welcomeScreenDismissed: true,
       onboarding: { dismissed: true, step: "done" },

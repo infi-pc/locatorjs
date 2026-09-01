@@ -57,7 +57,7 @@ const Popup = () => {
   // write to `{ ok: false }`. Dropping it left the button looking like it had
   // worked while the overlay stayed disabled.
   const enableHere = async () => {
-    const result = await setSiteLocal({ disabled: false });
+    const result = await setSiteLocal({ set: { disabled: false } });
     setEnableError(
       result.ok ? undefined : 'Could not enable LocatorJS on this page.'
     );

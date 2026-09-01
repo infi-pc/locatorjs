@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { allTargets, DEFAULT_LAYER } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { type JSX } from "solid-js";
 import { render } from "solid-js/web";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -15,17 +15,29 @@ const mocks = vi.hoisted(() => ({
   setUserOrigin: vi.fn(),
 }));
 
+const allTargets = strictConfig.targetRegistryView(
+  strictConfig.BUILT_IN_TARGETS
+);
+const effective = strictConfig.effectiveOptions(
+  strictConfig.resolveConfig(
+    { default: strictConfig.DEFAULT_LAYER },
+    strictConfig.BUILT_IN_TARGETS
+  )
+);
+const defaultLayer = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
+
 vi.mock("../functions/isExtension", () => ({ isExtension: () => true }));
-vi.mock("../functions/optionsStore", () => ({
+vi.mock("../functions/optionsContext", () => ({
   useOptions: () => ({
     allTargets: () => allTargets,
     clearUserOrigin: mocks.clearUserOrigin,
-    effective: () => DEFAULT_LAYER,
+    effective: () => effective,
     editorWithheld: () => false,
-    layers: () => ({ default: DEFAULT_LAYER }),
+    layers: () => ({ default: defaultLayer }),
     provenance: () => ({}),
     setUiState: mocks.setUiState,
     setUserOrigin: mocks.setUserOrigin,
+    targetRegistry: () => strictConfig.BUILT_IN_TARGETS,
     uiState: () => ({}),
   }),
 }));

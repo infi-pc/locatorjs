@@ -11,7 +11,7 @@ describe("ModifierChips", () => {
       <ModifierChips
         variant="full"
         platform="mac"
-        value="alt+meta"
+        value={["alt", "meta"]}
         onChange={() => undefined}
       />
     ));
@@ -50,7 +50,9 @@ describe("ModifierChips", () => {
     const onChange = vi.fn();
 
     function Harness() {
-      const [value, setValue] = createSignal<string | undefined>("alt");
+      const [value, setValue] = createSignal<
+        readonly ("alt" | "ctrl" | "shift" | "meta")[] | undefined
+      >(["alt"]);
       return (
         <ModifierChips
           value={value()}

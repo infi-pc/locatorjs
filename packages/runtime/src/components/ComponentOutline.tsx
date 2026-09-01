@@ -1,13 +1,12 @@
 import { For } from "solid-js";
-import { HREF_TARGET, PADDING } from "../consts";
+import { PADDING } from "../consts";
 import { LabelData } from "../types/LabelData";
 import { trackClickStats } from "../functions/trackClickStats";
 
 import { goTo } from "../functions/goTo";
 import { SimpleDOMRect } from "../types/types";
 import { buildLink } from "../functions/buildLink";
-import { Targets } from "@locator/shared";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import { css } from "@locator/styled-system/css";
 
 const styles = {
@@ -38,7 +37,6 @@ export function ComponentOutline(props: {
   labels: LabelData[];
   element: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  targets: Targets;
 }) {
   const options = useOptions();
 
@@ -128,14 +126,16 @@ export function ComponentOutline(props: {
 
           <For each={props.labels}>
             {(label) => {
-              const link = label.link
-                ? buildLink(label.link, props.targets, options)
-                : null;
+              const editor = options.effective().editor;
+              const link =
+                label.link && editor.kind === "selected"
+                  ? buildLink(label.link, options, editor)
+                  : null;
               return link ? (
                 <a
                   class={styles.label}
                   href={link}
-                  target={options.effective().hrefTarget || HREF_TARGET}
+                  target={options.effective().hrefTarget}
                   onClick={() => {
                     trackClickStats();
                     goTo(link!, options);

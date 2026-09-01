@@ -1,10 +1,9 @@
-import { Targets } from "@locator/shared";
 import { TreePanel, visibleTreeRows, type TreeRow } from "@locator/ui";
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { css } from "@locator/styled-system/css";
 import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import { TreeState } from "../adapters/adapterApi";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import {
   buildTreeViewModel,
   componentRowId,
@@ -33,7 +32,6 @@ export function TreeView(props: {
   treeState: TreeState;
   setTreeState: (state: TreeState) => void;
   close: () => void;
-  targets: Targets;
   setHighlightedNode: (node: null | TreeNode) => void;
   /** Opens the link, or asks the user to pick an editor first. */
   openLink: (link: LinkProps) => void;

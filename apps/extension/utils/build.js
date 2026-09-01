@@ -89,7 +89,9 @@ function assertBuiltManifest(outputPath) {
 function assertStartupBundles(outputPath) {
   const policies = {
     'client.bundle.js': 50_000,
-    'contentScript.bundle.js': 20_000,
+    // The isolated content boundary owns v1/v3 storage migration and rebuilds
+    // untrusted page snapshots through the strict parser before forwarding.
+    'contentScript.bundle.js': 22_000,
     'hook.bundle.js': 10_000,
   };
   const forbiddenMarkers = ['lucide', '--colors-', 'SEMVER_SPEC_VERSION'];
@@ -138,6 +140,11 @@ webpack(config, function (err, stats) {
   }
 
   const outputPath = config.output.path;
-  assertStartupBundles(outputPath);
-  assertBuiltManifest(outputPath);
+  try {
+    assertStartupBundles(outputPath);
+    assertBuiltManifest(outputPath);
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
 });

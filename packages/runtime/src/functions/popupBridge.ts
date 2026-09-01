@@ -1,22 +1,15 @@
-import { getOwner, onCleanup } from "solid-js";
-import {
-  decodeBindingAction,
-  deserializePatch,
-  postMessageOrigin,
-  type BindingAction,
-  type LocatorOptions,
-} from "@locator/shared";
+import { postMessageOrigin, strictConfig } from "@locator/shared";
 import type { OptionsStore } from "./optionsStore";
 
 type RuntimeBridge = {
   getSnapshot: () => {
-    effective: LocatorOptions;
+    effective: strictConfig.EffectiveOptionsView;
     provenance: ReturnType<OptionsStore["provenance"]>;
     layers: ReturnType<OptionsStore["layers"]>;
     allTargets: ReturnType<OptionsStore["allTargets"]>;
   };
   applySiteLocal: (
-    patch: Partial<LocatorOptions>
+    patch: strictConfig.LayerPatchInput
   ) => ReturnType<OptionsStore["setUserOrigin"]>;
   clearSiteLocal: () => ReturnType<OptionsStore["clearUserOrigin"]>;
 };
@@ -27,12 +20,15 @@ declare global {
   }
 }
 
+let unmountCurrentBridge: (() => void) | undefined;
+
 export function mountRuntimePopupBridge(options: OptionsStore) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return () => undefined;
+  unmountCurrentBridge?.();
 
   const bridge: RuntimeBridge = {
     getSnapshot: () => ({
-      effective: options.effective(),
+      effective: strictConfig.effectiveOptionsView(options.effective()),
       provenance: options.provenance(),
       layers: options.layers(),
       allTargets: options.allTargets(),
@@ -61,9 +57,10 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     }
 
     if (data.type === "LOCATOR_PAGE_SITE_LOCAL_WRITE") {
-      const result = await bridge.applySiteLocal(
-        deserializePatch(data.patch ?? {}, data.unset)
-      );
+      const result = await bridge.applySiteLocal({
+        set: data.set ?? {},
+        unset: data.unset ?? [],
+      });
       window.postMessage(
         {
           type: "LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT",
@@ -89,17 +86,18 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     }
 
     if (data.type === "LOCATOR_PAGE_TRY_ACTION") {
-      const action = validBindingAction(data.action);
-      const result = !action
+      const parsed = strictConfig.parseAction(data.action);
+      const result = !parsed.ok
         ? { ok: false as const, reason: "invalid-action" }
         : options.effective().disabled
         ? { ok: false as const, reason: "disabled" }
         : { ok: true as const };
-      if (result.ok) {
+      if (result.ok && parsed.ok) {
         window.dispatchEvent(
-          new CustomEvent<BindingAction>("locatorjs:try-action", {
-            detail: action!,
-          })
+          new CustomEvent<strictConfig.ConfiguredAction>(
+            "locatorjs:try-action",
+            { detail: parsed.value }
+          )
         );
       }
       window.postMessage(
@@ -115,16 +113,15 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
 
   window.addEventListener("message", onMessage);
 
-  if (getOwner()) {
-    onCleanup(() => {
-      window.removeEventListener("message", onMessage);
-      if (window.__LOCATOR_RUNTIME__ === bridge) {
-        delete window.__LOCATOR_RUNTIME__;
-      }
-    });
-  }
+  const unmount = () => {
+    window.removeEventListener("message", onMessage);
+    if (window.__LOCATOR_RUNTIME__ === bridge) {
+      delete window.__LOCATOR_RUNTIME__;
+    }
+    if (unmountCurrentBridge === unmount) unmountCurrentBridge = undefined;
+  };
+  unmountCurrentBridge = unmount;
+  return unmount;
 }
 
-function validBindingAction(value: unknown): BindingAction | undefined {
-  return decodeBindingAction(value) ?? undefined;
-}
+export type RuntimeTryAction = strictConfig.BindingAction;

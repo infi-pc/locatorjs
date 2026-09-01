@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { Binding } from "./layeredOptions";
+import type { BindingInput } from "./config";
 import {
   MAX_BINDINGS_PER_TRIGGER,
   bindingAt,
@@ -15,10 +15,13 @@ import {
   nextAvailableModifiers,
 } from "./bindingEditorModel";
 
-const bindings: Binding[] = [
+const bindings: BindingInput[] = [
   {
-    trigger: { kind: "modifier-click", modifiers: "alt" },
-    action: { kind: "open-editor", targetId: "vscode" },
+    trigger: { kind: "modifier-click", modifiers: ["alt"] },
+    action: {
+      kind: "open-editor",
+      destination: { kind: "target", id: "vscode" },
+    },
   },
   { trigger: { kind: "hover-toolbar" }, action: { kind: "copy-path" } },
 ];
@@ -51,7 +54,7 @@ describe("binding editor model", () => {
     const modifier = createBindingDraft("modifier-click", bindings);
     expect(modifier.trigger).toEqual({
       kind: "modifier-click",
-      modifiers: "alt+shift",
+      modifiers: ["alt", "shift"],
     });
     expect(insertBinding(bindings, toolbar)?.at(-1)).toBe(toolbar);
     expect(
@@ -60,7 +63,7 @@ describe("binding editor model", () => {
   });
 
   test("enforces the per-trigger limit independently", () => {
-    const full: Binding[] = Array.from(
+    const full: BindingInput[] = Array.from(
       { length: MAX_BINDINGS_PER_TRIGGER },
       () => ({
         trigger: { kind: "hover-toolbar" },
@@ -78,11 +81,14 @@ describe("binding editor model", () => {
   });
 
   test("selects the next shortcut and reports conflicts", () => {
-    const duplicate: Binding = {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
-      action: { kind: "open-editor", targetId: "vscode" },
+    const duplicate: BindingInput = {
+      trigger: { kind: "modifier-click", modifiers: ["alt"] },
+      action: {
+        kind: "open-editor",
+        destination: { kind: "target", id: "vscode" },
+      },
     };
-    expect(nextAvailableModifiers(bindings)).toBe("alt+shift");
+    expect(nextAvailableModifiers(bindings)).toEqual(["alt", "shift"]);
     expect(hasShortcutConflict(duplicate, bindings)).toBe(true);
     expect(duplicateShortcutModifiers([...bindings, duplicate])).toEqual(
       new Set(["alt"])
@@ -92,7 +98,7 @@ describe("binding editor model", () => {
   test("clears the override on the primary editor binding only", () => {
     expect(clearPrimaryEditorOverride(bindings)).toEqual([
       {
-        trigger: { kind: "modifier-click", modifiers: "alt" },
+        trigger: { kind: "modifier-click", modifiers: ["alt"] },
         action: { kind: "open-editor" },
       },
       bindings[1],
@@ -110,7 +116,7 @@ describe("binding editor model", () => {
     expect(
       clearPrimaryEditorOverride([
         {
-          trigger: { kind: "modifier-click", modifiers: "alt" },
+          trigger: { kind: "modifier-click", modifiers: ["alt"] },
           action: { kind: "open-editor" },
         },
       ])

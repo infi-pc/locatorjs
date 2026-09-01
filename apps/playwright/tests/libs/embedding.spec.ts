@@ -1,6 +1,7 @@
 import { expect, test, type Frame, type Page } from "@playwright/test";
 import { expectLocatorReady } from "../activateLocator";
 import { projects } from "../consts";
+import { seedLocatorStorage } from "../locatorStorage";
 
 /**
  * Shadow DOM and iframe coverage.
@@ -14,32 +15,29 @@ type CopyWindow = Window & { __locatorCopiedText?: string };
 const options = {
   bindings: [
     {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
+      trigger: { kind: "modifier-click", modifiers: ["alt"] },
       action: { kind: "copy-path" as const },
     },
   ],
-  uiState: {
-    welcomeScreenDismissed: true,
-    onboarding: { dismissed: true, step: "done" },
-  },
+};
+const uiState = {
+  welcomeScreenDismissed: true,
+  onboarding: { dismissed: true, step: "done" },
 };
 
 async function preparePage(page: Page) {
+  await seedLocatorStorage(page, options, uiState);
   // Runs in every frame, so iframe children get the same stub clipboard.
-  await page.addInitScript(
-    ({ options }) => {
-      localStorage.setItem("LOCATOR_USER_OPTIONS", JSON.stringify(options));
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: {
-          writeText: async (text: string) => {
-            (window as CopyWindow).__locatorCopiedText = text;
-          },
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          (window as CopyWindow).__locatorCopiedText = text;
         },
-      });
-    },
-    { options }
-  );
+      },
+    });
+  });
 }
 
 async function resetCopied(target: Page | Frame) {

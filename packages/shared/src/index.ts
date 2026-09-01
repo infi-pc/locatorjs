@@ -1,7 +1,6 @@
 import { isValidRenderer } from "./isValidRenderer";
 export { isValidRenderer };
 export * from "./types";
-export * from "./targets";
 export * from "./modifiers";
 export * from "./environmentDetection";
 export * from "./shadowRootRegistry";
@@ -42,14 +41,17 @@ export type FileStorage = {
   components: ComponentInfo[];
 };
 
-export * from "./sharedOptionsStore";
-export * from "./layeredOptions";
+export * as strictConfig from "./config";
+export * as strictConfigStorage from "./configStorage";
+export type { UserConfigSnapshot } from "./configStorage";
+export {
+  decodeWriteResult,
+  type WriteFailureReason,
+  type WriteResponse,
+  type WriteResult,
+} from "./writeResult";
 export * from "./sourcePath";
 export * from "./bindingEditorModel";
-export * from "./migrateLegacyStorage";
-export * from "./patchCodec";
-export * from "./optionsCodec";
 export * from "./actionLabel";
-export * from "./targetTemplate";
 export * from "./windowMessaging";
 export * from "./tryActionResult";

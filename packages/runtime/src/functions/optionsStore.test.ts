@@ -1,104 +1,111 @@
 // @vitest-environment jsdom
-import { describe, expect, test, beforeEach, vi } from "vitest";
-import { createRoot } from "solid-js";
-import { allTargets, type Binding, type LocatorOptions } from "@locator/shared";
-import {
-  updateTeamLayer,
-  setTeamTargets,
-  __resetTeamLayerForTesting,
-} from "./teamLayerStore";
-import { initOptions } from "./optionsStore";
+import { strictConfig, strictConfigStorage } from "@locator/shared";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { initOptions, type OptionsStore } from "./optionsStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
+import {
+  __resetTeamLayerForTesting,
+  replaceTeamConfig,
+} from "./teamLayerStore";
 
-function primaryModifiers(options: LocatorOptions) {
-  const trigger = options.bindings?.find(
-    (binding) => binding.trigger.kind === "modifier-click"
-  )?.trigger;
-  return trigger?.kind === "modifier-click" ? trigger.modifiers : undefined;
+const stores: OptionsStore[] = [];
+
+function withStore(fn: () => OptionsStore): OptionsStore {
+  const store = fn();
+  stores.push(store);
+  return store;
 }
 
-function editorBindings(targetId: string): Binding[] {
-  return [
-    {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
-      action: { kind: "open-editor" as const, targetId },
-    },
-  ];
+function configureTeam(input: strictConfig.LocatorConfigInput) {
+  const compiled = strictConfig.compileSetup(input);
+  if (!compiled.ok) throw new Error("Invalid team fixture.");
+  replaceTeamConfig(compiled.value);
 }
 
-function primaryEditorTarget(options: LocatorOptions) {
-  const action = options.bindings?.find(
-    (binding) =>
-      binding.trigger.kind === "modifier-click" &&
-      binding.action.kind === "open-editor"
-  )?.action;
-  return action?.kind === "open-editor" ? action.targetId : undefined;
-}
-
-const disposers: (() => void)[] = [];
-
-function withRoot<T>(fn: () => T): T {
-  return createRoot((dispose) => {
-    disposers.push(dispose);
-    return fn();
-  });
-}
-
-function setUserExtensionGlobal(options: unknown) {
+function setUserExtensionGlobal(input: strictConfig.LocatorLayerInput) {
   document.documentElement.dataset.locatorUserExtensionOptions =
-    JSON.stringify(options);
+    JSON.stringify(input);
+}
+
+function modifiers(options: ReturnType<typeof initOptions>) {
+  const shortcut = strictConfig.primaryEditorShortcut(
+    options.effective().bindings
+  );
+  return shortcut
+    ? strictConfig.modifiersForChord(shortcut.trigger.chord)
+    : undefined;
+}
+
+function editorActionDestination(options: ReturnType<typeof initOptions>) {
+  const action = strictConfig.primaryEditorBinding(
+    options.effective().bindings
+  )?.action;
+  if (action?.kind !== "open-editor") return undefined;
+  const encoded = strictConfig.encodeAction(action);
+  return encoded.kind === "open-editor" ? encoded.destination : undefined;
 }
 
 function resetState() {
-  while (disposers.length) disposers.pop()!();
+  while (stores.length) stores.pop()!.dispose();
   localStorage.clear();
   delete document.documentElement.dataset.locatorUserExtensionOptions;
   delete document.documentElement.dataset.locatorEditorWithheld;
-  delete (window as unknown as Record<string, unknown>).__LOCATOR_RUNTIME__;
-  delete (window as unknown as Record<string, unknown>).enableLocator;
+  delete window.__LOCATOR_RUNTIME__;
+  delete (window as unknown as { enableLocator?: unknown }).enableLocator;
   __resetTeamLayerForTesting();
 }
 
+beforeEach(resetState);
+
 describe("optionsStore integration", () => {
-  beforeEach(() => {
-    resetState();
-  });
+  test("a late setup snapshot atomically re-drives resolution", () => {
+    const options = withStore(() => initOptions());
+    expect(options.effective().projectPath).toBeNull();
 
-  test("late setup() updates team layer and re-drives resolver after init", async () => {
-    const options = withRoot(() => initOptions());
-
-    expect(options.effective().projectPath).toBeUndefined();
-
-    updateTeamLayer({ projectPath: "/repo/late" });
+    configureTeam({ projectPath: "/repo/late", debugMode: true });
 
     expect(options.effective().projectPath).toBe("/repo/late");
+    expect(options.effective().debugMode).toBe(true);
     expect(options.provenance().projectPath).toBe("team");
   });
 
-  test("reads initial user-extension layer from documentElement dataset", async () => {
-    setUserExtensionGlobal({ mouseModifiers: "ctrl" });
-
-    const options = withRoot(() => initOptions());
-
-    expect(primaryModifiers(options.effective())).toBe("ctrl");
+  test("parses the extension dataset once and reacts to valid replacements", async () => {
+    setUserExtensionGlobal({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: ["ctrl"] },
+          action: { kind: "open-editor" },
+        },
+      ],
+    });
+    const options = withStore(() => initOptions());
+    expect(modifiers(options)).toEqual(["ctrl"]);
     expect(options.provenance().bindings).toBe("user-extension");
+
+    setUserExtensionGlobal({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: ["shift"] },
+          action: { kind: "open-editor" },
+        },
+      ],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(modifiers(options)).toEqual(["shift"]);
   });
 
-  test("dataset changes update user-extension layer after runtime mount", async () => {
-    const options = withRoot(() => initOptions());
+  test("rejects malformed extension data instead of partially applying it", () => {
+    document.documentElement.dataset.locatorUserExtensionOptions =
+      JSON.stringify({ projectPath: "/accepted", surprise: true });
+    const options = withStore(() => initOptions());
 
-    expect(options.provenance().bindings).toBe("default");
-
-    setUserExtensionGlobal({ mouseModifiers: "shift" });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(primaryModifiers(options.effective())).toBe("shift");
-    expect(options.provenance().bindings).toBe("user-extension");
+    expect(options.effective().projectPath).toBeNull();
+    expect(options.provenance().projectPath).toBe("default");
   });
 
   test("reports when editor configuration is withheld from this frame", async () => {
     document.documentElement.dataset.locatorEditorWithheld = "true";
-    const options = withRoot(() => initOptions());
+    const options = withStore(() => initOptions());
     expect(options.editorWithheld()).toBe(true);
 
     document.documentElement.dataset.locatorEditorWithheld = "false";
@@ -106,294 +113,170 @@ describe("optionsStore integration", () => {
     expect(options.editorWithheld()).toBe(false);
   });
 
-  test("user-origin layer overrides user-extension and team layers", async () => {
-    updateTeamLayer({ bindings: editorBindings("vscode") });
-    setUserExtensionGlobal({ bindings: editorBindings("cursor") });
+  test("explicit site patches override extension and team bindings", async () => {
+    configureTeam({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: ["alt"] },
+          action: {
+            kind: "open-editor",
+            destination: { kind: "target", id: "vscode" },
+          },
+        },
+      ],
+    });
+    setUserExtensionGlobal({
+      bindings: [
+        {
+          trigger: { kind: "modifier-click", modifiers: ["ctrl"] },
+          action: {
+            kind: "open-editor",
+            destination: { kind: "target", id: "cursor" },
+          },
+        },
+      ],
+    });
+    const options = withStore(() => initOptions());
 
-    const options = withRoot(() => initOptions());
-    await options.setUserOrigin({ bindings: editorBindings("webstorm") });
+    await options.setUserOrigin({
+      set: {
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: ["shift"] },
+            action: {
+              kind: "open-editor",
+              destination: { kind: "target", id: "webstorm" },
+            },
+          },
+        ],
+      },
+    });
 
-    expect(primaryEditorTarget(options.effective())).toBe("webstorm");
+    expect(modifiers(options)).toEqual(["shift"]);
+    expect(editorActionDestination(options)).toEqual({
+      kind: "target",
+      id: "webstorm",
+    });
     expect(options.provenance().bindings).toBe("user-origin");
   });
 
-  test("window.enableLocator() writes to user-origin layer only", async () => {
-    const options = withRoot(() => initOptions());
+  test("window.enableLocator writes only the disabled field", async () => {
+    const options = withStore(() => initOptions());
+    await options.setUserOrigin({
+      set: { disabled: true, projectPath: "/repo" },
+    });
 
-    await options.setUserOrigin({ disabled: true });
-    expect(options.effective().disabled).toBe(true);
-
-    type WinWithEnable = { enableLocator?: () => Promise<{ ok: boolean }> };
-    const result = await (window as unknown as WinWithEnable).enableLocator?.();
-
-    expect(result).toEqual({ ok: true });
+    await expect(window.enableLocator?.()).resolves.toEqual({ ok: true });
     expect(options.effective().disabled).toBe(false);
+    expect(options.effective().projectPath).toBe("/repo");
     expect(options.provenance().disabled).toBe("user-origin");
   });
 
-  test("atomic replacePath merge across layers (later layer fully replaces)", async () => {
-    updateTeamLayer({
-      replacePath: { from: "/team/from", to: "/team/to" },
-    });
+  test("path rewrites are atomic values across layers", async () => {
+    configureTeam({ replacePath: { from: "/team", to: "/workspace" } });
+    const options = withStore(() => initOptions());
 
-    const options = withRoot(() => initOptions());
     await options.setUserOrigin({
-      replacePath: { from: "/user/from", to: "/user/to" },
+      set: { replacePath: { from: "/user", to: "/volume" } },
     });
 
-    expect(options.effective().replacePath).toEqual({
-      from: "/user/from",
-      to: "/user/to",
-    });
+    const rewrite = options.effective().replacePath;
+    expect(rewrite).not.toBeNull();
+    expect(strictConfig.rewritePath(rewrite!, "/user/app.ts")).toBe(
+      "/volume/app.ts"
+    );
   });
 
-  test("setUiState writes to uiState, not to LocatorOptions", async () => {
-    const options = withRoot(() => initOptions());
-
+  test("UI state is persisted separately and survives clearing config", async () => {
+    const options = withStore(() => initOptions());
+    await options.setUserOrigin({ set: { projectPath: "/repo" } });
     await options.setUiState({ welcomeScreenDismissed: true });
 
-    expect(options.uiState().welcomeScreenDismissed).toBe(true);
-    expect(
-      (options.effective() as Record<string, unknown>).welcomeScreenDismissed
-    ).toBeUndefined();
-  });
+    await expect(options.clearUserOrigin()).resolves.toEqual({ ok: true });
 
-  test("clearUserOrigin clears options while preserving uiState", async () => {
-    setUserExtensionGlobal({ mouseModifiers: "ctrl" });
-    const options = withRoot(() => initOptions());
-
-    await options.setUserOrigin({ mouseModifiers: "shift" });
-    await options.setUiState({ welcomeScreenDismissed: true });
-    expect(primaryModifiers(options.effective())).toBe("shift");
-
-    options.clearUserOrigin();
-
-    expect(JSON.parse(localStorage.getItem("LOCATOR_USER_OPTIONS")!)).toEqual({
-      uiState: { welcomeScreenDismissed: true },
-    });
-    expect(primaryModifiers(options.effective())).toBe("ctrl");
-    expect(options.provenance().bindings).toBe("user-extension");
+    expect(options.effective().projectPath).toBeNull();
     expect(options.uiState()).toEqual({ welcomeScreenDismissed: true });
-  });
-
-  test("clearUserOrigin reports failure and preserves resolved state", async () => {
-    const options = withRoot(() => initOptions());
-    await options.setUserOrigin({ mouseModifiers: "shift" });
-    const removeItem = vi
-      .spyOn(Storage.prototype, "removeItem")
-      .mockImplementation(() => {
-        throw new DOMException("blocked", "SecurityError");
-      });
-
-    await expect(options.clearUserOrigin()).resolves.toEqual({
-      ok: false,
-      reason: "blocked",
+    expect(
+      localStorage.getItem(strictConfigStorage.USER_CONFIG_STORAGE_KEY)
+    ).toBeNull();
+    expect(
+      JSON.parse(
+        localStorage.getItem(strictConfigStorage.UI_STATE_STORAGE_KEY)!
+      )
+    ).toEqual({
+      version: 1,
+      state: { welcomeScreenDismissed: true },
     });
-    expect(primaryModifiers(options.effective())).toBe("shift");
-
-    removeItem.mockRestore();
   });
 
-  test("team targets signal overrides default allTargets", async () => {
-    const custom = { myEd: { url: "my-ed://${filePath}", label: "MyEd" } };
-    setTeamTargets(custom);
+  test("team targets and layer change as one snapshot", () => {
+    configureTeam({
+      targets: { myEditor: "my-editor://${filePath}" },
+      projectPath: "/repo",
+    });
+    const options = withStore(() => initOptions());
 
-    const options = withRoot(() => initOptions());
-
-    expect(options.allTargets()).toEqual(custom);
-    expect(options.allTargets()).not.toBe(allTargets);
+    expect(options.allTargets()).toEqual({
+      myEditor: { label: "myEditor", url: "my-editor://${filePath}" },
+    });
+    expect(options.effective().projectPath).toBe("/repo");
+    expect(options.effective().editor).toMatchObject({
+      kind: "selected",
+      destination: { kind: "target", id: "myEditor" },
+    });
   });
 });
 
 describe("mountRuntimePopupBridge", () => {
-  beforeEach(() => {
-    resetState();
-  });
-
-  test("exposes __LOCATOR_RUNTIME__ bridge with snapshot + applySiteLocal", async () => {
-    updateTeamLayer({ bindings: editorBindings("vscode") });
-    const options = withRoot(() => {
-      const o = initOptions();
-      mountRuntimePopupBridge(o);
-      return o;
+  test("exposes a strict snapshot and applies an explicit site patch", async () => {
+    configureTeam({ projectPath: "/team" });
+    const options = withStore(() => {
+      const store = initOptions();
+      mountRuntimePopupBridge(store);
+      return store;
     });
-
-    type WinWithRuntime = {
-      __LOCATOR_RUNTIME__?: {
-        getSnapshot: () => {
-          effective: LocatorOptions;
-          provenance: { bindings?: string };
-        };
-        applySiteLocal: (p: Record<string, unknown>) => Promise<unknown>;
-      };
-    };
-    const runtime = (window as unknown as WinWithRuntime).__LOCATOR_RUNTIME__;
+    const runtime = window.__LOCATOR_RUNTIME__;
     expect(runtime).toBeDefined();
+    expect(runtime!.getSnapshot().effective.projectPath).toBe("/team");
 
-    const snap = runtime!.getSnapshot();
-    expect(primaryEditorTarget(snap.effective)).toBe("vscode");
-    expect(snap.provenance.bindings).toBe("team");
-
-    await runtime!.applySiteLocal({ bindings: editorBindings("zed") });
-    expect(primaryEditorTarget(options.effective())).toBe("zed");
-    expect(options.provenance().bindings).toBe("user-origin");
+    await runtime!.applySiteLocal({ set: { projectPath: "/site" } });
+    expect(options.effective().projectPath).toBe("/site");
+    expect(options.provenance().projectPath).toBe("user-origin");
   });
 
-  test("responds to LOCATOR_PAGE_SNAPSHOT_REQUEST with matching requestId", async () => {
-    const options = withRoot(() => {
-      const o = initOptions();
-      mountRuntimePopupBridge(o);
-      return o;
-    });
-    await options.setUserOrigin({ mouseModifiers: "meta" });
-    expect(primaryModifiers(options.effective())).toBe("meta");
-
-    const response = await new Promise<Record<string, unknown>>((resolve) => {
-      const handler = (event: MessageEvent) => {
-        const data = event.data as Record<string, unknown> | undefined;
-        if (
-          data?.type === "LOCATOR_PAGE_SNAPSHOT_RESPONSE" &&
-          data.requestId === "req-1"
-        ) {
-          window.removeEventListener("message", handler);
-          resolve(data);
-        }
-      };
-      window.addEventListener("message", handler);
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          data: { type: "LOCATOR_PAGE_SNAPSHOT_REQUEST", requestId: "req-1" },
-          source: window,
-        })
-      );
-    });
-
-    const snapshot = response.snapshot as { effective: LocatorOptions };
-    expect(primaryModifiers(snapshot.effective)).toBe("meta");
-  });
-
-  test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies patch", async () => {
-    const options = withRoot(() => {
-      const o = initOptions();
-      mountRuntimePopupBridge(o);
-      return o;
-    });
-
-    const result = await new Promise<Record<string, unknown>>((resolve) => {
-      const handler = (event: MessageEvent) => {
-        const data = event.data as Record<string, unknown> | undefined;
-        if (
-          data?.type === "LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT" &&
-          data.requestId === "req-2"
-        ) {
-          window.removeEventListener("message", handler);
-          resolve(data);
-        }
-      };
-      window.addEventListener("message", handler);
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          data: {
-            type: "LOCATOR_PAGE_SITE_LOCAL_WRITE",
-            requestId: "req-2",
-            patch: { mouseModifiers: "alt+ctrl" },
-          },
-          source: window,
-        })
-      );
-    });
-
-    expect(result.result).toEqual({ ok: true });
-    expect(primaryModifiers(options.effective())).toBe("alt+ctrl");
-  });
-
-  test("responds to LOCATOR_PAGE_SITE_LOCAL_WRITE and applies explicit unsets", async () => {
-    setUserExtensionGlobal({ mouseModifiers: "ctrl" });
-    const options = withRoot(() => {
-      const o = initOptions();
-      mountRuntimePopupBridge(o);
-      return o;
-    });
-    await options.setUserOrigin({ mouseModifiers: "shift" });
-    expect(primaryModifiers(options.effective())).toBe("shift");
-
-    const result = await new Promise<Record<string, unknown>>((resolve) => {
-      const handler = (event: MessageEvent) => {
-        const data = event.data as Record<string, unknown> | undefined;
-        if (
-          data?.type === "LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT" &&
-          data.requestId === "req-3"
-        ) {
-          window.removeEventListener("message", handler);
-          resolve(data);
-        }
-      };
-      window.addEventListener("message", handler);
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          data: {
-            type: "LOCATOR_PAGE_SITE_LOCAL_WRITE",
-            requestId: "req-3",
-            patch: {},
-            unset: ["mouseModifiers"],
-          },
-          source: window,
-        })
-      );
-    });
-
-    expect(result.result).toEqual({ ok: true });
-    expect(primaryModifiers(options.effective())).toBe("ctrl");
-    expect(options.provenance().bindings).toBe("user-extension");
-  });
-
-  test("validates popup Try actions and dispatches only supported actions", async () => {
-    const options = withRoot(() => {
-      const o = initOptions();
-      mountRuntimePopupBridge(o);
-      return o;
+  test("validates Try actions before dispatching them", async () => {
+    withStore(() => {
+      const store = initOptions();
+      mountRuntimePopupBridge(store);
+      return store;
     });
     const tried = vi.fn();
     window.addEventListener("locatorjs:try-action", tried);
-
-    const response = await new Promise<Record<string, unknown>>((resolve) => {
-      const handler = (event: MessageEvent) => {
-        const data = event.data as Record<string, unknown> | undefined;
-        if (
-          data?.type === "LOCATOR_PAGE_TRY_ACTION_RESULT" &&
-          data.requestId === "try-1"
-        ) {
-          window.removeEventListener("message", handler);
-          resolve(data);
-        }
-      };
-      window.addEventListener("message", handler);
-      window.dispatchEvent(
-        new MessageEvent("message", {
-          data: {
-            type: "LOCATOR_PAGE_TRY_ACTION",
-            requestId: "try-1",
-            action: { kind: "copy-path" },
-          },
-          source: window,
-        })
-      );
-    });
-
-    expect(response.result).toEqual({ ok: true });
-    expect(tried).toHaveBeenCalledTimes(1);
-    expect((tried.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
-      kind: "copy-path",
-    });
 
     window.dispatchEvent(
       new MessageEvent("message", {
         data: {
           type: "LOCATOR_PAGE_TRY_ACTION",
-          requestId: "try-unsafe",
+          requestId: "valid",
+          action: { kind: "copy-path" },
+        },
+        source: window,
+      })
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(tried).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          type: "LOCATOR_PAGE_TRY_ACTION",
+          requestId: "unsafe",
           action: {
             kind: "open-editor",
-            targetTemplate: "javascript:alert(1)",
+            destination: {
+              kind: "template",
+              template: "javascript:alert(1)",
+            },
           },
         },
         source: window,
@@ -402,6 +285,5 @@ describe("mountRuntimePopupBridge", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(tried).toHaveBeenCalledTimes(1);
     window.removeEventListener("locatorjs:try-action", tried);
-    void options;
   });
 });

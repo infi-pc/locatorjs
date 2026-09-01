@@ -1,22 +1,14 @@
-import { resolveSourcePath, type Targets } from "@locator/shared";
+import { resolveSourcePath, strictConfig } from "@locator/shared";
 import type { LinkProps } from "../types/types";
 import { evalTemplate } from "./evalTemplate";
-import { linkTemplateUrl } from "./linkTemplateUrl";
 import type { OptionsStore } from "./optionsStore";
-import { transformPath } from "./transformPath";
 
 export function buildLink(
   linkProps: LinkProps,
-  targets: Targets,
-  options: OptionsStore,
-  localLinkTypeOrTemplate?: string
+  options: Pick<OptionsStore, "effective">,
+  editor: strictConfig.SelectedEditor
 ): string {
   const effective = options.effective();
-  const tmuxSession = effective.tmuxSession;
-
-  // Every shipped template interpolates `${projectPath}${filePath}`, so the two
-  // have to be split apart here — handing over a path that already carries the
-  // root would bake it into the URL twice.
   const source = resolveSourcePath(
     linkProps.filePath,
     effective.projectPath || linkProps.projectPath
@@ -31,22 +23,14 @@ export function buildLink(
     columnPlusOne: String(linkProps.column + 1),
     lineMinusOne: String(linkProps.line - 1),
     columnMinusOne: String(linkProps.column - 1),
-    ...(tmuxSession ? { tmuxSession } : {}),
+    ...(effective.tmuxSession ? { tmuxSession: effective.tmuxSession } : {}),
   };
 
-  const template = linkTemplateUrl(targets, options, localLinkTypeOrTemplate);
-  const replacePathObj = effective.replacePath;
-  let evaluated = evalTemplate(template, params);
+  let evaluated = evalTemplate(editor.template, params);
   evaluated = stripUnresolvedQueryParams(evaluated);
-
-  if (replacePathObj) {
-    evaluated = transformPath(
-      evaluated,
-      replacePathObj.from,
-      replacePathObj.to
-    );
-  }
-  return evaluated;
+  return effective.replacePath
+    ? strictConfig.rewritePath(effective.replacePath, evaluated)
+    : evaluated;
 }
 
 function stripUnresolvedQueryParams(url: string): string {

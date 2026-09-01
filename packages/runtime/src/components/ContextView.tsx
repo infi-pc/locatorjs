@@ -1,4 +1,3 @@
-import type { Targets } from "@locator/shared";
 import { ParentsMenu, type ParentRow } from "@locator/ui";
 import { css } from "@locator/styled-system/css";
 import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
@@ -8,7 +7,7 @@ import {
 } from "../adapters/getParentsPath";
 import type { AdapterId } from "../consts";
 import { buildLink } from "../functions/buildLink";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import {
   buildParentRows,
   sourceRefToLinkProps,
@@ -34,7 +33,6 @@ export function ContextView(props: {
   contextMenuState: ContextMenuState;
   close: () => void;
   adapterId?: AdapterId | undefined;
-  targets: Targets;
   /** Opens the link, or asks the user to pick an editor first. */
   openLink: (link: LinkProps) => void;
 }) {
@@ -67,6 +65,12 @@ export function ContextView(props: {
     onCleanup(() => controller.abort());
   });
   const displayedRows = () => asyncRows() ?? rows();
+  const hrefFor = (row: ParentRow) => {
+    const editor = options.effective().editor;
+    return row.source && editor.kind === "selected"
+      ? buildLink(sourceRefToLinkProps(row.source), options, editor)
+      : undefined;
+  };
 
   return (
     <div
@@ -86,15 +90,7 @@ export function ContextView(props: {
           rows={displayedRows()}
           pending={pending()}
           autofocus
-          hrefFor={(row: ParentRow) =>
-            row.source
-              ? buildLink(
-                  sourceRefToLinkProps(row.source),
-                  props.targets,
-                  options
-                )
-              : undefined
-          }
+          hrefFor={hrefFor}
           onHover={() => {
             // Highlighting a parent needs a live node; the parents path only
             // carries source locations, so there is nothing to outline yet.

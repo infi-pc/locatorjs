@@ -2,6 +2,7 @@ import { test, expect, Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
 import { expectLocatorReady } from "../activateLocator";
+import { seedLocatorStorage } from "../locatorStorage";
 
 const ASYNC_TIMEOUT = 15_000;
 
@@ -25,17 +26,15 @@ type ResolvedSource = {
 };
 
 async function configureEditor(page: Page) {
+  await seedLocatorStorage(
+    page,
+    { editor: { kind: "target", id: "vscode" } },
+    {
+      welcomeScreenDismissed: true,
+      onboarding: { dismissed: true, step: "done" },
+    }
+  );
   await page.addInitScript(() => {
-    localStorage.setItem(
-      "LOCATOR_USER_OPTIONS",
-      JSON.stringify({
-        editor: { targetId: "vscode" },
-        uiState: {
-          welcomeScreenDismissed: true,
-          onboarding: { dismissed: true, step: "done" },
-        },
-      })
-    );
     window.open = ((url?: string | URL) => {
       (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl =
         String(url);

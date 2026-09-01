@@ -1,11 +1,4 @@
-import {
-  DEFAULT_LAYER,
-  resolveBindingTarget,
-  resolveEditorTarget,
-  type BindingAction,
-  type ResolvedTarget,
-  type Targets,
-} from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { Show, createSignal } from "solid-js";
 import {
   ActionSettings,
@@ -18,7 +11,7 @@ import {
 import { css } from "@locator/styled-system/css";
 import { Power, RotateCcw, X } from "lucide-solid";
 import { isExtension } from "../functions/isExtension";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import { NvimSetupGuide } from "./NvimSetupGuide";
 
 const styles = {
@@ -78,11 +71,11 @@ const styles = {
 };
 
 export function Options(props: {
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
   onClose: () => void;
   showDisableDialog: () => void;
   portalMount: HTMLDivElement;
-  onTryAction: (action: BindingAction) => void;
+  onTryAction: (action: strictConfig.BindingAction) => void;
 }) {
   const options = useOptions();
   const [saveStatus, setSaveStatus] =
@@ -93,23 +86,31 @@ export function Options(props: {
    * True when anything would open Neovim, so the one-time `nvim://` handler
    * guide is shown. Resolved rather than read off the raw action: picking
    * Neovim in the editor picker records it on the global `editor` setting and
-   * deliberately strips `targetId` off the binding, so an action's own fields
-   * say nothing about where it opens.
+   * deliberately removes the binding's destination override, so the action's
+   * own fields say nothing about where it opens.
    */
   const isNvimTarget = () => {
-    const targets = options.allTargets();
     const editor = options.effective().editor;
-    const opensNvim = (resolved: ResolvedTarget) =>
-      (resolved.kind === "targetId" && resolved.id === "nvim") ||
-      resolved.url.includes("nvim://");
+    const opensNvim = (resolved: strictConfig.EffectiveEditor) =>
+      resolved.kind === "selected" &&
+      ((resolved.destination.kind === "target" &&
+        resolved.destination.id === "nvim") ||
+        resolved.template.includes("nvim://"));
 
-    if (opensNvim(resolveEditorTarget(editor, targets))) return true;
+    if (opensNvim(editor)) return true;
 
-    return (options.effective().bindings ?? []).some(
-      (binding) =>
-        binding.action.kind === "open-editor" &&
-        opensNvim(resolveBindingTarget(binding.action, targets, editor))
-    );
+    return strictConfig
+      .configuredBindings(options.effective().bindings)
+      .some((binding) => {
+        if (binding.action.kind !== "open-editor") return false;
+        return opensNvim(
+          strictConfig.resolveActionEditor(
+            binding.action,
+            editor,
+            options.targetRegistry()
+          )
+        );
+      });
   };
 
   const promos = () => [
@@ -156,7 +157,9 @@ export function Options(props: {
           <ActionSettings
             layers={{
               ...options.layers(),
-              default: options.layers().default ?? DEFAULT_LAYER,
+              default:
+                options.layers().default ??
+                strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER),
             }}
             scopes={[
               {
@@ -234,7 +237,7 @@ export function Options(props: {
                   if (isExtension()) {
                     setSaveStatus("saving");
                     const result = await options.setUserOrigin({
-                      disabled: true,
+                      set: { disabled: true },
                     });
                     setSaveStatus(result.ok ? "saved" : "error");
                     if (result.ok) props.onClose();

@@ -7,13 +7,19 @@ describe('safeFrameProjection', () => {
       projectPath: '/Users/me/private-repo',
       replacePath: { from: '/host', to: '/container' },
       tmuxSession: 'secret-session',
-      editor: { targetTemplate: 'private-editor://${filePath}' },
+      editor: {
+        kind: 'template',
+        template: 'private-editor://${filePath}',
+      },
       bindings: [
         {
-          trigger: { kind: 'modifier-click', modifiers: 'alt' },
+          trigger: { kind: 'modifier-click', modifiers: ['alt'] },
           action: {
             kind: 'open-editor',
-            targetTemplate: 'private-editor://${filePath}',
+            destination: {
+              kind: 'template',
+              template: 'private-editor://${filePath}',
+            },
           },
         },
         {
@@ -27,14 +33,11 @@ describe('safeFrameProjection', () => {
     expect(projected).toEqual({
       bindings: [
         {
-          trigger: { kind: 'modifier-click', modifiers: 'alt' },
+          trigger: { kind: 'modifier-click', modifiers: ['alt'] },
           action: { kind: 'open-editor' },
         },
       ],
       disabled: false,
-      hrefTarget: undefined,
-      showIntro: undefined,
-      adapterId: undefined,
     });
   });
 });

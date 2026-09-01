@@ -1,4 +1,4 @@
-import { getModifiersMap, modifiersTitles } from "@locator/shared";
+import { modifiersTitles, strictConfig } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { For } from "solid-js";
 
@@ -40,13 +40,13 @@ const styles = {
   }),
 };
 
-function modifierText(value: string) {
-  return Object.keys(getModifiersMap(value))
-    .map((key) => modifiersTitles[key as keyof typeof modifiersTitles] ?? key)
-    .join(" + ");
+function modifierText(value: readonly strictConfig.Modifier[]) {
+  return value.map((key) => modifiersTitles[key]).join(" + ");
 }
 
-export function ShortcutExpression(props: { modifiers: string }) {
+export function ShortcutExpression(props: {
+  modifiers: readonly strictConfig.Modifier[];
+}) {
   const labels = () =>
     modifierText(props.modifiers).split(" + ").filter(Boolean);
   const accessibleLabel = () => `${modifierText(props.modifiers)} + Click`;

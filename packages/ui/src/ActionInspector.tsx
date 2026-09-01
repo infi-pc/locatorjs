@@ -1,11 +1,7 @@
 import {
-  DEFAULT_PROMPT_TEMPLATE,
   defaultBindingAction,
-  type Binding,
-  type BindingAction,
-  type EditorSelection,
-  type Targets,
-  type WriteResponse,
+  strictConfig,
+  strictConfigStorage,
 } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { MousePointer2, Play, Plus, Trash2 } from "lucide-solid";
@@ -65,23 +61,24 @@ const styles = {
 };
 
 export function ActionInspector(props: {
-  binding: Binding;
-  targets: Targets;
-  editor?: EditorSelection;
+  binding: strictConfig.BindingInput;
+  targets: strictConfig.TargetViewMap;
+  editor?: strictConfig.EditorDestination;
   portalMount?: Node;
   duplicate?: boolean;
   draft?: boolean;
   tryDisabled?: boolean;
   tryDisabledReason?: string;
-  onChange: (binding: Binding) => WriteResponse;
+  onChange: (
+    binding: strictConfig.BindingInput
+  ) => strictConfigStorage.WriteResponse;
   onRemove?: () => void;
   onConfirm?: () => void;
   onCancel?: () => void;
-  onTry?: (action: BindingAction) => void | Promise<void>;
+  onTry?: (action: strictConfig.BindingAction) => void | Promise<void>;
 }) {
-  const label = () =>
-    actionLabel(props.binding.action, props.targets, props.editor);
-  const setAction = (action: BindingAction) =>
+  const label = () => actionLabel(props.binding.action, props.targets);
+  const setAction = (action: strictConfig.BindingAction) =>
     props.onChange({ ...props.binding, action });
 
   return (
@@ -155,20 +152,18 @@ export function ActionInspector(props: {
             <span class={styles.label}>Editor</span>
             <EditorPicker
               targets={props.targets}
-              targetId={
+              value={
                 props.binding.action.kind === "open-editor"
-                  ? props.binding.action.targetId
-                  : undefined
-              }
-              targetTemplate={
-                props.binding.action.kind === "open-editor"
-                  ? props.binding.action.targetTemplate
+                  ? props.binding.action.destination
                   : undefined
               }
               inheritLabel={editorSettingLabel(props.editor, props.targets)}
               portalMount={props.portalMount}
-              onChange={(target) =>
-                setAction({ kind: "open-editor", ...target })
+              onChange={(destination) =>
+                setAction({
+                  kind: "open-editor",
+                  ...(destination ? { destination } : {}),
+                })
               }
             />
             <div class={styles.summary}>
@@ -222,7 +217,7 @@ export function ActionInspector(props: {
                   ? props.binding.action.template ?? ""
                   : ""
               }
-              placeholder={DEFAULT_PROMPT_TEMPLATE}
+              placeholder={strictConfig.DEFAULT_PROMPT_TEMPLATE}
               onInput={(event) => {
                 const template = event.currentTarget.value.trim() || undefined;
                 if (props.binding.action.kind === "copy-prompt") {

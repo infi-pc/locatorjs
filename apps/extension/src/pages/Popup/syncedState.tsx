@@ -8,25 +8,22 @@ import {
   onCleanup,
 } from 'solid-js';
 import {
-  decodeWriteResult,
   decodeTryActionResult,
-  serializePatch,
-  type LocatorOptions,
-  type LocatorLayer,
-  type Targets,
-  type WriteResult,
+  decodeWriteResult,
   type TryActionResult,
-  type BindingAction,
+  strictConfig,
+  type WriteResult,
 } from '@locator/shared';
 import browser from '../../browser';
 import {
-  USER_OPTIONS_KEY,
-  decodeStoredUserOptions,
-  encodeStoredUserOptions,
-  patchUserOptions,
-  readUserOptions,
-  replaceUserOptions,
+  USER_CONFIG_KEY,
+  clearExtensionConfig,
+  decodeStoredExtensionConfig,
+  layerFromRead,
+  patchExtensionConfig,
+  readExtensionConfig,
 } from '../../storageContract';
+import type { ValidatedSnapshot } from '../Content/snapshotBridge';
 import {
   clearTabReloadRequirement,
   tabRequiresReload,
@@ -34,12 +31,7 @@ import {
 /** The tab's main document. Content scripts also run in every iframe. */
 const TOP_FRAME_ID = 0;
 
-export type Snapshot = {
-  effective: LocatorOptions;
-  provenance: Partial<Record<keyof LocatorOptions, LocatorLayer>>;
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
-  allTargets: Targets;
-};
+export type Snapshot = ValidatedSnapshot;
 
 export type ConnectivityStatus =
   | 'loading'
@@ -48,25 +40,29 @@ export type ConnectivityStatus =
   | 'reload-required';
 
 type SyncedState = {
-  userExtension: Accessor<LocatorOptions>;
+  userExtension: Accessor<strictConfig.SerializedLayerV3>;
+  extensionConfigRead: Accessor<strictConfig.ConfigReadResult>;
   snapshot: Accessor<Snapshot | null>;
   status: Accessor<ConnectivityStatus>;
   diagnostic: Accessor<string | undefined>;
   siteLocalPresent: Accessor<boolean>;
-  setUserExtension: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
-  setSiteLocal: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+  setUserExtension: (
+    patch: strictConfig.LayerPatchInput
+  ) => Promise<WriteResult>;
+  setSiteLocal: (patch: strictConfig.LayerPatchInput) => Promise<WriteResult>;
   clearSiteLocal: () => Promise<WriteResult>;
   clearUserExtension: () => Promise<WriteResult>;
   reloadActiveTab: () => Promise<void>;
-  tryAction: (action: BindingAction) => Promise<TryActionResult>;
+  tryAction: (action: strictConfig.BindingAction) => Promise<TryActionResult>;
 };
 
 const SyncedStateContext = createContext<SyncedState>();
 
 export function SyncedStateProvider(props: { children: JSX.Element }) {
-  const [userExtension, setUserExtensionSignal] = createSignal<LocatorOptions>(
-    {}
-  );
+  const [userExtension, setUserExtensionSignal] =
+    createSignal<strictConfig.SerializedLayerV3>({});
+  const [extensionConfigRead, setExtensionConfigRead] =
+    createSignal<strictConfig.ConfigReadResult>({ kind: 'empty' });
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
   const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
   const [diagnostic, setDiagnostic] = createSignal<string>();
@@ -75,32 +71,24 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   let storageRevision = 0;
   let reloadRequirementClearedForTab: number | undefined;
   const initialRevision = storageRevision;
-  readUserOptions()
-    .then((options) => {
-      if (storageRevision === initialRevision) setUserExtensionSignal(options);
+  readExtensionConfig()
+    .then((read) => {
+      if (storageRevision === initialRevision) {
+        setExtensionConfigRead(read);
+        setUserExtensionSignal(layerFromRead(read));
+      }
     })
     .catch(() => markNoRuntime('Could not read extension settings.'));
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
-    if (USER_OPTIONS_KEY in changes) {
+    if (USER_CONFIG_KEY in changes) {
       storageRevision += 1;
-      const raw = changes[USER_OPTIONS_KEY].newValue;
-      const decoded = decodeStoredUserOptions(raw);
-      setUserExtensionSignal(decoded);
-      if (
-        JSON.stringify(raw) !==
-          JSON.stringify(encodeStoredUserOptions(decoded)) &&
-        (Object.keys(decoded).length > 0 ||
-          (typeof raw === 'object' &&
-            raw !== null &&
-            'options' in raw &&
-            typeof raw.options === 'object' &&
-            raw.options !== null &&
-            Object.keys(raw.options).length === 0))
-      ) {
-        void replaceUserOptions(decoded);
-      }
+      const read = decodeStoredExtensionConfig(
+        changes[USER_CONFIG_KEY].newValue
+      );
+      setExtensionConfigRead(read);
+      setUserExtensionSignal(layerFromRead(read));
     }
   });
 
@@ -128,13 +116,13 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       )) as
         | {
             ok: true;
-            protocolVersion: 2;
+            protocolVersion: 3;
             extensionVersion: string;
             snapshot: Snapshot;
           }
         | {
             ok: false;
-            protocolVersion: 2;
+            protocolVersion: 3;
             extensionVersion: string;
             reason: string;
             siteLocalPresent?: boolean;
@@ -146,7 +134,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         response.extensionVersion !== browser.runtime.getManifest().version
       ) {
         markReloadRequired();
-      } else if (response?.protocolVersion !== 2) {
+      } else if (response?.protocolVersion !== 3) {
         await classifyLegacyTab(currentTab.id);
       } else if (response.ok) {
         if (reloadRequirementClearedForTab !== currentTab.id) {
@@ -222,13 +210,18 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
 
   const state: SyncedState = {
     userExtension,
+    extensionConfigRead,
     snapshot,
     status,
     diagnostic,
     siteLocalPresent,
     setUserExtension: async (patch) => {
-      const result = await patchUserOptions(patch);
-      if (result.ok) setUserExtensionSignal(await readUserOptions());
+      const result = await patchExtensionConfig(patch);
+      if (result.ok) {
+        const read = await readExtensionConfig();
+        setExtensionConfigRead(read);
+        setUserExtensionSignal(layerFromRead(read));
+      }
       return result;
     },
     setSiteLocal: async (patch) => {
@@ -241,15 +234,14 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         if (!currentTab?.id) {
           return { ok: false, reason: 'blocked' };
         }
-        const serialized = serializePatch(patch);
         const response = decodeWriteResult(
           await browser.tabs.sendMessage(
             currentTab.id,
             {
               from: 'popup',
               subject: 'applySiteLocal',
-              patch: serialized.patch,
-              unset: serialized.unset,
+              set: patch.set ?? {},
+              unset: patch.unset ?? [],
             },
             { frameId: TOP_FRAME_ID }
           )
@@ -274,8 +266,11 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       return response ?? { ok: false, reason: 'blocked' };
     },
     clearUserExtension: async () => {
-      const result = await replaceUserOptions({});
-      if (result.ok) setUserExtensionSignal({});
+      const result = await clearExtensionConfig();
+      if (result.ok) {
+        setExtensionConfigRead({ kind: 'empty' });
+        setUserExtensionSignal({});
+      }
       return result;
     },
     reloadActiveTab: async () => {

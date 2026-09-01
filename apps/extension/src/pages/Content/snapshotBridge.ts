@@ -1,28 +1,34 @@
 import {
-  decodeLocatorLayers,
-  decodeLocatorOptions,
-  decodeProvenance,
-  decodeTargets,
   decodeTryActionResult,
   decodeWriteResult,
   postMessageOrigin,
-  type BindingAction,
 } from '@locator/shared';
+import {
+  compileSetup,
+  configProvenance,
+  effectiveOptions,
+  effectiveOptionsView,
+  encodeLayer,
+  parseLayer,
+  resolveConfig,
+  targetRegistryView,
+} from '@locator/shared/strict-config';
+import type * as StrictConfig from '@locator/shared/strict-config';
 import browser from '../../browser';
 
 const REPLY_TIMEOUT_MS = 1000;
-const EXTENSION_PROTOCOL_VERSION = 2 as const;
+const EXTENSION_PROTOCOL_VERSION = 3 as const;
 
 type PopupMessage =
   | { from: 'popup'; subject: 'requestSnapshot' }
   | {
       from: 'popup';
       subject: 'applySiteLocal';
-      patch: Record<string, unknown>;
+      set: Record<string, unknown>;
       unset?: string[];
     }
   | { from: 'popup'; subject: 'clearSiteLocal' }
-  | { from: 'popup'; subject: 'tryAction'; action: BindingAction };
+  | { from: 'popup'; subject: 'tryAction'; action: StrictConfig.BindingAction };
 
 export function mountSnapshotBridge() {
   browser.runtime.onMessage.addListener(
@@ -65,7 +71,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           {
             type: 'LOCATOR_PAGE_SITE_LOCAL_WRITE',
-            patch: msg.patch,
+            set: msg.set,
             unset: msg.unset ?? [],
           },
           'LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT',
@@ -128,28 +134,57 @@ function hookDiagnostic() {
  * The popup must therefore treat everything relayed here as untrusted display
  * data, and never persist it to `browser.storage` unvalidated.
  */
-type ValidatedPayload = Record<string, unknown>;
+export type ValidatedSnapshot = {
+  effective: StrictConfig.EffectiveOptionsView;
+  provenance: Readonly<
+    Record<StrictConfig.ConfigField, StrictConfig.LocatorLayerId>
+  >;
+  layers: Partial<
+    Record<StrictConfig.LocatorLayerId, StrictConfig.SerializedLayerV3>
+  >;
+  allTargets: StrictConfig.TargetViewMap;
+};
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** A `Snapshot`: four plain-object fields, rebuilt rather than passed through. */
-function validateSnapshot(value: unknown): ValidatedPayload | null {
+export function validateSnapshot(value: unknown): ValidatedSnapshot | null {
   if (!isPlainObject(value)) return null;
-  const { effective, provenance, layers, allTargets } = value;
-  const safeEffective = decodeLocatorOptions(effective);
-  const safeProvenance = decodeProvenance(provenance);
-  const safeLayers = decodeLocatorLayers(layers);
-  const safeTargets = decodeTargets(allTargets);
-  return safeEffective && safeProvenance && safeLayers && safeTargets
-    ? {
-        effective: safeEffective,
-        provenance: safeProvenance,
-        layers: safeLayers,
-        allTargets: safeTargets,
-      }
-    : null;
+  if (!isPlainObject(value.layers) || !isPlainObject(value.allTargets)) {
+    return null;
+  }
+  const targetSetup = compileSetup({ targets: value.allTargets });
+  if (!targetSetup.ok) return null;
+
+  const strictLayers: Partial<
+    Record<StrictConfig.LocatorLayerId, StrictConfig.LocatorLayer>
+  > = {};
+  const safeLayers: Partial<
+    Record<StrictConfig.LocatorLayerId, StrictConfig.SerializedLayerV3>
+  > = {};
+  const knownLayers = new Set<StrictConfig.LocatorLayerId>([
+    'default',
+    'team',
+    'user-extension',
+    'user-origin',
+  ]);
+  for (const [rawId, rawLayer] of Object.entries(value.layers)) {
+    if (!knownLayers.has(rawId as StrictConfig.LocatorLayerId)) return null;
+    const parsed = parseLayer(rawLayer);
+    if (!parsed.ok) return null;
+    const id = rawId as StrictConfig.LocatorLayerId;
+    strictLayers[id] = parsed.value;
+    safeLayers[id] = encodeLayer(parsed.value);
+  }
+  const resolved = resolveConfig(strictLayers, targetSetup.value.targets);
+  return {
+    effective: effectiveOptionsView(effectiveOptions(resolved)),
+    provenance: configProvenance(resolved),
+    layers: safeLayers,
+    allTargets: targetRegistryView(targetSetup.value.targets),
+  };
 }
 
 function snapshotHasSiteLocal(value: unknown): boolean {

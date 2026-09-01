@@ -1,28 +1,22 @@
+import { type UserConfigSnapshot, type WriteResult } from '@locator/shared';
 import {
-  asEditorSelection,
-  decodeLocatorOptions,
-  decodeStoredLocatorOptions,
-  normalizeLayer,
-  primaryEditorShortcut,
-  type LocatorOptions,
-  type WriteResult,
-} from '@locator/shared';
+  DEFAULT_LAYER,
+  EMPTY_LAYER,
+  applyLayerPatch,
+  decodeEnvelope,
+  encodeBindings,
+  encodeEnvelope,
+  encodeLayer,
+  parseLayer,
+  parseLayerPatch,
+} from '@locator/shared/strict-config';
+import type * as StrictConfig from '@locator/shared/strict-config';
 import browser from './browser';
 
-export const USER_OPTIONS_KEY = 'userOptions';
-export const USER_OPTIONS_SCHEMA_VERSION = 2;
+export const USER_CONFIG_KEY = 'userConfig';
+export const PREVIEW_V2_USER_OPTIONS_KEY = 'userOptions';
 
-export type StoredUserOptionsV2 = {
-  version: typeof USER_OPTIONS_SCHEMA_VERSION;
-  options: LocatorOptions;
-};
-
-type StoredUserOptionsEnvelope = {
-  version: number;
-  options: unknown;
-};
-
-const LEGACY_COMPATIBILITY_KEYS = ['target', 'controls'] as const;
+const LEGACY_KEYS = ['target', 'controls'] as const;
 const OBSOLETE_KEYS = [
   'allowTracking',
   'enableExperimentalFeatures',
@@ -30,157 +24,193 @@ const OBSOLETE_KEYS = [
   'sharedOnSocialMedia',
 ] as const;
 const STORAGE_KEYS = [
-  USER_OPTIONS_KEY,
-  ...LEGACY_COMPATIBILITY_KEYS,
+  USER_CONFIG_KEY,
+  PREVIEW_V2_USER_OPTIONS_KEY,
+  ...LEGACY_KEYS,
   ...OBSOLETE_KEYS,
 ] as const;
 
-function isEnvelope(value: unknown): value is StoredUserOptionsEnvelope {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    typeof (value as Record<string, unknown>).version === 'number' &&
-    'options' in value
-  );
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function decodeStoredUserOptions(value: unknown): LocatorOptions {
-  const raw = isEnvelope(value) ? value.options : value;
-  return normalizeLayer(decodeStoredLocatorOptions(raw) ?? {});
+export function decodeStoredExtensionConfig(
+  value: unknown
+): StrictConfig.ConfigReadResult {
+  return decodeEnvelope(value);
 }
 
-export function encodeStoredUserOptions(
-  options: LocatorOptions
-): StoredUserOptionsV2 {
-  return { version: USER_OPTIONS_SCHEMA_VERSION, options };
+function legacyDestination(
+  value: unknown
+): StrictConfig.EditorDestination | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  return /^[a-z][a-z0-9+.-]*:/i.test(value)
+    ? { kind: 'template', template: value }
+    : { kind: 'target', id: value };
 }
 
-export function migrateLegacyFields(
-  current: LocatorOptions,
-  legacy: Record<string, unknown>
-): LocatorOptions {
-  const next = { ...current };
-  if (
-    next.editor === undefined &&
-    typeof legacy.target === 'string' &&
-    legacy.target
-  ) {
-    next.editor = asEditorSelection(legacy.target);
-  }
-  if (
-    next.bindings === undefined &&
-    next.mouseModifiers === undefined &&
-    typeof legacy.controls === 'string'
-  ) {
-    next.mouseModifiers = legacy.controls;
-  }
-  return normalizeLayer(next);
-}
-
-function legacyEditor(options: LocatorOptions): string | undefined {
-  return options.editor?.targetId ?? options.editor?.targetTemplate;
-}
-
-function legacyControls(options: LocatorOptions): string | undefined {
-  if (options.bindings === undefined && options.mouseModifiers === undefined) {
-    return undefined;
-  }
-  const shortcut = primaryEditorShortcut(options.bindings);
-  return shortcut?.trigger.kind === 'modifier-click'
-    ? shortcut.trigger.modifiers
-    : options.mouseModifiers;
-}
-
-function equal(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-async function persist(
-  options: LocatorOptions,
-  previous: Record<string, unknown> = {},
-  removeObsolete = false
-): Promise<WriteResult> {
-  const clean = decodeLocatorOptions(options);
-  if (!clean) return { ok: false, reason: 'corrupt' };
-
-  const envelope = encodeStoredUserOptions(normalizeLayer(clean));
-  const target = legacyEditor(clean);
-  const controls = legacyControls(clean);
-  const patch: Record<string, unknown> = {};
-  if (!equal(previous[USER_OPTIONS_KEY], envelope)) {
-    patch[USER_OPTIONS_KEY] = envelope;
-  }
-  if (target !== undefined && previous.target !== target) patch.target = target;
-  if (controls !== undefined && previous.controls !== controls) {
-    patch.controls = controls;
-  }
-  const remove = [
-    ...(removeObsolete ? OBSOLETE_KEYS.filter((key) => key in previous) : []),
-    ...(target === undefined && 'target' in previous
-      ? ['target' as const]
+function legacyBindings(
+  value: unknown
+): readonly StrictConfig.BindingInput[] | undefined {
+  if (typeof value !== 'string') return undefined;
+  const modifiers = value
+    .split('+')
+    .map((modifier) => modifier.trim())
+    .filter(Boolean);
+  const defaultBindings = encodeBindings(DEFAULT_LAYER.bindings!);
+  const candidate: unknown[] = [
+    ...(modifiers.length > 0
+      ? [
+          {
+            trigger: { kind: 'modifier-click' as const, modifiers },
+            action: { kind: 'open-editor' as const },
+          },
+        ]
       : []),
-    ...(controls === undefined && 'controls' in previous
-      ? ['controls' as const]
-      : []),
+    ...defaultBindings.filter(
+      (binding) => binding.trigger.kind === 'hover-toolbar'
+    ),
   ];
+  const parsed = parseLayer({ bindings: candidate });
+  return parsed.ok ? encodeLayer(parsed.value).bindings : undefined;
+}
+
+/** Released v1 keys are salvaged independently through the current parser. */
+export function migrateLegacyExtensionFields(
+  legacy: Record<string, unknown>
+): StrictConfig.LocatorLayer {
+  const editor = legacyDestination(legacy.target);
+  const bindings = legacyBindings(legacy.controls);
+  const input: StrictConfig.LocatorLayerInput = {
+    ...(editor ? { editor } : {}),
+    ...(bindings ? { bindings } : {}),
+  };
+  const parsed = parseLayer(input);
+  if (!parsed.ok) {
+    throw new Error('Individually parsed extension fields failed as a layer.');
+  }
+  return parsed.value;
+}
+
+async function rawStorage(): Promise<Record<string, unknown>> {
+  return (await browser.storage.local.get([...STORAGE_KEYS])) as Record<
+    string,
+    unknown
+  >;
+}
+
+async function migrateLegacyStorage(
+  stored: Record<string, unknown>
+): Promise<StrictConfig.ConfigReadResult> {
+  if (stored[USER_CONFIG_KEY] !== undefined) {
+    const read = decodeStoredExtensionConfig(stored[USER_CONFIG_KEY]);
+    const staleKeys =
+      read.kind === 'ready'
+        ? [
+            ...LEGACY_KEYS.filter((key) => key in stored),
+            ...OBSOLETE_KEYS.filter((key) => key in stored),
+          ]
+        : OBSOLETE_KEYS.filter((key) => key in stored);
+    if (staleKeys.length > 0) {
+      await browser.storage.local.remove(staleKeys);
+    }
+    return read;
+  }
+  if (stored[PREVIEW_V2_USER_OPTIONS_KEY] !== undefined) {
+    return { kind: 'reset-required' };
+  }
+  const hasLegacy = LEGACY_KEYS.some((key) => stored[key] !== undefined);
+  if (!hasLegacy) {
+    const obsolete = OBSOLETE_KEYS.filter((key) => key in stored);
+    if (obsolete.length > 0) await browser.storage.local.remove(obsolete);
+    return { kind: 'empty' };
+  }
+
+  const layer = migrateLegacyExtensionFields(stored);
+  await browser.storage.local.set({
+    [USER_CONFIG_KEY]: encodeEnvelope(layer, 0),
+  });
+  await browser.storage.local.remove([
+    ...LEGACY_KEYS,
+    ...OBSOLETE_KEYS.filter((key) => key in stored),
+  ]);
+  return { kind: 'ready', revision: 0, layer };
+}
+
+let readinessPromise: Promise<StrictConfig.ConfigReadResult> | undefined;
+
+export function ensureExtensionStorageReady(): Promise<StrictConfig.ConfigReadResult> {
+  if (!readinessPromise) {
+    readinessPromise = rawStorage()
+      .then(migrateLegacyStorage)
+      .catch((error) => {
+        readinessPromise = undefined;
+        throw error;
+      });
+  }
+  return readinessPromise;
+}
+
+export async function readExtensionConfig(): Promise<StrictConfig.ConfigReadResult> {
+  await ensureExtensionStorageReady();
+  const stored = await browser.storage.local.get([
+    USER_CONFIG_KEY,
+    PREVIEW_V2_USER_OPTIONS_KEY,
+  ]);
+  if (stored?.[USER_CONFIG_KEY] !== undefined) {
+    return decodeStoredExtensionConfig(stored[USER_CONFIG_KEY]);
+  }
+  return stored?.[PREVIEW_V2_USER_OPTIONS_KEY] !== undefined
+    ? { kind: 'reset-required' }
+    : { kind: 'empty' };
+}
+
+export function layerFromRead(
+  read: StrictConfig.ConfigReadResult
+): StrictConfig.SerializedLayerV3 {
+  return read.kind === 'ready' ? encodeLayer(read.layer) : {};
+}
+
+async function persist(snapshot: UserConfigSnapshot): Promise<WriteResult> {
   try {
-    if (Object.keys(patch).length > 0) await browser.storage.local.set(patch);
-    if (remove.length > 0) await browser.storage.local.remove(remove);
+    await browser.storage.local.set({
+      [USER_CONFIG_KEY]: encodeEnvelope(snapshot.layer, snapshot.revision),
+    });
     return { ok: true };
   } catch {
     return { ok: false, reason: 'blocked' };
   }
 }
 
-let migrationPromise: Promise<LocatorOptions> | undefined;
-
-export function ensureExtensionStorageReady(): Promise<LocatorOptions> {
-  if (!migrationPromise) {
-    migrationPromise = (async () => {
-      const stored = (await browser.storage.local.get([
-        ...STORAGE_KEYS,
-      ])) as Record<string, unknown>;
-      const raw = stored?.[USER_OPTIONS_KEY];
-      const envelope = isEnvelope(raw) ? raw : undefined;
-      const current = decodeStoredUserOptions(raw);
-      if (envelope && envelope.version > USER_OPTIONS_SCHEMA_VERSION) {
-        return current;
-      }
-      const migrated = envelope
-        ? current
-        : migrateLegacyFields(current, stored ?? {});
-      const result = await persist(migrated, stored, true);
-      if (!result.ok) throw new Error('Extension storage migration failed');
-      return migrated;
-    })().catch((error) => {
-      // A transient quota/browser failure must be retriable and must not let a
-      // later mutation overwrite the still-unmigrated v1 fields.
-      migrationPromise = undefined;
-      throw error;
-    });
-  }
-  return migrationPromise;
-}
-
 let pendingMutation: Promise<unknown> = Promise.resolve();
 
-function mutateUserOptions(
-  mutation: (current: LocatorOptions) => LocatorOptions
+function mutate(
+  mutation: (
+    current: UserConfigSnapshot
+  ) =>
+    | { ok: true; snapshot: UserConfigSnapshot }
+    | Exclude<WriteResult, { ok: true }>
 ): Promise<WriteResult> {
   const run = pendingMutation.then(async () => {
     try {
-      await ensureExtensionStorageReady();
-      const stored = await browser.storage.local.get([...STORAGE_KEYS]);
-      const envelope = isEnvelope(stored?.[USER_OPTIONS_KEY])
-        ? stored[USER_OPTIONS_KEY]
-        : undefined;
-      if (envelope && envelope.version > USER_OPTIONS_SCHEMA_VERSION) {
-        return { ok: false as const, reason: 'corrupt' as const };
+      const read = await readExtensionConfig();
+      const current = snapshotFromRead(read);
+      if (!current) {
+        return {
+          ok: false as const,
+          reason:
+            read.kind === 'future-version'
+              ? ('future-version' as const)
+              : read.kind === 'reset-required'
+              ? ('reset-required' as const)
+              : ('corrupt' as const),
+        };
       }
-      const current = decodeStoredUserOptions(stored?.[USER_OPTIONS_KEY]);
-      const candidate = mutation(current);
-      return persist(candidate, stored);
+      const result = mutation(current);
+      if (!result.ok) return result;
+      return result.snapshot === current
+        ? ({ ok: true } as const)
+        : persist(result.snapshot);
     } catch {
       return { ok: false as const, reason: 'blocked' as const };
     }
@@ -189,31 +219,59 @@ function mutateUserOptions(
   return run;
 }
 
-export function patchUserOptions(
-  patch: Partial<LocatorOptions>
+export function patchExtensionConfig(
+  patchInput: StrictConfig.LayerPatchInput
 ): Promise<WriteResult> {
-  return mutateUserOptions((current) => {
-    const next = { ...current, ...patch };
-    for (const key of Object.keys(next) as (keyof LocatorOptions)[]) {
-      if (next[key] === undefined) delete next[key];
-    }
-    return next;
+  const parsed = parseLayerPatch(patchInput);
+  if (!parsed.ok) {
+    return Promise.resolve({
+      ok: false,
+      reason: 'corrupt',
+      errors: parsed.errors,
+    });
+  }
+  return mutate((current) => {
+    const applied = applyLayerPatch(current.layer, parsed.value);
+    return {
+      ok: true,
+      snapshot: applied.changed
+        ? {
+            revision: current.revision + 1,
+            layer: applied.layer,
+          }
+        : current,
+    };
   });
 }
 
-export function replaceUserOptions(
-  options: LocatorOptions
-): Promise<WriteResult> {
-  return mutateUserOptions(() => options);
-}
-
-export async function readUserOptions(): Promise<LocatorOptions> {
-  await ensureExtensionStorageReady();
-  const stored = await browser.storage.local.get([USER_OPTIONS_KEY]);
-  return decodeStoredUserOptions(stored?.[USER_OPTIONS_KEY]);
+export async function clearExtensionConfig(): Promise<WriteResult> {
+  try {
+    await browser.storage.local.remove([
+      USER_CONFIG_KEY,
+      PREVIEW_V2_USER_OPTIONS_KEY,
+      ...LEGACY_KEYS,
+      ...OBSOLETE_KEYS,
+    ]);
+    readinessPromise = Promise.resolve({ kind: 'empty' });
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'blocked' };
+  }
 }
 
 export function __resetStorageContractForTesting() {
-  migrationPromise = undefined;
+  readinessPromise = undefined;
   pendingMutation = Promise.resolve();
+}
+
+function snapshotFromRead(
+  read: StrictConfig.ConfigReadResult
+): UserConfigSnapshot | null {
+  if (read.kind === 'ready') {
+    return Object.freeze({ revision: read.revision, layer: read.layer });
+  }
+  if (read.kind === 'empty') {
+    return Object.freeze({ revision: 0, layer: EMPTY_LAYER });
+  }
+  return null;
 }

@@ -1,5 +1,5 @@
 import { For, JSX } from "solid-js";
-import type { Targets } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { css, cx } from "@locator/styled-system/css";
 import { editorIconFor } from "./editorIcons";
 
@@ -36,17 +36,19 @@ const styles = {
 };
 
 export function EditorCardPicker(props: {
-  targets: Targets;
-  targetId?: string;
-  targetTemplate?: string;
+  targets: strictConfig.TargetViewMap;
+  value?: strictConfig.EditorDestination;
   onSelect: (value: string) => void;
 }) {
   const selected = () =>
-    props.targetTemplate || (props.targetId && !props.targets[props.targetId])
+    props.value?.kind === "template" ||
+    (props.value?.kind === "target" && !props.targets[props.value.id])
       ? CUSTOM_VALUE
-      : props.targetId;
+      : props.value?.kind === "target"
+      ? props.value.id
+      : undefined;
 
-  const entries = (): [string, Targets[string]][] =>
+  const entries = (): [string, strictConfig.TargetView][] =>
     Object.entries(props.targets);
 
   return (

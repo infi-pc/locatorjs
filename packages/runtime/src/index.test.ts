@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
+import { strictConfig } from "@locator/shared";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createRoot } from "solid-js";
-import { needsEditorSetup, resolveEditorTarget } from "@locator/shared";
+import {
+  getTeamConfig,
+  __resetTeamLayerForTesting,
+} from "./functions/teamLayerStore";
 import { setup } from "./index";
-import { initOptions } from "./functions/optionsStore";
-import { __resetTeamLayerForTesting } from "./functions/teamLayerStore";
+import { initRuntime } from "./initRuntime";
+import { installShadowRootTracking } from "./functions/shadowRoots";
 
 vi.mock("./initRuntime", () => ({ initRuntime: vi.fn() }));
+vi.mock("./functions/shadowRoots", () => ({
+  installShadowRootTracking: vi.fn(),
+}));
 
 const github = {
   label: "GitHub",
@@ -17,23 +23,19 @@ const githubDev = {
   url: "https://github.dev/acme/app/blob/main${filePath}#L${line}",
 };
 
-const disposers: (() => void)[] = [];
-
-function store() {
-  return createRoot((dispose) => {
-    disposers.push(dispose);
-    return initOptions();
-  });
-}
-
-/** How every navigation path decides whether it can open a link. */
-function editorTarget() {
-  const options = store();
-  return resolveEditorTarget(options.effective().editor, options.allTargets());
+function effective() {
+  const team = getTeamConfig();
+  return strictConfig.effectiveOptions(
+    strictConfig.resolveConfig(
+      { default: strictConfig.DEFAULT_LAYER, team: team.layer },
+      team.targets
+    )
+  );
 }
 
 beforeEach(() => {
-  while (disposers.length) disposers.pop()!();
+  vi.useFakeTimers();
+  vi.clearAllMocks();
   localStorage.clear();
   __resetTeamLayerForTesting();
 });
@@ -42,58 +44,74 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("setup({ targets })", () => {
-  test("an app's own targets are a choice of editor, not an unset one", () => {
-    // Regression: `DEFAULT_LAYER` pins `editor.targetId: "vscode"`, which such a
-    // map does not contain. Every link then resolved to `unknown-id` and the
-    // runtime opened the "pick your editor" wizard instead of navigating --
-    // on locatorjs.com's own production build, every single time.
-    setup({ adapter: "jsx", targets: { github, githubDev } });
-
-    const target = editorTarget();
-    expect(needsEditorSetup(target)).toBe(false);
-    expect(target).toEqual({ kind: "targetId", id: "github", url: github.url });
-  });
-
-  test("an editor passed alongside targets wins over the first entry", () => {
-    setup({
-      targets: { github, githubDev },
-      editor: { targetId: "githubDev" },
+describe("setup", () => {
+  test("selects the first app target when none is specified", () => {
+    expect(setup({ adapter: "jsx", targets: { github, githubDev } })).toEqual({
+      ok: true,
     });
-
-    expect(editorTarget()).toEqual({
-      kind: "targetId",
-      id: "githubDev",
-      url: githubDev.url,
+    expect(effective().editor).toMatchObject({
+      kind: "selected",
+      label: "GitHub",
+      destination: { kind: "target", id: "github" },
     });
   });
 
-  test("a string target shorthand is a choice too", () => {
-    setup({ targets: { github: github.url } });
-
-    expect(editorTarget()).toEqual({
-      kind: "targetId",
-      id: "github",
-      url: github.url,
-    });
-  });
-
-  test("setup without targets leaves the built-in default alone", () => {
-    setup({ adapter: "jsx" });
-
-    const target = editorTarget();
-    expect(needsEditorSetup(target)).toBe(false);
-    expect(target.kind === "targetId" && target.id).toBe("vscode");
-  });
-
-  test("a user's own choice still overrides the app's", () => {
-    setup({ targets: { github, githubDev } });
-    const options = store();
-
-    options.setUserOrigin({ editor: { targetId: "githubDev" } });
-
+  test("honors an explicit editor in the same target registry", () => {
     expect(
-      resolveEditorTarget(options.effective().editor, options.allTargets())
-    ).toEqual({ kind: "targetId", id: "githubDev", url: githubDev.url });
+      setup({
+        targets: { github, githubDev },
+        editor: { kind: "target", id: "githubDev" },
+      })
+    ).toEqual({ ok: true });
+    expect(effective().editor).toMatchObject({
+      kind: "selected",
+      destination: { kind: "target", id: "githubDev" },
+    });
+  });
+
+  test("accepts target URL shorthand", () => {
+    expect(setup({ targets: { github: github.url } })).toEqual({ ok: true });
+    expect(effective().editor).toMatchObject({
+      kind: "selected",
+      destination: { kind: "target", id: "github" },
+    });
+  });
+
+  test("exposes the built-in editor as a suggestion, not an implicit choice", () => {
+    expect(setup({ adapter: "jsx" })).toEqual({ ok: true });
+    expect(effective().editor).toMatchObject({
+      kind: "needs-selection",
+      reason: "default-only",
+      suggestion: { kind: "target", id: "vscode" },
+    });
+  });
+
+  test("replaces the team configuration atomically", () => {
+    expect(setup({ projectPath: "/first", debugMode: true })).toEqual({
+      ok: true,
+    });
+    expect(setup({ adapter: "jsx" })).toEqual({ ok: true });
+
+    const snapshot = getTeamConfig();
+    expect(strictConfig.encodeLayer(snapshot.layer)).toEqual({
+      adapter: "jsx",
+    });
+  });
+
+  test("invalid input leaves the prior snapshot and effects untouched", () => {
+    expect(setup({ projectPath: "/valid" })).toEqual({ ok: true });
+    vi.runOnlyPendingTimers();
+    vi.clearAllMocks();
+    const before = getTeamConfig();
+
+    const result = setup({
+      editor: { kind: "template", template: "javascript:alert(1)" },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(getTeamConfig()).toBe(before);
+    vi.runOnlyPendingTimers();
+    expect(initRuntime).not.toHaveBeenCalled();
+    expect(installShadowRootTracking).not.toHaveBeenCalled();
   });
 });

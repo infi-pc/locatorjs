@@ -1,40 +1,45 @@
+import { strictConfig } from "@locator/shared";
 import {
-  normalizeLayer,
-  resolve,
-  type LocatorLayer,
-  type LocatorOptions,
-} from "@locator/shared";
+  type LayerViews,
+  resolveLayerViews,
+  strictLayersFromViews,
+} from "./configModel";
 
-export type LayerFieldState<K extends keyof LocatorOptions> = {
-  /** The layer being edited sets this field itself, so it can be reverted. */
+export type LayerFieldState<K extends strictConfig.ConfigField> = {
   setHere: boolean;
-  /** Which layer the effective value comes from. */
-  source: LocatorLayer | undefined;
-  value: LocatorOptions[K];
+  source: strictConfig.LocatorLayerId;
+  value: strictConfig.SerializedLayerV3[K] | undefined;
 };
 
-function normalizedLayers(
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>
-) {
-  return Object.fromEntries(
-    Object.entries(layers).map(([layer, options]) => [
-      layer,
-      normalizeLayer(options),
-    ])
-  ) as Partial<Record<LocatorLayer, LocatorOptions>>;
-}
-
-export function layerFieldState<K extends keyof LocatorOptions>(
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>,
-  layer: LocatorLayer,
-  fieldKey: K
+export function layerFieldState<K extends strictConfig.ConfigField>(
+  layers: LayerViews,
+  layer: strictConfig.LocatorLayerId,
+  fieldKey: K,
+  targets: strictConfig.TargetViewMap
 ): LayerFieldState<K> {
-  const normalized = normalizedLayers(layers);
-  const resolved = resolve(normalized);
-  const layerValues = normalized[layer] ?? {};
+  const strictLayers = strictLayersFromViews(layers);
+  const resolved = resolveLayerViews(layers, targets);
+  const layerValues = strictLayers[layer] ?? strictConfig.EMPTY_LAYER;
+  const effective = strictConfig.effectiveOptionsView(
+    strictConfig.effectiveOptions(resolved)
+  );
+  const serializedEffective: strictConfig.SerializedLayerV3 = {
+    ...(effective.adapter ? { adapter: effective.adapter } : {}),
+    ...(effective.projectPath ? { projectPath: effective.projectPath } : {}),
+    ...(effective.replacePath ? { replacePath: effective.replacePath } : {}),
+    ...(effective.editor.kind === "selected"
+      ? { editor: effective.editor.destination }
+      : {}),
+    bindings: effective.bindings,
+    hrefTarget: effective.hrefTarget,
+    ...(effective.tmuxSession ? { tmuxSession: effective.tmuxSession } : {}),
+    disabled: effective.disabled,
+    debugMode: effective.debugMode,
+    showIntro: effective.showIntro,
+  };
   return {
     setHere: layerValues[fieldKey] !== undefined,
-    source: resolved.provenance[fieldKey],
-    value: resolved.effective[fieldKey],
+    source: resolved.fields[fieldKey].source,
+    value: serializedEffective[fieldKey],
   };
 }

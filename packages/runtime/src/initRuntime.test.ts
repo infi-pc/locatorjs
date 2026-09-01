@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   disabled: false,
   initRender: vi.fn(),
-  mountRuntimePopupBridge: vi.fn(),
+  mountRuntimePopupBridge: vi.fn(() => () => undefined),
   installShadowRootTracking: vi.fn(),
 }));
 
@@ -12,13 +12,18 @@ vi.mock("./functions/optionsStore", () => ({
   initOptions: () => ({
     effective: () => ({
       disabled: mocks.disabled,
-      bindings: [
-        {
-          trigger: { kind: "modifier-click", modifiers: "alt" },
-          action: { kind: "open-editor" },
+      bindings: {
+        shortcuts: {
+          1: {
+            kind: "open-editor",
+            destination: { kind: "inherit" },
+          },
         },
-      ],
+        toolbar: [],
+      },
     }),
+    subscribe: () => () => undefined,
+    dispose: () => undefined,
   }),
 }));
 vi.mock("./functions/popupBridge", () => ({

@@ -1,5 +1,4 @@
-import { createEffect, createRoot } from "solid-js";
-import type { BindingAction } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { fontFamily, MAX_ZINDEX } from "./consts";
 import { effectiveBindings, matchesActivation } from "./functions/bindings";
 import { listenToFrameModifiers } from "./functions/crossFrameModifiers";
@@ -30,24 +29,21 @@ export function initRuntime() {
 
   // The settings bridge stays in the startup shell so the popup can inspect,
   // edit and enable a page without paying for the visual runtime.
-  let disposeOptions: () => void = () => undefined;
-  const options = createRoot((dispose) => {
-    disposeOptions = dispose;
-    const store = initOptions();
-    mountRuntimePopupBridge(store);
-    createEffect(() => {
-      if (!document.head) return;
-      if (store.effective().disabled) {
-        document.head.dataset.locatorDisabled = "disabled";
-      } else {
-        delete document.head.dataset.locatorDisabled;
-      }
-    });
-    return store;
-  });
+  const options = initOptions();
+  const unmountPopupBridge = mountRuntimePopupBridge(options);
+  const syncDisabledMarker = () => {
+    if (!document.head) return;
+    if (options.effective().disabled) {
+      document.head.dataset.locatorDisabled = "disabled";
+    } else {
+      delete document.head.dataset.locatorDisabled;
+    }
+  };
+  const stopSyncingDisabledMarker = options.subscribe(syncDisabledMarker);
+  syncDisabledMarker();
 
   let loading = false;
-  let pendingTryAction: BindingAction | undefined;
+  let pendingTryAction: strictConfig.ConfiguredAction | undefined;
   let initialActivation: { held: boolean; target?: HTMLElement } | undefined;
 
   const bindings = () => effectiveBindings(options.effective());
@@ -88,7 +84,8 @@ export function initRuntime() {
     });
   };
   const onTryAction = (event: Event) => {
-    pendingTryAction = (event as CustomEvent<BindingAction>).detail;
+    pendingTryAction = (event as CustomEvent<strictConfig.ConfiguredAction>)
+      .detail;
     activate();
   };
   let stopFrameModifiers: () => void = () => undefined;
@@ -114,7 +111,9 @@ export function initRuntime() {
   cleanupShell = () => {
     removeGestureListeners();
     window.removeEventListener("locatorjs:try-action", onTryAction);
-    disposeOptions();
+    stopSyncingDisabledMarker();
+    unmountPopupBridge();
+    options.dispose();
     document.getElementById("locatorjs-wrapper")?.remove();
     document.getElementById("locatorjs-global-style")?.remove();
   };

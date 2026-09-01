@@ -22,7 +22,7 @@ declare const chrome: {
       get(
         keys: string[],
         callback: (result: {
-          userOptions?: { version?: number; options?: { debugMode?: boolean } };
+          userConfig?: { version?: number; layer?: { debugMode?: boolean } };
         }) => void
       ): void;
     };
@@ -152,8 +152,8 @@ test("popup renders scopes and persists an extension setting", async ({
       page.evaluate(
         () =>
           new Promise<boolean | undefined>((resolve) => {
-            chrome.storage.local.get(["userOptions"], (result) => {
-              resolve(result.userOptions?.options?.debugMode);
+            chrome.storage.local.get(["userConfig"], (result) => {
+              resolve(result.userConfig?.layer?.debugMode);
             });
           })
       )

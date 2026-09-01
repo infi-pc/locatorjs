@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { strictConfig } from '@locator/shared';
 
 const mocks = vi.hoisted(() => ({
   addListener: vi.fn(),
@@ -15,13 +16,22 @@ vi.mock('../../browser', () => ({
   },
 }));
 
-import { mountSnapshotBridge } from './snapshotBridge';
+import { mountSnapshotBridge, validateSnapshot } from './snapshotBridge';
 
 type MessageListener = (
   message: unknown,
   sender: unknown,
   sendResponse: (response: unknown) => void
 ) => boolean;
+
+const pageSnapshot = {
+  effective: { forged: true },
+  provenance: { forged: true },
+  layers: { default: strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER) },
+  allTargets: strictConfig.targetRegistryView(strictConfig.BUILT_IN_TARGETS),
+};
+const validatedSnapshot = validateSnapshot(pageSnapshot);
+if (!validatedSnapshot) throw new Error('Invalid snapshot fixture.');
 
 describe('mountSnapshotBridge', () => {
   let listener: MessageListener;
@@ -50,40 +60,16 @@ describe('mountSnapshotBridge', () => {
         data: {
           type: 'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
           requestId: request.requestId,
-          snapshot: {
-            effective: {
-              bindings: [
-                {
-                  trigger: { kind: 'modifier-click', modifiers: 'alt' },
-                  action: { kind: 'open-editor', targetId: 'vscode' },
-                },
-              ],
-            },
-            provenance: {},
-            layers: {},
-            allTargets: {},
-          },
+          snapshot: pageSnapshot,
         },
       })
     );
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
-      protocolVersion: 2,
+      protocolVersion: 3,
       extensionVersion: '2.0.0',
-      snapshot: {
-        effective: {
-          bindings: [
-            {
-              trigger: { kind: 'modifier-click', modifiers: 'alt' },
-              action: { kind: 'open-editor', targetId: 'vscode' },
-            },
-          ],
-        },
-        provenance: {},
-        layers: {},
-        allTargets: {},
-      },
+      snapshot: validatedSnapshot,
     });
   });
 
@@ -95,7 +81,7 @@ describe('mountSnapshotBridge', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
-      protocolVersion: 2,
+      protocolVersion: 3,
       extensionVersion: '2.0.0',
       reason: 'no-runtime',
       siteLocalPresent: false,
@@ -122,7 +108,7 @@ describe('mountSnapshotBridge', () => {
     vi.advanceTimersByTime(1000);
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
-      protocolVersion: 2,
+      protocolVersion: 3,
       extensionVersion: '2.0.0',
       reason: 'no-runtime',
       siteLocalPresent: false,
@@ -135,7 +121,7 @@ describe('mountSnapshotBridge', () => {
       {
         from: 'popup',
         subject: 'applySiteLocal',
-        patch: { debugMode: true },
+        set: { debugMode: true },
       },
       {},
       vi.fn()
@@ -144,7 +130,7 @@ describe('mountSnapshotBridge', () => {
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'LOCATOR_PAGE_SITE_LOCAL_WRITE',
-        patch: { debugMode: true },
+        set: { debugMode: true },
         unset: [],
       }),
       window.location.origin
@@ -253,7 +239,7 @@ describe('mountSnapshotBridge payload validation', () => {
     vi.advanceTimersByTime(1000);
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
-      protocolVersion: 2,
+      protocolVersion: 3,
       extensionVersion: '2.0.0',
       reason: 'snapshot-rejected',
       siteLocalPresent: false,

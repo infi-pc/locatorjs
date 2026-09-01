@@ -1,3 +1,4 @@
+import { strictConfig } from '@locator/shared';
 import { cleanup, render } from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -39,21 +40,38 @@ import {
   useSyncedState,
   type Snapshot,
 } from './syncedState';
-import { __resetStorageContractForTesting } from '../../storageContract';
+import {
+  __resetStorageContractForTesting,
+  USER_CONFIG_KEY,
+} from '../../storageContract';
 
 let syncedState: ReturnType<typeof useSyncedState>;
+let stored: Record<string, unknown>;
 
 function Harness() {
   syncedState = useSyncedState();
   return <div />;
 }
 
-const snapshot: Snapshot = {
-  effective: {},
-  provenance: {},
-  layers: {},
-  allTargets: {},
-};
+function validSnapshot(): Snapshot {
+  const layers = {
+    default: strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER),
+  };
+  const resolved = strictConfig.resolveConfig(
+    { default: strictConfig.DEFAULT_LAYER },
+    strictConfig.BUILT_IN_TARGETS
+  );
+  return {
+    effective: strictConfig.effectiveOptionsView(
+      strictConfig.effectiveOptions(resolved)
+    ),
+    provenance: strictConfig.configProvenance(resolved),
+    layers,
+    allTargets: strictConfig.targetRegistryView(strictConfig.BUILT_IN_TARGETS),
+  };
+}
+
+const snapshot = validSnapshot();
 
 async function flushPromises() {
   for (let index = 0; index < 8; index += 1) await Promise.resolve();
@@ -64,13 +82,24 @@ describe('SyncedStateProvider', () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     __resetStorageContractForTesting();
-    mocks.storageGet.mockResolvedValue({ userOptions: {} });
-    mocks.storageSet.mockResolvedValue(undefined);
-    mocks.storageRemove.mockResolvedValue(undefined);
+    stored = {};
+    mocks.storageGet.mockImplementation(async (keys: string[]) => {
+      const result: Record<string, unknown> = {};
+      for (const key of keys) if (key in stored) result[key] = stored[key];
+      return result;
+    });
+    mocks.storageSet.mockImplementation(
+      async (patch: Record<string, unknown>) => {
+        Object.assign(stored, patch);
+      }
+    );
+    mocks.storageRemove.mockImplementation(async (keys: string[]) => {
+      for (const key of keys) delete stored[key];
+    });
     mocks.tabsQuery.mockResolvedValue([{ id: 42 }]);
     mocks.tabsSendMessage.mockResolvedValue({
       ok: true,
-      protocolVersion: 2,
+      protocolVersion: 3,
       extensionVersion: '2.0.0',
       snapshot,
     });
@@ -87,13 +116,13 @@ describe('SyncedStateProvider', () => {
     vi.useRealTimers();
   });
 
-  test('serializes undefined keys when writing site-local options', async () => {
+  test('sends explicit site-local sets and unsets', async () => {
     mocks.tabsSendMessage.mockClear();
     mocks.tabsSendMessage.mockResolvedValue({ ok: true });
 
     await syncedState.setSiteLocal({
-      projectPath: undefined,
-      tmuxSession: 'work',
+      set: { tmuxSession: 'work' },
+      unset: ['projectPath'],
     });
 
     expect(mocks.tabsSendMessage).toHaveBeenCalledWith(
@@ -101,10 +130,9 @@ describe('SyncedStateProvider', () => {
       {
         from: 'popup',
         subject: 'applySiteLocal',
-        patch: { tmuxSession: 'work' },
+        set: { tmuxSession: 'work' },
         unset: ['projectPath'],
       },
-      // The content script runs in every frame; only the top one is addressed.
       { frameId: 0 }
     );
   });
@@ -114,37 +142,56 @@ describe('SyncedStateProvider', () => {
     mocks.tabsSendMessage.mockResolvedValue({ ok: false, reason: 'hunter2' });
 
     await expect(
-      syncedState.setSiteLocal({ projectPath: '/repo' })
+      syncedState.setSiteLocal({ set: { projectPath: '/repo' } })
     ).resolves.toEqual({ ok: false, reason: 'unknown' });
   });
 
-  test('strips undefined values before writing extension storage', async () => {
-    await syncedState.setUserExtension({
-      debugMode: true,
-      projectPath: undefined,
-    });
+  test('writes one versioned extension envelope', async () => {
+    await expect(
+      syncedState.setUserExtension({ set: { debugMode: true } })
+    ).resolves.toEqual({ ok: true });
 
-    expect(mocks.storageSet).toHaveBeenCalledWith({
-      userOptions: { version: 2, options: { debugMode: true } },
+    expect(stored[USER_CONFIG_KEY]).toEqual({
+      version: 3,
+      revision: 1,
+      layer: { debugMode: true },
     });
+    expect(syncedState.userExtension()).toEqual({ debugMode: true });
   });
 
-  test('clears extension defaults without touching site-local state', async () => {
+  test('clears extension defaults independently from site-local state', async () => {
+    await syncedState.setUserExtension({ set: { projectPath: '/repo' } });
     const result = await syncedState.clearUserExtension();
+
     expect(result).toEqual({ ok: true });
-    expect(mocks.storageSet).toHaveBeenCalledWith({
-      userOptions: { version: 2, options: {} },
-    });
+    expect(stored).not.toHaveProperty(USER_CONFIG_KEY);
     expect(syncedState.userExtension()).toEqual({});
+  });
+
+  test('reacts only to the v3 storage key', async () => {
+    const listener = mocks.storageChangedAddListener.mock.calls[0][0];
+    listener(
+      {
+        [USER_CONFIG_KEY]: {
+          newValue: {
+            version: 3,
+            revision: 7,
+            layer: { projectPath: '/changed' },
+          },
+        },
+      },
+      'local'
+    );
+    await flushPromises();
+
+    expect(syncedState.userExtension()).toEqual({ projectPath: '/changed' });
   });
 
   test('sends the selected action to the active page for Try mode', async () => {
     mocks.tabsSendMessage.mockClear();
     mocks.tabsSendMessage.mockResolvedValue({ ok: true });
     await expect(syncedState.tryAction({ kind: 'copy-path' })).resolves.toEqual(
-      {
-        ok: true,
-      }
+      { ok: true }
     );
     expect(mocks.tabsSendMessage).toHaveBeenCalledWith(
       42,
@@ -155,32 +202,6 @@ describe('SyncedStateProvider', () => {
       },
       { frameId: 0 }
     );
-  });
-
-  test('migrates legacy extension modifiers in storage changes', async () => {
-    const listener = mocks.storageChangedAddListener.mock.calls[0][0];
-    listener(
-      {
-        userOptions: {
-          newValue: { mouseModifiers: 'meta' },
-        },
-      },
-      'local'
-    );
-    await flushPromises();
-
-    expect(syncedState.userExtension().mouseModifiers).toBeUndefined();
-    expect(syncedState.userExtension().bindings?.[0]).toEqual({
-      trigger: { kind: 'modifier-click', modifiers: 'meta' },
-      action: { kind: 'open-editor' },
-    });
-    expect(mocks.storageSet).toHaveBeenCalledWith({
-      userOptions: {
-        version: 2,
-        options: expect.objectContaining({ bindings: expect.any(Array) }),
-      },
-      controls: 'meta',
-    });
   });
 
   test('polling marks the popup disconnected when sendMessage rejects', async () => {
@@ -195,11 +216,10 @@ describe('SyncedStateProvider', () => {
   });
 
   test('requires a reload when a failed tab predates the extension update', async () => {
-    mocks.storageGet.mockResolvedValue({
-      userOptions: {},
+    stored = {
       locatorExtensionUpdateVersion: '2.0.0',
       'locatorExtensionStaleTab:42': '2.0.0',
-    });
+    };
     mocks.tabsSendMessage.mockRejectedValue(
       new Error('orphaned content script')
     );
@@ -210,7 +230,7 @@ describe('SyncedStateProvider', () => {
     expect(syncedState.status()).toBe('reload-required');
   });
 
-  test('requires a reload when a responding content script has another version', async () => {
+  test('requires a reload for another bridge protocol or extension version', async () => {
     mocks.tabsSendMessage.mockResolvedValue({
       ok: true,
       protocolVersion: 2,
@@ -227,7 +247,7 @@ describe('SyncedStateProvider', () => {
   test('keeps site reset recoverable when its snapshot is rejected', async () => {
     mocks.tabsSendMessage.mockResolvedValue({
       ok: false,
-      protocolVersion: 2,
+      protocolVersion: 3,
       extensionVersion: '2.0.0',
       reason: 'snapshot-rejected',
       siteLocalPresent: true,

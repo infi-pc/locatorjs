@@ -1,17 +1,13 @@
-import {
-  LAYER_ORDER,
-  hasEditorOverride,
-  normalizeLayer,
-  type Binding,
-  type LocatorLayer,
-  type LocatorOptions,
-  type Targets,
-  type WriteResult,
-  type WriteResponse,
-} from "@locator/shared";
+import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { RotateCcw } from "lucide-solid";
-import { For, Show, createSignal, createUniqueId } from "solid-js";
+import {
+  For,
+  Show,
+  createEffect,
+  createSignal,
+  createUniqueId,
+} from "solid-js";
 import { Field } from "./Field";
 import { FoldableSection } from "./FoldableSection";
 import { IconButton } from "./IconButton";
@@ -20,8 +16,21 @@ import { LAYER_LABELS, ProvenanceBadge } from "./ProvenanceBadge";
 import { Switch } from "./Switch";
 import { TextInput } from "./TextInput";
 import { Tooltip } from "./Tooltip";
+import { LAYER_ORDER, type LayerViews } from "./configModel";
 
-type FieldKey = keyof LocatorOptions;
+type FieldKey = strictConfig.ConfigField;
+type LocatorLayer = strictConfig.LocatorLayerId;
+type WriteResult = strictConfigStorage.WriteResult;
+type WriteResponse = strictConfigStorage.WriteResponse;
+
+function setField<K extends strictConfig.ConfigField>(
+  field: K,
+  value: NonNullable<strictConfig.LocatorLayerInput[K]>
+): strictConfig.LayerPatchInput {
+  return {
+    set: { [field]: value } as Partial<strictConfig.LocatorLayerInput>,
+  };
+}
 
 const FIELD_LABELS: Partial<Record<FieldKey, string>> = {
   projectPath: "Project path",
@@ -32,7 +41,7 @@ const FIELD_LABELS: Partial<Record<FieldKey, string>> = {
   tmuxSession: "Tmux session",
   debugMode: "Debug mode",
   showIntro: "Show intro again",
-  adapterId: "Adapter",
+  adapter: "Adapter",
   disabled: "Disabled",
 };
 
@@ -91,16 +100,19 @@ export function AdvancedSettings(props: {
   scope: {
     layer: LocatorLayer;
     label: string;
-    write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+    write: (patch: strictConfig.LayerPatchInput) => Promise<WriteResult>;
   };
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
-  targets: Targets;
+  layers: LayerViews;
+  targets: strictConfig.TargetViewMap;
   portalMount?: Node;
 }) {
   const [errors, setErrors] = createSignal<Partial<Record<FieldKey, string>>>(
     {}
   );
-  const write = async (fieldKey: FieldKey, patch: Partial<LocatorOptions>) => {
+  const write = async (
+    fieldKey: FieldKey,
+    patch: strictConfig.LayerPatchInput
+  ) => {
     setErrors((current) => ({ ...current, [fieldKey]: undefined }));
     const result = await props.scope.write(patch);
     if (!result.ok) {
@@ -125,6 +137,7 @@ export function AdvancedSettings(props: {
           fieldKey="projectPath"
           placeholder="/Users/me/project/"
           layers={props.layers}
+          targets={props.targets}
           scope={props.scope}
           error={errors().projectPath}
           write={(patch) => write("projectPath", patch)}
@@ -132,6 +145,7 @@ export function AdvancedSettings(props: {
         />
         <ReplacePathField
           layers={props.layers}
+          targets={props.targets}
           scope={props.scope}
           error={errors().replacePath}
           write={(patch) => write("replacePath", patch)}
@@ -141,6 +155,7 @@ export function AdvancedSettings(props: {
           label="Open links in a new tab"
           fieldKey="hrefTarget"
           layers={props.layers}
+          targets={props.targets}
           scope={props.scope}
           toChecked={(value) => value === "_blank"}
           toValue={(checked) => (checked ? "_blank" : "_self")}
@@ -153,6 +168,7 @@ export function AdvancedSettings(props: {
           fieldKey="tmuxSession"
           placeholder="work"
           layers={props.layers}
+          targets={props.targets}
           scope={props.scope}
           error={errors().tmuxSession}
           write={(patch) => write("tmuxSession", patch)}
@@ -164,6 +180,7 @@ export function AdvancedSettings(props: {
           label="Debug mode"
           fieldKey="debugMode"
           layers={props.layers}
+          targets={props.targets}
           scope={props.scope}
           error={errors().debugMode}
           write={(patch) => write("debugMode", patch)}
@@ -173,6 +190,7 @@ export function AdvancedSettings(props: {
           label="Show intro again"
           fieldKey="showIntro"
           layers={props.layers}
+          targets={props.targets}
           scope={props.scope}
           toChecked={(value) => value !== false}
           error={errors().showIntro}
@@ -187,9 +205,10 @@ export function AdvancedSettings(props: {
 type CommonProps = {
   scope: {
     layer: LocatorLayer;
-    write: (patch: Partial<LocatorOptions>) => Promise<WriteResult>;
+    write: (patch: strictConfig.LayerPatchInput) => Promise<WriteResult>;
   };
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
+  layers: LayerViews;
+  targets: strictConfig.TargetViewMap;
   portalMount?: Node;
 };
 
@@ -197,7 +216,12 @@ function FieldMeta(
   props: CommonProps & { fieldKey: FieldKey; onReset: () => void }
 ) {
   const state = () =>
-    layerFieldState(props.layers, props.scope.layer, props.fieldKey);
+    layerFieldState(
+      props.layers,
+      props.scope.layer,
+      props.fieldKey,
+      props.targets
+    );
   const label = () =>
     `Revert ${FIELD_LABELS[props.fieldKey] ?? String(props.fieldKey)}`;
   return (
@@ -226,12 +250,17 @@ function TextSetting(
     fieldKey: "projectPath" | "tmuxSession";
     placeholder?: string;
     error?: string;
-    write: (patch: Partial<LocatorOptions>) => WriteResponse;
+    write: (patch: strictConfig.LayerPatchInput) => WriteResponse;
   }
 ) {
   const controlId = `locator-text-${createUniqueId()}`;
   const state = () =>
-    layerFieldState(props.layers, props.scope.layer, props.fieldKey);
+    layerFieldState(
+      props.layers,
+      props.scope.layer,
+      props.fieldKey,
+      props.targets
+    );
   return (
     <Field
       label={props.label}
@@ -239,7 +268,7 @@ function TextSetting(
       meta={
         <FieldMeta
           {...props}
-          onReset={() => props.write({ [props.fieldKey]: undefined })}
+          onReset={() => props.write({ unset: [props.fieldKey] })}
         />
       }
       error={props.error}
@@ -248,11 +277,12 @@ function TextSetting(
         id={controlId}
         value={(state().value as string | undefined) ?? ""}
         placeholder={props.placeholder}
-        onChange={(event) =>
-          props.write({
-            [props.fieldKey]: event.currentTarget.value.trim() || undefined,
-          })
-        }
+        onChange={(event) => {
+          const value = event.currentTarget.value.trim();
+          return value
+            ? props.write(setField(props.fieldKey, value))
+            : props.write({ unset: [props.fieldKey] });
+        }}
       />
     </Field>
   );
@@ -261,16 +291,35 @@ function TextSetting(
 function ReplacePathField(
   props: CommonProps & {
     error?: string;
-    write: (patch: Partial<LocatorOptions>) => WriteResponse;
+    write: (patch: strictConfig.LayerPatchInput) => WriteResponse;
   }
 ) {
   const state = () =>
-    layerFieldState(props.layers, props.scope.layer, "replacePath");
-  const value = () =>
-    (state().value as LocatorOptions["replacePath"]) ?? { from: "", to: "" };
+    layerFieldState(
+      props.layers,
+      props.scope.layer,
+      "replacePath",
+      props.targets
+    );
+  const persistedValue = () => state().value ?? { from: "", to: "" };
+  const [draft, setDraft] = createSignal(persistedValue());
+  let persistedKey = JSON.stringify(persistedValue());
+  createEffect(() => {
+    const next = persistedValue();
+    const nextKey = JSON.stringify(next);
+    if (nextKey === persistedKey) return;
+    persistedKey = nextKey;
+    setDraft(next);
+  });
   const commit = (key: "from" | "to", next: string) => {
-    const merged = { ...value(), [key]: next.trim() };
-    props.write({ replacePath: merged.from || merged.to ? merged : undefined });
+    const merged = { ...draft(), [key]: next.trim() };
+    setDraft(merged);
+    if (!validRegex(merged.from)) return;
+    props.write(
+      merged.from || merged.to
+        ? { set: { replacePath: merged } }
+        : { unset: ["replacePath"] }
+    );
   };
   return (
     <Field
@@ -279,12 +328,12 @@ function ReplacePathField(
         <FieldMeta
           {...props}
           fieldKey="replacePath"
-          onReset={() => props.write({ replacePath: undefined })}
+          onReset={() => props.write({ unset: ["replacePath"] })}
         />
       }
       error={
         props.error ??
-        (!validRegex(value().from)
+        (!validRegex(draft().from)
           ? "From must be a valid regular expression."
           : undefined)
       }
@@ -294,14 +343,14 @@ function ReplacePathField(
         <TextInput
           mono
           aria-label="Path replace from"
-          value={value().from}
+          value={draft().from}
           placeholder="From"
           onChange={(event) => commit("from", event.currentTarget.value)}
         />
         <TextInput
           mono
           aria-label="Path replace to"
-          value={value().to}
+          value={draft().to}
           placeholder="To"
           onChange={(event) => commit("to", event.currentTarget.value)}
         />
@@ -315,13 +364,18 @@ function BooleanSetting(
     label: string;
     fieldKey: "debugMode" | "hrefTarget" | "showIntro";
     toChecked?: (value: unknown) => boolean;
-    toValue?: (checked: boolean) => LocatorOptions[keyof LocatorOptions];
+    toValue?: (checked: boolean) => boolean | "_blank" | "_self";
     error?: string;
-    write: (patch: Partial<LocatorOptions>) => WriteResponse;
+    write: (patch: strictConfig.LayerPatchInput) => WriteResponse;
   }
 ) {
   const state = () =>
-    layerFieldState(props.layers, props.scope.layer, props.fieldKey);
+    layerFieldState(
+      props.layers,
+      props.scope.layer,
+      props.fieldKey,
+      props.targets
+    );
   const checked = () =>
     props.toChecked ? props.toChecked(state().value) : !!state().value;
   return (
@@ -330,7 +384,7 @@ function BooleanSetting(
       meta={
         <FieldMeta
           {...props}
-          onReset={() => props.write({ [props.fieldKey]: undefined })}
+          onReset={() => props.write({ unset: [props.fieldKey] })}
         />
       }
       error={props.error}
@@ -340,9 +394,12 @@ function BooleanSetting(
           label={props.label}
           checked={checked()}
           onChange={(next) =>
-            props.write({
-              [props.fieldKey]: props.toValue ? props.toValue(next) : next,
-            })
+            props.write(
+              setField(
+                props.fieldKey,
+                props.toValue ? props.toValue(next) : next
+              )
+            )
           }
         >
           {checked() ? "On" : "Off"}
@@ -353,8 +410,8 @@ function BooleanSetting(
 }
 
 export function SettingsSources(props: {
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
-  targets: Targets;
+  layers: LayerViews;
+  targets: strictConfig.TargetViewMap;
   unavailableLayers?: LocatorLayer[];
 }) {
   return (
@@ -380,29 +437,30 @@ export function SettingsSources(props: {
   );
 }
 
-function formatLayer(values: LocatorOptions | undefined, targets: Targets) {
-  if (!values || Object.keys(normalizeLayer(values)).length === 0)
-    return "No overrides";
-  const normalized = normalizeLayer(values);
-  return (Object.keys(normalized) as FieldKey[])
-    .filter((key) => normalized[key] !== undefined)
+function formatLayer(
+  values: strictConfig.SerializedLayerV3 | undefined,
+  targets: strictConfig.TargetViewMap
+) {
+  if (!values || Object.keys(values).length === 0) return "No overrides";
+  return (Object.keys(values) as FieldKey[])
+    .filter((key) => values[key] !== undefined)
     .map((key) => {
       if (key === "bindings") {
-        return `actions: ${normalized.bindings
+        return `actions: ${values.bindings
           ?.map((binding) => bindingSummary(binding, targets))
           .join(", ")}`;
       }
       if (key === "editor") {
-        const editor = normalized.editor;
+        const editor = values.editor;
         return `editor: ${
-          editor?.targetTemplate
+          editor?.kind === "template"
             ? "custom link"
-            : editor?.targetId
-            ? targets[editor.targetId]?.label ?? editor.targetId
+            : editor?.kind === "target"
+            ? targets[editor.id]?.label ?? editor.id
             : "not set"
         }`;
       }
-      const value = normalized[key];
+      const value = values[key];
       return `${FIELD_LABELS[key] ?? key}: ${
         typeof value === "object" ? JSON.stringify(value) : String(value)
       }`;
@@ -410,18 +468,22 @@ function formatLayer(values: LocatorOptions | undefined, targets: Targets) {
     .join(" · ");
 }
 
-function bindingSummary(binding: Binding, targets: Targets) {
+function bindingSummary(
+  binding: strictConfig.BindingInput,
+  targets: strictConfig.TargetViewMap
+) {
   const trigger =
     binding.trigger.kind === "modifier-click"
-      ? `${binding.trigger.modifiers}+click`
+      ? `${binding.trigger.modifiers.join("+")}+click`
       : "hover toolbar";
   const action =
     binding.action.kind === "open-editor"
-      ? !hasEditorOverride(binding.action)
+      ? !binding.action.destination
         ? "open in editor"
-        : binding.action.targetId
+        : binding.action.destination.kind === "target"
         ? `open ${
-            targets[binding.action.targetId]?.label ?? binding.action.targetId
+            targets[binding.action.destination.id]?.label ??
+            binding.action.destination.id
           }`
         : "open custom editor"
       : binding.action.kind.replaceAll("-", " ");

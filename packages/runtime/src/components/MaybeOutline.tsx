@@ -1,4 +1,4 @@
-import { Binding, BindingAction, Targets } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { createMemo, createEffect, createSignal, onCleanup } from "solid-js";
 import { AdapterId } from "../consts";
 import {
@@ -30,14 +30,14 @@ const styles = {
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  bindings: Binding[];
+  bindings: readonly strictConfig.ConfiguredBinding[];
   performAction: (
-    action: BindingAction,
+    action: strictConfig.ConfiguredAction,
     element: import("../adapters/adapterApi").FullElementInfo,
     position: { x: number; y: number }
   ) => Promise<boolean>;
   adapterId?: AdapterId;
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
 }) {
   const elInfo = createMemo(() =>
     getElementInfo(props.currentElement, props.adapterId)

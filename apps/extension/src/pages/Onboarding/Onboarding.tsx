@@ -1,15 +1,4 @@
-import {
-  DEFAULT_LAYER,
-  allTargets,
-  asEditorSelection,
-  clearPrimaryEditorOverride,
-  getModifiersMap,
-  primaryEditorBinding,
-  resolve,
-  isSafeTargetTemplate,
-  type Binding,
-  type EditorSelection,
-} from '@locator/shared';
+import { clearPrimaryEditorOverride, strictConfig } from '@locator/shared';
 import {
   EDITOR_CARD_CUSTOM,
   EditorCardPicker,
@@ -80,6 +69,9 @@ const styles = {
 
 const DEFAULT_CUSTOM_TEMPLATE =
   'vscode://file/${projectPath}${filePath}:${line}:${column}';
+const ALL_TARGETS = strictConfig.targetRegistryView(
+  strictConfig.BUILT_IN_TARGETS
+);
 
 const MODIFIER_LABELS: Record<string, string> = {
   alt: 'Option',
@@ -88,14 +80,17 @@ const MODIFIER_LABELS: Record<string, string> = {
   meta: 'Command',
 };
 
-function modifiersLabel(modifiers?: string) {
-  const keys = Object.keys(getModifiersMap(modifiers ?? ''));
-  return keys.length
-    ? `${keys.map((key) => MODIFIER_LABELS[key] ?? key).join(' + ')} + click`
+function modifiersLabel(modifiers?: readonly strictConfig.Modifier[]) {
+  return modifiers?.length
+    ? `${modifiers
+        .map((key) => MODIFIER_LABELS[key] ?? key)
+        .join(' + ')} + click`
     : 'click';
 }
 
-function ShortcutTester(props: { modifiers?: string }) {
+function ShortcutTester(props: {
+  modifiers?: readonly strictConfig.Modifier[];
+}) {
   const [result, setResult] = createSignal<'idle' | 'ok' | 'miss'>('idle');
   const [detected, setDetected] = createSignal('');
   const [hovering, setHovering] = createSignal(false);
@@ -111,8 +106,8 @@ function ShortcutTester(props: { modifiers?: string }) {
     pressed: Record<'alt' | 'ctrl' | 'shift' | 'meta', boolean>
   ) => {
     if (!props.modifiers) return false;
-    const expected = getModifiersMap(props.modifiers);
-    return keys.every((key) => pressed[key] === !!expected[key]);
+    const expected = new Set(props.modifiers);
+    return keys.every((key) => pressed[key] === expected.has(key));
   };
   // Mouse events only fire on movement; key listeners keep the outline in
   // sync when modifiers change while the pointer is stationary.
@@ -134,7 +129,7 @@ function ShortcutTester(props: { modifiers?: string }) {
   const onClick = (event: MouseEvent) => {
     event.preventDefault();
     const pressed = pressedFrom(event);
-    setDetected(modifiersLabel(keys.filter((key) => pressed[key]).join('+')));
+    setDetected(modifiersLabel(keys.filter((key) => pressed[key])));
     setResult(matches(pressed) ? 'ok' : 'miss');
   };
   return (
@@ -181,37 +176,73 @@ export function Onboarding() {
   const [showCustom, setShowCustom] = createSignal(false);
   const [customDraft, setCustomDraft] = createSignal('');
   const [customError, setCustomError] = createSignal<string>();
-  const effective = () =>
-    resolve({
-      default: DEFAULT_LAYER,
-      'user-extension': userExtension(),
-    }).effective;
-  const editor = () => effective().editor;
+  const effective = () => {
+    const parsed = strictConfig.parseLayer(userExtension());
+    if (!parsed.ok) {
+      throw new Error('Stored extension configuration is invalid.');
+    }
+    return strictConfig.effectiveOptions(
+      strictConfig.resolveConfig(
+        {
+          default: strictConfig.DEFAULT_LAYER,
+          'user-extension': parsed.value,
+        },
+        strictConfig.BUILT_IN_TARGETS
+      )
+    );
+  };
+  const editor = (): strictConfig.EditorDestination | undefined => {
+    const value = effective().editor;
+    return value.kind === 'selected'
+      ? strictConfig.encodeEditorDestination(value.destination)
+      : undefined;
+  };
+  const bindings = () => strictConfig.encodeBindings(effective().bindings);
   const modifiers = () => {
-    const binding = primaryEditorBinding(effective().bindings);
+    const binding = bindings().find(
+      (item) =>
+        item.trigger.kind === 'modifier-click' &&
+        item.action.kind === 'open-editor'
+    );
     return binding?.trigger.kind === 'modifier-click'
       ? binding.trigger.modifiers
       : undefined;
   };
-  const setBindings = async (bindings: Binding[] | undefined) =>
-    (await setUserExtension({ bindings })).ok;
+  const setBindings = async (
+    next: readonly strictConfig.BindingInput[] | undefined
+  ) =>
+    (
+      await setUserExtension(
+        next ? { set: { bindings: next } } : { unset: ['bindings'] }
+      )
+    ).ok;
 
-  const updateEditor = async (selection: EditorSelection) => {
-    const bindings = clearPrimaryEditorOverride(effective().bindings ?? []);
+  const updateEditor = async (destination: strictConfig.EditorDestination) => {
+    const nextBindings = clearPrimaryEditorOverride(bindings());
     const result = await setUserExtension({
-      editor: selection,
-      ...(bindings ? { bindings, mouseModifiers: undefined } : {}),
+      set: {
+        editor: destination,
+        ...(nextBindings ? { bindings: nextBindings } : {}),
+      },
     });
     return result.ok;
   };
-  const updateModifiers = (value: string | undefined) => {
+  const updateModifiers = (
+    value:
+      | readonly [strictConfig.Modifier, ...strictConfig.Modifier[]]
+      | undefined
+  ) => {
     if (!value) return;
-    const bindings = effective().bindings ?? [];
-    const primary = primaryEditorBinding(bindings);
-    if (!primary) return;
+    const current = bindings();
+    const primaryIndex = current.findIndex(
+      (binding) =>
+        binding.trigger.kind === 'modifier-click' &&
+        binding.action.kind === 'open-editor'
+    );
+    if (primaryIndex < 0) return;
     return setBindings(
-      bindings.map((binding) =>
-        binding === primary
+      current.map((binding, index) =>
+        index === primaryIndex
           ? {
               ...binding,
               trigger: { kind: 'modifier-click', modifiers: value },
@@ -223,13 +254,20 @@ export function Onboarding() {
 
   const selectEditor = async (value: string) => {
     if (value === EDITOR_CARD_CUSTOM) {
-      setCustomDraft(editor()?.targetTemplate ?? DEFAULT_CUSTOM_TEMPLATE);
+      const currentEditor = editor();
+      setCustomDraft(
+        currentEditor?.kind === 'template'
+          ? currentEditor.template
+          : DEFAULT_CUSTOM_TEMPLATE
+      );
       setCustomError(undefined);
       setShowCustom(true);
       return;
     }
     setShowCustom(false);
-    if (await updateEditor(asEditorSelection(value))) setActive('shortcut');
+    if (await updateEditor({ kind: 'target', id: value })) {
+      setActive('shortcut');
+    }
   };
 
   const saveCustomTemplate = async () => {
@@ -240,13 +278,14 @@ export function Onboarding() {
       setActive('shortcut');
       return;
     }
-    if (!isSafeTargetTemplate(template)) {
-      setCustomError(
-        'Template must start with a URL scheme, for example vscode://.'
-      );
+    const parsed = strictConfig.parseLayer({
+      editor: { kind: 'template', template },
+    });
+    if (!parsed.ok) {
+      setCustomError(parsed.errors[0]?.message ?? 'Invalid template.');
       return;
     }
-    const saved = await updateEditor({ targetTemplate: template });
+    const saved = await updateEditor({ kind: 'template', template });
     if (saved) {
       setShowCustom(false);
       setActive('shortcut');
@@ -271,9 +310,8 @@ export function Onboarding() {
           when={showCustom()}
           fallback={
             <EditorCardPicker
-              targets={allTargets}
-              targetId={editor()?.targetId}
-              targetTemplate={editor()?.targetTemplate}
+              targets={ALL_TARGETS}
+              value={editor()}
               onSelect={selectEditor}
             />
           }

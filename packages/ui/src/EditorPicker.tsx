@@ -1,10 +1,5 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
-import {
-  isSafeTargetTemplate,
-  type EditorSelection,
-  type Targets,
-  type WriteResponse,
-} from "@locator/shared";
+import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
 import { IconButton } from "./IconButton";
@@ -44,9 +39,8 @@ const styles = {
 };
 
 export function EditorPicker(props: {
-  targets: Targets;
-  targetId?: string;
-  targetTemplate?: string;
+  targets: strictConfig.TargetViewMap;
+  value?: strictConfig.EditorDestination;
   disabled?: boolean;
   portalMount?: Node;
   controlId?: string;
@@ -55,7 +49,9 @@ export function EditorPicker(props: {
    * no override is the default.
    */
   inheritLabel?: string;
-  onChange: (patch: EditorSelection) => WriteResponse;
+  onChange: (
+    destination: strictConfig.EditorDestination | undefined
+  ) => strictConfigStorage.WriteResponse;
 }) {
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
@@ -84,19 +80,20 @@ export function EditorPicker(props: {
     },
   ]);
   const inherited = () =>
-    Boolean(props.inheritLabel) && !props.targetId && !props.targetTemplate;
+    Boolean(props.inheritLabel) && props.value === undefined;
   const value = () => {
     if (inherited()) return INHERIT_VALUE;
-    return props.targetTemplate ||
-      (props.targetId && !props.targets[props.targetId])
+    return props.value?.kind === "template" ||
+      (props.value?.kind === "target" && !props.targets[props.value.id])
       ? CUSTOM_VALUE
-      : props.targetId ??
-          (props.targets.vscode ? "vscode" : Object.keys(props.targets)[0]);
+      : props.value?.kind === "target"
+      ? props.value.id
+      : undefined;
   };
   /** The link template this picker currently stands for, or "" if it has none. */
   const selectedTemplate = () => {
     if (inherited()) return "";
-    if (props.targetTemplate) return props.targetTemplate;
+    if (props.value?.kind === "template") return props.value.template;
     const id = value();
     // An id missing from the map has no template to show. Falling back to the
     // id itself would display -- and, once confirmed, persist -- a bare
@@ -128,10 +125,11 @@ export function EditorPicker(props: {
       cancelEditing();
       return;
     }
-    if (!isSafeTargetTemplate(next)) {
-      setValidationError(
-        "Template must start with a URL scheme, for example vscode://."
-      );
+    const parsed = strictConfig.parseLayer({
+      editor: { kind: "template", template: next },
+    });
+    if (!parsed.ok) {
+      setValidationError(parsed.errors[0]?.message ?? "Invalid template.");
       input?.focus();
       return;
     }
@@ -140,15 +138,15 @@ export function EditorPicker(props: {
     // template, so comparing with that would make "pick Custom link, accept the
     // pre-filled value" a no-op -- and for a per-action picker that is the
     // difference between pinning a link and inheriting the Editor setting.
-    if (next === (props.targetTemplate ?? "")) {
+    if (props.value?.kind === "template" && next === props.value.template) {
       setEditing(false);
       return;
     }
     setSaving(true);
     try {
       const result = await props.onChange({
-        targetTemplate: next || undefined,
-        targetId: undefined,
+        kind: "template",
+        template: next,
       });
       // A failed write keeps the draft on screen, so the typed template is not
       // silently discarded and re-seeded from props on the next open.
@@ -173,13 +171,10 @@ export function EditorPicker(props: {
             beginEditing();
           } else if (next === INHERIT_VALUE) {
             setEditing(false);
-            void props.onChange({
-              targetId: undefined,
-              targetTemplate: undefined,
-            });
+            void props.onChange(undefined);
           } else {
             setEditing(false);
-            void props.onChange({ targetId: next, targetTemplate: undefined });
+            void props.onChange({ kind: "target", id: next });
           }
         }}
       />

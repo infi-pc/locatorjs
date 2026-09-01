@@ -1,6 +1,9 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
+  "sideEffects": [
+    "./dist/index.js"
+  ],
   "types": "dist/index.d.ts",
   "files": [
     "dist"

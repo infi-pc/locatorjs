@@ -1,4 +1,4 @@
-import { allTargets, DEFAULT_LAYER, type LocatorLayer } from '@locator/shared';
+import { strictConfig } from '@locator/shared';
 import {
   ActionSettings,
   Button,
@@ -8,6 +8,12 @@ import { css } from '@locator/styled-system/css';
 import { Power, RotateCcw } from 'lucide-solid';
 import { Show, createEffect, createSignal } from 'solid-js';
 import { useSyncedState } from './syncedState';
+
+type LocatorLayer = strictConfig.LocatorLayerId;
+const DEFAULT_LAYER = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
+const ALL_TARGETS = strictConfig.targetRegistryView(
+  strictConfig.BUILT_IN_TARGETS
+);
 
 const styles = {
   stack: css({ display: 'flex', flexDirection: 'column', gap: '2' }),
@@ -53,7 +59,12 @@ export function Home() {
     userExtension,
     status,
     siteLocalPresent,
+    extensionConfigRead,
   } = useSyncedState();
+  const extensionNeedsReset = () =>
+    extensionConfigRead().kind === 'reset-required' ||
+    extensionConfigRead().kind === 'future-version' ||
+    extensionConfigRead().kind === 'corrupt';
   const connected = () => status() === 'connected' && !!snapshot();
   /**
    * What the user picked, kept apart from what is currently writable. "This
@@ -89,7 +100,7 @@ export function Home() {
           'user-extension': userExtension(),
         };
   };
-  const targets = () => snapshot()?.allTargets ?? allTargets;
+  const targets = () => snapshot()?.allTargets ?? ALL_TARGETS;
   const tryUnavailable = () => !connected() || !!snapshot()?.effective.disabled;
   const resetLayer = (): LocatorLayer =>
     !connected() && siteLocalPresent() && chosenScope() === 'user-origin'
@@ -131,6 +142,9 @@ export function Home() {
             layer: 'user-extension',
             label: 'All sites',
             write: setUserExtension,
+            disabled: extensionNeedsReset(),
+            disabledReason:
+              'Reset the preview settings before editing All sites.',
             editLayers: {
               default: DEFAULT_LAYER,
               'user-extension': userExtension(),
@@ -207,6 +221,12 @@ export function Home() {
           {actionError()}
         </div>
       </Show>
+      <Show when={extensionNeedsReset()}>
+        <div class={styles.footerText} role="alert">
+          These All sites settings use an incompatible preview format. Reset
+          them to continue.
+        </div>
+      </Show>
       <div class={styles.footer}>
         <Show
           when={
@@ -259,7 +279,7 @@ export function Home() {
             disabled={!connected()}
             onClick={async () => {
               setSaveStatus('saving');
-              const result = await setSiteLocal({ disabled: true });
+              const result = await setSiteLocal({ set: { disabled: true } });
               setSaveStatus(result.ok ? 'saved' : 'error');
               setActionError(
                 result.ok ? undefined : 'Could not disable LocatorJS here.'

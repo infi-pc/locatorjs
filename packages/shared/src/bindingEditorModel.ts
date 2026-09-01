@@ -1,39 +1,42 @@
-import {
-  hasEditorOverride,
-  primaryEditorBinding,
-  type Binding,
-  type BindingAction,
-  type BindingTrigger,
-} from "./layeredOptions";
+import type {
+  BindingAction,
+  BindingInput,
+  BindingTrigger,
+  Modifier,
+} from "./config";
 
 export const MAX_BINDINGS_PER_TRIGGER = 6;
 
 const PREFERRED_MODIFIER_COMBINATIONS = [
-  "alt",
-  "alt+shift",
-  "ctrl",
-  "ctrl+shift",
-  "meta",
-  "meta+shift",
-] as const;
+  ["alt"],
+  ["alt", "shift"],
+  ["ctrl"],
+  ["ctrl", "shift"],
+  ["meta"],
+  ["meta", "shift"],
+] as const satisfies readonly (readonly [Modifier, ...Modifier[]])[];
+
+function chordKey(modifiers: readonly Modifier[]): string {
+  return modifiers.join("+");
+}
 
 export function bindingsForTrigger(
-  bindings: Binding[],
+  bindings: readonly BindingInput[],
   kind: BindingTrigger["kind"]
-): Binding[] {
+): BindingInput[] {
   return bindings.filter((binding) => binding.trigger.kind === kind);
 }
 
 export function bindingAt(
-  bindings: Binding[],
+  bindings: readonly BindingInput[],
   kind: BindingTrigger["kind"],
   index: number
-): Binding | undefined {
+): BindingInput | undefined {
   return bindingsForTrigger(bindings, kind)[index];
 }
 
 export function globalIndexForTrigger(
-  bindings: Binding[],
+  bindings: readonly BindingInput[],
   kind: BindingTrigger["kind"],
   groupIndex: number
 ): number {
@@ -46,54 +49,56 @@ export function globalIndexForTrigger(
 }
 
 export function canAddBinding(
-  bindings: Binding[],
+  bindings: readonly BindingInput[],
   kind: BindingTrigger["kind"]
 ): boolean {
   return bindingsForTrigger(bindings, kind).length < MAX_BINDINGS_PER_TRIGGER;
 }
 
-export function nextAvailableModifiers(bindings: Binding[]): string {
+export function nextAvailableModifiers(
+  bindings: readonly BindingInput[]
+): readonly [Modifier, ...Modifier[]] {
   const used = new Set(
     bindings.flatMap((binding) =>
       binding.trigger.kind === "modifier-click"
-        ? [binding.trigger.modifiers]
+        ? [chordKey(binding.trigger.modifiers)]
         : []
     )
   );
   return (
-    PREFERRED_MODIFIER_COMBINATIONS.find((value) => !used.has(value)) ?? "alt"
+    PREFERRED_MODIFIER_COMBINATIONS.find(
+      (value) => !used.has(chordKey(value))
+    ) ?? PREFERRED_MODIFIER_COMBINATIONS[0]
   );
 }
 
-export function duplicateShortcutModifiers(bindings: Binding[]): Set<string> {
+export function duplicateShortcutModifiers(
+  bindings: readonly BindingInput[]
+): Set<string> {
   const counts = new Map<string, number>();
   for (const binding of bindings) {
     if (binding.trigger.kind !== "modifier-click") continue;
-    const modifiers = binding.trigger.modifiers;
-    counts.set(modifiers, (counts.get(modifiers) ?? 0) + 1);
+    const key = chordKey(binding.trigger.modifiers);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return new Set(
-    [...counts].filter(([, count]) => count > 1).map(([modifiers]) => modifiers)
+    [...counts].filter(([, count]) => count > 1).map(([key]) => key)
   );
 }
 
 export function hasShortcutConflict(
-  binding: Binding,
-  bindings: Binding[]
+  binding: BindingInput,
+  bindings: readonly BindingInput[]
 ): boolean {
   if (binding.trigger.kind !== "modifier-click") return false;
-  const modifiers = binding.trigger.modifiers;
+  const key = chordKey(binding.trigger.modifiers);
   return bindings.some(
     (candidate) =>
       candidate.trigger.kind === "modifier-click" &&
-      candidate.trigger.modifiers === modifiers
+      chordKey(candidate.trigger.modifiers) === key
   );
 }
 
-/**
- * New actions carry no editor override, so they follow the global Editor
- * setting until the user deliberately pins one.
- */
 export function defaultBindingAction(kind: string): BindingAction {
   switch (kind) {
     case "copy-path":
@@ -106,7 +111,6 @@ export function defaultBindingAction(kind: string): BindingAction {
       return { kind: "show-tree" };
     case "show-parents":
       return { kind: "show-parents" };
-    case "open-editor":
     default:
       return { kind: "open-editor" };
   }
@@ -114,8 +118,8 @@ export function defaultBindingAction(kind: string): BindingAction {
 
 export function createBindingDraft(
   triggerKind: BindingTrigger["kind"],
-  bindings: Binding[]
-): Binding {
+  bindings: readonly BindingInput[]
+): BindingInput {
   return {
     trigger:
       triggerKind === "modifier-click"
@@ -129,32 +133,27 @@ export function createBindingDraft(
 }
 
 export function insertBinding(
-  bindings: Binding[],
-  binding: Binding
-): Binding[] | undefined {
+  bindings: readonly BindingInput[],
+  binding: BindingInput
+): BindingInput[] | undefined {
   const triggerKind = binding.trigger.kind;
   if (!canAddBinding(bindings, triggerKind)) return undefined;
-  const modifierBindings = bindingsForTrigger(bindings, "modifier-click");
-  const toolbarBindings = bindingsForTrigger(bindings, "hover-toolbar");
+  const shortcuts = bindingsForTrigger(bindings, "modifier-click");
+  const toolbar = bindingsForTrigger(bindings, "hover-toolbar");
   return triggerKind === "modifier-click"
-    ? [...modifierBindings, binding, ...toolbarBindings]
-    : [...modifierBindings, ...toolbarBindings, binding];
+    ? [...shortcuts, binding, ...toolbar]
+    : [...shortcuts, ...toolbar, binding];
 }
 
-/**
- * Points the primary editor action back at the global Editor setting, so
- * picking an editor during onboarding is not silently shadowed by an override
- * left on the binding.
- */
 export function clearPrimaryEditorOverride(
-  bindings: Binding[]
-): Binding[] | undefined {
-  const primary = primaryEditorBinding(bindings);
-  if (!primary) return undefined;
-  const index = bindings.indexOf(primary);
+  bindings: readonly BindingInput[]
+): BindingInput[] | undefined {
+  const index = bindings.findIndex(
+    (binding) => binding.action.kind === "open-editor"
+  );
   if (index < 0) return undefined;
-  const action = primary.action;
-  if (action.kind !== "open-editor" || !hasEditorOverride(action)) {
+  const action = bindings[index]?.action;
+  if (action?.kind !== "open-editor" || action.destination === undefined) {
     return undefined;
   }
   return bindings.map((binding, bindingIndex) =>

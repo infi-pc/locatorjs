@@ -1,188 +1,103 @@
+import { strictConfig } from "@locator/shared";
 import { describe, expect, test } from "vitest";
-import { allTargets, type LocatorOptions } from "@locator/shared";
+import type { LinkProps } from "../types/types";
 import { buildLink } from "./buildLink";
-import type { OptionsStore } from "./optionsStore";
 
-function createMockOptions(effective: LocatorOptions): OptionsStore {
-  return {
-    effective: () => effective,
-    provenance: () => ({}),
-    layers: () => ({}),
-    uiState: () => ({}),
-    allTargets: () => ({}),
-    editorWithheld: () => false,
-    setUserOrigin: async () => ({ ok: true as const }),
-    clearUserOrigin: async () => ({ ok: true }),
-    setUiState: async () => ({ ok: true as const }),
-  };
+const linkProps: LinkProps = {
+  filePath: "/src/page.tsx",
+  projectPath: "/repo",
+  line: 10,
+  column: 5,
+};
+
+function context(input: strictConfig.LocatorConfigInput): Readonly<{
+  options: { effective: () => strictConfig.EffectiveOptions };
+  editor: strictConfig.SelectedEditor;
+}> {
+  const compiled = strictConfig.compileSetup(input);
+  if (!compiled.ok) throw new Error("Invalid link fixture.");
+  const effective = strictConfig.effectiveOptions(
+    strictConfig.resolveConfig(
+      { default: strictConfig.DEFAULT_LAYER, team: compiled.value.layer },
+      compiled.value.targets
+    )
+  );
+  if (effective.editor.kind !== "selected") {
+    throw new Error("Link fixture needs a selected editor.");
+  }
+  return { options: { effective: () => effective }, editor: effective.editor };
 }
 
-/**
- * Links built without an explicit target follow the global Editor setting, so
- * that — not the bindings list — is what these cases configure.
- */
-function editorOptions(targetId: string, options: LocatorOptions = {}) {
-  return createMockOptions({ ...options, editor: { targetId } });
+function link(
+  input: strictConfig.LocatorConfigInput,
+  props: LinkProps = linkProps
+): string {
+  const { options, editor } = context(input);
+  return buildLink(props, options, editor);
 }
 
-/**
- * The shipped templates interpolate `${projectPath}${filePath}`, so they are
- * what these cases have to run against: a target template without
- * `${projectPath}` cannot show the root being applied twice.
- */
-describe("buildLink - Turbopack [project]/ prefix", () => {
-  test("resolves [project]/ prefix with projectPath, applying the root once", () => {
-    const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
-
-    const result = buildLink(
-      {
-        filePath: "[project]/src/page.tsx",
-        projectPath: "",
-        line: 10,
-        column: 5,
-      },
-      allTargets,
-      options
-    );
-
-    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
+describe("buildLink", () => {
+  test.each([
+    "[project]/src/page.tsx",
+    "/Users/me/app/src/page.tsx",
+    "/src/page.tsx",
+  ])("applies the configured project root once to %s", (filePath) => {
+    expect(
+      link(
+        {
+          projectPath: "/Users/me/app/",
+          editor: { kind: "target", id: "vscode" },
+        },
+        { ...linkProps, filePath, projectPath: "" }
+      )
+    ).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
   });
 
-  test("handles projectPath with trailing slash", () => {
-    const options = editorOptions("vscode", { projectPath: "/Users/me/app/" });
-
-    const result = buildLink(
-      {
-        filePath: "[project]/src/page.tsx",
-        projectPath: "",
-        line: 10,
-        column: 5,
-      },
-      allTargets,
-      options
-    );
-
-    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
+  test("leaves a project marker when no root is available", () => {
+    expect(
+      link(
+        { editor: { kind: "target", id: "vscode" } },
+        { ...linkProps, filePath: "[project]/src/page.tsx", projectPath: "" }
+      )
+    ).toContain("[project]/src/page.tsx");
   });
 
-  test("applies the root once to an absolute path that already carries it", () => {
-    // The React 19 resolvers return absolute paths, which the template would
-    // otherwise prefix a second time.
-    const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
+  test("includes an optional tmux session only when configured", () => {
+    expect(
+      link({
+        editor: { kind: "target", id: "nvim" },
+        tmuxSession: "work",
+      })
+    ).toBe("nvim://file//repo/src/page.tsx:10:5?tmux-session=work");
 
-    const result = buildLink(
-      {
-        filePath: "/Users/me/app/src/page.tsx",
-        projectPath: "",
-        line: 10,
-        column: 5,
-      },
-      allTargets,
-      options
-    );
-
-    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
-  });
-
-  test("joins a project-relative path onto the root", () => {
-    const options = editorOptions("vscode", { projectPath: "/Users/me/app" });
-
-    const result = buildLink(
-      { filePath: "/src/page.tsx", projectPath: "", line: 10, column: 5 },
-      allTargets,
-      options
-    );
-
-    expect(result).toBe("vscode://file//Users/me/app/src/page.tsx:10:5");
-  });
-
-  test("leaves [project]/ prefix if no projectPath available", () => {
-    const options = editorOptions("vscode");
-
-    const result = buildLink(
-      {
-        filePath: "[project]/src/page.tsx",
-        projectPath: "",
-        line: 10,
-        column: 5,
-      },
-      allTargets,
-      options
-    );
-
-    expect(result).toContain("[project]/src/page.tsx");
-  });
-});
-
-describe("buildLink - optional query parameters", () => {
-  const linkProps = {
-    filePath: "/src/page.tsx",
-    projectPath: "/repo",
-    line: 10,
-    column: 5,
-  };
-
-  test("includes the nvim tmux session when configured", () => {
-    const result = buildLink(
-      linkProps,
-      allTargets,
-      editorOptions("nvim", { tmuxSession: "work" })
-    );
-
-    expect(result).toBe(
-      "nvim://file//repo/src/page.tsx:10:5?tmux-session=work"
+    expect(link({ editor: { kind: "target", id: "nvim" } })).toBe(
+      "nvim://file//repo/src/page.tsx:10:5"
     );
   });
 
-  test("removes the unresolved nvim query parameter when unset", () => {
-    const result = buildLink(linkProps, allTargets, editorOptions("nvim"));
-
-    expect(result).toBe("nvim://file//repo/src/page.tsx:10:5");
-    expect(result).not.toContain("?");
-  });
-
-  test("does not alter targets without optional query parameters", () => {
-    const result = buildLink(linkProps, allTargets, editorOptions("vscode"));
-
-    expect(result).toBe("vscode://file//repo/src/page.tsx:10:5");
-  });
-
-  test("preserves fully resolved query parameters", () => {
-    const result = buildLink(linkProps, allTargets, editorOptions("webstorm"));
-
-    expect(result).toBe(
+  test("preserves resolved query parameters", () => {
+    expect(link({ editor: { kind: "target", id: "webstorm" } })).toBe(
       "webstorm://open?file=/repo/src/page.tsx&line=10&column=5"
     );
   });
 
-  test("uses the Editor setting for links outside direct actions", () => {
-    // An editor pinned on a binding is that binding's business; the tree, the
-    // parents menu and the welcome preview follow the global setting.
-    const result = buildLink(
-      linkProps,
-      allTargets,
-      createMockOptions({
-        editor: { targetId: "webstorm" },
-        bindings: [
-          {
-            trigger: { kind: "modifier-click", modifiers: "alt" },
-            action: { kind: "open-editor", targetId: "cursor" },
-          },
-        ],
+  test("uses an explicitly selected custom destination", () => {
+    expect(
+      link({
+        editor: {
+          kind: "template",
+          template: "zed://file${projectPath}${filePath}:${line}",
+        },
       })
-    );
-
-    expect(result).toContain("webstorm://open");
+    ).toBe("zed://file/repo/src/page.tsx:10");
   });
 
-  test("an explicit target beats the Editor setting", () => {
-    const result = buildLink(
-      linkProps,
-      allTargets,
-      createMockOptions({ editor: { targetId: "vscode" } }),
-      "webstorm"
-    );
-
-    expect(result).toContain("webstorm://open");
+  test("rewrites the fully evaluated link", () => {
+    expect(
+      link({
+        editor: { kind: "target", id: "vscode" },
+        replacePath: { from: "^vscode://file//repo", to: "zed://workspace" },
+      })
+    ).toBe("zed://workspace/src/page.tsx:10:5");
   });
 });

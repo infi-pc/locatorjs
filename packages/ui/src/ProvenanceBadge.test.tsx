@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@solidjs/testing-library";
 import { afterEach, describe, expect, test } from "vitest";
 import { Show, createSignal } from "solid-js";
-import type { LocatorLayer } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { ProvenanceBadge } from "./ProvenanceBadge";
 
 afterEach(cleanup);
@@ -11,7 +11,8 @@ describe("ProvenanceBadge", () => {
     // The label was read once outside any tracked scope while the class and
     // tooltip were compiled to getters, so a default -> team change repainted
     // the badge blue while its text still said "Default".
-    const [layer, setLayer] = createSignal<LocatorLayer>("default");
+    const [layer, setLayer] =
+      createSignal<strictConfig.LocatorLayerId>("default");
     render(() => <ProvenanceBadge layer={layer()} />);
 
     expect(screen.getByText("Default")).toBeTruthy();
@@ -25,9 +26,9 @@ describe("ProvenanceBadge", () => {
   test("updates through the non-keyed Show its call sites wrap it in", () => {
     // `<Show>` only rebuilds children when truthiness flips, so a change
     // between two truthy layers has to be tracked by the badge itself.
-    const [layer, setLayer] = createSignal<LocatorLayer | undefined>(
-      "user-extension"
-    );
+    const [layer, setLayer] = createSignal<
+      strictConfig.LocatorLayerId | undefined
+    >("user-extension");
     render(() => (
       <Show when={layer()}>
         <ProvenanceBadge layer={layer()} />

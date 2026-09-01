@@ -1,5 +1,5 @@
 import { bannerClass } from "../functions/bannerClasses";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
@@ -50,7 +50,9 @@ export function DisableConfirmation(props: { onClose: () => void }) {
           disabled={saveState() === "saving"}
           onClick={async () => {
             setSaveState("saving");
-            const result = await options.setUserOrigin({ disabled: true });
+            const result = await options.setUserOrigin({
+              set: { disabled: true },
+            });
             if (result.ok) {
               props.onClose();
             } else {
