@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { projects } from "../consts";
+import { expectLocatorReady } from "../activateLocator";
+import { seedLocatorStorage } from "../locatorStorage";
 
 /**
  * The tree panel and the parents menu. Both used to be unreachable or silently
@@ -15,7 +17,7 @@ const dismissedUiState = {
 
 const toolbarBindings = [
   {
-    trigger: { kind: "modifier-click" as const, modifiers: "alt" },
+    trigger: { kind: "modifier-click" as const, modifiers: ["alt"] },
     action: { kind: "open-editor" as const },
   },
   {
@@ -35,24 +37,19 @@ const SOURCED_ROW = '[role="treeitem"]:not([aria-disabled="true"])';
 
 async function setup(
   page: Page,
-  options: Record<string, unknown>
+  options: Record<string, unknown>,
+  activation: "Alt" | "Meta+Shift" = "Alt"
 ): Promise<void> {
-  await page.addInitScript(
-    ({ options: stored }) => {
-      localStorage.setItem("LOCATOR_USER_OPTIONS", JSON.stringify(stored));
-      window.open = ((url?: string | URL) => {
-        (window as OpenedWindow).__locatorOpenedUrl = String(url);
-        return null;
-      }) as typeof window.open;
-    },
-    { options: { uiState: dismissedUiState, ...options } }
-  );
+  await seedLocatorStorage(page, options, dismissedUiState);
+  await page.addInitScript(() => {
+    window.open = ((url?: string | URL) => {
+      (window as OpenedWindow).__locatorOpenedUrl = String(url);
+      return null;
+    }) as typeof window.open;
+  });
   await page.goto(projects.react);
-  // The intro banner only renders once the runtime has mounted, so waiting for
-  // it keeps the first mouseover from landing before Locator is listening.
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true })
-  ).toBeVisible({ timeout: 15_000 });
+  // Mount the lazy runtime before the scenario's first inspected mouseover.
+  await expectLocatorReady(page, activation);
   // The deepest nesting box is the element every scenario inspects.
   await expect(page.locator("div[style*='yellow']")).toBeVisible();
 }
@@ -91,7 +88,7 @@ test.describe("tree panel", () => {
     page,
   }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -114,7 +111,7 @@ test.describe("tree panel", () => {
     page,
   }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -132,7 +129,7 @@ test.describe("tree panel", () => {
     page,
   }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -147,7 +144,7 @@ test.describe("tree panel", () => {
 
   test("keyboard navigation moves, expands, and opens", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -155,13 +152,21 @@ test.describe("tree panel", () => {
     const tree = panel.getByRole("tree");
     const before = await panel.getByRole("treeitem").count();
 
-    // The list is focused on open, so arrows work without clicking first.
-    await tree.press("Home");
-    await tree.press("ArrowLeft");
+    // Expanding through the actual twisty used to leave focus on <body> when
+    // the row list was rebuilt, which Locator.press() cannot reveal because it
+    // focuses the target before every key.
+    await panel.getByRole("button", { name: "Collapse" }).first().click();
+    await expect(tree).toBeFocused();
     await expect
       .poll(async () => panel.getByRole("treeitem").count())
       .toBeLessThan(before);
-    await tree.press("ArrowRight");
+    const activeAfterCollapse = await tree.getAttribute(
+      "aria-activedescendant"
+    );
+    expect(activeAfterCollapse).toMatch(/^locator-treeitem-/);
+    await expect(panel.locator(`[id="${activeAfterCollapse}"]`)).toBeAttached();
+    await panel.getByRole("button", { name: "Expand" }).first().click();
+    await expect(tree).toBeFocused();
     await expect
       .poll(async () => panel.getByRole("treeitem").count())
       .toBe(before);
@@ -172,7 +177,7 @@ test.describe("tree panel", () => {
 
   test("Escape closes the panel without opening anything", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -184,7 +189,7 @@ test.describe("tree panel", () => {
 
   test("the close button dismisses the panel", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -197,7 +202,7 @@ test.describe("tree panel", () => {
 test.describe("parents menu", () => {
   test("entries carry a distinct file:line and open it", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -220,7 +225,7 @@ test.describe("parents menu", () => {
 
   test("names the component that renders each ancestor", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -233,7 +238,7 @@ test.describe("parents menu", () => {
 
   test("arrow keys and Enter open an entry", async ({ page }) => {
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings,
     });
 
@@ -251,11 +256,14 @@ test.describe("editor configuration", () => {
     await setup(page, {
       // The binding pins VS Code; the global setting says WebStorm. Tree rows
       // are not tied to a binding, so they must follow the setting.
-      editor: { targetId: "webstorm" },
+      editor: { kind: "target", id: "webstorm" },
       bindings: [
         {
-          trigger: { kind: "modifier-click", modifiers: "alt" },
-          action: { kind: "open-editor", targetId: "vscode" },
+          trigger: { kind: "modifier-click", modifiers: ["alt"] },
+          action: {
+            kind: "open-editor",
+            destination: { kind: "target", id: "vscode" },
+          },
         },
         ...toolbarBindings.slice(1),
       ],
@@ -273,7 +281,7 @@ test.describe("editor configuration", () => {
     // A stored editor that is not in the target list — a stale id, or a team
     // config naming something this build does not know.
     await setup(page, {
-      editor: { targetId: "not-installed-editor" },
+      editor: { kind: "target", id: "not-installed-editor" },
       bindings: toolbarBindings,
     });
 
@@ -299,23 +307,24 @@ test.describe("editor configuration", () => {
     await expect
       .poll(() =>
         page.evaluate(() => {
-          const raw = localStorage.getItem("LOCATOR_USER_OPTIONS");
-          return raw ? JSON.parse(raw).editor : undefined;
+          const raw = localStorage.getItem("LOCATOR_USER_CONFIG");
+          return raw ? JSON.parse(raw).layer?.editor : undefined;
         })
       )
-      .toEqual({ targetId: "vscode", targetTemplate: undefined });
+      .toEqual({ kind: "target", id: "vscode" });
   });
 
-  test("the default editor is a visible setting, not a hidden constant", async ({
-    page,
-  }) => {
-    // Nothing chosen: the default layer supplies VS Code, so a click still
-    // works — but it is a resolved setting the user can see and change.
+  test("the default editor asks for an explicit choice", async ({ page }) => {
+    // The compiled default is visible in settings but is not evidence that the
+    // user chose a working editor integration on this machine.
     await setup(page, { bindings: toolbarBindings });
 
     const panel = await openTree(page);
     await panel.locator(SOURCED_ROW).first().click();
-    await expect.poll(() => openedUrl(page)).toMatch(/^vscode:\/\/file\//);
+    await expect(
+      page.getByRole("heading", { name: "Pick your editor" })
+    ).toBeVisible();
+    expect(await openedUrl(page)).toBeUndefined();
   });
 });
 
@@ -324,7 +333,7 @@ test.describe("toolbar activation", () => {
     // Deleting every shortcut used to make the outline — and with it the tree
     // and parents actions — permanently unreachable.
     await setup(page, {
-      editor: { targetId: "vscode" },
+      editor: { kind: "target", id: "vscode" },
       bindings: toolbarBindings.slice(1),
     });
 
@@ -337,16 +346,23 @@ test.describe("toolbar activation", () => {
   test("a custom shortcut replaces alt as the activation modifier", async ({
     page,
   }) => {
-    await setup(page, {
-      editor: { targetId: "vscode" },
-      bindings: [
-        {
-          trigger: { kind: "modifier-click", modifiers: "meta+shift" },
-          action: { kind: "open-editor" },
-        },
-        ...toolbarBindings.slice(1),
-      ],
-    });
+    await setup(
+      page,
+      {
+        editor: { kind: "target", id: "vscode" },
+        bindings: [
+          {
+            trigger: {
+              kind: "modifier-click",
+              modifiers: ["meta", "shift"],
+            },
+            action: { kind: "open-editor" },
+          },
+          ...toolbarBindings.slice(1),
+        ],
+      },
+      "Meta+Shift"
+    );
 
     const target = page.locator("div[style*='yellow']");
     await target.dispatchEvent("mouseover", { altKey: true });

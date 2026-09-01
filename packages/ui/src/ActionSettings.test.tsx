@@ -1,8 +1,4 @@
-import {
-  DEFAULT_LAYER,
-  type Binding,
-  type LocatorOptions,
-} from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import {
   cleanup,
   fireEvent,
@@ -22,15 +18,19 @@ const targets = {
   webstorm: { label: "WebStorm", url: "webstorm://file/${filePath}" },
 };
 
+type Binding = strictConfig.BindingInput;
+type LayerView = strictConfig.SerializedLayerV3;
+const DEFAULT_LAYER = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
+
 function Harness(props: {
-  initial?: LocatorOptions;
+  initial?: LayerView;
   inspectorMount?: Node;
-  onWrite?: (patch: Partial<LocatorOptions>) => void;
-  onTry?: (action: import("@locator/shared").BindingAction) => void;
+  onWrite?: (patch: strictConfig.LayerPatchInput) => void;
+  onTry?: (action: strictConfig.BindingAction) => void;
 }) {
   // The test harness intentionally captures its one-time seed value.
-  // eslint-disable-next-line solid/reactivity
-  const [values, setValues] = createSignal<LocatorOptions>(props.initial ?? {});
+  // eslint-disable-next-line solid/reactivity -- the harness intentionally captures its seed once.
+  const [values, setValues] = createSignal<LayerView>(props.initial ?? {});
   return (
     <ActionSettings
       layers={{ default: DEFAULT_LAYER, "user-origin": values() }}
@@ -40,7 +40,7 @@ function Harness(props: {
           label: "This origin",
           write: async (patch) => {
             props.onWrite?.(patch);
-            setValues((current) => ({ ...current, ...patch }));
+            setValues((current) => applyPatch(current, patch));
             return { ok: true as const };
           },
         },
@@ -124,7 +124,7 @@ describe("ActionSettings", () => {
   });
 
   test("pinning an editor on an action writes only that action", async () => {
-    const write = vi.fn(async (patch: Partial<LocatorOptions>) => {
+    const write = vi.fn(async (patch: strictConfig.LayerPatchInput) => {
       void patch;
       return { ok: true as const };
     });
@@ -147,30 +147,36 @@ describe("ActionSettings", () => {
     );
 
     expect(write).toHaveBeenLastCalledWith({
-      bindings: expect.arrayContaining([
-        expect.objectContaining({
-          action: { kind: "open-editor", targetId: "webstorm" },
-        }),
-      ]),
-      mouseModifiers: undefined,
+      set: {
+        bindings: expect.arrayContaining([
+          expect.objectContaining({
+            action: {
+              kind: "open-editor",
+              destination: { kind: "target", id: "webstorm" },
+            },
+          }),
+        ]),
+      },
     });
     // The action carries the override; the global setting is left alone.
     const writtenKeys = write.mock.calls.flatMap(([patch]) =>
-      Object.keys(patch)
+      Object.keys(patch.set ?? {})
     );
-    expect(writtenKeys).not.toContain("targetId");
     expect(writtenKeys).not.toContain("editor");
   });
 
   test("an action can be handed back to the global Editor setting", async () => {
-    const write = vi.fn(async (patch: Partial<LocatorOptions>) => {
+    const write = vi.fn(async (patch: strictConfig.LayerPatchInput) => {
       void patch;
       return { ok: true as const };
     });
     const pinned: Binding[] = [
       {
-        trigger: { kind: "modifier-click", modifiers: "alt" },
-        action: { kind: "open-editor", targetId: "webstorm" },
+        trigger: { kind: "modifier-click", modifiers: ["alt"] },
+        action: {
+          kind: "open-editor",
+          destination: { kind: "target", id: "webstorm" },
+        },
       },
     ];
     render(() => (
@@ -191,13 +197,14 @@ describe("ActionSettings", () => {
     );
 
     expect(write).toHaveBeenLastCalledWith({
-      bindings: [
-        {
-          trigger: { kind: "modifier-click", modifiers: "alt" },
-          action: { kind: "open-editor" },
-        },
-      ],
-      mouseModifiers: undefined,
+      set: {
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: ["alt"] },
+            action: { kind: "open-editor" },
+          },
+        ],
+      },
     });
   });
 
@@ -290,15 +297,17 @@ describe("ActionSettings", () => {
 
     expect(onWrite).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        bindings: expect.arrayContaining([
-          {
-            trigger: { kind: "hover-toolbar" },
-            action: {
-              kind: "copy-prompt",
-              template: "Explain ${filePath}",
+        set: expect.objectContaining({
+          bindings: expect.arrayContaining([
+            {
+              trigger: { kind: "hover-toolbar" },
+              action: {
+                kind: "copy-prompt",
+                template: "Explain ${filePath}",
+              },
             },
-          },
-        ]),
+          ]),
+        }),
       })
     );
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -346,9 +355,9 @@ describe("ActionSettings", () => {
     expect(onWrite).not.toHaveBeenCalled();
     await screen.getByRole("button", { name: "Add" }).click();
 
-    const written = onWrite.mock.calls.at(-1)?.[0].bindings;
+    const written = onWrite.mock.calls.at(-1)?.[0].set?.bindings;
     expect(written?.[1]).toEqual({
-      trigger: { kind: "modifier-click", modifiers: "alt+shift" },
+      trigger: { kind: "modifier-click", modifiers: ["alt", "shift"] },
       action: { kind: "copy-path" },
     });
     expect(written?.[2]?.trigger.kind).toBe("hover-toolbar");
@@ -357,7 +366,7 @@ describe("ActionSettings", () => {
     ).toBeTruthy();
   });
 
-  test("shows duplicate validation and keeps a modifier trigger required", async () => {
+  test("keeps a modifier trigger required", async () => {
     const onWrite = vi.fn();
     render(() => (
       <Harness
@@ -365,19 +374,13 @@ describe("ActionSettings", () => {
         initial={{
           bindings: [
             {
-              trigger: { kind: "modifier-click", modifiers: "alt" },
+              trigger: { kind: "modifier-click", modifiers: ["alt"] },
               action: { kind: "copy-path" },
-            },
-            {
-              trigger: { kind: "modifier-click", modifiers: "alt" },
-              action: { kind: "show-tree" },
             },
           ],
         }}
       />
     ));
-
-    expect(screen.getAllByTitle("Duplicate shortcut")).toHaveLength(2);
     await screen
       .getByRole("button", { name: "Edit action 1: Copy path" })
       .click();
@@ -420,10 +423,7 @@ describe("ActionSettings", () => {
   test("enforces six actions per section independently", async () => {
     const sixToolbar: Binding[] = Array.from({ length: 6 }, (_, index) => ({
       trigger: { kind: "hover-toolbar" },
-      action:
-        index % 2
-          ? ({ kind: "show-tree" } as const)
-          : ({ kind: "copy-path" } as const),
+      action: { kind: "copy-prompt", template: `Prompt ${index}` },
     }));
     render(() => <Harness initial={{ bindings: sixToolbar }} />);
     expect(
@@ -486,3 +486,15 @@ describe("ActionSettings", () => {
     expect(onTry).toHaveBeenCalledWith({ kind: "copy-path" });
   });
 });
+
+function applyPatch(
+  current: strictConfig.SerializedLayerV3,
+  input: strictConfig.LayerPatchInput
+): strictConfig.SerializedLayerV3 {
+  const layer = strictConfig.parseLayer(current);
+  const patch = strictConfig.parseLayerPatch(input);
+  if (!layer.ok || !patch.ok) throw new Error("Invalid test configuration.");
+  return strictConfig.encodeLayer(
+    strictConfig.applyLayerPatch(layer.value, patch.value).layer
+  );
+}

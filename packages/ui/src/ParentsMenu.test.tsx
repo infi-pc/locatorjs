@@ -63,4 +63,31 @@ describe("ParentsMenu keyboard focus", () => {
       "row-2",
     ]);
   });
+
+  test("exposes one tab stop and reports the active descendant", () => {
+    const { menu } = renderMenu();
+    const items = screen.getAllByRole("menuitem");
+    expect(items.every((item) => item.tabIndex === -1)).toBe(true);
+
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+
+    expect(menu.getAttribute("aria-activedescendant")).toBe(items[0]!.id);
+    fireEvent.keyDown(menu, { key: "Tab" });
+    expect(document.activeElement).toBe(menu);
+  });
+
+  test("Escape closes from the composite tab stop", () => {
+    const onClose = vi.fn();
+    render(() => (
+      <ParentsMenu
+        rows={rows}
+        onOpen={vi.fn()}
+        onHover={vi.fn()}
+        onClose={onClose}
+      />
+    ));
+
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

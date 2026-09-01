@@ -1,9 +1,13 @@
-import { Binding, BindingAction, Targets } from "@locator/shared";
-import { createMemo } from "solid-js";
+import { strictConfig } from "@locator/shared";
+import { createMemo, createEffect, createSignal, onCleanup } from "solid-js";
 import { AdapterId } from "../consts";
-import { getElementInfo } from "../adapters/getElementInfo";
+import {
+  getElementInfo,
+  getElementInfoAsync,
+} from "../adapters/getElementInfo";
 import { Outline } from "./Outline";
 import { css } from "@locator/styled-system/css";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 const styles = {
   viewport: css({
@@ -26,24 +30,51 @@ const styles = {
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  bindings: Binding[];
+  bindings: readonly strictConfig.ConfiguredBinding[];
   performAction: (
-    action: BindingAction,
+    action: strictConfig.ConfiguredAction,
     element: import("../adapters/adapterApi").FullElementInfo,
     position: { x: number; y: number }
   ) => Promise<boolean>;
   adapterId?: AdapterId;
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
 }) {
   const elInfo = createMemo(() =>
     getElementInfo(props.currentElement, props.adapterId)
   );
+  const [asyncInfo, setAsyncInfo] = createSignal<
+    import("../adapters/adapterApi").FullElementInfo | null
+  >(null);
+  const [pending, setPending] = createSignal(false);
+  createEffect(() => {
+    const element = props.currentElement;
+    const adapter = props.adapterId;
+    const sync = elInfo();
+    setAsyncInfo(null);
+    if (sync?.thisElement.link || (adapter && adapter !== "react")) return;
+    const controller = new AbortController();
+    setPending(true);
+    void getElementInfoAsync(
+      element,
+      adapter,
+      createSourceResolutionContext(controller.signal)
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) setAsyncInfo(result);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setPending(false);
+      });
+    onCleanup(() => controller.abort());
+  });
+  const resolvedInfo = () => asyncInfo() ?? elInfo();
   const box = () => props.currentElement.getBoundingClientRect();
   return (
     <>
-      {elInfo() ? (
+      {resolvedInfo() ? (
         <Outline
-          element={elInfo()!}
+          element={resolvedInfo()!}
           showTreeFromElement={props.showTreeFromElement}
           bindings={props.bindings}
           performAction={props.performAction}
@@ -71,7 +102,7 @@ export function MaybeOutline(props: {
               "text-overflow": "ellipsis",
             }}
           >
-            No source found
+            {pending() ? "Finding source…" : "No source found"}
           </div>
         </div>
       )}

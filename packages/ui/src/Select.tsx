@@ -7,6 +7,7 @@ import {
 import { Check, ChevronDown } from "lucide-solid";
 import { css, cx } from "@locator/styled-system/css";
 import { button } from "@locator/styled-system/recipes";
+import { usePortalMount } from "./PortalMount";
 
 export type SelectItem = {
   value: string;
@@ -116,8 +117,10 @@ export function Select(
     "class",
     "variant",
     "size",
+    "id",
   ]);
   const ghost = () => local.variant === "ghost";
+  const portalMount = usePortalMount(() => local.portalMount);
   const hasIcons = () => local.items.some((item) => item.icon);
   const collection = createMemo(() =>
     createListCollection<SelectItem>({
@@ -131,6 +134,7 @@ export function Select(
 
   return (
     <ArkSelect.Root
+      ids={local.id ? { trigger: local.id } : undefined}
       class={cx(ghost() ? styles.rootInline : styles.root, local.class)}
       collection={collection()}
       value={local.value ? [local.value] : []}
@@ -168,7 +172,7 @@ export function Select(
           </ArkSelect.Indicator>
         </ArkSelect.Trigger>
       </ArkSelect.Control>
-      <Portal mount={local.portalMount ?? document.body}>
+      <Portal mount={portalMount()}>
         <ArkSelect.Positioner class={styles.positioner}>
           <ArkSelect.Content
             class={cx(styles.content, ghost() && styles.contentInline)}

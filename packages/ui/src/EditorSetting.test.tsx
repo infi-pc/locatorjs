@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { LocatorLayer, LocatorOptions } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { EditorSetting } from "./EditorSetting";
 
 const targets = {
@@ -10,8 +10,10 @@ const targets = {
   },
 };
 
-const layers: Partial<Record<LocatorLayer, LocatorOptions>> = {
-  "user-origin": { editor: { targetId: "cursor" } },
+const layers: Partial<
+  Record<strictConfig.LocatorLayerId, strictConfig.SerializedLayerV3>
+> = {
+  "user-origin": { editor: { kind: "target", id: "cursor" } },
 };
 
 afterEach(cleanup);
@@ -43,9 +45,11 @@ describe("EditorSetting", () => {
     await editTemplate("myeditor://file/${filePath}");
 
     expect(write).toHaveBeenCalledWith({
-      editor: {
-        targetTemplate: "myeditor://file/${filePath}",
-        targetId: undefined,
+      set: {
+        editor: {
+          kind: "template",
+          template: "myeditor://file/${filePath}",
+        },
       },
     });
     expect(

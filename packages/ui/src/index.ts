@@ -27,3 +27,4 @@ export * from "./Wizard";
 export * from "./treeModel";
 export * from "./TreePanel";
 export * from "./ParentsMenu";
+export * from "./PortalMount";

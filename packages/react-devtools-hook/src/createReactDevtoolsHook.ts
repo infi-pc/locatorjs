@@ -1,9 +1,5 @@
-import {
-  FiberRoot,
-  ReactInternals,
-  ReactDevtoolsHook,
-} from "@locator/shared/src/types";
-import { isValidRenderer } from "@locator/shared/dist/isValidRenderer";
+import { FiberRoot, ReactInternals, ReactDevtoolsHook } from "@locator/shared";
+import { isValidRenderer } from "@locator/shared";
 
 declare global {
   interface Window {

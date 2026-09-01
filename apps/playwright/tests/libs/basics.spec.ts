@@ -1,12 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
-
-async function expectLocatorReady(page: Page) {
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true }).first()
-  ).toBeAttached({ timeout: 15_000 });
-}
+import { expectLocatorReady } from "../activateLocator";
 
 async function expectWelcome(page: Page) {
   await expect(

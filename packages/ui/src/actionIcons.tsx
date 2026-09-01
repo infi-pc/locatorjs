@@ -1,10 +1,5 @@
-import {
-  hasEditorOverride,
-  resolveBindingTarget,
-  type BindingAction,
-  type EditorSelection,
-  type Targets,
-} from "@locator/shared";
+import { strictConfig } from "@locator/shared";
+export { actionLabel } from "@locator/shared";
 import {
   Clipboard,
   FileCode2,
@@ -16,40 +11,41 @@ import {
 import { editorIconFor } from "./editorIcons";
 import type { SelectItem } from "./Select";
 
-export const actionSelectItems: SelectItem[] = [
-  {
-    value: "open-editor",
+const actionSelectItemByKind = {
+  "open-editor": {
     label: "Open in editor",
     icon: () => actionTypeIconFor("open-editor"),
   },
-  {
-    value: "copy-path",
+  "copy-path": {
     label: "Copy path",
     icon: () => actionTypeIconFor("copy-path"),
   },
-  {
-    value: "copy-prompt",
+  "copy-prompt": {
     label: "Copy AI prompt",
     icon: () => actionTypeIconFor("copy-prompt"),
   },
-  {
-    value: "open-prompt",
-    label: "Open AI prompt in…",
+  "open-prompt": {
+    label: "Open prompt in…",
     icon: () => actionTypeIconFor("open-prompt"),
   },
-  {
-    value: "show-tree",
+  "show-tree": {
     label: "Tree view",
     icon: () => actionTypeIconFor("show-tree"),
   },
-  {
-    value: "show-parents",
+  "show-parents": {
     label: "Parents",
     icon: () => actionTypeIconFor("show-parents"),
   },
-];
+} satisfies Record<
+  strictConfig.BindingAction["kind"],
+  Omit<SelectItem, "value">
+>;
 
-export function actionTypeIconFor(kind: BindingAction["kind"]) {
+export const actionSelectItems: SelectItem[] = Object.entries(
+  actionSelectItemByKind
+).map(([value, item]) => ({ value, ...item }));
+
+export function actionTypeIconFor(kind: strictConfig.BindingAction["kind"]) {
   switch (kind) {
     case "open-editor":
       return <FileCode2 size={16} />;
@@ -67,19 +63,17 @@ export function actionTypeIconFor(kind: BindingAction["kind"]) {
 }
 
 export function actionIconFor(
-  action: BindingAction,
-  targets?: Targets,
-  editor?: EditorSelection
+  action: strictConfig.BindingAction,
+  targets?: strictConfig.TargetViewMap,
+  editor?: strictConfig.EditorDestination
 ) {
   switch (action.kind) {
     case "open-editor": {
-      if (action.targetTemplate) return editorIconFor("custom");
-      if (targets) {
-        const target = resolveBindingTarget(action, targets, editor);
-        if (target.kind === "template") return editorIconFor("custom");
-        return editorIconFor(target.id || "default");
-      }
-      return editorIconFor(action.targetId ?? editor?.targetId ?? "default");
+      const destination = action.destination ?? editor;
+      if (destination?.kind === "template") return editorIconFor("custom");
+      return editorIconFor(
+        destination?.kind === "target" ? destination.id : "default"
+      );
     }
     case "copy-path":
       return actionTypeIconFor(action.kind);
@@ -93,40 +87,5 @@ export function actionIconFor(
       return actionTypeIconFor(action.kind);
     default:
       return <FileCode2 size={16} />;
-  }
-}
-
-export function actionLabel(
-  action: BindingAction,
-  targets?: Targets,
-  editor?: EditorSelection
-): string {
-  switch (action.kind) {
-    case "open-editor": {
-      // Actions without an override follow the global Editor setting, so the
-      // label stays generic; only a pinned destination names an editor.
-      if (!hasEditorOverride(action)) return "Open in editor";
-      if (targets) {
-        const target = resolveBindingTarget(action, targets, editor);
-        if (target.kind === "template") return "Open custom editor link";
-        return `Open in ${
-          targets[target.id]?.label ?? (target.id || "editor")
-        }`;
-      }
-      if (action.targetTemplate) return "Open custom editor link";
-      return `Open in ${action.targetId}`;
-    }
-    case "copy-path":
-      return "Copy path";
-    case "copy-prompt":
-      return "Copy AI prompt";
-    case "open-prompt":
-      return `Open prompt in ${
-        action.app === "cursor" ? "Cursor" : "Windsurf"
-      }`;
-    case "show-tree":
-      return "Tree view";
-    case "show-parents":
-      return "Parents";
   }
 }

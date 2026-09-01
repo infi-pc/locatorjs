@@ -1,19 +1,35 @@
 {
   "name": "@locator/ui",
-  "version": "0.5.0",
+  "version": "2.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "ICON-LICENSES.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "dev": "concurrently pnpm:dev:*",
     "dev:babel": "babel src --watch --out-dir dist --extensions .ts,.tsx --copy-files",
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
-    "build": "concurrently pnpm:build:*",
-    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx --copy-files",
-    "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
+    "build": "node ../../scripts/clean-package-dist.js && concurrently pnpm:build:babel pnpm:build:ts",
+    "build:babel": "babel src --out-dir dist --extensions .ts,.tsx --copy-files --no-copy-ignored --ignore '**/*.test.ts,**/*.test.tsx'",
+    "build:ts": "tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist",
     "ts": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "@ark-ui/solid": "^5.37.1",
@@ -23,6 +39,7 @@
     "solid-js": "^1.9.12"
   },
   "devDependencies": {
+    "@locator/dev-config": "workspace:^",
     "@babel/cli": "^7.28.6",
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.2",

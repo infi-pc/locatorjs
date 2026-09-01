@@ -1,42 +1,17 @@
-import { Targets } from "@locator/shared";
-import { buildLinkFromSource, buildLink } from "./buildLink";
-import { HREF_TARGET } from "../consts";
-import { LinkProps, Source } from "../types/types";
-import { OptionsStore } from "./optionsStore";
-import { editorNeedsSetup } from "./linkTemplateUrl";
+import type { LinkProps } from "../types/types";
+import { buildLink } from "./buildLink";
+import type { OptionsStore } from "./optionsStore";
 
 export function goTo(link: string, options: OptionsStore) {
-  window.open(link, options.effective().hrefTarget || HREF_TARGET);
+  window.open(link, options.effective().hrefTarget);
 }
 
-export function goToLinkProps(
-  linkProps: LinkProps,
-  targets: Targets,
-  options: OptionsStore
-) {
-  goTo(buildLink(linkProps, targets, options), options);
-}
-
-export function goToSource(
-  source: Source,
-  targets: Targets,
-  options: OptionsStore
-) {
-  return goTo(buildLinkFromSource(source, targets, options), options);
-}
-
-/**
- * Navigates unless we would be guessing the destination, in which case the
- * caller is told to ask the user to pick an editor first.
- *
- * @returns false when no editor is configured and nothing was opened.
- */
 export function goToLinkPropsOrSetup(
   linkProps: LinkProps,
-  targets: Targets,
   options: OptionsStore
 ): boolean {
-  if (editorNeedsSetup(targets, options)) return false;
-  goToLinkProps(linkProps, targets, options);
+  const editor = options.effective().editor;
+  if (editor.kind === "needs-selection") return false;
+  goTo(buildLink(linkProps, options, editor), options);
   return true;
 }

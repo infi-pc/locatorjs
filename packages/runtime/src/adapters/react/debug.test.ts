@@ -59,7 +59,7 @@ describe("logSourceFound", () => {
   });
 
   test("does not log when debug disabled", () => {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- empty named fiber is sufficient test data.
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     logSourceFound(
       SourceMethod.FIBER_DEBUG_SOURCE,
@@ -72,7 +72,7 @@ describe("logSourceFound", () => {
 
   test("logs when debug enabled", () => {
     enableLocatorDebug();
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- empty named fiber is sufficient test data.
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     logSourceFound(
       SourceMethod.FIBER_DEBUG_SOURCE,
@@ -85,7 +85,7 @@ describe("logSourceFound", () => {
 
   test("adds entry to debug history", () => {
     enableLocatorDebug();
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- empty named fiber is sufficient test data.
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     logSourceFound(
       SourceMethod.FIBER_DEBUG_SOURCE,

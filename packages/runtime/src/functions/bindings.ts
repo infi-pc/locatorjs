@@ -1,107 +1,84 @@
-import {
-  DEFAULT_LAYER,
-  normalizeLayer,
-  type Binding,
-  type LocatorOptions,
-} from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 
 type ModifierEvent = Pick<
   MouseEvent | KeyboardEvent,
   "altKey" | "ctrlKey" | "metaKey" | "shiftKey"
 >;
 
-export function effectiveBindings(options: LocatorOptions): Binding[] {
-  return normalizeLayer(options).bindings ?? DEFAULT_LAYER.bindings ?? [];
+export function effectiveBindings(
+  options: strictConfig.EffectiveOptions
+): readonly strictConfig.ConfiguredBinding[] {
+  return strictConfig.configuredBindings(options.bindings);
 }
 
-export function iconBindings(bindings: Binding[]): Binding[] {
+export function iconBindings(
+  bindings: readonly strictConfig.ConfiguredBinding[]
+): readonly strictConfig.ConfiguredBinding[] {
   return bindings.filter((binding) => binding.trigger.kind === "hover-toolbar");
 }
 
-/**
- * Modifier combination that reveals the outline and its hover toolbar when no
- * modifier-click binding defines one. Without this the toolbar — and with it
- * the tree and parents actions — would be unreachable for anyone who deleted
- * every shortcut.
- */
-export const FALLBACK_ACTIVATION_MODIFIERS = "alt";
-
-function parseModifiers(modifiers: string): Set<string> {
-  return new Set(
-    modifiers
-      .split("+")
-      .map((item) => item.trim())
-      .filter(Boolean)
-  );
+const fallbackActivationChord = strictConfig.modifierChordFromState({
+  alt: true,
+  ctrl: false,
+  meta: false,
+  shift: false,
+});
+if (fallbackActivationChord === null) {
+  throw new Error("The fallback activation chord is invalid.");
 }
+export const FALLBACK_ACTIVATION_CHORD = fallbackActivationChord;
 
 /**
- * `ignoreCtrl` exists for macOS, where Ctrl+click *is* a right-click: the
- * `contextmenu` event arrives with `ctrlKey` set even though the user only
- * meant to open the menu. The relaxation is therefore one-way -- a spurious
- * `ctrlKey: true` is forgiven, but `ctrlKey: false` can never satisfy a
- * binding that asks for Ctrl. Skipping the comparison outright made a
- * Ctrl-only shortcut match every plain right-click and swallow the native
- * context menu.
+ * macOS reports Ctrl+click as a context-menu gesture. A spurious Ctrl is only
+ * ignored when the configured chord itself does not require Ctrl.
  */
-function matchesCtrl(
-  expected: Set<string>,
+function chordFromEvent(
   event: ModifierEvent,
-  config: { ignoreCtrl?: boolean }
-): boolean {
-  if (expected.has("ctrl")) return event.ctrlKey;
-  return config.ignoreCtrl ? true : !event.ctrlKey;
-}
-
-function matchesModifiers(
-  expected: Set<string>,
-  event: ModifierEvent,
-  config: { ignoreCtrl?: boolean } = {}
-): boolean {
-  return (
-    event.altKey === expected.has("alt") &&
-    matchesCtrl(expected, event, config) &&
-    event.metaKey === expected.has("meta") &&
-    event.shiftKey === expected.has("shift")
-  );
+  config: { ignoreCtrl?: boolean } = {},
+  expected?: strictConfig.ModifierChord
+): strictConfig.ModifierChord | null {
+  const expectedUsesCtrl = expected
+    ? strictConfig.modifiersForChord(expected).includes("ctrl")
+    : false;
+  return strictConfig.modifierChordFromState({
+    alt: event.altKey,
+    ctrl: config.ignoreCtrl && !expectedUsesCtrl ? false : event.ctrlKey,
+    meta: event.metaKey,
+    shift: event.shiftKey,
+  });
 }
 
 export function matchBinding(
-  bindings: Binding[],
+  bindings: readonly strictConfig.ConfiguredBinding[],
   event: ModifierEvent,
   config: { ignoreCtrl?: boolean } = {}
-): Binding | null {
+): strictConfig.ConfiguredBinding | null {
   return (
-    bindings.find((binding) => {
-      if (binding.trigger.kind !== "modifier-click") return false;
-      return matchesModifiers(
-        parseModifiers(binding.trigger.modifiers),
-        event,
-        config
-      );
-    }) ?? null
+    bindings.find(
+      (binding) =>
+        binding.trigger.kind === "modifier-click" &&
+        chordFromEvent(event, config, binding.trigger.chord) ===
+          binding.trigger.chord
+    ) ?? null
   );
 }
 
-/**
- * Every modifier combination that reveals the outline: whatever the shortcuts
- * use, or the fallback when there are only toolbar actions.
- */
-export function activationModifiers(bindings: Binding[]): string[] {
-  const fromShortcuts = bindings.flatMap((binding) =>
-    binding.trigger.kind === "modifier-click" ? [binding.trigger.modifiers] : []
+/** Every modifier chord that reveals the outline and hover toolbar. */
+export function activationModifiers(
+  bindings: readonly strictConfig.ConfiguredBinding[]
+): readonly strictConfig.ModifierChord[] {
+  const chords = bindings.flatMap((binding) =>
+    binding.trigger.kind === "modifier-click" ? [binding.trigger.chord] : []
   );
-  return fromShortcuts.length
-    ? Array.from(new Set(fromShortcuts))
-    : [FALLBACK_ACTIVATION_MODIFIERS];
+  return chords.length
+    ? Array.from(new Set(chords))
+    : [FALLBACK_ACTIVATION_CHORD];
 }
 
-/** True while the user is holding a combination that reveals the outline. */
 export function matchesActivation(
-  bindings: Binding[],
+  bindings: readonly strictConfig.ConfiguredBinding[],
   event: ModifierEvent
 ): boolean {
-  return activationModifiers(bindings).some((modifiers) =>
-    matchesModifiers(parseModifiers(modifiers), event)
-  );
+  const actual = chordFromEvent(event);
+  return activationModifiers(bindings).some((chord) => chord === actual);
 }

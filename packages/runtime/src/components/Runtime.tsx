@@ -1,8 +1,4 @@
-import {
-  detectSvelte,
-  primaryEditorBinding,
-  type BindingAction,
-} from "@locator/shared";
+import { detectSvelte, actionLabel, strictConfig } from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
@@ -28,7 +24,8 @@ import { getTree } from "../adapters/getTree";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
-import { OptionsProvider, useOptions } from "../functions/optionsStore";
+import { OptionsProvider, useOptions } from "../functions/optionsContext";
+import type { OptionsStore } from "../functions/optionsStore";
 import { DisableConfirmation } from "./DisableConfirmation";
 import { ContextView } from "./ContextView";
 import { css } from "@locator/styled-system/css";
@@ -42,10 +39,11 @@ import { performAction } from "../functions/performAction";
 import { goToLinkPropsOrSetup } from "../functions/goTo";
 import { idsOnPathToRoot } from "../functions/treeViewModel";
 import type { FullElementInfo } from "../adapters/adapterApi";
-import { actionLabel } from "@locator/ui";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
+import { PortalMountProvider } from "@locator/ui";
 import { resolveEventTarget } from "../functions/resolveEventTarget";
 import {
-  observeShadowRoots,
+  listenForShadowRootScrolls,
   setPointerCursorInShadowRoots,
 } from "../functions/shadowRoots";
 import {
@@ -53,6 +51,7 @@ import {
   listenToFrameModifiers,
   modifiersFromEvent,
 } from "../functions/crossFrameModifiers";
+import generatedStyles from "../_generated_styles";
 
 const styles = {
   dialogBackdrop: css({
@@ -96,17 +95,48 @@ type UiMode =
 
 function Runtime(props: {
   portalMount: HTMLDivElement;
-  tryAction: BindingAction | null;
-  setTryAction: (action: BindingAction | null) => void;
+  tryAction: strictConfig.ConfiguredAction | null;
+  setTryAction: (action: strictConfig.ConfiguredAction | null) => void;
+  initialActivation?: { held: boolean; target?: HTMLElement };
 }) {
   const [uiMode, setUiMode] = createSignal<UiMode>(["off"]);
   // Holding an activation modifier reveals the outline and its toolbar. It is
   // deliberately separate from binding matching: a config with only toolbar
   // actions still needs a way to bring the toolbar up.
-  const [activationHeld, setActivationHeld] = createSignal(false);
-  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
-    null
+  const [activationHeld, setActivationHeld] = createSignal(
+    props.initialActivation?.held ?? false
   );
+  const [currentElement, setCurrentElement] = createSignal<HTMLElement | null>(
+    props.initialActivation?.target ?? null
+  );
+  const [resolutionPending, setResolutionPending] = createSignal(false);
+  const [actionNotice, setActionNotice] = createSignal<string>();
+  let actionNoticeTimeout: number | undefined;
+  let resolutionSequence = 0;
+  let activeResolution: { id: number; controller: AbortController } | undefined;
+
+  const cancelResolution = () => {
+    activeResolution?.controller.abort();
+    activeResolution = undefined;
+    setResolutionPending(false);
+  };
+  const showActionNotice = (message: string) => {
+    setActionNotice(message);
+    window.clearTimeout(actionNoticeTimeout);
+    actionNoticeTimeout = window.setTimeout(
+      () => setActionNotice(undefined),
+      8_000
+    );
+  };
+  onCleanup(() => window.clearTimeout(actionNoticeTimeout));
+  let previousTryAction: strictConfig.ConfiguredAction | null | undefined;
+  createEffect(() => {
+    const nextTryAction = props.tryAction;
+    if (nextTryAction !== previousTryAction) {
+      previousTryAction = nextTryAction;
+      cancelResolution();
+    }
+  });
 
   const [dialog, setDialog] = createSignal<
     | ["no-link"]
@@ -122,8 +152,10 @@ function Runtime(props: {
   );
 
   const options = useOptions();
-  const adapterId = () =>
-    options.effective().adapterId as AdapterId | undefined;
+  const adapterId = () => {
+    const adapter = options.effective().adapter;
+    return adapter.kind === "fixed" ? (adapter.id as AdapterId) : undefined;
+  };
   const targets = () => options.allTargets();
   const bindings = () => effectiveBindings(options.effective());
 
@@ -146,9 +178,12 @@ function Runtime(props: {
   }
 
   function keyDownListener(e: KeyboardEvent) {
-    if (e.key === "Escape" && props.tryAction) {
-      props.setTryAction(null);
-      return;
+    if (e.key === "Escape") {
+      cancelResolution();
+      if (props.tryAction) {
+        props.setTryAction(null);
+        return;
+      }
     }
     setActivationHeld(matchesActivation(bindings(), e));
     broadcastModifiers(modifiersFromEvent(e));
@@ -168,7 +203,6 @@ function Runtime(props: {
       if (isLocatorsOwnElement(target)) {
         return;
       }
-
       setActivationHeld(matchesActivation(bindings(), e));
 
       setCurrentElement(target);
@@ -199,6 +233,27 @@ function Runtime(props: {
       options.uiState().welcomeScreenDismissed ??
       false
     );
+  }
+
+  async function dispatchClickAction(
+    action: strictConfig.ConfiguredAction,
+    elementInfo: FullElementInfo
+  ) {
+    if (
+      action.kind === "open-editor" &&
+      (!isExtension() || detectSvelte()) &&
+      !onboardingDismissed() &&
+      !props.tryAction
+    ) {
+      const link = elementInfo.thisElement.link;
+      if (!link) return;
+      setDialog(["choose-editor", link]);
+      return;
+    }
+
+    if (action.kind === "open-editor") trackClickStats();
+    const succeeded = await runAction(action, elementInfo);
+    if (props.tryAction && succeeded) props.setTryAction(null);
   }
 
   function rightClickListener(e: MouseEvent) {
@@ -235,28 +290,23 @@ function Runtime(props: {
         return;
       }
 
+      // A click is the unit of intent. Even a synchronously resolvable second
+      // click supersedes an older async operation.
+      cancelResolution();
+
       // Try sync resolution first
       let elInfo = getElementInfo(target, adapterId());
 
       if (
         elInfo &&
-        (elInfo.thisElement.link || !actionNeedsSourceLink(binding.action))
+        ((elInfo.thisElement.link &&
+          elInfo.thisElement.sourceProvenance !== "ancestor") ||
+          !actionNeedsSourceLink(binding.action))
       ) {
         // Sync found a link — prevent default and navigate
         e.preventDefault();
         e.stopPropagation();
-        if (
-          binding.action.kind === "open-editor" &&
-          (!isExtension() || detectSvelte()) &&
-          !onboardingDismissed() &&
-          !props.tryAction
-        ) {
-          setDialog(["choose-editor", elInfo.thisElement.link!]);
-        } else {
-          if (binding.action.kind === "open-editor") trackClickStats();
-          const succeeded = await runAction(binding.action, elInfo);
-          if (props.tryAction && succeeded) props.setTryAction(null);
-        }
+        await dispatchClickAction(binding.action, elInfo);
         return;
       }
 
@@ -267,44 +317,62 @@ function Runtime(props: {
 
       // Try async resolution (source-map, Turbopack, etc.)
       const tryActionAtClick = props.tryAction;
-      if (!elInfo?.thisElement.link) {
-        elInfo = await getElementInfoAsync(target, adapterId());
-      }
+      const operation = {
+        id: ++resolutionSequence,
+        controller: new AbortController(),
+      };
+      activeResolution = operation;
+      setResolutionPending(true);
+      const context = createSourceResolutionContext(
+        operation.controller.signal
+      );
+      const finishResolution = () => {
+        if (activeResolution?.id !== operation.id) return;
+        activeResolution = undefined;
+        setResolutionPending(false);
+      };
+      try {
+        if (!elInfo?.thisElement.link) {
+          elInfo = await getElementInfoAsync(target, adapterId(), context);
+        }
 
-      // Resolution can take a while, and Esc or a mode change during it means
-      // the user no longer wants this action to fire.
-      if (props.tryAction !== tryActionAtClick) return;
+        // Resolution can take a while, and Esc or a mode change during it means
+        // the user no longer wants this action to fire.
+        if (
+          activeResolution?.id !== operation.id ||
+          operation.controller.signal.aborted ||
+          props.tryAction !== tryActionAtClick
+        ) {
+          return;
+        }
+        finishResolution();
 
-      if (elInfo) {
-        const linkProps = elInfo.thisElement.link;
-        if (linkProps || !actionNeedsSourceLink(binding.action)) {
-          if (
-            binding.action.kind === "open-editor" &&
-            (!isExtension() || detectSvelte()) &&
-            !onboardingDismissed() &&
-            !props.tryAction
-          ) {
-            setDialog(["choose-editor", linkProps!]);
+        if (elInfo) {
+          const linkProps = elInfo.thisElement.link;
+          if (linkProps || !actionNeedsSourceLink(binding.action)) {
+            await dispatchClickAction(binding.action, elInfo);
           } else {
-            if (binding.action.kind === "open-editor") trackClickStats();
-            const succeeded = await runAction(binding.action, elInfo);
-            if (props.tryAction && succeeded) props.setTryAction(null);
+            // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
+            console.error(
+              "[LocatorJS]: Could not find link: Element info: ",
+              elInfo
+            );
+            setDialog(["no-link"]);
           }
         } else {
-          // eslint-disable-next-line no-console
+          // eslint-disable-next-line no-console -- a failed user action needs a visible developer diagnostic.
           console.error(
-            "[LocatorJS]: Could not find link: Element info: ",
-            elInfo
+            "[LocatorJS]: Could not find element info. Element: ",
+            target
           );
           setDialog(["no-link"]);
         }
-      } else {
-        // eslint-disable-next-line no-console
-        console.error(
-          "[LocatorJS]: Could not find element info. Element: ",
-          target
-        );
-        setDialog(["no-link"]);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          throw error;
+        }
+      } finally {
+        finishResolution();
       }
     }
   }
@@ -352,14 +420,12 @@ function Runtime(props: {
   });
   document.addEventListener("scroll", scrollListener, { capture: true });
 
-  const scrollRoots = new Set<ShadowRoot>();
-  const stopObservingShadowRoots = observeShadowRoots((root) => {
-    if (scrollRoots.has(root)) return;
-    scrollRoots.add(root);
-    root.addEventListener("scroll", scrollListener, { capture: true });
-  });
+  const stopListeningToShadowScrolls = listenForShadowRootScrolls(
+    scrollListener as EventListener
+  );
 
   onCleanup(() => {
+    cancelResolution();
     document.removeEventListener("keyup", keyUpListener as EventListener);
     document.removeEventListener("keydown", keyDownListener as EventListener);
     document.removeEventListener(
@@ -394,11 +460,7 @@ function Runtime(props: {
     );
     document.removeEventListener("scroll", scrollListener, { capture: true });
 
-    stopObservingShadowRoots();
-    for (const root of scrollRoots) {
-      root.removeEventListener("scroll", scrollListener, { capture: true });
-    }
-    scrollRoots.clear();
+    stopListeningToShadowScrolls();
   });
 
   function showTreeFromElement(element: HTMLElement) {
@@ -419,6 +481,12 @@ function Runtime(props: {
   }
 
   function requestEditorSetup(link: LinkProps) {
+    if (options.editorWithheld()) {
+      showActionNotice(
+        "Open in editor is not available inside a cross-origin frame."
+      );
+      return;
+    }
     setDialog(["setup-editor", link]);
   }
 
@@ -428,18 +496,17 @@ function Runtime(props: {
    * into the void.
    */
   function openLink(link: LinkProps): void {
-    if (goToLinkPropsOrSetup(link, targets(), options)) return;
+    if (goToLinkPropsOrSetup(link, options)) return;
     requestEditorSetup(link);
   }
 
   function runAction(
-    action: BindingAction,
+    action: strictConfig.ConfiguredAction,
     element: FullElementInfo,
     position?: { x: number; y: number }
   ) {
     return performAction(action, {
       element,
-      targets: targets(),
       options,
       showTree: showTreeFromElement,
       showParents: showContextMenu,
@@ -458,7 +525,6 @@ function Runtime(props: {
           treeState={uiMode()[1]! as TreeState}
           close={() => setUiMode(["off"])}
           setTreeState={(newState) => setUiMode(["tree", newState])}
-          targets={targets()}
           setHighlightedNode={setHighlightedNode}
           openLink={openLink}
         />
@@ -468,7 +534,6 @@ function Runtime(props: {
           contextMenuState={uiMode()[1]! as ContextMenuState}
           close={() => setUiMode(["off"])}
           adapterId={adapterId()}
-          targets={targets()}
           openLink={openLink}
         />
       ) : null}
@@ -517,15 +582,29 @@ function Runtime(props: {
             setUiMode(["disable-confirmation"]);
           }}
           onTryAction={(action) => {
-            props.setTryAction(action);
-            setUiMode(["off"]);
+            const parsed = strictConfig.parseAction(action);
+            if (parsed.ok) {
+              props.setTryAction(parsed.value);
+              setUiMode(["off"]);
+            }
           }}
         />
       ) : null}
-      {props.tryAction ? (
+      {props.tryAction && !actionNotice() ? (
         <div class={styles.tryPill}>
-          Trying “{actionLabel(props.tryAction, targets())}” — click a
-          component. Esc to cancel.
+          Trying “
+          {actionLabel(strictConfig.encodeAction(props.tryAction), targets())}”
+          — click a component. Esc to cancel.
+        </div>
+      ) : null}
+      {actionNotice() ? (
+        <div class={styles.tryPill} role="alert">
+          {actionNotice()}
+        </div>
+      ) : null}
+      {resolutionPending() ? (
+        <div class={styles.tryPill} role="status">
+          Finding source… Esc to cancel.
         </div>
       ) : null}
       {uiMode()[0] === "disable-confirmation" ? (
@@ -559,9 +638,9 @@ function Runtime(props: {
                 // Without an editor binding there is still one thing to try:
                 // opening the editor that was just picked.
                 props.setTryAction(
-                  primaryEditorBinding(bindings())?.action ?? {
-                    kind: "open-editor",
-                  }
+                  strictConfig.primaryEditorBinding(
+                    options.effective().bindings
+                  )?.action ?? strictConfig.DEFAULT_OPEN_EDITOR_ACTION
                 );
               }}
               onClose={() => {
@@ -575,13 +654,20 @@ function Runtime(props: {
   );
 }
 
-function actionNeedsSourceLink(action: BindingAction) {
+function actionNeedsSourceLink(action: strictConfig.ConfiguredAction) {
   return action.kind === "open-editor" || action.kind === "copy-path";
 }
 
-function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
+function RuntimeWrapper(props: {
+  portalMount: HTMLDivElement;
+  initialActivation?: { held: boolean; target?: HTMLElement };
+  initialTryAction?: strictConfig.ConfiguredAction;
+}) {
   const options = useOptions();
-  const [tryAction, setTryAction] = createSignal<BindingAction | null>(null);
+  const [tryAction, setTryAction] =
+    createSignal<strictConfig.ConfiguredAction | null>(
+      props.initialTryAction ?? null
+    );
 
   const isDisabled = () => options.effective().disabled || false;
 
@@ -593,14 +679,21 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
     }
   });
 
+  let tryActionTimeout: number | undefined;
+  if (props.initialTryAction) {
+    tryActionTimeout = window.setTimeout(() => setTryAction(null), 5_000);
+  }
   const onTryAction = (event: Event) => {
-    const action = (event as CustomEvent<BindingAction>).detail;
+    const action = (event as CustomEvent<strictConfig.ConfiguredAction>).detail;
     setTryAction(action);
+    window.clearTimeout(tryActionTimeout);
+    tryActionTimeout = window.setTimeout(() => setTryAction(null), 5_000);
   };
   window.addEventListener("locatorjs:try-action", onTryAction);
-  onCleanup(() =>
-    window.removeEventListener("locatorjs:try-action", onTryAction)
-  );
+  onCleanup(() => {
+    window.clearTimeout(tryActionTimeout);
+    window.removeEventListener("locatorjs:try-action", onTryAction);
+  });
 
   return (
     <Show when={!isDisabled()}>
@@ -608,18 +701,42 @@ function RuntimeWrapper(props: { portalMount: HTMLDivElement }) {
         portalMount={props.portalMount}
         tryAction={tryAction()}
         setTryAction={setTryAction}
+        initialActivation={props.initialActivation}
       />
     </Show>
   );
 }
 
-export function initRender(solidLayer: HTMLDivElement) {
+export function initRender(
+  solidLayer: HTMLDivElement,
+  options: OptionsStore,
+  initial?: {
+    activation?: { held: boolean; target?: HTMLElement };
+    tryAction?: strictConfig.ConfiguredAction;
+  }
+) {
+  const root = solidLayer.getRootNode();
+  if (
+    root instanceof ShadowRoot &&
+    !root.getElementById("locatorjs-feature-style")
+  ) {
+    const featureStyle = document.createElement("style");
+    featureStyle.id = "locatorjs-feature-style";
+    featureStyle.textContent = generatedStyles;
+    root.prepend(featureStyle);
+  }
   render(
     () => (
       <EnvironmentProvider value={() => solidLayer.getRootNode() as ShadowRoot}>
-        <OptionsProvider>
-          <RuntimeWrapper portalMount={solidLayer} />
-        </OptionsProvider>
+        <PortalMountProvider mount={solidLayer}>
+          <OptionsProvider store={options}>
+            <RuntimeWrapper
+              portalMount={solidLayer}
+              initialActivation={initial?.activation}
+              initialTryAction={initial?.tryAction}
+            />
+          </OptionsProvider>
+        </PortalMountProvider>
       </EnvironmentProvider>
     ),
     solidLayer

@@ -6,6 +6,7 @@ import svelteAdapter from "./svelte/svelteAdapter";
 import vueAdapter from "./vue/vueAdapter";
 import { AdapterId } from "../consts";
 import { FullElementInfo } from "./adapterApi";
+import type { SourceResolutionContext } from "./react/sourceMapResolver";
 
 export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
   if (adapterId === "react") {
@@ -36,17 +37,21 @@ export function getElementInfo(target: HTMLElement, adapterId?: AdapterId) {
  */
 export async function getElementInfoAsync(
   target: HTMLElement,
-  adapterId?: AdapterId
+  adapterId?: AdapterId,
+  context?: SourceResolutionContext
 ): Promise<FullElementInfo | null> {
   // Try synchronous method first
   const syncResult = getElementInfo(target, adapterId);
-  if (syncResult && syncResult.thisElement.link) {
+  if (
+    syncResult?.thisElement.link &&
+    syncResult.thisElement.sourceProvenance !== "ancestor"
+  ) {
     return syncResult;
   }
 
   // Sync failed to get link, try async (React only)
   if (adapterId === "react" || !adapterId) {
-    const asyncResult = await getReactElementInfoAsync(target);
+    const asyncResult = await getReactElementInfoAsync(target, context);
     if (asyncResult && asyncResult.thisElement.link) {
       return asyncResult;
     }

@@ -1,5 +1,7 @@
 import { expect, test, type Frame, type Page } from "@playwright/test";
+import { expectLocatorReady } from "../activateLocator";
 import { projects } from "../consts";
+import { seedLocatorStorage } from "../locatorStorage";
 
 /**
  * Shadow DOM and iframe coverage.
@@ -13,48 +15,29 @@ type CopyWindow = Window & { __locatorCopiedText?: string };
 const options = {
   bindings: [
     {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
+      trigger: { kind: "modifier-click", modifiers: ["alt"] },
       action: { kind: "copy-path" as const },
     },
   ],
-  uiState: {
-    welcomeScreenDismissed: true,
-    onboarding: { dismissed: true, step: "done" },
-  },
+};
+const uiState = {
+  welcomeScreenDismissed: true,
+  onboarding: { dismissed: true, step: "done" },
 };
 
 async function preparePage(page: Page) {
+  await seedLocatorStorage(page, options, uiState);
   // Runs in every frame, so iframe children get the same stub clipboard.
-  await page.addInitScript(
-    ({ options }) => {
-      localStorage.setItem("LOCATOR_USER_OPTIONS", JSON.stringify(options));
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: {
-          writeText: async (text: string) => {
-            (window as CopyWindow).__locatorCopiedText = text;
-          },
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          (window as CopyWindow).__locatorCopiedText = text;
         },
-      });
-    },
-    { options }
-  );
-}
-
-async function expectRuntimeReady(target: Page | Frame) {
-  // `__LOCATOR_RUNTIME__` appears once the runtime has mounted and its
-  // listeners are attached; the wrapper element alone shows up earlier.
-  await expect
-    .poll(
-      () =>
-        target.evaluate(
-          () =>
-            !!(window as Window & { __LOCATOR_RUNTIME__?: unknown })
-              .__LOCATOR_RUNTIME__
-        ),
-      { timeout: 15_000 }
-    )
-    .toBe(true);
+      },
+    });
+  });
 }
 
 async function resetCopied(target: Page | Frame) {
@@ -96,7 +79,7 @@ test.describe("shadow DOM", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await altClick(page, "text=Top-level document heading");
 
@@ -107,7 +90,7 @@ test.describe("shadow DOM", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await altClick(page, "text=paragraph in eager open shadow");
 
@@ -118,7 +101,7 @@ test.describe("shadow DOM", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await page.getByTestId("attach-late-shadow").click();
     await expect(
@@ -133,7 +116,7 @@ test.describe("shadow DOM", () => {
 
   test("element inside a nested shadow root resolves", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await altClick(page, "text=paragraph in nested open shadow");
 
@@ -144,7 +127,7 @@ test.describe("shadow DOM", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await altClick(page, "text=paragraph in custom element shadow");
 
@@ -155,7 +138,7 @@ test.describe("shadow DOM", () => {
 
   test("slotted light DOM element resolves", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await altClick(page, "text=slotted light dom paragraph");
 
@@ -166,7 +149,7 @@ test.describe("shadow DOM", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     const host = page.getByTestId("eager-shadow-host");
     await host.dispatchEvent("mouseover", { altKey: true });
@@ -177,7 +160,7 @@ test.describe("shadow DOM", () => {
 
   test("element inside a closed shadow root resolves", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     // Both shadow roots mount the same component, so the open one tells us the
     // source location the closed one has to produce. Resolving the host instead
@@ -209,7 +192,7 @@ test.describe("shadow DOM", () => {
 
   test("hovering inside a shadow root shows the outline", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     await page
       .locator("text=paragraph in eager open shadow")
@@ -229,13 +212,13 @@ test.describe("iframes", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     const frame = page
       .frames()
       .find((f) => f.url().includes("iframe-child.html"));
     expect(frame).toBeTruthy();
-    await expectRuntimeReady(frame!);
+    await expectLocatorReady(frame!);
 
     await altClick(frame!, "text=iframe child paragraph");
 
@@ -244,13 +227,18 @@ test.describe("iframes", () => {
 
   test("child overlay stays inside the child document", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
 
-    await childFrame(page, "iframe-same-origin-runtime")
+    const childHandle = await page
+      .getByTestId("iframe-same-origin-runtime")
+      .elementHandle();
+    const child = await childHandle?.contentFrame();
+    if (!child) throw new Error("same-origin iframe did not create a frame");
+    await expectLocatorReady(child);
+    await child
       .locator("text=iframe child paragraph")
       .first()
       .dispatchEvent("mouseover", { altKey: true });
-
+    await expect.poll(() => outlineVisible(child)).toBe(true);
     // The parent must not draw an outline for something it never hovered.
     expect(await outlineVisible(page)).toBe(false);
   });
@@ -259,7 +247,7 @@ test.describe("iframes", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
     await resetCopied(page);
 
     const iframe = page.getByTestId("iframe-same-origin-bare");
@@ -271,24 +259,17 @@ test.describe("iframes", () => {
 
   test("late-added iframe gets a working runtime", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
+    const framesBeforeClick = new Set(page.frames());
     await page.getByTestId("add-late-iframe").click();
-    await expect(page.getByTestId("iframe-late")).toBeAttached();
-
-    const frame = await expect
-      .poll(
-        () =>
-          page.frames().filter((f) => f.url().includes("iframe-child.html"))
-            .length
-      )
-      .toBeGreaterThan(1)
-      .then(() =>
-        page.frames().filter((f) => f.url().includes("iframe-child.html"))
-      );
-
-    const late = frame[frame.length - 1];
-    await expectRuntimeReady(late);
+    const iframe = page.getByTestId("iframe-late");
+    await expect(iframe).toBeAttached();
+    const handle = await iframe.elementHandle();
+    const late = await handle?.contentFrame();
+    if (!late) throw new Error("late iframe did not create a frame");
+    expect(framesBeforeClick.has(late)).toBe(false);
+    await expectLocatorReady(late);
     await altClick(late, "text=iframe child paragraph");
 
     await expect.poll(() => copied(late)).toContain("childMain.tsx");
@@ -296,7 +277,7 @@ test.describe("iframes", () => {
 
   test("nested iframe resolves in the innermost document", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     // The innermost frame is a grandchild: parent -> ?nested=1 -> plain child.
     const outer = page
@@ -305,7 +286,7 @@ test.describe("iframes", () => {
     expect(outer).toBeTruthy();
     const inner = outer!.childFrames()[0];
     expect(inner).toBeTruthy();
-    await expectRuntimeReady(inner);
+    await expectLocatorReady(inner);
 
     await altClick(inner, "text=iframe child paragraph");
 
@@ -326,7 +307,7 @@ test.describe("iframes", () => {
     );
 
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
     await resetCopied(page);
 
     const iframe = page.getByTestId("iframe-cross-origin");
@@ -339,7 +320,7 @@ test.describe("iframes", () => {
 
   test("srcdoc iframe element resolves in the parent", async ({ page }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
     await resetCopied(page);
 
     const iframe = page.getByTestId("iframe-srcdoc");
@@ -353,13 +334,13 @@ test.describe("iframes", () => {
     page,
   }) => {
     await page.goto(projects.reactEmbedding);
-    await expectRuntimeReady(page);
+    await expectLocatorReady(page);
 
     const frame = page
       .frames()
       .find((f) => f.url().includes("iframe-child.html"));
     expect(frame).toBeTruthy();
-    await expectRuntimeReady(frame!);
+    await expectLocatorReady(frame!);
 
     // The pointer settles inside the child first, with no modifier held...
     const paragraph = frame!.locator("text=iframe child paragraph").first();

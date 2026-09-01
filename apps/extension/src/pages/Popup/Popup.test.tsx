@@ -1,7 +1,7 @@
-import { allTargets, DEFAULT_LAYER, resolve } from '@locator/shared';
+import { strictConfig } from '@locator/shared';
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { Snapshot } from './syncedState';
+import type { ConnectivityStatus, Snapshot } from './syncedState';
 
 const mocks = vi.hoisted(() => ({
   userExtension: {},
@@ -10,33 +10,40 @@ const mocks = vi.hoisted(() => ({
   clearSiteLocal: vi.fn(async () => ({ ok: true as const })),
   clearUserExtension: vi.fn(async () => ({ ok: true as const })),
   tryAction: vi.fn(async () => ({ ok: true as const })),
+  reloadActiveTab: vi.fn(async () => undefined),
   createTab: vi.fn(),
   // Assigned by the mock factory below. Connectivity is a signal so a test can
   // flip it mid-session, which is the only way to observe a remount.
-  setStatus: undefined as unknown as (
-    value: 'connected' | 'no-runtime'
-  ) => void,
+  setStatus: undefined as unknown as (value: ConnectivityStatus) => void,
   setSnapshot: undefined as unknown as (value: Snapshot | null) => void,
+  setDiagnostic: undefined as unknown as (value: string | undefined) => void,
+  setSiteLocalPresent: undefined as unknown as (value: boolean) => void,
 }));
 
 vi.mock('./syncedState', async () => {
   const { createSignal } = await import('solid-js');
-  const [status, setStatus] = createSignal<'connected' | 'no-runtime'>(
-    'connected'
-  );
+  const [status, setStatus] = createSignal<ConnectivityStatus>('connected');
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
+  const [diagnostic, setDiagnostic] = createSignal<string>();
+  const [siteLocalPresent, setSiteLocalPresent] = createSignal(false);
   mocks.setStatus = setStatus;
   mocks.setSnapshot = (value) => setSnapshot(value);
+  mocks.setDiagnostic = setDiagnostic;
+  mocks.setSiteLocalPresent = setSiteLocalPresent;
   return {
     useSyncedState: () => ({
       status,
+      diagnostic,
+      siteLocalPresent,
       snapshot,
+      extensionConfigRead: () => ({ kind: 'empty' as const }),
       userExtension: () => mocks.userExtension,
       setUserExtension: mocks.setUserExtension,
       setSiteLocal: mocks.setSiteLocal,
       clearSiteLocal: mocks.clearSiteLocal,
       clearUserExtension: mocks.clearUserExtension,
       tryAction: mocks.tryAction,
+      reloadActiveTab: mocks.reloadActiveTab,
     }),
   };
 });
@@ -52,14 +59,28 @@ import Popup from './Popup';
 
 function connectedSnapshot(): Snapshot {
   const layers = {
-    default: DEFAULT_LAYER,
+    default: strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER),
     'user-extension': { projectPath: '/all-sites' },
     'user-origin': { projectPath: '/this-site' },
   };
+  const extension = strictConfig.parseLayer(layers['user-extension']);
+  const origin = strictConfig.parseLayer(layers['user-origin']);
+  if (!extension.ok || !origin.ok) throw new Error('Invalid popup fixture.');
+  const resolved = strictConfig.resolveConfig(
+    {
+      default: strictConfig.DEFAULT_LAYER,
+      'user-extension': extension.value,
+      'user-origin': origin.value,
+    },
+    strictConfig.BUILT_IN_TARGETS
+  );
   return {
-    ...resolve(layers),
+    effective: strictConfig.effectiveOptionsView(
+      strictConfig.effectiveOptions(resolved)
+    ),
+    provenance: strictConfig.configProvenance(resolved),
     layers,
-    allTargets,
+    allTargets: strictConfig.targetRegistryView(strictConfig.BUILT_IN_TARGETS),
   };
 }
 
@@ -68,6 +89,8 @@ describe('Popup settings navigation', () => {
     mocks.setStatus('connected');
     mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
+    mocks.setDiagnostic(undefined);
+    mocks.setSiteLocalPresent(false);
     vi.clearAllMocks();
   });
 
@@ -138,6 +161,50 @@ describe('Popup settings navigation', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
+  test('reloads the active tab when an update requires it', async () => {
+    mocks.setStatus('reload-required');
+    mocks.setSnapshot(null);
+    render(() => <Popup />);
+
+    await screen.getByRole('button', { name: 'Reload page' }).click();
+
+    expect(mocks.reloadActiveTab).toHaveBeenCalledTimes(1);
+  });
+
+  test('translates startup diagnostics and hides internals behind Details', () => {
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setDiagnostic('ok');
+    const view = render(() => <Popup />);
+
+    expect(screen.getByText(/still starting on this page/)).toBeTruthy();
+    expect(screen.queryByText('ok')).toBeNull();
+
+    view.unmount();
+    mocks.setDiagnostic('React hook collision diagnostic');
+    render(() => <Popup />);
+    expect(
+      screen.getByText('Page not connected — editing All sites.')
+    ).toBeTruthy();
+    expect(screen.getByText('Details')).toBeTruthy();
+    expect(screen.getByText('React hook collision diagnostic')).toBeTruthy();
+  });
+
+  test('keeps recovery for rejected site settings available', async () => {
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setSiteLocalPresent(true);
+    render(() => <Popup />);
+
+    expect(
+      screen.getByText('Site settings were detected and can still be reset.')
+    ).toBeTruthy();
+    await screen.getByRole('button', { name: 'Reset' }).click();
+    expect(screen.getByText('Reset settings for this site?')).toBeTruthy();
+    await screen.getByRole('button', { name: 'Reset This site' }).click();
+    expect(mocks.clearSiteLocal).toHaveBeenCalledTimes(1);
+  });
+
   test('resets the selected scope and keeps disable page-specific', async () => {
     render(() => <Popup />);
 
@@ -152,7 +219,9 @@ describe('Popup settings navigation', () => {
     expect(mocks.clearSiteLocal).not.toHaveBeenCalled();
 
     await screen.getByRole('button', { name: 'Disable on this page' }).click();
-    expect(mocks.setSiteLocal).toHaveBeenCalledWith({ disabled: true });
+    expect(mocks.setSiteLocal).toHaveBeenCalledWith({
+      set: { disabled: true },
+    });
   });
 });
 
@@ -161,6 +230,8 @@ describe('Popup connectivity changes', () => {
     mocks.setStatus('connected');
     mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
+    mocks.setDiagnostic(undefined);
+    mocks.setSiteLocalPresent(false);
     vi.clearAllMocks();
   });
 

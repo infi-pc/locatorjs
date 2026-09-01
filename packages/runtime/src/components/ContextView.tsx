@@ -1,16 +1,19 @@
-import type { Targets } from "@locator/shared";
 import { ParentsMenu, type ParentRow } from "@locator/ui";
 import { css } from "@locator/styled-system/css";
-import { createMemo } from "solid-js";
-import { getParentsPaths } from "../adapters/getParentsPath";
+import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import {
+  getParentsPaths,
+  getParentsPathsAsync,
+} from "../adapters/getParentsPath";
 import type { AdapterId } from "../consts";
 import { buildLink } from "../functions/buildLink";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import {
   buildParentRows,
   sourceRefToLinkProps,
 } from "../functions/treeViewModel";
 import type { ContextMenuState, LinkProps } from "../types/types";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 const styles = {
   backdrop: css({
@@ -30,7 +33,6 @@ export function ContextView(props: {
   contextMenuState: ContextMenuState;
   close: () => void;
   adapterId?: AdapterId | undefined;
-  targets: Targets;
   /** Opens the link, or asks the user to pick an editor first. */
   openLink: (link: LinkProps) => void;
 }) {
@@ -40,6 +42,35 @@ export function ContextView(props: {
       getParentsPaths(props.contextMenuState.target, props.adapterId)
     )
   );
+  const [asyncRows, setAsyncRows] = createSignal<ParentRow[]>();
+  const [pending, setPending] = createSignal(false);
+  createEffect(() => {
+    const target = props.contextMenuState.target;
+    const adapter = props.adapterId;
+    if (rows().length > 1 || (adapter && adapter !== "react")) return;
+    const controller = new AbortController();
+    setPending(true);
+    void getParentsPathsAsync(
+      target,
+      adapter,
+      createSourceResolutionContext(controller.signal)
+    )
+      .then((items) => {
+        if (!controller.signal.aborted) setAsyncRows(buildParentRows(items));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setPending(false);
+      });
+    onCleanup(() => controller.abort());
+  });
+  const displayedRows = () => asyncRows() ?? rows();
+  const hrefFor = (row: ParentRow) => {
+    const editor = options.effective().editor;
+    return row.source && editor.kind === "selected"
+      ? buildLink(sourceRefToLinkProps(row.source), options, editor)
+      : undefined;
+  };
 
   return (
     <div
@@ -56,17 +87,10 @@ export function ContextView(props: {
         }}
       >
         <ParentsMenu
-          rows={rows()}
+          rows={displayedRows()}
+          pending={pending()}
           autofocus
-          hrefFor={(row: ParentRow) =>
-            row.source
-              ? buildLink(
-                  sourceRefToLinkProps(row.source),
-                  props.targets,
-                  options
-                )
-              : undefined
-          }
+          hrefFor={hrefFor}
           onHover={() => {
             // Highlighting a parent needs a live node; the parents path only
             // carries source locations, so there is nothing to outline yet.

@@ -1,7 +1,5 @@
-import { gte } from "semver";
-
-export const MIN_SUPPORTED_VERSION = "16.9.0";
-export const BUNDLE_TYPE_PROD = 0;
+const MIN_SUPPORTED_VERSION = "16.9.0";
+const BUNDLE_TYPE_PROD = 0;
 export const BUNDLE_TYPE_DEV = 1;
 
 export function isValidRenderer(
@@ -19,8 +17,7 @@ export function isValidRenderer(
   if (
     rendererPackageName !== "react-dom" ||
     typeof version !== "string" ||
-    !/^\d+\.\d+\.\d+(-\S+)?$/.test(version) ||
-    !gte(version, MIN_SUPPORTED_VERSION)
+    !isSupportedVersion(version)
   ) {
     reportError &&
       reportError(
@@ -44,4 +41,20 @@ export function isValidRenderer(
   }
 
   return true;
+}
+
+function isSupportedVersion(version: string): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)(-\S+)?$/.exec(version);
+  if (!match) return false;
+  const parts = match.slice(1, 4).map(Number);
+  const minimum = [16, 9, 0];
+  for (let index = 0; index < minimum.length; index += 1) {
+    const part = parts[index];
+    const minimumPart = minimum[index];
+    if (part === undefined || minimumPart === undefined) return false;
+    if (part > minimumPart) return true;
+    if (part < minimumPart) return false;
+  }
+  // A prerelease of the minimum is lower than the stable minimum.
+  return match[4] === undefined;
 }

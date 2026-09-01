@@ -1,4 +1,4 @@
-import { allTargets, DEFAULT_LAYER, type LocatorLayer } from '@locator/shared';
+import { strictConfig } from '@locator/shared';
 import {
   ActionSettings,
   Button,
@@ -8,6 +8,12 @@ import { css } from '@locator/styled-system/css';
 import { Power, RotateCcw } from 'lucide-solid';
 import { Show, createEffect, createSignal } from 'solid-js';
 import { useSyncedState } from './syncedState';
+
+type LocatorLayer = strictConfig.LocatorLayerId;
+const DEFAULT_LAYER = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
+const ALL_TARGETS = strictConfig.targetRegistryView(
+  strictConfig.BUILT_IN_TARGETS
+);
 
 const styles = {
   stack: css({ display: 'flex', flexDirection: 'column', gap: '2' }),
@@ -52,7 +58,13 @@ export function Home() {
     snapshot,
     userExtension,
     status,
+    siteLocalPresent,
+    extensionConfigRead,
   } = useSyncedState();
+  const extensionNeedsReset = () =>
+    extensionConfigRead().kind === 'reset-required' ||
+    extensionConfigRead().kind === 'future-version' ||
+    extensionConfigRead().kind === 'corrupt';
   const connected = () => status() === 'connected' && !!snapshot();
   /**
    * What the user picked, kept apart from what is currently writable. "This
@@ -88,19 +100,23 @@ export function Home() {
           'user-extension': userExtension(),
         };
   };
-  const targets = () => snapshot()?.allTargets ?? allTargets;
+  const targets = () => snapshot()?.allTargets ?? ALL_TARGETS;
   const tryUnavailable = () => !connected() || !!snapshot()?.effective.disabled;
+  const resetLayer = (): LocatorLayer =>
+    !connected() && siteLocalPresent() && chosenScope() === 'user-origin'
+      ? 'user-origin'
+      : activeScope();
   const resetLabel = () =>
-    activeScope() === 'user-origin' ? 'This site' : 'All sites';
+    resetLayer() === 'user-origin' ? 'This site' : 'All sites';
   const resetPrompt = () =>
-    activeScope() === 'user-origin'
+    resetLayer() === 'user-origin'
       ? 'Reset settings for this site?'
       : 'Reset your All sites defaults?';
 
   const reset = async () => {
     setSaveStatus('saving');
     const result =
-      activeScope() === 'user-origin'
+      resetLayer() === 'user-origin'
         ? await clearSiteLocal()
         : await clearUserExtension();
     setSaveStatus(result.ok ? 'saved' : 'error');
@@ -126,6 +142,13 @@ export function Home() {
             layer: 'user-extension',
             label: 'All sites',
             write: setUserExtension,
+            disabled: extensionNeedsReset(),
+            disabledReason:
+              'Reset the preview settings before editing All sites.',
+            editLayers: {
+              default: DEFAULT_LAYER,
+              'user-extension': userExtension(),
+            },
           },
         ]}
         activeScope={activeScope()}
@@ -198,7 +221,24 @@ export function Home() {
           {actionError()}
         </div>
       </Show>
+      <Show when={extensionNeedsReset()}>
+        <div class={styles.footerText} role="alert">
+          These All sites settings use an incompatible preview format. Reset
+          them to continue.
+        </div>
+      </Show>
       <div class={styles.footer}>
+        <Show
+          when={
+            !connected() &&
+            siteLocalPresent() &&
+            chosenScope() === 'user-origin'
+          }
+        >
+          <span class={styles.footerText}>
+            Site settings were detected and can still be reset.
+          </span>
+        </Show>
         <span class={styles.footerText} role="status">
           {saveStatus() === 'saving'
             ? 'Saving…'
@@ -239,7 +279,7 @@ export function Home() {
             disabled={!connected()}
             onClick={async () => {
               setSaveStatus('saving');
-              const result = await setSiteLocal({ disabled: true });
+              const result = await setSiteLocal({ set: { disabled: true } });
               setSaveStatus(result.ok ? 'saved' : 'error');
               setActionError(
                 result.ok ? undefined : 'Could not disable LocatorJS here.'

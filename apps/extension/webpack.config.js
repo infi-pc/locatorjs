@@ -62,6 +62,7 @@ const options = {
   output: {
     path: path.resolve(__dirname, BUILD_FOLDER),
     filename: '[name].bundle.js',
+    chunkFilename: '[name].chunk.js',
     clean: true,
     publicPath: ASSET_PATH,
   },
@@ -134,9 +135,9 @@ const options = {
             // generates the manifest file using the package.json informations
             return Buffer.from(
               JSON.stringify({
+                ...JSON.parse(content.toString()),
                 description: process.env.npm_package_description,
                 version: process.env.npm_package_version,
-                ...JSON.parse(content.toString()),
               })
             );
           },
@@ -219,6 +220,9 @@ if (env.NODE_ENV === 'development') {
 } else {
   options.optimization = {
     minimize: true,
+    // Keep the injected runtime's lazy graph in its explicitly named chunk so
+    // the manifest can enumerate every executable web-accessible resource.
+    splitChunks: false,
     minimizer: [
       new TerserPlugin({
         extractComments: false,

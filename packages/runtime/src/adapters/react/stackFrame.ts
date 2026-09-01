@@ -66,6 +66,29 @@ export function isLocatorFrame(fileName: string): boolean {
 }
 
 /**
+ * Locations emitted by a bundler rather than an original user source file.
+ * Keep this predicate at the stack boundary so every resolver strategy applies
+ * exactly the same acceptance rule.
+ */
+export function isCompiledSourceLocation(fileName: string): boolean {
+  const normalized = fileName.replace(/\\/g, "/");
+  return (
+    /^(?:https?:|webpack(?:-internal)?:|blob:)/i.test(normalized) ||
+    normalized.includes("/_next/") ||
+    normalized.includes("/.next/")
+  );
+}
+
+/** A final resolver result must be original application code, not tooling. */
+export function isOriginalUserSource(fileName: string): boolean {
+  return (
+    !isCompiledSourceLocation(fileName) &&
+    !isInternalFrame(fileName) &&
+    !isLocatorFrame(fileName)
+  );
+}
+
+/**
  * Clean up a stack frame file path.
  * `about://React/Server/file:///path` -> `/path`, and chunk query params go.
  */
@@ -124,16 +147,6 @@ export function parseStackFrame(line: string): StackFrame | null {
   }
 
   return null;
-}
-
-/** Every parseable frame in a stack string, internals included. */
-export function parseStackFrames(stack: string): StackFrame[] {
-  const frames: StackFrame[] = [];
-  for (const line of stack.split("\n")) {
-    const frame = parseStackFrame(line);
-    if (frame) frames.push(frame);
-  }
-  return frames;
 }
 
 /**

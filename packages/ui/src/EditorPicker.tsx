@@ -1,5 +1,5 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
-import type { EditorSelection, Targets, WriteResponse } from "@locator/shared";
+import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
 import { IconButton } from "./IconButton";
@@ -14,6 +14,7 @@ const INHERIT_VALUE = "__inherit__";
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
   helper: css({ color: "fg.muted", textStyle: "caption" }),
+  error: css({ color: "error", textStyle: "caption" }),
   templateRow: css({
     alignItems: "center",
     bg: "gray.subtle.bg",
@@ -38,21 +39,24 @@ const styles = {
 };
 
 export function EditorPicker(props: {
-  targets: Targets;
-  targetId?: string;
-  targetTemplate?: string;
+  targets: strictConfig.TargetViewMap;
+  value?: strictConfig.EditorDestination;
   disabled?: boolean;
   portalMount?: Node;
+  controlId?: string;
   /**
    * Offers a "follow the Editor setting" choice, for per-action pickers where
    * no override is the default.
    */
   inheritLabel?: string;
-  onChange: (patch: EditorSelection) => WriteResponse;
+  onChange: (
+    destination: strictConfig.EditorDestination | undefined
+  ) => strictConfigStorage.WriteResponse;
 }) {
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
   const [saving, setSaving] = createSignal(false);
+  const [validationError, setValidationError] = createSignal<string>();
   let input: HTMLInputElement | undefined;
   const items = createMemo<SelectItem[]>(() => [
     ...(props.inheritLabel
@@ -76,19 +80,20 @@ export function EditorPicker(props: {
     },
   ]);
   const inherited = () =>
-    Boolean(props.inheritLabel) && !props.targetId && !props.targetTemplate;
+    Boolean(props.inheritLabel) && props.value === undefined;
   const value = () => {
     if (inherited()) return INHERIT_VALUE;
-    return props.targetTemplate ||
-      (props.targetId && !props.targets[props.targetId])
+    return props.value?.kind === "template" ||
+      (props.value?.kind === "target" && !props.targets[props.value.id])
       ? CUSTOM_VALUE
-      : props.targetId ??
-          (props.targets.vscode ? "vscode" : Object.keys(props.targets)[0]);
+      : props.value?.kind === "target"
+      ? props.value.id
+      : undefined;
   };
   /** The link template this picker currently stands for, or "" if it has none. */
   const selectedTemplate = () => {
     if (inherited()) return "";
-    if (props.targetTemplate) return props.targetTemplate;
+    if (props.value?.kind === "template") return props.value.template;
     const id = value();
     // An id missing from the map has no template to show. Falling back to the
     // id itself would display -- and, once confirmed, persist -- a bare
@@ -103,31 +108,45 @@ export function EditorPicker(props: {
 
   function beginEditing() {
     setDraft(selectedTemplate());
+    setValidationError(undefined);
     setEditing(true);
   }
 
   function cancelEditing() {
     setDraft(selectedTemplate());
+    setValidationError(undefined);
     setEditing(false);
   }
 
   async function commitEditing() {
     if (!editing() || saving()) return;
     const next = draft().trim();
+    if (!next) {
+      cancelEditing();
+      return;
+    }
+    const parsed = strictConfig.parseLayer({
+      editor: { kind: "template", template: next },
+    });
+    if (!parsed.ok) {
+      setValidationError(parsed.errors[0]?.message ?? "Invalid template.");
+      input?.focus();
+      return;
+    }
     // Compared against what is *stored* as a template, not against what is
     // rendered. The draft is seeded from the selected editor's built-in
     // template, so comparing with that would make "pick Custom link, accept the
     // pre-filled value" a no-op -- and for a per-action picker that is the
     // difference between pinning a link and inheriting the Editor setting.
-    if (next === (props.targetTemplate ?? "")) {
+    if (props.value?.kind === "template" && next === props.value.template) {
       setEditing(false);
       return;
     }
     setSaving(true);
     try {
       const result = await props.onChange({
-        targetTemplate: next || undefined,
-        targetId: undefined,
+        kind: "template",
+        template: next,
       });
       // A failed write keeps the draft on screen, so the typed template is not
       // silently discarded and re-seeded from props on the next open.
@@ -140,6 +159,7 @@ export function EditorPicker(props: {
   return (
     <div class={styles.stack}>
       <Select
+        id={props.controlId}
         aria-label="Editor"
         items={items()}
         value={value()}
@@ -151,13 +171,10 @@ export function EditorPicker(props: {
             beginEditing();
           } else if (next === INHERIT_VALUE) {
             setEditing(false);
-            void props.onChange({
-              targetId: undefined,
-              targetTemplate: undefined,
-            });
+            void props.onChange(undefined);
           } else {
             setEditing(false);
-            void props.onChange({ targetId: next, targetTemplate: undefined });
+            void props.onChange({ kind: "target", id: next });
           }
         }}
       />
@@ -188,9 +205,11 @@ export function EditorPicker(props: {
           value={draft()}
           disabled={props.disabled}
           aria-busy={saving() || undefined}
+          aria-invalid={validationError() ? true : undefined}
           placeholder="editor://file/${projectPath}${filePath}:${line}:${column}"
           onInput={(event) => {
             setDraft(event.currentTarget.value);
+            setValidationError(undefined);
           }}
           onBlur={commitEditing}
           onKeyDown={(event) => {
@@ -206,6 +225,11 @@ export function EditorPicker(props: {
         <div class={styles.helper}>
           Available variables: projectPath, filePath, line, column, tmuxSession
         </div>
+        <Show when={validationError()}>
+          <div class={styles.error} role="alert">
+            {validationError()}
+          </div>
+        </Show>
       </Show>
     </div>
   );

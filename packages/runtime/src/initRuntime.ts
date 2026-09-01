@@ -1,25 +1,128 @@
-import { fontFamily } from "./consts";
-import generatedStyles from "./_generated_styles";
-import { MAX_ZINDEX } from "./index";
+import { strictConfig } from "@locator/shared";
+import { fontFamily, MAX_ZINDEX } from "./consts";
+import { effectiveBindings, matchesActivation } from "./functions/bindings";
+import { listenToFrameModifiers } from "./functions/crossFrameModifiers";
+import { resolveEventTarget } from "./functions/resolveEventTarget";
+import { initOptions } from "./functions/optionsStore";
+import { mountRuntimePopupBridge } from "./functions/popupBridge";
 import { installShadowRootTracking } from "./functions/shadowRoots";
 
+let shellInstalled = false;
+let cleanupShell: (() => void) | undefined;
+
+export function __resetRuntimeForTesting() {
+  cleanupShell?.();
+  cleanupShell = undefined;
+  shellInstalled = false;
+}
+
 export function initRuntime() {
-  if (typeof window === "undefined" || typeof document === "undefined") {
+  if (
+    shellInstalled ||
+    typeof window === "undefined" ||
+    typeof document === "undefined" ||
+    document.getElementById("locatorjs-wrapper")
+  ) {
     return;
   }
-  if (document.getElementById("locatorjs-wrapper")) {
-    // already initialized
-    return;
+  shellInstalled = true;
+
+  // The settings bridge stays in the startup shell so the popup can inspect,
+  // edit and enable a page without paying for the visual runtime.
+  const options = initOptions();
+  const unmountPopupBridge = mountRuntimePopupBridge(options);
+  const syncDisabledMarker = () => {
+    if (!document.head) return;
+    if (options.effective().disabled) {
+      document.head.dataset.locatorDisabled = "disabled";
+    } else {
+      delete document.head.dataset.locatorDisabled;
+    }
+  };
+  const stopSyncingDisabledMarker = options.subscribe(syncDisabledMarker);
+  syncDisabledMarker();
+
+  let loading = false;
+  let pendingTryAction: strictConfig.ConfiguredAction | undefined;
+  let initialActivation: { held: boolean; target?: HTMLElement } | undefined;
+
+  const bindings = () => effectiveBindings(options.effective());
+
+  const activate = (activation?: { held: boolean; target?: HTMLElement }) => {
+    if (activation) initialActivation = activation;
+    if (loading || options.effective().disabled) return;
+    if (!document.body || !document.head) return;
+    loading = true;
+    removeGestureListeners();
+
+    installShadowRootTracking();
+    const { layer, wrapper, globalStyle } = createRuntimeLayer();
+    import(/* webpackChunkName: "locator-runtime-ui" */ "./components/Runtime")
+      .then(({ initRender }) => {
+        initRender(layer, options, {
+          activation: initialActivation,
+          tryAction: pendingTryAction,
+        });
+        window.removeEventListener("locatorjs:try-action", onTryAction);
+      })
+      .catch(() => {
+        loading = false;
+        wrapper.remove();
+        globalStyle.remove();
+        installGestureListeners();
+      });
+  };
+
+  const onGesture = (event: KeyboardEvent | MouseEvent) => {
+    if (!matchesActivation(bindings(), event)) return;
+    activate({
+      held: true,
+      target:
+        event instanceof MouseEvent
+          ? resolveEventTarget(event) ?? undefined
+          : undefined,
+    });
+  };
+  const onTryAction = (event: Event) => {
+    pendingTryAction = (event as CustomEvent<strictConfig.ConfiguredAction>)
+      .detail;
+    activate();
+  };
+  let stopFrameModifiers: () => void = () => undefined;
+
+  function installGestureListeners() {
+    document.addEventListener("keydown", onGesture);
+    document.addEventListener("mouseover", onGesture, { capture: true });
+    stopFrameModifiers = listenToFrameModifiers((modifiers) => {
+      if (matchesActivation(bindings(), modifiers)) {
+        activate({ held: true });
+      }
+    });
   }
 
-  // Done before anything else: closed shadow roots can only be tracked from the
-  // moment `attachShadow` is patched, so the earlier the better.
-  installShadowRootTracking();
+  function removeGestureListeners() {
+    document.removeEventListener("keydown", onGesture);
+    document.removeEventListener("mouseover", onGesture, { capture: true });
+    stopFrameModifiers();
+  }
 
-  // add style tag to head
+  window.addEventListener("locatorjs:try-action", onTryAction);
+  installGestureListeners();
+  cleanupShell = () => {
+    removeGestureListeners();
+    window.removeEventListener("locatorjs:try-action", onTryAction);
+    stopSyncingDisabledMarker();
+    unmountPopupBridge();
+    options.dispose();
+    document.getElementById("locatorjs-wrapper")?.remove();
+    document.getElementById("locatorjs-global-style")?.remove();
+  };
+}
+
+function createRuntimeLayer() {
   const style = document.createElement("style");
   style.id = "locatorjs-style";
-  style.innerHTML = `
+  style.textContent = `
       #locatorjs-layer {
         all: initial;
         pointer-events: none;
@@ -35,12 +138,11 @@ export function initRuntime() {
       .locatorjs-tree-node:hover {
         background-color: #eee;
       }
-      ${generatedStyles}
     `;
 
   const globalStyle = document.createElement("style");
   globalStyle.id = "locatorjs-global-style";
-  globalStyle.innerHTML = `
+  globalStyle.textContent = `
       #locatorjs-wrapper {
         z-index: ${MAX_ZINDEX};
         pointer-events: none;
@@ -52,31 +154,12 @@ export function initRuntime() {
     `;
 
   const wrapper = document.createElement("div");
-  wrapper.setAttribute("id", "locatorjs-wrapper");
-
+  wrapper.id = "locatorjs-wrapper";
   const shadow = wrapper.attachShadow({ mode: "open" });
   const layer = document.createElement("div");
-  layer.setAttribute("id", "locatorjs-layer");
-
-  // wrapper.appendChild(style);
-  // wrapper.appendChild(layer);
-  shadow.appendChild(style);
-  shadow.appendChild(layer);
-
+  layer.id = "locatorjs-layer";
+  shadow.append(style, layer);
   document.body.appendChild(wrapper);
   document.head.appendChild(globalStyle);
-
-  // This weird import is needed because:
-  // SSR React (Next.js) breaks when importing any SolidJS compiled file, so the import has to be conditional
-  // Browser Extension breaks when importing with "import()"
-  // Vite breaks when importing with "require()"
-  if (typeof require !== "undefined") {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { initRender } = require("./components/Runtime");
-    initRender(layer);
-  } else {
-    import("./components/Runtime").then(({ initRender }) => {
-      initRender(layer);
-    });
-  }
+  return { layer, wrapper, globalStyle };
 }

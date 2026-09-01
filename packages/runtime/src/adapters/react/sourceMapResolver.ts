@@ -1,5 +1,5 @@
 import { Source } from "@locator/shared";
-import { firstUserFrame } from "./stackFrame";
+import { isCompiledSourceLocation } from "./stackFrame";
 import { createTtlCache } from "./ttlCache";
 
 /**
@@ -15,13 +15,67 @@ import { createTtlCache } from "./ttlCache";
 const SOURCE_MAP_TTL_MS = 5_000;
 const MAX_CACHED_SOURCE_MAPS = 64;
 
-const sourceMapCache = createTtlCache<SourceMapConsumer | null>(
+const sourceMapCache = createTtlCache<SourceMapConsumer>(
   SOURCE_MAP_TTL_MS,
   MAX_CACHED_SOURCE_MAPS
 );
 
 // Loading promise cache to avoid duplicate requests
 const loadingPromises = new Map<string, Promise<SourceMapConsumer | null>>();
+export const RESOLUTION_DEADLINE_MS = 4_000;
+const SOURCE_MAP_FETCH_TIMEOUT_MS = RESOLUTION_DEADLINE_MS;
+
+export type SourceResolutionContext = {
+  signal: AbortSignal;
+  deadline: number;
+  candidateChunkUrls?: readonly string[];
+};
+
+export function createSourceResolutionContext(
+  signal: AbortSignal
+): SourceResolutionContext {
+  const candidateChunkUrls =
+    typeof document === "undefined"
+      ? []
+      : Array.from(document.querySelectorAll<HTMLScriptElement>("script[src]"))
+          .map((script) => script.src)
+          .filter(isCompiledSourceLocation);
+  return {
+    signal,
+    deadline: Date.now() + RESOLUTION_DEADLINE_MS,
+    candidateChunkUrls,
+  };
+}
+
+export function throwIfResolutionCancelled(
+  context?: SourceResolutionContext
+): void {
+  if (context?.signal.aborted || (context && Date.now() >= context.deadline)) {
+    throw new DOMException("Source resolution cancelled", "AbortError");
+  }
+}
+
+async function raceConsumer<T>(
+  promise: Promise<T>,
+  context?: SourceResolutionContext
+): Promise<T> {
+  if (!context) return promise;
+  throwIfResolutionCancelled(context);
+  return new Promise<T>((resolve, reject) => {
+    const timeout = window.setTimeout(
+      () =>
+        reject(new DOMException("Source resolution timed out", "AbortError")),
+      Math.max(0, context.deadline - Date.now())
+    );
+    const abort = () =>
+      reject(new DOMException("Source resolution cancelled", "AbortError"));
+    context.signal.addEventListener("abort", abort, { once: true });
+    promise.then(resolve, reject).finally(() => {
+      window.clearTimeout(timeout);
+      context.signal.removeEventListener("abort", abort);
+    });
+  });
+}
 
 // Simplified Source Map Consumer interface
 /**
@@ -304,7 +358,8 @@ function createSourceMapConsumer(
  * Load source map from URL
  */
 async function loadSourceMap(
-  mapUrl: string
+  mapUrl: string,
+  context?: SourceResolutionContext
 ): Promise<SourceMapConsumer | null> {
   // Check cache
   if (sourceMapCache.has(mapUrl)) {
@@ -314,31 +369,33 @@ async function loadSourceMap(
   // Check if already loading
   const existing = loadingPromises.get(mapUrl);
   if (existing) {
-    return existing;
+    return raceConsumer(existing, context);
   }
 
   const loadPromise = (async () => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      SOURCE_MAP_FETCH_TIMEOUT_MS
+    );
     try {
-      const response = await fetch(mapUrl);
-      if (!response.ok) {
-        sourceMapCache.set(mapUrl, null);
-        return null;
-      }
+      const response = await fetch(mapUrl, { signal: controller.signal });
+      if (!response.ok) return null;
 
       const rawMap: RawSourceMap = await response.json();
       const consumer = createSourceMapConsumer(rawMap);
       sourceMapCache.set(mapUrl, consumer);
       return consumer;
     } catch {
-      sourceMapCache.set(mapUrl, null);
       return null;
     } finally {
+      window.clearTimeout(timeout);
       loadingPromises.delete(mapUrl);
     }
   })();
 
   loadingPromises.set(mapUrl, loadPromise);
-  return loadPromise;
+  return raceConsumer(loadPromise, context);
 }
 
 /**
@@ -350,34 +407,6 @@ function inferSourceMapUrl(jsUrl: string): string | null {
     return `${jsUrl}.map`;
   }
   return null;
-}
-
-/**
- * Try to get component source from a stack trace.
- * Core function for environments where _debugSource is unavailable.
- */
-export async function resolveSourceFromStack(): Promise<Source | null> {
-  try {
-    const stack = new Error().stack;
-    if (!stack) return null;
-
-    const frame = firstUserFrame(stack);
-    if (!frame) return null;
-
-    return (
-      (await resolveOriginalPosition(
-        frame.fileName,
-        frame.lineNumber,
-        frame.columnNumber
-      )) ?? {
-        fileName: frame.fileName,
-        lineNumber: frame.lineNumber,
-        columnNumber: frame.columnNumber,
-      }
-    );
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -423,12 +452,15 @@ export function fileUrlToPath(fileUrl: string): string {
 export async function resolveOriginalPosition(
   compiledUrl: string,
   line: number,
-  column: number
+  column: number,
+  context?: SourceResolutionContext
 ): Promise<Source | null> {
+  throwIfResolutionCancelled(context);
   const mapUrl = inferSourceMapUrl(compiledUrl);
   if (!mapUrl) return null;
 
-  const consumer = await loadSourceMap(mapUrl);
+  const consumer = await loadSourceMap(mapUrl, context);
+  throwIfResolutionCancelled(context);
   if (!consumer) return null;
 
   const original = consumer.originalPositionFor({
@@ -442,29 +474,6 @@ export async function resolveOriginalPosition(
     lineNumber: original.line,
     columnNumber: original.column === null ? undefined : original.column + 1,
   };
-}
-
-/**
- * Preload source maps for all page chunks (optional optimization)
- */
-export async function preloadSourceMaps(): Promise<void> {
-  // Find all script tags on page
-  const scripts = document.querySelectorAll('script[src*=".js"]');
-  const loadPromises: Promise<void>[] = [];
-
-  scripts.forEach((script) => {
-    const src = script.getAttribute("src");
-    if (src && src.includes("/_next/")) {
-      const mapUrl = `${src}.map`;
-      loadPromises.push(
-        loadSourceMap(mapUrl).then(() => {
-          /* ignore result */
-        })
-      );
-    }
-  });
-
-  await Promise.all(loadPromises);
 }
 
 /** Drops every cached map immediately, ahead of the TTL. */

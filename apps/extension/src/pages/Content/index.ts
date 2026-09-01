@@ -1,66 +1,114 @@
 import browser from '../../browser';
-import {
-  migrateLegacyExtensionStorage,
-  USER_OPTIONS_KEY,
-} from './migrateLegacyExtensionStorage';
+import { migrateLegacyExtensionStorage } from './migrateLegacyExtensionStorage';
 import { mountSnapshotBridge } from './snapshotBridge';
+import {
+  USER_CONFIG_KEY,
+  decodeStoredExtensionConfig,
+  layerFromRead,
+  readExtensionConfig,
+} from '../../storageContract';
+import {
+  postMessageOrigin,
+  type strictConfig as StrictConfig,
+} from '@locator/shared';
+import { safeFrameProjection } from './settingsProjection';
 
-// The migration writes `userOptions`, so the first read waits for it. Reading
-// in parallel would race a v1 user's settings against their own upgrade.
-migrateLegacyExtensionStorage().then(() => {
-  browser.storage.local.get([USER_OPTIONS_KEY], (result) => {
-    const options = result?.[USER_OPTIONS_KEY] ?? {};
-    injectUserExtensionGlobal(options);
-    window.postMessage(
-      {
-        type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
-        options,
-      },
-      window.location.origin
-    );
-  });
-});
+let latestLayer: StrictConfig.SerializedLayerV3 = {};
+let fullSettingsRequested = false;
+let initialOptionsReady = false;
+let pendingSettingsRequest = false;
+
+migrateLegacyExtensionStorage()
+  .then(() => readExtensionConfig())
+  .then((read) => {
+    initialOptionsReady = true;
+    publishUserExtensionLayer(layerFromRead(read));
+    if (pendingSettingsRequest) respondToSettingsRequest();
+  })
+  .catch(() => undefined);
 
 browser.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== 'local') return;
-  if (!(USER_OPTIONS_KEY in changes)) return;
-
-  const newOptions = changes[USER_OPTIONS_KEY].newValue ?? {};
-  injectUserExtensionGlobal(newOptions);
-  window.postMessage(
-    {
-      type: 'LOCATOR_USER_EXTENSION_OPTIONS_UPDATED',
-      options: newOptions,
-    },
-    window.location.origin
-  );
+  if (areaName !== 'local' || !(USER_CONFIG_KEY in changes)) return;
+  const read = decodeStoredExtensionConfig(changes[USER_CONFIG_KEY].newValue);
+  publishUserExtensionLayer(layerFromRead(read));
 });
 
-function injectUserExtensionGlobal(options: unknown) {
-  if (!document.documentElement) return;
-  document.documentElement.dataset.locatorUserExtensionOptions =
-    JSON.stringify(options);
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+  if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_REQUEST') return;
+  if (!initialOptionsReady) {
+    pendingSettingsRequest = true;
+    return;
+  }
+  respondToSettingsRequest();
+});
+
+function respondToSettingsRequest() {
+  pendingSettingsRequest = false;
+  if (!latestLayer.disabled) fullSettingsRequested = true;
+  injectUserExtensionGlobal(latestLayer);
+  window.postMessage(
+    {
+      type: 'LOCATOR_RUNTIME_SETTINGS_READY',
+      disabled: latestLayer.disabled === true,
+    },
+    postMessageOrigin(window.location)
+  );
 }
 
-function injectClientHook() {
-  const script = document.createElement('script');
-  script.src = browser.runtime.getURL('/hook.bundle.js');
+function publishUserExtensionLayer(layer: StrictConfig.SerializedLayerV3) {
+  latestLayer = layer;
+  injectUserExtensionGlobal(layer);
+}
 
-  document.documentElement.dataset.locatorClientUrl =
-    browser.runtime.getURL('/client.bundle.js');
+function injectUserExtensionGlobal(layer: StrictConfig.SerializedLayerV3) {
+  withDocumentElement((element) => {
+    const canReceiveEditor = canReceiveFullSettings();
+    element.dataset.locatorEditorWithheld = canReceiveEditor ? 'false' : 'true';
+    element.dataset.locatorUserExtensionOptions = JSON.stringify(
+      fullSettingsRequested && canReceiveEditor && !layer.disabled
+        ? layer
+        : safeFrameProjection(layer)
+    );
+  });
+}
 
-  if (document.documentElement) {
-    document.documentElement.appendChild(script);
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-    }
+function canReceiveFullSettings(): boolean {
+  if (window === window.top) return true;
+  try {
+    return window.top?.location.origin === window.location.origin;
+  } catch {
+    return false;
   }
+}
+
+function withDocumentElement(callback: (element: HTMLElement) => void) {
+  const element = document.documentElement;
+  if (element) {
+    callback(element);
+    return;
+  }
+
+  const observer = new MutationObserver(() => {
+    const nextElement = document.documentElement;
+    if (!nextElement) return;
+    observer.disconnect();
+    callback(nextElement);
+  });
+  observer.observe(document, { childList: true });
+}
+
+function publishClientUrl() {
+  withDocumentElement((element) => {
+    element.dataset.locatorClientUrl =
+      browser.runtime.getURL('/client.bundle.js');
+  });
 }
 
 switch (document.contentType) {
   case 'text/html':
   case 'application/xhtml+xml': {
-    injectClientHook();
+    publishClientUrl();
     break;
   }
 }

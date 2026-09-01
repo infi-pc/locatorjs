@@ -1,12 +1,4 @@
-import {
-  DEFAULT_LAYER,
-  allTargets,
-  getModifiersMap,
-  primaryEditorBinding,
-  resolve,
-  type Binding,
-  type BindingAction,
-} from '@locator/shared';
+import { clearPrimaryEditorOverride, strictConfig } from '@locator/shared';
 import {
   EDITOR_CARD_CUSTOM,
   EditorCardPicker,
@@ -72,15 +64,14 @@ const styles = {
   }),
   okText: css({ color: 'teal.plain.fg', fontSize: 'sm' }),
   missText: css({ color: 'amber.plain.fg', fontSize: 'sm' }),
+  errorText: css({ color: 'red.plain.fg', fontSize: 'sm' }),
 };
-
-type EditorPatch = Pick<
-  Extract<BindingAction, { kind: 'open-editor' }>,
-  'targetId' | 'targetTemplate'
->;
 
 const DEFAULT_CUSTOM_TEMPLATE =
   'vscode://file/${projectPath}${filePath}:${line}:${column}';
+const ALL_TARGETS = strictConfig.targetRegistryView(
+  strictConfig.BUILT_IN_TARGETS
+);
 
 const MODIFIER_LABELS: Record<string, string> = {
   alt: 'Option',
@@ -89,14 +80,17 @@ const MODIFIER_LABELS: Record<string, string> = {
   meta: 'Command',
 };
 
-function modifiersLabel(modifiers?: string) {
-  const keys = Object.keys(getModifiersMap(modifiers ?? ''));
-  return keys.length
-    ? `${keys.map((key) => MODIFIER_LABELS[key] ?? key).join(' + ')} + click`
+function modifiersLabel(modifiers?: readonly strictConfig.Modifier[]) {
+  return modifiers?.length
+    ? `${modifiers
+        .map((key) => MODIFIER_LABELS[key] ?? key)
+        .join(' + ')} + click`
     : 'click';
 }
 
-function ShortcutTester(props: { modifiers?: string }) {
+function ShortcutTester(props: {
+  modifiers?: readonly strictConfig.Modifier[];
+}) {
   const [result, setResult] = createSignal<'idle' | 'ok' | 'miss'>('idle');
   const [detected, setDetected] = createSignal('');
   const [hovering, setHovering] = createSignal(false);
@@ -112,8 +106,8 @@ function ShortcutTester(props: { modifiers?: string }) {
     pressed: Record<'alt' | 'ctrl' | 'shift' | 'meta', boolean>
   ) => {
     if (!props.modifiers) return false;
-    const expected = getModifiersMap(props.modifiers);
-    return keys.every((key) => pressed[key] === !!expected[key]);
+    const expected = new Set(props.modifiers);
+    return keys.every((key) => pressed[key] === expected.has(key));
   };
   // Mouse events only fire on movement; key listeners keep the outline in
   // sync when modifiers change while the pointer is stationary.
@@ -135,7 +129,7 @@ function ShortcutTester(props: { modifiers?: string }) {
   const onClick = (event: MouseEvent) => {
     event.preventDefault();
     const pressed = pressedFrom(event);
-    setDetected(modifiersLabel(keys.filter((key) => pressed[key]).join('+')));
+    setDetected(modifiersLabel(keys.filter((key) => pressed[key])));
     setResult(matches(pressed) ? 'ok' : 'miss');
   };
   return (
@@ -181,45 +175,74 @@ export function Onboarding() {
   const [active, setActive] = createSignal('editor');
   const [showCustom, setShowCustom] = createSignal(false);
   const [customDraft, setCustomDraft] = createSignal('');
-  const effective = () =>
-    resolve({
-      default: DEFAULT_LAYER,
-      'user-extension': userExtension(),
-    }).effective;
-  const editorAction = () => {
-    const action = primaryEditorBinding(effective().bindings)?.action;
-    return action?.kind === 'open-editor' ? action : undefined;
+  const [customError, setCustomError] = createSignal<string>();
+  const effective = () => {
+    const parsed = strictConfig.parseLayer(userExtension());
+    if (!parsed.ok) {
+      throw new Error('Stored extension configuration is invalid.');
+    }
+    return strictConfig.effectiveOptions(
+      strictConfig.resolveConfig(
+        {
+          default: strictConfig.DEFAULT_LAYER,
+          'user-extension': parsed.value,
+        },
+        strictConfig.BUILT_IN_TARGETS
+      )
+    );
   };
+  const editor = (): strictConfig.EditorDestination | undefined => {
+    const value = effective().editor;
+    return value.kind === 'selected'
+      ? strictConfig.encodeEditorDestination(value.destination)
+      : undefined;
+  };
+  const bindings = () => strictConfig.encodeBindings(effective().bindings);
   const modifiers = () => {
-    const binding = primaryEditorBinding(effective().bindings);
+    const binding = bindings().find(
+      (item) =>
+        item.trigger.kind === 'modifier-click' &&
+        item.action.kind === 'open-editor'
+    );
     return binding?.trigger.kind === 'modifier-click'
       ? binding.trigger.modifiers
       : undefined;
   };
-  const setBindings = async (bindings: Binding[] | undefined) =>
-    (await setUserExtension({ bindings })).ok;
-
-  const updatePrimaryEditor = async (patch: EditorPatch) => {
-    const bindings = effective().bindings ?? [];
-    const primary = primaryEditorBinding(bindings);
-    const action = primary?.action;
-    if (!primary || action?.kind !== 'open-editor') return false;
-    return setBindings(
-      bindings.map((binding) =>
-        binding === primary
-          ? { ...binding, action: { ...action, ...patch } }
-          : binding
+  const setBindings = async (
+    next: readonly strictConfig.BindingInput[] | undefined
+  ) =>
+    (
+      await setUserExtension(
+        next ? { set: { bindings: next } } : { unset: ['bindings'] }
       )
-    );
+    ).ok;
+
+  const updateEditor = async (destination: strictConfig.EditorDestination) => {
+    const nextBindings = clearPrimaryEditorOverride(bindings());
+    const result = await setUserExtension({
+      set: {
+        editor: destination,
+        ...(nextBindings ? { bindings: nextBindings } : {}),
+      },
+    });
+    return result.ok;
   };
-  const updateModifiers = (value: string | undefined) => {
+  const updateModifiers = (
+    value:
+      | readonly [strictConfig.Modifier, ...strictConfig.Modifier[]]
+      | undefined
+  ) => {
     if (!value) return;
-    const bindings = effective().bindings ?? [];
-    const primary = primaryEditorBinding(bindings);
-    if (!primary) return;
-    setBindings(
-      bindings.map((binding) =>
-        binding === primary
+    const current = bindings();
+    const primaryIndex = current.findIndex(
+      (binding) =>
+        binding.trigger.kind === 'modifier-click' &&
+        binding.action.kind === 'open-editor'
+    );
+    if (primaryIndex < 0) return;
+    return setBindings(
+      current.map((binding, index) =>
+        index === primaryIndex
           ? {
               ...binding,
               trigger: { kind: 'modifier-click', modifiers: value },
@@ -231,25 +254,42 @@ export function Onboarding() {
 
   const selectEditor = async (value: string) => {
     if (value === EDITOR_CARD_CUSTOM) {
-      setCustomDraft(editorAction()?.targetTemplate ?? DEFAULT_CUSTOM_TEMPLATE);
+      const currentEditor = editor();
+      setCustomDraft(
+        currentEditor?.kind === 'template'
+          ? currentEditor.template
+          : DEFAULT_CUSTOM_TEMPLATE
+      );
+      setCustomError(undefined);
       setShowCustom(true);
       return;
     }
     setShowCustom(false);
-    await updatePrimaryEditor({
-      targetId: value,
-      targetTemplate: undefined,
-    });
-    setActive('shortcut');
+    if (await updateEditor({ kind: 'target', id: value })) {
+      setActive('shortcut');
+    }
   };
 
   const saveCustomTemplate = async () => {
-    await updatePrimaryEditor({
-      targetTemplate: customDraft().trim() || undefined,
-      targetId: undefined,
+    const template = customDraft().trim();
+    if (!template) {
+      setCustomError(undefined);
+      setShowCustom(false);
+      setActive('shortcut');
+      return;
+    }
+    const parsed = strictConfig.parseLayer({
+      editor: { kind: 'template', template },
     });
-    setShowCustom(false);
-    setActive('shortcut');
+    if (!parsed.ok) {
+      setCustomError(parsed.errors[0]?.message ?? 'Invalid template.');
+      return;
+    }
+    const saved = await updateEditor({ kind: 'template', template });
+    if (saved) {
+      setShowCustom(false);
+      setActive('shortcut');
+    }
   };
 
   const steps = (): WizardStep[] => [
@@ -257,22 +297,21 @@ export function Onboarding() {
       id: 'editor',
       // eslint-disable-next-line solid/reactivity -- steps() runs inside a tracked JSX scope
       title: showCustom() ? 'Custom link template' : 'Pick your editor',
-      // eslint-disable-next-line solid/reactivity
+      // eslint-disable-next-line solid/reactivity -- step access runs inside the tracked Wizard render callback.
       description: showCustom()
         ? 'Enter a URL template for your custom editor.'
         : 'This sets your primary Open in editor action.',
-      // eslint-disable-next-line solid/reactivity
+      // eslint-disable-next-line solid/reactivity -- step access runs inside the tracked Wizard render callback.
       onNext: showCustom() ? () => saveCustomTemplate() : undefined,
-      // eslint-disable-next-line solid/reactivity
+      // eslint-disable-next-line solid/reactivity -- step access runs inside the tracked Wizard render callback.
       onBack: showCustom() ? () => setShowCustom(false) : undefined,
       content: () => (
         <Show
           when={showCustom()}
           fallback={
             <EditorCardPicker
-              targets={allTargets}
-              targetId={editorAction()?.targetId}
-              targetTemplate={editorAction()?.targetTemplate}
+              targets={ALL_TARGETS}
+              value={editor()}
               onSelect={selectEditor}
             />
           }
@@ -282,8 +321,12 @@ export function Onboarding() {
               mono
               aria-label="Custom link template"
               value={customDraft()}
+              aria-invalid={customError() ? true : undefined}
               placeholder="editor://file/${projectPath}${filePath}:${line}:${column}"
-              onInput={(event) => setCustomDraft(event.currentTarget.value)}
+              onInput={(event) => {
+                setCustomDraft(event.currentTarget.value);
+                setCustomError(undefined);
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
@@ -298,6 +341,11 @@ export function Onboarding() {
               Available variables: projectPath, filePath, line, column,
               tmuxSession
             </p>
+            <Show when={customError()}>
+              <p class={styles.errorText} role="alert">
+                {customError()}
+              </p>
+            </Show>
           </div>
         </Show>
       ),

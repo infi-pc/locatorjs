@@ -15,7 +15,11 @@ describe("EditorPicker", () => {
   test("customizes a selected editor template only after the draft is committed", async () => {
     const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
-      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+      />
     ));
 
     expect(screen.getByText(targets.cursor.url)).toBeTruthy();
@@ -35,15 +39,19 @@ describe("EditorPicker", () => {
     await fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onChange).toHaveBeenCalledWith({
-      targetTemplate: "cursor://custom/${filePath}:${line}",
-      targetId: undefined,
+      kind: "template",
+      template: "cursor://custom/${filePath}:${line}",
     });
   });
 
   test("cancels a custom template draft with Escape", async () => {
     const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
-      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+      />
     ));
 
     await fireEvent.click(
@@ -68,7 +76,11 @@ describe("EditorPicker", () => {
     // the action inheriting the Editor setting when the user had just pinned it.
     const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
-      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+      />
     ));
 
     await fireEvent.click(
@@ -80,8 +92,8 @@ describe("EditorPicker", () => {
     );
 
     expect(onChange).toHaveBeenCalledWith({
-      targetTemplate: targets.cursor.url,
-      targetId: undefined,
+      kind: "template",
+      template: targets.cursor.url,
     });
   });
 
@@ -90,7 +102,10 @@ describe("EditorPicker", () => {
     render(() => (
       <EditorPicker
         targets={targets}
-        targetTemplate="cursor://custom/${filePath}"
+        value={{
+          kind: "template",
+          template: "cursor://custom/${filePath}",
+        }}
         onChange={onChange}
       />
     ));
@@ -113,7 +128,11 @@ describe("EditorPicker", () => {
     // build a URL.
     const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
-      <EditorPicker targets={targets} targetId="vscode" onChange={onChange} />
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "vscode" }}
+        onChange={onChange}
+      />
     ));
 
     expect(screen.queryByText("vscode")).toBeNull();
@@ -130,7 +149,11 @@ describe("EditorPicker", () => {
       async () => ({ ok: false, reason: "quota" } as const)
     );
     render(() => (
-      <EditorPicker targets={targets} targetId="cursor" onChange={onChange} />
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+      />
     ));
 
     await fireEvent.click(
@@ -151,5 +174,53 @@ describe("EditorPicker", () => {
         })) as HTMLInputElement
       ).value
     ).toBe("cursor://failed/${filePath}");
+  });
+
+  test("rejects a custom template without a URL scheme", async () => {
+    const onChange = vi.fn(() => ({ ok: true } as const));
+    render(() => (
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+      />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Custom link template",
+    });
+    await fireEvent.input(input, { target: { value: "missing-scheme" } });
+    await fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("static scheme");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  test("treats an empty custom draft as cancel, preserving the editor", async () => {
+    const onChange = vi.fn(() => ({ ok: true } as const));
+    render(() => (
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+      />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Custom link template",
+    });
+    await fireEvent.input(input, { target: { value: "  " } });
+    await fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByText(targets.cursor.url)).toBeTruthy();
   });
 });

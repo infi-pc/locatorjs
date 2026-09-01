@@ -1,4 +1,7 @@
-import reactAdapter from "./react/reactAdapter";
+import reactAdapter, {
+  getParentsPathsAsync as getReactParentsPathsAsync,
+} from "./react/reactAdapter";
+import type { SourceResolutionContext } from "./react/sourceMapResolver";
 import {
   detectJSX,
   detectReact,
@@ -46,4 +49,15 @@ export function getParentsPaths(
   }
 
   return [];
+}
+
+export async function getParentsPathsAsync(
+  target: HTMLElement,
+  adapterId?: string,
+  context?: SourceResolutionContext
+): Promise<ParentPathItem[]> {
+  if (adapterId === "react" || (!adapterId && detectReact())) {
+    return getReactParentsPathsAsync(target, context);
+  }
+  return getParentsPaths(target, adapterId);
 }

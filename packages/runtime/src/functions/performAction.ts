@@ -1,64 +1,47 @@
-import {
-  needsEditorSetup,
-  resolveBindingTarget,
-  resolveSourcePath,
-  type BindingAction,
-  type Targets,
-} from "@locator/shared";
+import { resolveSourcePath, strictConfig } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
-import { HREF_TARGET } from "../consts";
 import type { LinkProps } from "../types/types";
-import type { OptionsStore } from "./optionsStore";
 import { buildLink } from "./buildLink";
 import { buildPrompt, buildPromptDeeplink } from "./buildPrompt";
+import type { OptionsStore } from "./optionsStore";
 import { writeClipboard } from "./writeClipboard";
 
 export type ActionContext = {
   element: FullElementInfo;
-  targets: Targets;
-  options: OptionsStore;
+  options: Pick<OptionsStore, "effective" | "targetRegistry">;
   showTree: (element: HTMLElement) => void;
   showParents: (element: HTMLElement, x: number, y: number) => void;
   parentsPosition?: { x: number; y: number };
-  /**
-   * Called instead of navigating when no editor is configured, so the click
-   * asks the user to pick one rather than opening a link that goes nowhere.
-   */
   requestEditorSetup?: (link: LinkProps) => void;
 };
 
 export async function performAction(
-  action: BindingAction,
+  action: strictConfig.ConfiguredAction,
   context: ActionContext
 ): Promise<boolean> {
-  const { element, options, targets } = context;
+  const { element, options } = context;
   const link = element.thisElement.link;
 
   switch (action.kind) {
     case "open-editor": {
       if (!link) return false;
-      const target = resolveBindingTarget(
+      const editor = strictConfig.resolveActionEditor(
         action,
-        targets,
-        options.effective().editor
+        options.effective().editor,
+        options.targetRegistry()
       );
-      if (needsEditorSetup(target)) {
+      if (editor.kind === "needs-selection") {
         context.requestEditorSetup?.(link);
         return false;
       }
-      const destination = buildLink(
-        link,
-        targets,
-        options,
-        target.kind === "template" ? target.url : target.id
+      window.open(
+        buildLink(link, options, editor),
+        options.effective().hrefTarget
       );
-      window.open(destination, options.effective().hrefTarget || HREF_TARGET);
       return true;
     }
     case "copy-path": {
       if (!link) return false;
-      // The copied path is pasted into a terminal or another editor, so it has
-      // to be the same complete path the editor link resolves to.
       const { absolute } = resolveSourcePath(
         link.filePath,
         options.effective().projectPath || link.projectPath

@@ -1,9 +1,9 @@
 import { For, createMemo } from "solid-js";
-import { getModifiersMap, getModifiersString, isMac } from "@locator/shared";
+import { isMac, strictConfig } from "@locator/shared";
 import { css, cx } from "@locator/styled-system/css";
 
 const ORDER = ["alt", "ctrl", "shift", "meta"] as const;
-type Modifier = (typeof ORDER)[number];
+type Modifier = strictConfig.Modifier;
 
 export type ModifierChipsVariant = "compact" | "full";
 export type ModifierChipsPlatform = "mac" | "windows";
@@ -99,13 +99,13 @@ const styles = {
 };
 
 export function ModifierChips(props: {
-  value?: string;
+  value?: readonly Modifier[];
   disabled?: boolean;
   variant?: ModifierChipsVariant;
   platform?: ModifierChipsPlatform;
-  onChange: (value: string | undefined) => void;
+  onChange: (value: readonly [Modifier, ...Modifier[]] | undefined) => void;
 }) {
-  const map = createMemo(() => getModifiersMap(props.value ?? ""));
+  const selected = createMemo(() => new Set(props.value ?? []));
   const variant = () => props.variant ?? "compact";
   const platform = () => props.platform ?? (isMac ? "mac" : "windows");
 
@@ -113,7 +113,7 @@ export function ModifierChips(props: {
     <div class={cx(styles.row, variant() === "full" && styles.fullRow)}>
       <For each={ORDER}>
         {(key) => {
-          const pressed = () => !!map()[key];
+          const pressed = () => selected().has(key);
           const label = () => MODIFIER_LABELS[platform()][key];
           return (
             <button
@@ -129,13 +129,18 @@ export function ModifierChips(props: {
               aria-pressed={pressed()}
               disabled={props.disabled}
               onClick={() => {
-                const next = { ...map() };
-                if (next[key]) {
-                  delete next[key];
+                const next = new Set(selected());
+                if (next.has(key)) {
+                  next.delete(key);
                 } else {
-                  next[key] = true;
+                  next.add(key);
                 }
-                props.onChange(getModifiersString(next) || undefined);
+                const ordered = ORDER.filter((modifier) => next.has(modifier));
+                props.onChange(
+                  ordered.length
+                    ? [ordered[0]!, ...ordered.slice(1)]
+                    : undefined
+                );
               }}
             >
               {variant() === "full" ? (

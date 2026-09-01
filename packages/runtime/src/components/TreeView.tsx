@@ -1,16 +1,18 @@
-import { Targets } from "@locator/shared";
-import { TreePanel, type TreeRow } from "@locator/ui";
+import { TreePanel, visibleTreeRows, type TreeRow } from "@locator/ui";
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { css } from "@locator/styled-system/css";
-import { createEffect, createMemo, createSignal } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import { TreeState } from "../adapters/adapterApi";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import {
   buildTreeViewModel,
+  componentRowId,
+  nodeIdFromRowId,
   sourceRefToLinkProps,
 } from "../functions/treeViewModel";
 import { TreeNode } from "../types/TreeNode";
 import { LinkProps } from "../types/types";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 const styles = {
   backdrop: css({
@@ -30,7 +32,6 @@ export function TreeView(props: {
   treeState: TreeState;
   setTreeState: (state: TreeState) => void;
   close: () => void;
-  targets: Targets;
   setHighlightedNode: (node: null | TreeNode) => void;
   /** Opens the link, or asks the user to pick an editor first. */
   openLink: (link: LinkProps) => void;
@@ -39,6 +40,16 @@ export function TreeView(props: {
   let contentRef: HTMLDivElement | undefined;
 
   const [pos, setPos] = createSignal<{ x: number; y: number }>();
+  const [resolutionRevision, setResolutionRevision] = createSignal(0);
+  const [pendingIds, setPendingIds] = createSignal<ReadonlySet<string>>(
+    new Set()
+  );
+  const attemptedNodeIds = new Set<string>();
+  const activeControllers = new Set<AbortController>();
+  onCleanup(() => {
+    activeControllers.forEach((controller) => controller.abort());
+    activeControllers.clear();
+  });
 
   createEffect(() => {
     if (!contentRef) return;
@@ -61,13 +72,16 @@ export function TreeView(props: {
     ).then(({ x, y }) => setPos({ x, y }));
   });
 
-  const model = createMemo(() =>
-    buildTreeViewModel(props.treeState, props.treeState.expandedIds)
+  const model = createMemo(
+    () => (
+      resolutionRevision(),
+      buildTreeViewModel(props.treeState, props.treeState.expandedIds)
+    )
   );
 
   /** Nodes are keyed by id, so find the live node a row was mapped from. */
   function findNode(id: string): TreeNode | null {
-    const nodeId = id.replace(/^component:/, "");
+    const nodeId = nodeIdFromRowId(id);
     const walk = (node: TreeNode): TreeNode | null => {
       if (node.uniqueId === nodeId) return node;
       for (const child of node.getChildren()) {
@@ -78,6 +92,64 @@ export function TreeView(props: {
     };
     return walk(props.treeState.root);
   }
+
+  createEffect(() => {
+    const visible = visibleTreeRows(model().rows, props.treeState.expandedIds);
+    const nodes = [
+      ...new Map(
+        visible
+          .filter(
+            (item) =>
+              !item.row.source &&
+              !attemptedNodeIds.has(nodeIdFromRowId(item.row.id))
+          )
+          .map((item) => {
+            const node = findNode(item.row.id);
+            return [node?.uniqueId, node] as const;
+          })
+          .filter(
+            (entry): entry is readonly [string, TreeNode] =>
+              !!entry[0] && !!entry[1]
+          )
+      ).values(),
+    ];
+    if (!nodes.some((node) => node.getSourceAsync || node.getComponentAsync)) {
+      setPendingIds(new Set<string>());
+      return;
+    }
+    const controller = new AbortController();
+    activeControllers.add(controller);
+    onCleanup(() => controller.abort());
+    setPendingIds(
+      new Set(
+        nodes.flatMap((node) => [node.uniqueId, componentRowId(node.uniqueId)])
+      )
+    );
+    let nextNode = 0;
+    const resolveNext = async () => {
+      while (!controller.signal.aborted) {
+        const node = nodes[nextNode++];
+        if (!node) return;
+        const context = createSourceResolutionContext(controller.signal);
+        await Promise.allSettled([
+          node.getSourceAsync?.(context),
+          node.getComponentAsync?.(context),
+        ]);
+        if (!controller.signal.aborted) {
+          attemptedNodeIds.add(node.uniqueId);
+        }
+      }
+    };
+    void Promise.allSettled(
+      Array.from({ length: Math.min(4, nodes.length) }, resolveNext)
+    ).finally(() => {
+      activeControllers.delete(controller);
+      if (!controller.signal.aborted) {
+        setPendingIds(new Set<string>());
+        setResolutionRevision((value) => value + 1);
+      }
+    });
+  });
 
   return (
     <div
@@ -94,6 +166,7 @@ export function TreeView(props: {
         <TreePanel
           model={model()}
           expandedIds={props.treeState.expandedIds}
+          pendingIds={pendingIds()}
           autofocus
           hint={
             options.effective().debugMode
@@ -103,7 +176,7 @@ export function TreeView(props: {
           onToggle={(id) => {
             const state = props.treeState;
             const expandedIds = new Set(state.expandedIds);
-            const nodeId = id.replace(/^component:/, "");
+            const nodeId = nodeIdFromRowId(id);
             if (expandedIds.has(id)) {
               expandedIds.delete(id);
               expandedIds.delete(nodeId);
@@ -119,7 +192,7 @@ export function TreeView(props: {
             if (!parent) return;
             const expandedIds = new Set(state.expandedIds);
             expandedIds.add(parent.uniqueId);
-            expandedIds.add(`component:${parent.uniqueId}`);
+            expandedIds.add(componentRowId(parent.uniqueId));
             props.setTreeState({ ...state, root: parent, expandedIds });
           }}
           onHover={(id) => {

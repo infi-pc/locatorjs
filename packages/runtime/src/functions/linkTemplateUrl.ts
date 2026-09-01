@@ -1,66 +1,26 @@
-import {
-  needsEditorSetup,
-  resolveBindingTarget,
-  resolveEditorTarget,
-  type ResolvedTarget,
-  type Targets,
-} from "@locator/shared";
-import { OptionsStore } from "./optionsStore";
+import { strictConfig } from "@locator/shared";
+import type { OptionsStore } from "./optionsStore";
 
-/**
- * Where source links open for surfaces that are not tied to a single binding
- * (the tree panel, the parents menu, the welcome screen preview). They follow
- * the global Editor setting rather than guessing from the bindings list.
- */
+/** Global editor state for link surfaces not owned by an individual action. */
 export function resolveEditorLink(
-  targets: Targets,
-  options: OptionsStore,
-  localLinkTypeOrTemplate?: string
-): ResolvedTarget {
-  if (localLinkTypeOrTemplate) {
-    const target = targets[localLinkTypeOrTemplate];
-    return target
-      ? {
-          kind: "targetId",
-          id: localLinkTypeOrTemplate,
-          url: target.url,
-        }
-      : { kind: "template", url: localLinkTypeOrTemplate };
-  }
-  return resolveEditorTarget(options.effective().editor, targets);
+  options: Pick<OptionsStore, "effective">
+): strictConfig.EffectiveEditor {
+  return options.effective().editor;
 }
 
-/**
- * True when we would be guessing the destination. Callers ask the user to pick
- * an editor instead of opening a link that goes nowhere.
- */
 export function editorNeedsSetup(
-  targets: Targets,
-  options: OptionsStore,
-  localLinkTypeOrTemplate?: string
+  options: Pick<OptionsStore, "effective">
 ): boolean {
-  return needsEditorSetup(
-    resolveEditorLink(targets, options, localLinkTypeOrTemplate)
-  );
+  return resolveEditorLink(options).kind === "needs-selection";
 }
 
-export function linkTemplateUrl(
-  targets: Targets,
-  options: OptionsStore,
-  localLinkTypeOrTemplate?: string
-): string {
-  return resolveEditorLink(targets, options, localLinkTypeOrTemplate).url;
-}
-
-/** Resolves the destination of a single `open-editor` action. */
-export function actionTargetUrl(
-  action: { targetId?: string; targetTemplate?: string },
-  targets: Targets,
-  options: OptionsStore
-): ResolvedTarget {
-  return resolveBindingTarget(
-    { kind: "open-editor", ...action },
-    targets,
-    options.effective().editor
+export function actionEditor(
+  action: Extract<strictConfig.ConfiguredAction, { kind: "open-editor" }>,
+  options: Pick<OptionsStore, "effective" | "targetRegistry">
+): strictConfig.EffectiveEditor {
+  return strictConfig.resolveActionEditor(
+    action,
+    options.effective().editor,
+    options.targetRegistry()
   );
 }

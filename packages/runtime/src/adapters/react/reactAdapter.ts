@@ -23,9 +23,34 @@ import { TreeNode, TreeNodeComponent } from "../../types/TreeNode";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { registerDiagnose } from "./debug";
-import { resolveSourceFromFiber } from "./clickSourceResolver";
+import {
+  registerAdapterCacheReset,
+  resolveSourceFromFiber,
+} from "./clickSourceResolver";
+import type { SourceResolutionContext } from "./sourceMapResolver";
 
-export function getElementInfo(found: HTMLElement): FullElementInfo | null {
+// Tree wrappers are rebuilt whenever expansion or async-resolution state
+// changes. Cache successful async results by the stable DOM element so the
+// next wrapper's synchronous getters can expose them to the view model. Misses
+// deliberately remain retryable, matching the fiber resolver's positive-only
+// cache contract.
+const ASYNC_RESULT_TTL_MS = 5_000;
+type Cached<T> = { value: T; expiresAt: number };
+let asyncElementSources = new WeakMap<HTMLElement, Cached<Source>>();
+let asyncComponents = new WeakMap<HTMLElement, Cached<TreeNodeComponent>>();
+
+function readCached<T>(
+  cache: WeakMap<HTMLElement, Cached<T>>,
+  element: HTMLElement
+): T | undefined {
+  const entry = cache.get(element);
+  if (!entry) return undefined;
+  if (entry.expiresAt > Date.now()) return entry.value;
+  cache.delete(element);
+  return undefined;
+}
+
+function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
   const labels: LabelData[] = [];
 
@@ -54,7 +79,8 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
       }
     });
 
-    const thisLabel = getFiberLabel(fiber, findDebugSource(fiber)?.source);
+    const ownOrAncestor = findDebugSource(fiber);
+    const thisLabel = getFiberLabel(fiber, ownOrAncestor?.source);
 
     if (isStyledElement(fiber)) {
       thisLabel.label = `${thisLabel.label} (styled)`;
@@ -64,6 +90,11 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
       thisElement: {
         box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
         ...thisLabel,
+        sourceProvenance: ownOrAncestor
+          ? ownOrAncestor.fiber === fiber
+            ? "own"
+            : "ancestor"
+          : undefined,
       },
       htmlElement: found,
       parentElements: parentElements,
@@ -75,8 +106,13 @@ export function getElementInfo(found: HTMLElement): FullElementInfo | null {
   return null;
 }
 
-export class ReactTreeNodeElement extends HtmlElementTreeNode {
+class ReactTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): ReactTreeNodeElement {
+    return new ReactTreeNodeElement(element);
+  }
   getSource(): Source | null {
+    const resolved = readCached(asyncElementSources, this.element);
+    if (resolved) return resolved;
     const fiber = findFiberByHtmlElement(this.element, false);
     if (fiber) {
       const result = findDebugSource(fiber);
@@ -86,7 +122,24 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
     }
     return null;
   }
+  async getSourceAsync(
+    context?: SourceResolutionContext
+  ): Promise<Source | null> {
+    const fiber = findFiberByHtmlElement(this.element, false);
+    const source = fiber
+      ? (await findDebugSourceAsync(fiber, context))?.source ?? null
+      : null;
+    if (source) {
+      asyncElementSources.set(this.element, {
+        value: source,
+        expiresAt: Date.now() + ASYNC_RESULT_TTL_MS,
+      });
+    }
+    return source;
+  }
   getComponent(): TreeNodeComponent | null {
+    const resolved = readCached(asyncComponents, this.element);
+    if (resolved) return resolved;
     const fiber = findFiberByHtmlElement(this.element, false);
     const componentFiber = fiber?._debugOwner;
 
@@ -109,6 +162,26 @@ export class ReactTreeNodeElement extends HtmlElementTreeNode {
       };
     }
     return null;
+  }
+  async getComponentAsync(
+    context?: SourceResolutionContext
+  ): Promise<TreeNodeComponent | null> {
+    const fiber = findFiberByHtmlElement(this.element, false)?._debugOwner;
+    if (!fiber) return null;
+    const source =
+      findOwnDebugSource(fiber) ??
+      (await resolveSourceFromFiber(fiber, context));
+    const component = {
+      label: getUsableName(fiber),
+      callLink: source ?? undefined,
+    };
+    if (source) {
+      asyncComponents.set(this.element, {
+        value: component,
+        expiresAt: Date.now() + ASYNC_RESULT_TTL_MS,
+      });
+    }
+    return component;
   }
 }
 
@@ -151,12 +224,44 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
   return pathItems;
 }
 
+export async function getParentsPathsAsync(
+  element: HTMLElement,
+  context?: SourceResolutionContext
+): Promise<ParentPathItem[]> {
+  const fiber = findFiberByHtmlElement(element, false);
+  if (!fiber) return [];
+  const items: ParentPathItem[] = [];
+  const seen = new Set<Fiber>();
+  let current: Fiber | null = fiber;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    const owner: Fiber | null = current._debugOwner || null;
+    let source = findOwnDebugSource(current);
+    try {
+      source ??= await resolveSourceFromFiber(current, context);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") break;
+      throw error;
+    }
+    const label = getFiberLabel(current, source ?? undefined);
+    items.push({
+      title: label.label,
+      link: label.link,
+      component: owner ? getUsableName(owner) : undefined,
+      kind: "call-site",
+    });
+    current = owner;
+  }
+  return items;
+}
+
 /**
  * Async version of getElementInfo
  * When sync cannot get source, try source-map resolution
  */
 export async function getElementInfoAsync(
-  found: HTMLElement
+  found: HTMLElement,
+  context?: SourceResolutionContext
 ): Promise<FullElementInfo | null> {
   const labels: LabelData[] = [];
 
@@ -169,7 +274,7 @@ export async function getElementInfoAsync(
 
     // Use async method to get source
     for (const f of allPotentialComponentFibers) {
-      const fiberWithSource = await findDebugSourceAsync(f);
+      const fiberWithSource = await findDebugSourceAsync(f, context);
       if (fiberWithSource) {
         const label = getFiberLabel(
           fiberWithSource.fiber,
@@ -180,7 +285,7 @@ export async function getElementInfoAsync(
     }
 
     // Get current element's source (async)
-    const currentSource = await findDebugSourceAsync(fiber);
+    const currentSource = await findDebugSourceAsync(fiber, context);
     const thisLabel = getFiberLabel(fiber, currentSource?.source);
 
     if (isStyledElement(fiber)) {
@@ -191,6 +296,11 @@ export async function getElementInfoAsync(
       thisElement: {
         box: getFiberOwnBoundingBox(fiber) || found.getBoundingClientRect(),
         ...thisLabel,
+        sourceProvenance: currentSource
+          ? currentSource.fiber === fiber
+            ? "own"
+            : "ancestor"
+          : undefined,
       },
       htmlElement: found,
       parentElements: parentElements,
@@ -220,7 +330,7 @@ async function diagnoseAllElements(): Promise<void> {
 
   const rows: DiagnoseRow[] = [];
 
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan table.
   console.log(
     `%c[LocatorJS-diag] Scanning ${allElements.length} elements...`,
     "color: #FF9800; font-weight: bold"
@@ -300,12 +410,12 @@ async function diagnoseAllElements(): Promise<void> {
     });
   }
 
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan table.
   console.log(
     `%c[LocatorJS-diag] Results:`,
     "color: #4CAF50; font-weight: bold"
   );
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan table.
   console.table(rows);
 
   // Summary
@@ -316,7 +426,7 @@ async function diagnoseAllElements(): Promise<void> {
       r.asyncSource !== "-" &&
       r.asyncSource !== "error"
   );
-  // eslint-disable-next-line no-console
+  // eslint-disable-next-line no-console -- the explicit diagnose command reports a scan summary.
   console.log(
     `%c[LocatorJS-diag] Summary: ${rows.length} elements, ${withFiber.length} with fiber, ${resolved.length} resolved`,
     "color: #2196F3; font-weight: bold"
@@ -325,6 +435,13 @@ async function diagnoseAllElements(): Promise<void> {
 
 // Register diagnose so it's available as window.locatorDiagnose()
 registerDiagnose(diagnoseAllElements);
+
+function resetReactAdapterCaches(): void {
+  asyncElementSources = new WeakMap();
+  asyncComponents = new WeakMap();
+}
+
+registerAdapterCacheReset(resetReactAdapterCaches);
 
 const reactAdapter: AdapterObject = {
   getElementInfo,

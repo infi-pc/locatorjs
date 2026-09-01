@@ -1,124 +1,80 @@
+import { strictConfig } from "@locator/shared";
 import { describe, expect, test } from "vitest";
-import type { LocatorOptions, Targets } from "@locator/shared";
 import {
-  actionTargetUrl,
+  actionEditor,
   editorNeedsSetup,
-  linkTemplateUrl,
   resolveEditorLink,
 } from "./linkTemplateUrl";
-import type { OptionsStore } from "./optionsStore";
 
-const targets: Targets = {
-  vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
-  cursor: { label: "Cursor", url: "cursor://file/${filePath}" },
-};
-
-function options(effective: LocatorOptions): OptionsStore {
-  return { effective: () => effective } as OptionsStore;
+function options(input: strictConfig.LocatorLayerInput = {}) {
+  const layer = strictConfig.parseLayer(input);
+  if (!layer.ok) throw new Error("Invalid editor fixture.");
+  const resolved = strictConfig.resolveConfig(
+    { default: strictConfig.DEFAULT_LAYER, team: layer.value },
+    strictConfig.BUILT_IN_TARGETS
+  );
+  return {
+    effective: () => strictConfig.effectiveOptions(resolved),
+    targetRegistry: () => strictConfig.BUILT_IN_TARGETS,
+  };
 }
 
-describe("resolveEditorLink", () => {
-  test("follows the Editor setting", () => {
-    expect(
-      resolveEditorLink(targets, options({ editor: { targetId: "cursor" } }))
-    ).toMatchObject({ kind: "targetId", id: "cursor" });
+function openEditor(
+  action: Extract<strictConfig.BindingAction, { kind: "open-editor" }>
+): Extract<strictConfig.ConfiguredAction, { kind: "open-editor" }> {
+  const parsed = strictConfig.parseAction(action);
+  if (!parsed.ok || parsed.value.kind !== "open-editor") {
+    throw new Error("Invalid editor action fixture.");
+  }
+  return parsed.value;
+}
+
+describe("editor resolution", () => {
+  test("global link surfaces use the selected Editor setting", () => {
+    const editor = resolveEditorLink(
+      options({ editor: { kind: "target", id: "cursor" } })
+    );
+    expect(editor).toMatchObject({ kind: "selected", label: "Cursor" });
   });
 
-  test("a custom template in the setting is used verbatim", () => {
-    expect(
-      resolveEditorLink(
-        targets,
-        options({ editor: { targetTemplate: "zed://${filePath}" } })
-      )
-    ).toEqual({ kind: "template", url: "zed://${filePath}" });
-  });
-
-  test("an explicit local target wins over the setting", () => {
-    expect(
-      resolveEditorLink(
-        targets,
-        options({ editor: { targetId: "vscode" } }),
-        "cursor"
-      )
-    ).toMatchObject({ kind: "targetId", id: "cursor" });
-  });
-
-  test("an unrecognised local value is treated as a template", () => {
-    expect(
-      resolveEditorLink(targets, options({}), "myeditor://${filePath}")
-    ).toEqual({ kind: "template", url: "myeditor://${filePath}" });
-  });
-
-  test("bindings do not influence it", () => {
-    // Tree rows, parents entries and the welcome preview are not tied to any
-    // one binding, so a target pinned on a binding must not leak into them.
-    const resolved = resolveEditorLink(
-      targets,
+  test("custom templates remain explicit selected destinations", () => {
+    const editor = resolveEditorLink(
       options({
-        editor: { targetId: "vscode" },
-        bindings: [
-          {
-            trigger: { kind: "modifier-click", modifiers: "alt" },
-            action: { kind: "open-editor", targetId: "cursor" },
-          },
-        ],
+        editor: { kind: "template", template: "zed://${filePath}" },
       })
     );
-    expect(resolved).toMatchObject({ kind: "targetId", id: "vscode" });
-  });
-});
-
-describe("editorNeedsSetup", () => {
-  test("is true when nothing has been chosen", () => {
-    expect(editorNeedsSetup(targets, options({}))).toBe(true);
+    expect(editor).toMatchObject({
+      kind: "selected",
+      destination: { kind: "template", template: "zed://${filePath}" },
+    });
   });
 
-  test("is true when the chosen editor no longer exists", () => {
+  test("an unknown persisted target produces a setup state", () => {
+    const store = options({ editor: { kind: "target", id: "gone" } });
+    expect(editorNeedsSetup(store)).toBe(true);
+    expect(resolveEditorLink(store)).toMatchObject({
+      kind: "needs-selection",
+      reason: "unknown-target",
+    });
+  });
+
+  test("an action without a destination follows the global setting", () => {
+    const store = options({ editor: { kind: "target", id: "cursor" } });
     expect(
-      editorNeedsSetup(targets, options({ editor: { targetId: "gone" } }))
-    ).toBe(true);
+      actionEditor(openEditor({ kind: "open-editor" }), store)
+    ).toMatchObject({ kind: "selected", label: "Cursor" });
   });
 
-  test("is false once an editor is chosen", () => {
+  test("an action destination overrides the global setting", () => {
+    const store = options({ editor: { kind: "target", id: "cursor" } });
     expect(
-      editorNeedsSetup(targets, options({ editor: { targetId: "cursor" } }))
-    ).toBe(false);
-  });
-
-  test("is false for an explicit local target, even with no setting", () => {
-    expect(editorNeedsSetup(targets, options({}), "cursor")).toBe(false);
-  });
-});
-
-describe("linkTemplateUrl", () => {
-  test("returns the url of whatever was resolved", () => {
-    expect(
-      linkTemplateUrl(targets, options({ editor: { targetId: "cursor" } }))
-    ).toBe("cursor://file/${filePath}");
-  });
-
-  test("still returns a url when setup is needed, so callers can preview", () => {
-    // The caller decides whether to navigate; `editorNeedsSetup` is the gate.
-    expect(linkTemplateUrl(targets, options({}))).toBe(
-      "vscode://file/${filePath}"
-    );
-  });
-});
-
-describe("actionTargetUrl", () => {
-  test("an action without an override follows the setting", () => {
-    expect(
-      actionTargetUrl({}, targets, options({ editor: { targetId: "cursor" } }))
-    ).toMatchObject({ kind: "targetId", id: "cursor" });
-  });
-
-  test("an action with an override keeps it", () => {
-    expect(
-      actionTargetUrl(
-        { targetId: "vscode" },
-        targets,
-        options({ editor: { targetId: "cursor" } })
+      actionEditor(
+        openEditor({
+          kind: "open-editor",
+          destination: { kind: "target", id: "vscode" },
+        }),
+        store
       )
-    ).toMatchObject({ kind: "targetId", id: "vscode" });
+    ).toMatchObject({ kind: "selected", label: "VSCode" });
   });
 });

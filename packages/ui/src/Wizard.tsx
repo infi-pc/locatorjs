@@ -63,6 +63,7 @@ const styles = {
     p: "4",
   }),
   footerActions: css({ display: "flex", gap: "2" }),
+  error: css({ color: "error", fontSize: "xs" }),
 };
 
 export function Wizard(props: {
@@ -71,6 +72,7 @@ export function Wizard(props: {
   onStepChange: (id: string) => void;
   onFinish: () => void;
   onSkip?: () => void;
+  error?: string;
   size?: "dialog" | "page";
   finishLabel?: string;
 }) {
@@ -127,6 +129,11 @@ export function Wizard(props: {
             <Button size="sm" variant="ghost" onClick={() => props.onSkip?.()}>
               Skip setup
             </Button>
+          </Show>
+          <Show when={props.error}>
+            <span class={styles.error} role="alert">
+              {props.error}
+            </span>
           </Show>
         </div>
         <div class={styles.footerActions}>

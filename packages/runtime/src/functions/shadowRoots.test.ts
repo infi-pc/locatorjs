@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   __resetShadowRootsForTesting,
   getShadowRootOf,
   getShadowRoots,
   installShadowRootTracking,
+  listenForShadowRootScrolls,
   observeShadowRoots,
   setPointerCursorInShadowRoots,
 } from "./shadowRoots";
@@ -99,6 +100,21 @@ describe("shadow root registry", () => {
     stop();
     const after = host().attachShadow({ mode: "open" });
     expect(seen).not.toContain(after);
+  });
+
+  test("drops scroll listeners when a shadow host is detached", async () => {
+    const element = host();
+    const shadow = element.attachShadow({ mode: "open" });
+    const remove = vi.spyOn(shadow, "removeEventListener");
+    const stop = listenForShadowRootScrolls(() => undefined);
+
+    element.remove();
+    await Promise.resolve();
+
+    expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function), {
+      capture: true,
+    });
+    stop();
   });
 });
 

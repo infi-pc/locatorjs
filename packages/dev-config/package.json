@@ -1,6 +1,6 @@
 {
   "name": "@locator/dev-config",
-  "version": "0.5.0",
+  "version": "2.0.0",
   "license": "MIT",
   "files": [
     "eslint-base-preset.js",
@@ -8,7 +8,9 @@
     "eslint-solid-preset.js",
     "tsconfig.base.json",
     "tsconfig.nextjs.json",
-    "tsconfig.react-library.json"
+    "tsconfig.react-library.json",
+    "vitest-no-webstorage.js",
+    "vitest-no-webstorage.d.ts"
   ],
   "exports": {
     "./eslint-base-preset.js": "./eslint-base-preset.js",
@@ -16,13 +18,22 @@
     "./eslint-solid-preset.js": "./eslint-solid-preset.js",
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./tsconfig.nextjs.json": "./tsconfig.nextjs.json",
-    "./tsconfig.react-library.json": "./tsconfig.react-library.json"
+    "./tsconfig.react-library.json": "./tsconfig.react-library.json",
+    "./vitest-no-webstorage.js": "./vitest-no-webstorage.js"
+  },
+  "scripts": {
+    "lint": "eslint . --ext .js",
+    "ts": "tsc --allowJs --checkJs --noEmit --module commonjs --target es2020 vitest-no-webstorage.js eslint-base-preset.js eslint-react-preset.js eslint-solid-preset.js"
   },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "eslint-config-next": "^12.3.7",
     "eslint-config-prettier": "^8.10.2",
     "eslint-plugin-solid": "^0.7.4"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "typescript": "^5.9.3"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94"
 }

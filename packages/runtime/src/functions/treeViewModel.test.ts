@@ -5,9 +5,18 @@ import type { Source } from "../types/types";
 import {
   buildParentRows,
   buildTreeViewModel,
+  componentRowId,
   idsOnPathToRoot,
+  nodeIdFromRowId,
   sourceRefToLinkProps,
 } from "./treeViewModel";
+
+describe("tree row ids", () => {
+  test("round-trips component rows without changing element rows", () => {
+    expect(nodeIdFromRowId(componentRowId("node:42"))).toBe("node:42");
+    expect(nodeIdFromRowId("node:42")).toBe("node:42");
+  });
+});
 
 function source(fileName: string, lineNumber: number, column = 0): Source {
   return { fileName, lineNumber, columnNumber: column };

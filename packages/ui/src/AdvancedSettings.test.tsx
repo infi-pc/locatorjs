@@ -1,4 +1,4 @@
-import { DEFAULT_LAYER } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -7,6 +7,10 @@ import { AdvancedSettings, SettingsSources } from "./AdvancedSettings";
 afterEach(cleanup);
 
 const ok = async () => ({ ok: true as const });
+const DEFAULT_LAYER = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
+const targets = {
+  vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
+};
 
 describe("AdvancedSettings", () => {
   test("shows project, link, and diagnostic settings without global editor or prompt controls", () => {
@@ -14,7 +18,7 @@ describe("AdvancedSettings", () => {
       <AdvancedSettings
         scope={{ layer: "user-origin", label: "This origin", write: ok }}
         layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
-        targets={{}}
+        targets={targets}
       />
     ));
 
@@ -30,7 +34,7 @@ describe("AdvancedSettings", () => {
       <AdvancedSettings
         scope={{ layer: "user-origin", label: "This origin", write: ok }}
         layers={{ default: DEFAULT_LAYER, "user-origin": {} }}
-        targets={{}}
+        targets={targets}
       />
     ));
 
@@ -43,9 +47,11 @@ describe("AdvancedSettings", () => {
   });
 
   test("shows provenance, reverts the current scope, and validates path replacement", async () => {
-    const [values, setValues] = createSignal({ projectPath: "/custom" });
-    const write = vi.fn(async (patch: Record<string, unknown>) => {
-      setValues((current) => ({ ...current, ...patch }));
+    const [values, setValues] = createSignal<strictConfig.SerializedLayerV3>({
+      projectPath: "/custom",
+    });
+    const write = vi.fn(async (patch: strictConfig.LayerPatchInput) => {
+      setValues((current) => applyPatch(current, patch));
       return { ok: true as const };
     });
     render(() => (
@@ -56,12 +62,12 @@ describe("AdvancedSettings", () => {
           team: { projectPath: "/team" },
           "user-origin": values(),
         }}
-        targets={{}}
+        targets={targets}
       />
     ));
 
     await screen.getByRole("button", { name: "Revert Project path" }).click();
-    expect(write).toHaveBeenCalledWith({ projectPath: undefined });
+    expect(write).toHaveBeenCalledWith({ unset: ["projectPath"] });
 
     await fireEvent.change(screen.getByPlaceholderText("From"), {
       target: { value: "[" },
@@ -81,8 +87,11 @@ describe("SettingsSources", () => {
           "user-extension": {
             bindings: [
               {
-                trigger: { kind: "modifier-click", modifiers: "alt" },
-                action: { kind: "open-editor", targetId: "vscode" },
+                trigger: { kind: "modifier-click", modifiers: ["alt"] },
+                action: {
+                  kind: "open-editor",
+                  destination: { kind: "target", id: "vscode" },
+                },
               },
             ],
           },
@@ -100,3 +109,15 @@ describe("SettingsSources", () => {
     ).toHaveLength(2);
   });
 });
+
+function applyPatch(
+  current: strictConfig.SerializedLayerV3,
+  input: strictConfig.LayerPatchInput
+): strictConfig.SerializedLayerV3 {
+  const layer = strictConfig.parseLayer(current);
+  const patch = strictConfig.parseLayerPatch(input);
+  if (!layer.ok || !patch.ok) throw new Error("Invalid test configuration.");
+  return strictConfig.encodeLayer(
+    strictConfig.applyLayerPatch(layer.value, patch.value).layer
+  );
+}

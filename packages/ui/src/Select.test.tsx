@@ -5,6 +5,23 @@ import { Select } from "./Select";
 afterEach(cleanup);
 
 describe("Select", () => {
+  test("registers a caller-provided trigger id with the select machine", async () => {
+    render(() => (
+      <Select
+        id="editor-trigger"
+        aria-label="Editor"
+        items={[{ value: "cursor", label: "Cursor" }]}
+        value="cursor"
+        onChange={() => undefined}
+      />
+    ));
+
+    const trigger = screen.getByRole("combobox", { name: "Editor" });
+    expect(trigger.id).toBe("editor-trigger");
+    await fireEvent.click(trigger);
+    expect(await screen.findByRole("listbox")).toBeTruthy();
+  });
+
   test("selects an option with the standard keyboard listbox interaction", async () => {
     const onChange = vi.fn();
     render(() => (

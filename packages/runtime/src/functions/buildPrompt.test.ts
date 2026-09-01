@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, test } from "vitest";
+import { strictConfig } from "@locator/shared";
 import type { FullElementInfo } from "../adapters/adapterApi";
 import { buildPrompt, buildPromptDeeplink } from "./buildPrompt";
 
@@ -25,11 +26,18 @@ function elementInfo(): FullElementInfo {
   };
 }
 
+const effective = strictConfig.effectiveOptions(
+  strictConfig.resolveConfig(
+    { default: strictConfig.DEFAULT_LAYER },
+    strictConfig.BUILT_IN_TARGETS
+  )
+);
+
 describe("buildPrompt", () => {
   test("fills element context and strips Locator attributes", () => {
     const prompt = buildPrompt(
       elementInfo(),
-      {},
+      effective,
       "${componentName}|${filePath}|${line}|${htmlSnippet}"
     );
     expect(prompt).toContain("Button|/repo/src/Button.tsx|12|");
@@ -37,10 +45,8 @@ describe("buildPrompt", () => {
     expect(prompt).not.toContain("data-locatorjs");
   });
 
-  test("ignores a deprecated global prompt when an action has no template", () => {
-    const prompt = buildPrompt(elementInfo(), {
-      promptTemplate: "legacy global",
-    } as never);
+  test("uses the built-in prompt when an action has no template", () => {
+    const prompt = buildPrompt(elementInfo(), effective);
 
     expect(prompt).toContain("Please help me update this UI element.");
     expect(prompt).not.toContain("legacy global");

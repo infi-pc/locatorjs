@@ -1,6 +1,6 @@
-/* eslint-disable no-console */
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable no-console -- build script reports generated artifact status. */
+/* eslint-disable no-undef -- build script runs in CommonJS Node. */
+/* eslint-disable @typescript-eslint/no-var-requires -- build script loads filesystem helpers in CommonJS. */
 
 const fs = require("fs-extra");
 

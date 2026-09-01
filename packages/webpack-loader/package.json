@@ -1,16 +1,20 @@
 {
   "name": "@locator/webpack-loader",
-  "version": "0.5.1",
+  "version": "2.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node ../../scripts/clean-package-dist.js && tsc",
     "dev": "tsc --watch --preserveWatchOutput",
     "ts": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "@babel/core": "^7.29.0",

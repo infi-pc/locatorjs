@@ -23,6 +23,13 @@ const styles = {
   bodyText: css({ color: 'fg.muted', fontSize: 'sm', mt: '1' }),
   actionRow: css({ display: 'flex', justifyContent: 'flex-end', mt: '3' }),
   notice: css({ color: 'fg.muted', fontSize: 'xs', px: '1' }),
+  diagnostic: css({ mt: '1.5' }),
+  diagnosticSummary: css({ color: 'fg.default', cursor: 'pointer' }),
+  diagnosticText: css({
+    overflowWrap: 'anywhere',
+    pt: '1',
+    whiteSpace: 'pre-wrap',
+  }),
   error: css({ color: 'red.plain.fg', fontSize: 'xs', mt: '2' }),
   disabledIcon: css({
     alignItems: 'center',
@@ -40,7 +47,8 @@ const styles = {
 };
 
 const Popup = () => {
-  const { status, snapshot, setSiteLocal } = useSyncedState();
+  const { status, snapshot, setSiteLocal, diagnostic, reloadActiveTab } =
+    useSyncedState();
   const [enableError, setEnableError] = createSignal<string>();
 
   const siteDisabled = () => !!snapshot()?.effective.disabled;
@@ -49,7 +57,7 @@ const Popup = () => {
   // write to `{ ok: false }`. Dropping it left the button looking like it had
   // worked while the overlay stayed disabled.
   const enableHere = async () => {
-    const result = await setSiteLocal({ disabled: false });
+    const result = await setSiteLocal({ set: { disabled: false } });
     setEnableError(
       result.ok ? undefined : 'Could not enable LocatorJS on this page.'
     );
@@ -77,7 +85,11 @@ const Popup = () => {
         */}
         <div class={styles.stack}>
           <Show when={status() !== 'connected'}>
-            <NoRuntimeView />
+            <NoRuntimeView
+              reloadRequired={status() === 'reload-required'}
+              diagnostic={diagnostic()}
+              onReload={reloadActiveTab}
+            />
           </Show>
           <Show when={status() === 'connected' && siteDisabled()}>
             <div class={styles.card}>
@@ -107,9 +119,34 @@ const Popup = () => {
   );
 };
 
-function NoRuntimeView() {
+function NoRuntimeView(props: {
+  reloadRequired: boolean;
+  diagnostic?: string;
+  onReload: () => Promise<void>;
+}) {
+  const stillStarting = () =>
+    props.diagnostic === 'ok' || props.diagnostic?.startsWith('loading:');
+  const showDiagnostic = () =>
+    !!props.diagnostic && !props.reloadRequired && !stillStarting();
   return (
-    <div class={styles.notice}>Page not connected — editing All sites.</div>
+    <div class={styles.notice}>
+      {props.reloadRequired
+        ? 'Reload this page to finish updating LocatorJS.'
+        : stillStarting()
+        ? 'LocatorJS is still starting on this page. You can edit All sites while it connects.'
+        : 'Page not connected — editing All sites.'}
+      <Show when={props.reloadRequired}>
+        <Button variant="outline" onClick={() => void props.onReload()}>
+          Reload page
+        </Button>
+      </Show>
+      <Show when={showDiagnostic()}>
+        <details class={styles.diagnostic}>
+          <summary class={styles.diagnosticSummary}>Details</summary>
+          <div class={styles.diagnosticText}>{props.diagnostic}</div>
+        </details>
+      </Show>
+    </div>
   );
 }
 

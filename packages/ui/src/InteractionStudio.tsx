@@ -3,10 +3,7 @@ import {
   bindingsForTrigger,
   duplicateShortcutModifiers,
   globalIndexForTrigger,
-  type Binding,
-  type BindingTrigger,
-  type EditorSelection,
-  type Targets,
+  strictConfig,
 } from "@locator/shared";
 import { css, cx } from "@locator/styled-system/css";
 import { ArrowRight, Plus } from "lucide-solid";
@@ -16,7 +13,7 @@ import { HoverToolbarButton, HoverToolbarFrame } from "./HoverToolbar";
 import { ShortcutExpression } from "./ShortcutExpression";
 
 export type StudioSelection = {
-  triggerKind: BindingTrigger["kind"];
+  triggerKind: strictConfig.BindingTrigger["kind"];
   index: number;
 };
 
@@ -134,19 +131,19 @@ const styles = {
 };
 
 export function InteractionStudio(props: {
-  bindings: Binding[];
-  targets: Targets;
-  editor?: EditorSelection;
+  bindings: readonly strictConfig.BindingInput[];
+  targets: strictConfig.TargetViewMap;
+  editor?: strictConfig.EditorDestination;
   selection?: StudioSelection;
   onSelect: (selection: StudioSelection) => void;
-  onAdd: (kind: BindingTrigger["kind"]) => void;
+  onAdd: (kind: strictConfig.BindingTrigger["kind"]) => void;
 }) {
   const shortcuts = () => bindingsForTrigger(props.bindings, "modifier-click");
   const toolbar = () => bindingsForTrigger(props.bindings, "hover-toolbar");
-  const duplicate = (binding: Binding) => {
+  const duplicate = (binding: strictConfig.BindingInput) => {
     if (binding.trigger.kind !== "modifier-click") return false;
     return duplicateShortcutModifiers(props.bindings).has(
-      binding.trigger.modifiers
+      binding.trigger.modifiers.join("+")
     );
   };
 
@@ -164,8 +161,7 @@ export function InteractionStudio(props: {
                 const selected = () =>
                   props.selection?.triggerKind === "modifier-click" &&
                   props.selection.index === index();
-                const label = () =>
-                  actionLabel(binding.action, props.targets, props.editor);
+                const label = () => actionLabel(binding.action, props.targets);
                 const itemIndex = () =>
                   globalIndexForTrigger(
                     props.bindings,
@@ -189,7 +185,7 @@ export function InteractionStudio(props: {
                       modifiers={
                         binding.trigger.kind === "modifier-click"
                           ? binding.trigger.modifiers
-                          : ""
+                          : []
                       }
                     />
                     <ArrowRight size={13} class={styles.arrow} />
@@ -238,7 +234,7 @@ export function InteractionStudio(props: {
                       props.selection?.triggerKind === "hover-toolbar" &&
                       props.selection.index === index();
                     const label = () =>
-                      actionLabel(binding.action, props.targets, props.editor);
+                      actionLabel(binding.action, props.targets);
                     const itemIndex = () =>
                       globalIndexForTrigger(
                         props.bindings,

@@ -2,6 +2,7 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "include": [
     "files",
+    "exports",
     "dependencies",
     "devDependencies",
     "optionalPeerDependencies",
@@ -10,11 +11,12 @@
     "unresolved"
   ],
   "treatConfigHintsAsErrors": true,
-  "ignoreWorkspaces": ["test-apps/**", "packages/locatorjs"],
+  "ignoreWorkspaces": ["test-apps/**"],
   "ignoreFiles": ["**/tests/fixtures/**"],
   "ignoreDependencies": ["archiver"],
   "workspaces": {
     ".": {
+      "entry": ["scripts/*.js", "scripts/.eslintrc.js"],
       "ignoreDependencies": ["vitest"]
     },
     "apps/extension": {
@@ -43,10 +45,16 @@
       ]
     },
     "packages/runtime": {
-      "entry": ["src/index.server.ts", "panda.config.ts"]
+      "entry": ["src/index.ts", "src/index.server.ts", "panda.config.ts"]
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts"]
     },
     "packages/styled-system": {
       "entry": ["panda.config.ts"]
+    },
+    "packages/ui": {
+      "entry": ["src/index.ts"]
     },
     "packages/webpack-loader": {
       "ignoreDependencies": ["@babel/preset-typescript", "webpack"]

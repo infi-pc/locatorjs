@@ -10,47 +10,47 @@
  *   node utils/release.js --all     # Package all versions
  */
 
-const { spawn } = require("child_process");
-const path = require("path");
-const fs = require("fs-extra");
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs-extra');
 
 // archiver is optional, falls back to system zip command
 let archiver;
 try {
-  archiver = require("archiver");
+  archiver = require('archiver');
 } catch {
   archiver = null;
 }
 
 // Path configuration
-const ROOT_DIR = path.resolve(__dirname, "../../..");
-const EXTENSION_DIR = path.resolve(__dirname, "..");
-const BUILD_DIR = path.resolve(EXTENSION_DIR, "build");
+const ROOT_DIR = path.resolve(__dirname, '../../..');
+const EXTENSION_DIR = path.resolve(__dirname, '..');
+const BUILD_DIR = path.resolve(EXTENSION_DIR, 'build');
 
 // Color output
 const colors = {
-  reset: "\x1b[0m",
-  bright: "\x1b[1m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  red: "\x1b[31m",
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  red: '\x1b[31m',
 };
 
-function log(message, color = "reset") {
-  console.log(`${colors[color]}${message}${colors.reset}`);
+function log(message, color = 'reset') {
+  console.info(`${colors[color]}${message}${colors.reset}`);
 }
 
 function logStep(step, message) {
-  log(`\n[$${step}] ${message}`, "blue");
+  log(`\n[$${step}] ${message}`, 'blue');
 }
 
 function logSuccess(message) {
-  log(`✓ ${message}`, "green");
+  log(`✓ ${message}`, 'green');
 }
 
 function logError(message) {
-  log(`✗ ${message}`, "red");
+  log(`✗ ${message}`, 'red');
 }
 
 /**
@@ -61,24 +61,24 @@ function execCommand(command, options = {}) {
 
   return new Promise((resolve, reject) => {
     if (!silent) {
-      log(`  > ${command}`, "yellow");
+      log(`  > ${command}`, 'yellow');
     }
 
     const child = spawn(command, {
       cwd,
       shell: true,
-      stdio: silent ? "pipe" : "inherit",
+      stdio: silent ? 'pipe' : 'inherit',
     });
 
-    let stdout = "";
-    let stderr = "";
+    let stdout = '';
+    let stderr = '';
 
     if (silent) {
-      child.stdout?.on("data", (data) => (stdout += data));
-      child.stderr?.on("data", (data) => (stderr += data));
+      child.stdout?.on('data', (data) => (stdout += data));
+      child.stderr?.on('data', (data) => (stderr += data));
     }
 
-    child.on("close", (code) => {
+    child.on('close', (code) => {
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {
@@ -86,7 +86,7 @@ function execCommand(command, options = {}) {
       }
     });
 
-    child.on("error", reject);
+    child.on('error', reject);
   });
 }
 
@@ -101,22 +101,22 @@ function execCommand(command, options = {}) {
  * `...` selector builds the extension's dependencies in order.
  */
 async function buildDependencies() {
-  logStep(1, "Building extension dependencies...");
+  logStep(1, 'Building extension dependencies...');
 
-  await execCommand(
-    "pnpm turbo run build --filter=locatorjs-extension^...",
-    { cwd: ROOT_DIR }
-  );
-  logSuccess("Dependency build complete");
+  await execCommand('pnpm turbo run build --filter=locatorjs-extension^...', {
+    cwd: ROOT_DIR,
+  });
+  logSuccess('Dependency build complete');
 }
 
 /**
  * Build the extension
  */
-async function buildExtension(target = "chrome") {
+async function buildExtension(target = 'chrome') {
   logStep(2, `Building ${target} extension...`);
 
-  const buildCmd = target === "firefox" ? "pnpm run build:firefox" : "pnpm run build";
+  const buildCmd =
+    target === 'firefox' ? 'pnpm run build:firefox' : 'pnpm run build';
   await execCommand(buildCmd, { cwd: EXTENSION_DIR });
   logSuccess(`${target} extension build complete`);
 }
@@ -127,14 +127,14 @@ async function buildExtension(target = "chrome") {
 async function createZipWithArchiver(sourceDir, outputPath) {
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(outputPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = archiver('zip', { zlib: { level: 9 } });
 
-    output.on("close", () => {
+    output.on('close', () => {
       const size = (archive.pointer() / 1024).toFixed(1);
       resolve(size);
     });
 
-    archive.on("error", reject);
+    archive.on('error', reject);
     archive.pipe(output);
     archive.directory(sourceDir, false);
     archive.finalize();
@@ -153,7 +153,7 @@ async function createZipWithSystem(sourceDir, outputPath) {
 /**
  * Package the extension into a zip
  */
-async function packExtension(target = "chrome") {
+async function packExtension(target = 'chrome') {
   logStep(3, `Packaging ${target}.zip...`);
 
   const sourceDir = path.join(BUILD_DIR, `production_${target}`);
@@ -185,7 +185,7 @@ async function packExtension(target = "chrome") {
  * Get version info from package.json
  */
 function getVersionInfo() {
-  const pkg = require(path.join(EXTENSION_DIR, "package.json"));
+  const pkg = require(path.join(EXTENSION_DIR, 'package.json'));
   return {
     version: pkg.version,
     name: pkg.name,
@@ -197,23 +197,23 @@ function getVersionInfo() {
  */
 async function main() {
   const args = process.argv.slice(2);
-  const buildFirefox = args.includes("--firefox");
-  const buildAll = args.includes("--all");
-  const skipRuntime = args.includes("--skip-runtime");
+  const buildFirefox = args.includes('--firefox');
+  const buildAll = args.includes('--all');
+  const skipRuntime = args.includes('--skip-runtime');
 
   const startTime = Date.now();
   const { version, name } = getVersionInfo();
 
-  log(`\n${"=".repeat(50)}`, "bright");
-  log(`  ${name} v${version} release script`, "bright");
-  log(`${"=".repeat(50)}`, "bright");
+  log(`\n${'='.repeat(50)}`, 'bright');
+  log(`  ${name} v${version} release script`, 'bright');
+  log(`${'='.repeat(50)}`, 'bright');
 
   try {
     // 1. Build dependencies
     if (!skipRuntime) {
       await buildDependencies();
     } else {
-      log("\n[Skipped] runtime build", "yellow");
+      log('\n[Skipped] runtime build', 'yellow');
     }
 
     const outputs = [];
@@ -221,29 +221,29 @@ async function main() {
     // 2. Build and package
     if (buildAll) {
       // Build all versions
-      await buildExtension("chrome");
-      outputs.push(await packExtension("chrome"));
+      await buildExtension('chrome');
+      outputs.push(await packExtension('chrome'));
 
-      await buildExtension("firefox");
-      outputs.push(await packExtension("firefox"));
+      await buildExtension('firefox');
+      outputs.push(await packExtension('firefox'));
     } else if (buildFirefox) {
       // Firefox only
-      await buildExtension("firefox");
-      outputs.push(await packExtension("firefox"));
+      await buildExtension('firefox');
+      outputs.push(await packExtension('firefox'));
     } else {
       // Default: Chrome
-      await buildExtension("chrome");
-      outputs.push(await packExtension("chrome"));
+      await buildExtension('chrome');
+      outputs.push(await packExtension('chrome'));
     }
 
     // Done
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    log(`\n${"=".repeat(50)}`, "green");
-    log(`  Packaging complete! Time elapsed: ${duration}s`, "green");
-    log(`${"=".repeat(50)}`, "green");
-    log("\nArtifacts:");
+    log(`\n${'='.repeat(50)}`, 'green');
+    log(`  Packaging complete! Time elapsed: ${duration}s`, 'green');
+    log(`${'='.repeat(50)}`, 'green');
+    log('\nArtifacts:');
     outputs.forEach((p) => log(`  - ${p}`));
-    log("");
+    log('');
   } catch (error) {
     logError(`Packaging failed: ${error.message}`);
     process.exit(1);

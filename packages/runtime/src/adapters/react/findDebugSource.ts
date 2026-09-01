@@ -3,7 +3,8 @@ import {
   resolveSourceFromFiber,
   getSourceFromCache,
 } from "./clickSourceResolver";
-import { firstUserFrame } from "./stackFrame";
+import { firstUserFrame, isCompiledSourceLocation } from "./stackFrame";
+import type { SourceResolutionContext } from "./sourceMapResolver";
 import {
   SourceMethod,
   logSourceFound,
@@ -21,32 +22,47 @@ import {
 function getSourceFromFiber(
   fiber: Fiber
 ): [Source | null, SourceMethodType | null] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
   const fiberAny = fiber as any;
 
   // 1. Traditional: get directly from _debugSource
-  if (fiber._debugSource) {
+  if (
+    fiber._debugSource &&
+    !isCompiledSourceLocation(fiber._debugSource.fileName)
+  ) {
     return [fiber._debugSource, SourceMethod.FIBER_DEBUG_SOURCE];
   }
 
   // 2. React 19+: try from type or elementType
   // Get from elementType._source
-  if (fiberAny.elementType?._source) {
+  if (
+    fiberAny.elementType?._source &&
+    !isCompiledSourceLocation(fiberAny.elementType._source.fileName)
+  ) {
     return [fiberAny.elementType._source, SourceMethod.ELEMENT_TYPE_SOURCE];
   }
 
   // Get from type._source
-  if (fiberAny.type?._source) {
+  if (
+    fiberAny.type?._source &&
+    !isCompiledSourceLocation(fiberAny.type._source.fileName)
+  ) {
     return [fiberAny.type._source, SourceMethod.TYPE_SOURCE];
   }
 
   // 3. Next.js / Turbopack: try from __debugSource
-  if (fiberAny.__debugSource) {
+  if (
+    fiberAny.__debugSource &&
+    !isCompiledSourceLocation(fiberAny.__debugSource.fileName)
+  ) {
     return [fiberAny.__debugSource, SourceMethod.FIBER_DEBUG_SOURCE_ALT];
   }
 
   // 4. Try __source from memoizedProps (JSX transform injection)
-  if (fiberAny.memoizedProps?.__source) {
+  if (
+    fiberAny.memoizedProps?.__source &&
+    !isCompiledSourceLocation(fiberAny.memoizedProps.__source.fileName)
+  ) {
     return [
       fiberAny.memoizedProps.__source,
       SourceMethod.MEMOIZED_PROPS_SOURCE,
@@ -54,7 +70,10 @@ function getSourceFromFiber(
   }
 
   // 5. Try __source from pendingProps
-  if (fiberAny.pendingProps?.__source) {
+  if (
+    fiberAny.pendingProps?.__source &&
+    !isCompiledSourceLocation(fiberAny.pendingProps.__source.fileName)
+  ) {
     return [fiberAny.pendingProps.__source, SourceMethod.PENDING_PROPS_SOURCE];
   }
 
@@ -66,7 +85,7 @@ function getSourceFromFiber(
         // which cannot match any scheme-prefixed name, so this branch never
         // fired for real input.
         const frame = firstUserFrame(info.stack);
-        if (frame) {
+        if (frame && !isCompiledSourceLocation(frame.fileName)) {
           return [
             {
               fileName: frame.fileName,
@@ -82,7 +101,11 @@ function getSourceFromFiber(
 
   // 7. Try inferring from type function (last resort)
   // May get component definition file info
-  if (typeof fiberAny.type === "function" && fiberAny.type.__componentSource) {
+  if (
+    typeof fiberAny.type === "function" &&
+    fiberAny.type.__componentSource &&
+    !isCompiledSourceLocation(fiberAny.type.__componentSource.fileName)
+  ) {
     return [
       fiberAny.type.__componentSource,
       SourceMethod.TYPE_COMPONENT_SOURCE,
@@ -153,17 +176,18 @@ export function findDebugSource(
  * For Next.js 15+ / React 19+ with new bundlers
  */
 export async function findDebugSourceAsync(
-  fiber: Fiber
+  fiber: Fiber,
+  context?: SourceResolutionContext
 ): Promise<{ fiber: Fiber; source: Source } | null> {
   // 1. Try synchronous method first
   const syncResult = findDebugSource(fiber);
-  if (syncResult) {
+  if (syncResult?.fiber === fiber) {
     return syncResult;
   }
 
   const debug = isDebugEnabled();
   if (debug) {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- opt-in debug mode reports resolver strategy changes.
     console.log(
       "%c[LocatorJS] Sync methods failed, trying async resolution...",
       "color: #2196F3; font-style: italic"
@@ -173,7 +197,7 @@ export async function findDebugSourceAsync(
   // 2. Sync failed, try async resolution via _debugOwner chain
   let current: Fiber | null = fiber;
   while (current) {
-    const source = await resolveSourceFromFiber(current);
+    const source = await resolveSourceFromFiber(current, context);
     if (source) {
       return { fiber: current, source };
     }
@@ -183,14 +207,14 @@ export async function findDebugSourceAsync(
   // 3. _debugOwner chain exhausted — try fiber.return chain (actual parent tree)
   // This catches cases where _debugOwner skips intermediate components
   // (e.g. Server Component owns <p> directly, but <p> is rendered inside <Card>)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the return chain is a private React fiber field.
   let parent: any = (fiber as any).return;
   const visited = new Set<any>();
   while (parent && !visited.has(parent)) {
     visited.add(parent);
     // Only try function components (tag 0 = FunctionComponent, tag 11 = ForwardRef)
     if (typeof parent.type === "function") {
-      const source = await resolveSourceFromFiber(parent);
+      const source = await resolveSourceFromFiber(parent, context);
       if (source) {
         return { fiber: parent, source };
       }
@@ -202,5 +226,5 @@ export async function findDebugSourceAsync(
     logSourceComplete(false);
   }
 
-  return null;
+  return syncResult;
 }

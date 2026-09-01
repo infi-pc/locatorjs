@@ -1,13 +1,9 @@
-import {
-  getModifiersMap,
-  modifiersTitles,
-  primaryEditorShortcut,
-} from "@locator/shared";
-import { createEffect, createSignal, For } from "solid-js";
+import { modifiersTitles, strictConfig } from "@locator/shared";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { bannerClass } from "../functions/bannerClasses";
 import BannerHeader from "./BannerHeader";
 import { AdapterId } from "../consts";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 import { activationModifiers, effectiveBindings } from "../functions/bindings";
 import { css, cx } from "@locator/styled-system/css";
 import { kbd } from "@locator/styled-system/recipes";
@@ -26,7 +22,16 @@ const styles = {
     mb: "1",
     mt: "2",
   }),
-  link: css({ cursor: "pointer", textDecoration: "underline" }),
+  link: css({
+    bg: "transparent",
+    border: "none",
+    color: "inherit",
+    cursor: "pointer",
+    font: "inherit",
+    p: "0",
+    textDecoration: "underline",
+  }),
+  error: css({ color: "error" }),
 };
 
 export function IntroInfo(props: {
@@ -37,6 +42,9 @@ export function IntroInfo(props: {
   const options = useOptions();
 
   const [showIntro, setShowIntro] = createSignal(true);
+  const [saveState, setSaveState] = createSignal<"idle" | "saving" | "error">(
+    "idle"
+  );
   setTimeout(() => {
     setShowIntro(false);
   }, 5000);
@@ -55,12 +63,12 @@ export function IntroInfo(props: {
    * `matchBinding` will not match.
    */
   const editorShortcut = () => {
-    const trigger = primaryEditorShortcut(bindings())?.trigger;
-    return trigger?.kind === "modifier-click" ? trigger.modifiers : undefined;
+    return strictConfig.primaryEditorShortcut(options.effective().bindings)
+      ?.trigger.chord;
   };
   const modifiers = () =>
-    getModifiersMap(
-      editorShortcut() ?? activationModifiers(bindings())[0] ?? "alt"
+    strictConfig.modifiersForChord(
+      editorShortcut() ?? activationModifiers(bindings())[0]!
     );
   return (
     <div
@@ -74,14 +82,12 @@ export function IntroInfo(props: {
         {editorShortcut()
           ? "Go to component code with "
           : "Show the LocatorJS toolbar with "}
-        <For each={Object.keys(modifiers())}>
+        <For each={modifiers()}>
           {(key, i) => {
             return (
               <>
                 {i() === 0 ? "" : " + "}
-                <div class={styles.key}>
-                  {modifiersTitles[key as keyof typeof modifiersTitles]}
-                </div>
+                <div class={styles.key}>{modifiersTitles[key]}</div>
               </>
             );
           }}
@@ -98,14 +104,29 @@ export function IntroInfo(props: {
         <a class={styles.link} href="https://www.locatorjs.com" target="_blank">
           What is Locator?
         </a>
-        <a
+        <button
+          type="button"
           class={styles.link}
-          onClick={() => {
-            options.setUserOrigin({ showIntro: false });
+          disabled={saveState() === "saving"}
+          onClick={async () => {
+            setSaveState("saving");
+            const result = await options.setUserOrigin({
+              set: { showIntro: false },
+            });
+            if (result.ok) {
+              setShowIntro(false);
+            } else {
+              setSaveState("error");
+            }
           }}
         >
-          Stop showing this popup
-        </a>
+          {saveState() === "saving" ? "Saving…" : "Stop showing this popup"}
+        </button>
+        <Show when={saveState() === "error"}>
+          <span class={styles.error} role="alert">
+            Could not save
+          </span>
+        </Show>
       </div>
     </div>
   );

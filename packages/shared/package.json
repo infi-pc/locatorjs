@@ -1,20 +1,33 @@
 {
   "name": "@locator/shared",
-  "version": "0.5.0",
+  "version": "2.0.0",
   "main": "./dist/index.js",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./strict-config": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    }
+  },
   "license": "MIT",
   "scripts": {
     "dev": "tsc --watch --declaration --outDir dist --preserveWatchOutput",
-    "build": "tsc --declaration --outDir dist",
+    "build": "node ../../scripts/clean-package-dist.js && tsc -p tsconfig.build.json --declaration --outDir dist",
     "//build-cjs": "tsc --module commonjs --outDir dist/cjs",
     "ts": "tsc --noEmit",
     "test": "vitest run",
     "test:dev": "vitest watch",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",
-    "@types/semver": "^7.7.1",
+    "fast-check": "4.9.0",
+    "jsdom": "^20.0.3",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
   },
@@ -22,8 +35,5 @@
   "files": [
     "dist",
     "src"
-  ],
-  "dependencies": {
-    "semver": "^7.7.4"
-  }
+  ]
 }

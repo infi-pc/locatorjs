@@ -1,4 +1,5 @@
 import { SimpleDOMRect, Source } from "./types";
+import type { SourceResolutionContext } from "../adapters/react/sourceMapResolver";
 
 export interface TreeNode {
   type: "component" | "element";
@@ -8,7 +9,11 @@ export interface TreeNode {
   getParent(): TreeNode | null;
   getChildren(): TreeNode[];
   getSource(): Source | null;
+  getSourceAsync?(context?: SourceResolutionContext): Promise<Source | null>;
   getComponent(): TreeNodeComponent | null;
+  getComponentAsync?(
+    context?: SourceResolutionContext
+  ): Promise<TreeNodeComponent | null>;
 }
 
 export type TreeNodeComponent = {

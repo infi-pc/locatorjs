@@ -83,43 +83,36 @@ pnpm dev:firefox
 
 ## Build & Release
 
-### Using Node script (recommended)
+### Dependency-aware release pipeline
 
 ```bash
 # Package Chrome version (builds deps + extension + zip)
-pnpm run release:node
+pnpm run release:chrome
 
 # Package Firefox version
-pnpm run release:node:firefox
+pnpm run release:firefox
 
 # Package all versions
-pnpm run release:node:all
+pnpm run release
 
 # Skip dependency build (re-package extension only)
 node utils/release.js --skip-runtime
 ```
 
-### Step-by-step build
+The `release:node*` commands remain compatibility aliases for existing release
+automation. All release entry points now run the same dependency-aware Node
+pipeline before packaging.
+
+### Packaging an existing build (unsafe)
 
 ```bash
-# 1. Build dependency packages (in order)
-cd ../../packages/shared && pnpm build && cd -
-cd ../../packages/runtime && pnpm build && cd -
-
-# 2. Build extension
-pnpm build              # Chrome
-pnpm build:firefox      # Firefox
-
-# 3. Package zip
-pnpm pack:chrome        # -> build/chrome.zip
-pnpm pack:firefox       # -> build/artifacts_firefox/
+pnpm pack:unsafe:chrome  # -> build/chrome.zip
+pnpm pack:unsafe:firefox # -> build/artifacts_firefox/
 ```
 
-### Build notes
-
-- **Package build order**: `shared` -> `runtime` -> `extension`
-- After modifying `shared` type definitions, rebuild `shared` first, then `runtime`
-- TypeScript type errors may occur if dependency packages haven't been rebuilt; the actual build will work correctly
+These commands package whatever is already in `build/production_*`; they do not
+rebuild dependencies or the extension. Use `pnpm run release:chrome`,
+`pnpm run release:firefox`, or `pnpm run release` for release artifacts.
 
 ### Build output
 

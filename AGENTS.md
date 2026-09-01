@@ -10,11 +10,11 @@ babel plugin, and the marketing site.
 pnpm check
 ```
 
-Runs formatting, dependency-version consistency, unused-code checks, source
-duplication checks, lint, typecheck and unit tests across all 13 packages. It
-uses `--continue=always`, so Turbo reports **every** failing package gate in one
-run rather than stopping at the first, and `--output-logs=errors-only`, so the
-Turbo output is only failures.
+Runs formatting, dependency-version consistency, ESLint-suppression checks,
+script linting, unused-code checks, source-duplication checks, package lint,
+typecheck and unit tests across all 13 packages. It uses `--continue=always`, so
+Turbo reports **every** failing package gate in one run rather than stopping at
+the first, and `--output-logs=errors-only`, so the Turbo output is only failures.
 
 Fix what it reports and re-run until it is green. Two shortcuts:
 
@@ -23,8 +23,9 @@ pnpm check:fix   # prettier + dependency-version autofix
 pnpm format      # formatting only
 ```
 
-`pnpm check` is exactly what CI's `check` job runs, so green locally means green
-in CI. Scope it to one package while iterating:
+`pnpm check` is exactly what CI's `check` job runs. Packaging has its own
+`pnpm package-contract` CI job, and end-to-end tests have their own jobs. Scope
+the main gate to one package while iterating:
 
 ```bash
 pnpm turbo run lint ts test --filter=@locator/runtime
@@ -45,6 +46,7 @@ Never claim a check passed that you did not run.
 | `pnpm lint` / `pnpm test`    | Individual gates                                       |
 | `pnpm knip`                  | Unused files and dependencies                          |
 | `pnpm dup`                   | Source duplication budget                              |
+| `pnpm package-contract`      | Build and validate every published package tarball     |
 | `pnpm clean`                 | Remove node_modules, dist, .turbo, .next               |
 
 Node version is pinned in `.nvmrc` (22). Don't hardcode it anywhere else.
@@ -73,7 +75,8 @@ Each consumer reads its variable with the historical port as the default, so
 **not** sourcing the script keeps the original numbers. Defaults: web 3342,
 vite-react 3343, ui-lab 3344, solid 3345, preact 3346, svelte 3347,
 react-clean 3348, svelte-clean 3349, vue 3350, next-14 3351, next-16 3352,
-next-16-turbopack 3353.
+next-16-turbopack 3353, extension 3354. A complete workspace block therefore
+uses 13 consecutive ports.
 
 If you add an app, add its variable to `scripts/dev-ports.sh` **and** to
 `turbo.json`'s `globalEnv` — otherwise turbo omits it from cache keys and will
@@ -88,8 +91,9 @@ is the next app's slot, and the collision cascades through the block.
 components), `styled-system` (Panda CSS tokens/theme, mostly generated),
 `babel-jsx` (adds source attributes to JSX), `webpack-loader` (wraps the babel
 plugin), `react-devtools-hook` (installs the devtools global hook),
-`dev-config` (shared eslint presets + tsconfig bases), `locatorjs` (published
-stub, no source).
+`dev-config` (shared eslint presets, tsconfig bases, and the Vitest Web Storage
+helper), `locatorjs` (the CommonJS compatibility entry that re-exports
+`@locator/runtime`).
 
 **Apps** — `extension` (the browser extension, Solid + webpack),
 `web` (locatorjs.com, Next.js), `ui-lab` (component workbench, private),
@@ -106,8 +110,8 @@ the e2e suite drives. Excluded from `pnpm build` and `pnpm check`.
   `@ts-expect-error` _with a description_. `@ts-expect-error` fails the build if
   the error it claims to suppress doesn't exist, which is the point. Caught by
   `pnpm lint` and `pnpm ts`.
-- **Every `eslint-disable` needs a reason** after `--`. Not machine-enforced
-  yet; treat it as required anyway.
+- **Every `eslint-disable` needs a non-empty reason** after `--`. Enforced by
+  `scripts/check-eslint-suppressions.js` from both `pnpm lint` and `pnpm check`.
 - **A new package needs `lint` and `ts` scripts.** Turbo silently no-ops on a
   missing script, so a package without them is invisible to CI rather than
   passing it. This is how coverage previously sat at 4/13 for lint. Confirm with
@@ -120,8 +124,8 @@ the e2e suite drives. Excluded from `pnpm build` and `pnpm check`.
 
 ## Tests
 
-Unit tests are colocated `*.test.ts(x)` next to the source, run by **vitest**:
-`runtime` (22 files), `ui` (11), `shared` (5), `extension` (4).
+Unit tests are colocated `*.test.ts(x)` next to the source and run by
+**vitest** in runtime, UI, shared, and extension packages.
 `packages/babel-jsx` is the one **jest** package, with fixture snapshots under
 `tests/fixtures/`.
 
@@ -165,19 +169,18 @@ Things that will waste your time if you rediscover them:
   `reuseExistingServer` is on locally, so if a parallel Conductor workspace has
   `pnpm dev` up, Playwright silently tests _that_ checkout. Give the run its own
   block first: `PORT=45000 . ./scripts/dev-ports.sh && pnpm e2e`.
-- **`--no-webstorage` in three vitest configs is load-bearing.** Node 25+ turned
+- **`--no-webstorage` in four vitest configs is load-bearing.** Node 25+ turned
   on Web Storage, which shadows jsdom's `localStorage` and breaks every test
-  touching it (vitest-dev/vitest#8757). The configs probe the running Node
+  touching it (vitest-dev/vitest#8757). The shared
+  `packages/dev-config/vitest-no-webstorage.js` helper probes the running Node
   rather than assuming a version, because Node 22 rejects the flag outright.
-  Don't "simplify" it to an unconditional flag.
+  Don't "simplify" the helper to an unconditional flag.
 - **Prettier is split across majors** — 2.8.8 at root and in `apps/extension`,
   3.8.3 in `packages/babel-jsx` — and there are three formatter entry points
   with disagreeing options. `dependency-versions` exempts `prettier` until this
   is unified, since unifying reformats the repo.
 - **`.npmrc`'s `minimum-release-age` is inert** on the pinned pnpm 8.7.5; it
   needs pnpm >= 10.16.
-- **`packages/locatorjs` is a published stub** whose `main` points at a `dist`
-  nothing builds.
 - **Renaming an e2e group renames a CI check.** Required status checks are
   typed into GitHub's branch protection by hand, so a group rename leaves PRs
   waiting forever on a check that will never report again. Update the required
@@ -190,7 +193,9 @@ Things that will waste your time if you rediscover them:
 `.github/workflows/ci.yml`, on PRs and pushes to **master** (not `main`):
 
 - **build** → populates the turbo cache
-- **check** → `pnpm check`; all non-e2e gates in one job
+- **check** → `pnpm check`; the main non-e2e quality gates in one job
+- **package-contract** → builds, packs, installs and imports every public package
+- **firefox-build** → builds and validates the Firefox extension artifact
 - **e2e (adapters | tree | embedding | settings | bindings | next)** →
   Playwright, each group booting only the dev servers its own specs use
 - **e2e report** → merges the six blob reports into one HTML report. Not a gate:

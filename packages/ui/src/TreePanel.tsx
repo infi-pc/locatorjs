@@ -7,15 +7,10 @@ import {
   ExternalLink,
   X,
 } from "lucide-solid";
-import {
-  For,
-  Show,
-  createEffect,
-  createMemo,
-  createSignal,
-  untrack,
-} from "solid-js";
+import { For, Show, createEffect, createSignal, untrack } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { IconButton } from "./IconButton";
+import { trapOverlayFocus } from "./focusTrap";
 import { visibleTreeRows, type TreeRow, type TreeViewModel } from "./treeModel";
 
 const INDENT_REM = 0.875;
@@ -155,6 +150,7 @@ const styles = {
 export function TreePanel(props: {
   model: TreeViewModel;
   expandedIds: ReadonlySet<string>;
+  pendingIds?: ReadonlySet<string>;
   onToggle: (id: string) => void;
   onOpen: (row: TreeRow) => void;
   onHover: (id: string | null) => void;
@@ -165,13 +161,24 @@ export function TreePanel(props: {
   /** Focuses the row list on mount so arrow keys work without a click. */
   autofocus?: boolean;
 }) {
+  let panel: HTMLDivElement | undefined;
   let list: HTMLDivElement | undefined;
   const [focused, setFocused] = createSignal(0);
   const [hovered, setHovered] = createSignal<string | null>(null);
-
-  const flat = createMemo(() =>
-    visibleTreeRows(props.model.rows, props.expandedIds)
-  );
+  const [flat, setFlat] = createStore<
+    Array<ReturnType<typeof visibleTreeRows>[number] & { key: string }>
+  >([]);
+  createEffect(() => {
+    setFlat(
+      reconcile(
+        visibleTreeRows(props.model.rows, props.expandedIds).map((item) => ({
+          ...item,
+          key: item.row.id,
+        })),
+        { key: "key" }
+      )
+    );
+  });
 
   /**
    * Focus follows the selection, but only when the selection actually changes.
@@ -187,7 +194,9 @@ export function TreePanel(props: {
     if (hasSyncedSelection && selectedId === previousSelectedId) return;
     hasSyncedSelection = true;
     previousSelectedId = selectedId;
-    const index = untrack(flat).findIndex((item) => item.row.id === selectedId);
+    const index = untrack(() => flat).findIndex(
+      (item) => item.row.id === selectedId
+    );
     if (index >= 0) setFocused(index);
   });
 
@@ -196,7 +205,7 @@ export function TreePanel(props: {
   });
 
   const moveFocus = (delta: number) => {
-    const rows = flat();
+    const rows = untrack(() => flat);
     if (!rows.length) return;
     const next = Math.min(Math.max(focused() + delta, 0), rows.length - 1);
     setFocused(next);
@@ -207,7 +216,7 @@ export function TreePanel(props: {
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    const current = flat()[focused()];
+    const current = flat[focused()];
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
@@ -237,11 +246,11 @@ export function TreePanel(props: {
         break;
       case "Home":
         event.preventDefault();
-        moveFocus(-flat().length);
+        moveFocus(-flat.length);
         break;
       case "End":
         event.preventDefault();
-        moveFocus(flat().length);
+        moveFocus(flat.length);
         break;
       case "Enter":
       case " ":
@@ -249,16 +258,20 @@ export function TreePanel(props: {
         event.preventDefault();
         props.onOpen(current.row);
         break;
-      case "Escape":
-        event.preventDefault();
-        event.stopPropagation();
-        props.onClose();
-        break;
     }
   };
 
   return (
-    <div class={styles.panel} role="dialog" aria-label="Component tree">
+    <div
+      ref={panel}
+      class={styles.panel}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Component tree"
+      onKeyDown={(event) => {
+        if (panel) trapOverlayFocus(event, panel, props.onClose);
+      }}
+    >
       <div class={styles.header}>
         <Component size={13} class={styles.componentIcon} />
         <span class={styles.title}>{props.title ?? "Component tree"}</span>
@@ -267,11 +280,27 @@ export function TreePanel(props: {
         </IconButton>
       </div>
 
+      <Show when={props.model.canGoUp}>
+        <button
+          type="button"
+          class={styles.goUp}
+          aria-label="Show parent"
+          onClick={() => props.onGoUp()}
+        >
+          <ChevronsUp size={13} /> Show parent
+        </button>
+      </Show>
+
       <div
         ref={list}
         class={styles.body}
         role="tree"
         aria-label="Component tree"
+        aria-activedescendant={
+          flat[focused()]?.row.id
+            ? treeItemId(flat[focused()]!.row.id)
+            : undefined
+        }
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onMouseLeave={() => {
@@ -279,32 +308,26 @@ export function TreePanel(props: {
           props.onHover(null);
         }}
       >
-        <Show when={props.model.canGoUp}>
-          <button
-            type="button"
-            class={styles.goUp}
-            aria-label="Show parent"
-            onClick={() => props.onGoUp()}
-          >
-            <ChevronsUp size={13} /> Show parent
-          </button>
-        </Show>
-
         <Show
-          when={flat().length > 0}
+          when={flat.length > 0}
           fallback={<div class={styles.empty}>Nothing to show here.</div>}
         >
-          <For each={flat()}>
+          <For each={flat}>
             {(item, index) => (
               <Row
                 row={item.row}
                 depth={item.depth}
+                posInSet={item.posInSet}
+                setSize={item.setSize}
                 index={index()}
                 expanded={props.expandedIds.has(item.row.id)}
                 selected={props.model.selectedId === item.row.id}
+                active={focused() === index()}
                 focused={focused() === index()}
                 hovered={hovered() === item.row.id}
+                pending={props.pendingIds?.has(item.row.id) ?? false}
                 onToggle={() => props.onToggle(item.row.id)}
+                onReturnFocus={() => list?.focus({ preventScroll: true })}
                 onOpen={() => props.onOpen(item.row)}
                 onEnter={() => {
                   setHovered(item.row.id);
@@ -327,23 +350,32 @@ export function TreePanel(props: {
 function Row(props: {
   row: TreeRow;
   depth: number;
+  posInSet: number;
+  setSize: number;
   index: number;
   expanded: boolean;
   selected: boolean;
+  active: boolean;
   focused: boolean;
   hovered: boolean;
+  pending: boolean;
   onToggle: () => void;
+  onReturnFocus: () => void;
   onOpen: () => void;
   onEnter: () => void;
 }) {
   const clickable = () => Boolean(props.row.source);
   return (
     <div
+      id={treeItemId(props.row.id)}
       role="treeitem"
       data-row-index={props.index}
       data-row-kind={props.row.kind}
       aria-expanded={props.row.hasChildren ? props.expanded : undefined}
-      aria-selected={props.selected}
+      aria-level={props.depth + 1}
+      aria-posinset={props.posInSet}
+      aria-setsize={props.setSize}
+      aria-selected={props.active}
       aria-disabled={clickable() ? undefined : true}
       class={cx(
         styles.row,
@@ -355,6 +387,8 @@ function Row(props: {
       title={
         clickable()
           ? `${props.row.source!.filePath}:${props.row.source!.line}`
+          : props.pending
+          ? `${props.row.label} — finding source`
           : `${props.row.label} — no source location`
       }
       onMouseEnter={() => props.onEnter()}
@@ -368,11 +402,13 @@ function Row(props: {
       >
         <button
           type="button"
+          tabIndex={-1}
           class={styles.twisty}
           aria-label={props.expanded ? "Collapse" : "Expand"}
           onClick={(event) => {
             event.stopPropagation();
             props.onToggle();
+            props.onReturnFocus();
           }}
         >
           {props.expanded ? (
@@ -407,7 +443,9 @@ function Row(props: {
         </Show>
       </span>
 
-      <span class={styles.detail}>{props.row.detail}</span>
+      <span class={styles.detail}>
+        {props.pending ? "Finding source…" : props.row.detail}
+      </span>
 
       <ExternalLink
         size={11}
@@ -418,4 +456,8 @@ function Row(props: {
       />
     </div>
   );
+}
+
+function treeItemId(rowId: string): string {
+  return `locator-treeitem-${encodeURIComponent(rowId)}`;
 }

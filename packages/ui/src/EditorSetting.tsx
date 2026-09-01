@@ -1,13 +1,8 @@
-import {
-  resolveEditorTarget,
-  type LocatorLayer,
-  type LocatorOptions,
-  type Targets,
-  type WriteResponse,
-} from "@locator/shared";
+import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { RotateCcw } from "lucide-solid";
-import { Show } from "solid-js";
+import { Show, createUniqueId } from "solid-js";
+import type { LayerViews } from "./configModel";
 import { EditorPicker } from "./EditorPicker";
 import { Field } from "./Field";
 import { IconButton } from "./IconButton";
@@ -29,37 +24,36 @@ const styles = {
   }),
 };
 
-/**
- * The one destination every source link opens in. Individual `open-editor`
- * actions inherit it unless they pin their own editor.
- */
 export function EditorSetting(props: {
-  layers: Partial<Record<LocatorLayer, LocatorOptions>>;
-  layer: LocatorLayer;
-  targets: Targets;
+  layers: LayerViews;
+  layer: strictConfig.LocatorLayerId;
+  targets: strictConfig.TargetViewMap;
   portalMount?: Node;
   error?: string;
-  write: (patch: Partial<LocatorOptions>) => WriteResponse;
+  write: (
+    patch: strictConfig.LayerPatchInput
+  ) => strictConfigStorage.WriteResponse;
 }) {
-  const state = () => layerFieldState(props.layers, props.layer, "editor");
-  const editor = () => state().value ?? {};
-  const unresolved = () =>
-    resolveEditorTarget(editor(), props.targets).kind === "fallback";
+  const controlId = `locator-editor-${createUniqueId()}`;
+  const state = () =>
+    layerFieldState(props.layers, props.layer, "editor", props.targets);
+  const editor = () => state().value;
 
   return (
     <Field
       label="Editor"
+      controlId={controlId}
       meta={
         <span class={styles.meta}>
-          <Show when={state().source && state().source !== props.layer}>
-            <ProvenanceBadge layer={state().source!} />
+          <Show when={state().source !== props.layer}>
+            <ProvenanceBadge layer={state().source} />
           </Show>
           <Show when={state().setHere}>
             <Tooltip label="Revert Editor" portalMount={props.portalMount}>
               <IconButton
                 aria-label="Revert Editor"
                 class={styles.reset}
-                onClick={() => props.write({ editor: undefined })}
+                onClick={() => props.write({ unset: ["editor"] })}
               >
                 <RotateCcw size={14} />
               </IconButton>
@@ -70,30 +64,29 @@ export function EditorSetting(props: {
       helper="Where source links open. Individual actions can override it."
       error={
         props.error ??
-        (unresolved() ? "Pick an editor so source links can open." : undefined)
+        (!editor() ? "Pick an editor so source links can open." : undefined)
       }
     >
       <EditorPicker
+        controlId={controlId}
         targets={props.targets}
-        targetId={editor().targetId}
-        targetTemplate={editor().targetTemplate}
+        value={editor()}
         portalMount={props.portalMount}
-        onChange={(patch) => props.write({ editor: patch })}
+        onChange={(destination) =>
+          destination
+            ? props.write({ set: { editor: destination } })
+            : props.write({ unset: ["editor"] })
+        }
       />
     </Field>
   );
 }
 
-/**
- * Human-readable name of the editor a non-overriding action will open, for the
- * "follow the Editor setting" choice in per-action pickers.
- */
 export function editorSettingLabel(
-  editor: LocatorOptions["editor"],
-  targets: Targets
+  editor: strictConfig.EditorDestination | undefined,
+  targets: strictConfig.TargetViewMap
 ): string {
-  const resolved = resolveEditorTarget(editor, targets);
-  if (resolved.kind === "template") return "Editor setting (custom link)";
-  if (resolved.kind === "fallback") return "Editor setting (not set)";
-  return `Editor setting (${targets[resolved.id]?.label ?? resolved.id})`;
+  if (!editor) return "Editor setting (not set)";
+  if (editor.kind === "template") return "Editor setting (custom link)";
+  return `Editor setting (${targets[editor.id]?.label ?? editor.id})`;
 }

@@ -1,5 +1,22 @@
-import { describe, expect, test } from "vitest";
-import { decodeVLQ, parseMappings, fileUrlToPath } from "./sourceMapResolver";
+import { describe, expect, test, vi } from "vitest";
+import {
+  createSourceResolutionContext,
+  decodeVLQ,
+  parseMappings,
+  fileUrlToPath,
+} from "./sourceMapResolver";
+
+test("source resolution starts with the page's compiled scripts", () => {
+  const scriptUrl = "http://localhost/_next/static/chunks/app.js";
+  vi.stubGlobal("document", {
+    querySelectorAll: () => [{ src: scriptUrl }],
+  });
+
+  const context = createSourceResolutionContext(new AbortController().signal);
+
+  expect(context.candidateChunkUrls).toContain(scriptUrl);
+  vi.unstubAllGlobals();
+});
 
 describe("decodeVLQ", () => {
   test("decodes zero (A)", () => {

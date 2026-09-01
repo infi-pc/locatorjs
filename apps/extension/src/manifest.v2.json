@@ -19,6 +19,14 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "js": ["hook.bundle.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["contentScript.bundle.js"],
       "run_at": "document_start",
       "all_frames": true,
@@ -26,9 +34,14 @@
     }
   ],
   "permissions": ["storage"],
+  "browser_specific_settings": {
+    "gecko": {
+      "strict_min_version": "128.0"
+    }
+  },
   "web_accessible_resources": [
     "client.bundle.js",
-    "hook.bundle.js",
+    "locator-runtime-ui.chunk.js",
     "content.styles.css",
     "icon-32.png",
     "icon-34.png",

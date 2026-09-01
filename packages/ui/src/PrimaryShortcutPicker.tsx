@@ -1,4 +1,5 @@
 import { css } from "@locator/styled-system/css";
+import { strictConfig } from "@locator/shared";
 import { ModifierChips } from "./ModifierChips";
 
 const styles = {
@@ -7,8 +8,12 @@ const styles = {
 };
 
 export function PrimaryShortcutPicker(props: {
-  modifiers?: string;
-  onChange: (modifiers: string | undefined) => void;
+  modifiers?: readonly strictConfig.Modifier[];
+  onChange: (
+    modifiers:
+      | readonly [strictConfig.Modifier, ...strictConfig.Modifier[]]
+      | undefined
+  ) => void;
 }) {
   return (
     <div class={styles.stack}>

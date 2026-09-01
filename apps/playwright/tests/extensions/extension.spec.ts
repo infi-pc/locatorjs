@@ -1,8 +1,10 @@
-/* eslint-disable no-empty-pattern */
+/* eslint-disable no-empty-pattern -- Playwright fixtures must be destructured to select the configured project. */
 import {
   test as base,
   expect,
   BrowserContext,
+  Locator,
+  Page,
   chromium,
 } from "@playwright/test";
 import * as path from "path";
@@ -19,7 +21,9 @@ declare const chrome: {
     local: {
       get(
         keys: string[],
-        callback: (result: { userOptions?: { debugMode?: boolean } }) => void
+        callback: (result: {
+          userConfig?: { version?: number; layer?: { debugMode?: boolean } };
+        }) => void
       ): void;
     };
   };
@@ -54,16 +58,44 @@ export const test = base.extend<{
   },
 });
 
+// Persistent extension profiles and their service workers are process-level
+// resources in Chromium. Running several of them concurrently can close a
+// sibling test's page while its extension worker is still starting.
+test.describe.configure({ mode: "serial" });
+
+async function activateLocator(page: Page, target: Locator) {
+  const locatorLogo = page.locator("a[title=LocatorJS]");
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          // The extension may still be waiting for the framework hook when the
+          // page first renders. Replay the real activation gesture so a keydown
+          // that predates content-script setup does not make this test flaky.
+          await page.keyboard.up("Alt");
+          await page.keyboard.down("Alt");
+          await target.hover();
+          return locatorLogo.isVisible();
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+  } catch (error) {
+    const hookStatus = await page.evaluate(
+      () => document.head.dataset.locatorHookStatusMessage ?? "not reported"
+    );
+    throw new Error(`Locator did not activate. Hook status: ${hookStatus}`, {
+      cause: error,
+    });
+  }
+}
+
 test("react", async ({ page }) => {
   await page.goto(projects.reactClean);
 
-  await page.keyboard.down("Alt");
-  await page.mouse.move(100, 100);
   const headline = page.locator("text=Vite + React");
-  await headline.hover();
-
-  const locatorLogo = page.locator("a[title=LocatorJS]");
-  await expect(locatorLogo).toBeVisible();
+  await activateLocator(page, headline);
 
   //   expect(wentToLink).toBe(true);
   //   const initialButton = page.locator("button >> text=Confirm");
@@ -73,29 +105,45 @@ test("react", async ({ page }) => {
 test("svelte", async ({ page }) => {
   await page.goto(projects.svelteClean);
 
-  await page.keyboard.down("Alt");
   const headline = page.locator("text=Vite + Svelte");
-  await headline.hover();
-
-  const locatorLogo = page.locator("a[title=LocatorJS]");
-  await expect(locatorLogo).toBeVisible();
+  await activateLocator(page, headline);
 
   await locateElement(page, "text=Vite + Svelte");
-  const initialButton = page.locator("button >> text=Confirm");
-  await expect(initialButton).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Welcome to Locator" })
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
 });
 
-test("popup renders layer tabs and persists an extension setting", async ({
+test("popup renders scopes and persists an extension setting", async ({
   page,
   extensionId,
 }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
-  await page.getByRole("button", { name: "Settings" }).first().click();
-  const extensionTab = page.getByRole("tab", { name: /Extension/ });
-  const originTab = page.getByRole("tab", { name: /This origin/ });
+  const settingsScope = page.getByRole("combobox", {
+    name: "Settings scope",
+  });
+  try {
+    await expect(settingsScope).toBeVisible({ timeout: 10_000 });
+  } catch (error) {
+    const bodyText = (await page.locator("body").innerText()).slice(0, 500);
+    throw new Error(
+      `Popup did not render at ${page.url()}. Page errors: ${
+        pageErrors.join(" | ") || "none"
+      }. Body: ${bodyText || "empty"}`,
+      { cause: error }
+    );
+  }
+  await expect(settingsScope).toContainText("All sites");
+  await settingsScope.click();
+  await expect(page.getByRole("option", { name: "This site" })).toBeDisabled();
+  await page.keyboard.press("Escape");
 
-  await expect(extensionTab).toHaveAttribute("aria-selected", "true");
-  await expect(originTab).toBeDisabled();
+  await page.locator('[aria-label="Settings menu"]').click();
+  await page.getByRole("button", { name: "Advanced settings" }).click();
+  await page.locator("summary", { hasText: "Diagnostics" }).click();
 
   const debugMode = page.getByRole("checkbox", { name: "Debug mode" });
   await debugMode.locator("..").click();
@@ -104,8 +152,8 @@ test("popup renders layer tabs and persists an extension setting", async ({
       page.evaluate(
         () =>
           new Promise<boolean | undefined>((resolve) => {
-            chrome.storage.local.get(["userOptions"], (result) => {
-              resolve(result.userOptions?.debugMode);
+            chrome.storage.local.get(["userConfig"], (result) => {
+              resolve(result.userConfig?.layer?.debugMode);
             });
           })
       )

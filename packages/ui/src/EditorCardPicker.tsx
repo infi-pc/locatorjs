@@ -1,5 +1,5 @@
 import { For, JSX } from "solid-js";
-import type { Targets } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { css, cx } from "@locator/styled-system/css";
 import { editorIconFor } from "./editorIcons";
 
@@ -36,27 +36,28 @@ const styles = {
 };
 
 export function EditorCardPicker(props: {
-  targets: Targets;
-  targetId?: string;
-  targetTemplate?: string;
+  targets: strictConfig.TargetViewMap;
+  value?: strictConfig.EditorDestination;
   onSelect: (value: string) => void;
 }) {
   const selected = () =>
-    props.targetTemplate || (props.targetId && !props.targets[props.targetId])
+    props.value?.kind === "template" ||
+    (props.value?.kind === "target" && !props.targets[props.value.id])
       ? CUSTOM_VALUE
-      : props.targetId;
+      : props.value?.kind === "target"
+      ? props.value.id
+      : undefined;
 
-  const entries = (): [string, Targets[string]][] =>
+  const entries = (): [string, strictConfig.TargetView][] =>
     Object.entries(props.targets);
 
   return (
-    <div class={styles.grid} role="radiogroup" aria-label="Editor">
+    <div class={styles.grid} aria-label="Editor">
       <For each={entries()}>
         {([value, target]) => (
           <button
             type="button"
-            role="radio"
-            aria-checked={selected() === value}
+            aria-pressed={selected() === value}
             class={cx(styles.card, selected() === value && styles.cardSelected)}
             onClick={() => props.onSelect(value)}
           >
@@ -69,8 +70,7 @@ export function EditorCardPicker(props: {
       </For>
       <button
         type="button"
-        role="radio"
-        aria-checked={selected() === CUSTOM_VALUE}
+        aria-pressed={selected() === CUSTOM_VALUE}
         class={cx(
           styles.card,
           selected() === CUSTOM_VALUE && styles.cardSelected

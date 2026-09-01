@@ -11,7 +11,7 @@
  * safe to accept from cross-origin frames.
  */
 
-import { getShadowRoots } from "./shadowRoots";
+import { getShadowRoots, observeShadowRoots } from "./shadowRoots";
 
 const MESSAGE_TYPE = "LOCATOR_FRAME_MODIFIERS";
 
@@ -29,6 +29,11 @@ type ModifierMessage = ModifierState & {
 };
 
 const MAX_HOPS = 8;
+let lastBroadcastState: ModifierState | undefined;
+let cachedNeighbours: Window[] | undefined;
+let documentObserver: MutationObserver | undefined;
+let stopObservingShadowRoots: (() => void) | undefined;
+const shadowObservers = new Map<ShadowRoot, MutationObserver>();
 
 export function modifiersFromEvent(event: KeyboardEvent): ModifierState {
   return {
@@ -47,7 +52,45 @@ function post(target: Window, message: ModifierMessage) {
   }
 }
 
+function sameModifiers(left: ModifierState, right: ModifierState): boolean {
+  return (
+    left.altKey === right.altKey &&
+    left.ctrlKey === right.ctrlKey &&
+    left.metaKey === right.metaKey &&
+    left.shiftKey === right.shiftKey
+  );
+}
+
+function invalidateNeighbours() {
+  cachedNeighbours = undefined;
+  for (const [root, observer] of shadowObservers) {
+    if (!root.host.isConnected) {
+      observer.disconnect();
+      shadowObservers.delete(root);
+    }
+  }
+}
+
+function observeIframeMutations(root: Document | ShadowRoot) {
+  if (typeof MutationObserver === "undefined") return;
+  const observer = new MutationObserver(invalidateNeighbours);
+  observer.observe(root, { childList: true, subtree: true });
+  if (root instanceof ShadowRoot) shadowObservers.set(root, observer);
+  else documentObserver = observer;
+}
+
+function ensureNeighbourObservation() {
+  if (documentObserver || typeof document === "undefined") return;
+  observeIframeMutations(document);
+  stopObservingShadowRoots = observeShadowRoots((root) => {
+    invalidateNeighbours();
+    if (!shadowObservers.has(root)) observeIframeMutations(root);
+  });
+}
+
 function neighbours(): Window[] {
+  ensureNeighbourObservation();
+  if (cachedNeighbours) return cachedNeighbours;
   const result: Window[] = [];
   if (window.parent && window.parent !== window) {
     result.push(window.parent);
@@ -64,7 +107,8 @@ function neighbours(): Window[] {
       }
     });
   }
-  return result;
+  cachedNeighbours = result;
+  return cachedNeighbours;
 }
 
 function broadcast(state: ModifierState, hops: number, skip?: Window) {
@@ -79,7 +123,20 @@ function broadcast(state: ModifierState, hops: number, skip?: Window) {
 /** Tell the surrounding frames about a modifier change in this document. */
 export function broadcastModifiers(state: ModifierState) {
   if (typeof window === "undefined") return;
+  if (lastBroadcastState && sameModifiers(lastBroadcastState, state)) return;
+  lastBroadcastState = { ...state };
   broadcast(state, 0);
+}
+
+export function __resetCrossFrameModifiersForTesting() {
+  lastBroadcastState = undefined;
+  cachedNeighbours = undefined;
+  documentObserver?.disconnect();
+  documentObserver = undefined;
+  stopObservingShadowRoots?.();
+  stopObservingShadowRoots = undefined;
+  for (const observer of shadowObservers.values()) observer.disconnect();
+  shadowObservers.clear();
 }
 
 function isModifierMessage(data: unknown): data is ModifierMessage {

@@ -15,12 +15,17 @@
     "PORT_NEXT_14",
     "PORT_NEXT_16",
     "PORT_NEXT_16_TURBO",
+    "PORT_EXTENSION",
     "E2E_GROUP"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "build/**"]
+    },
+    "build:firefox": {
+      "dependsOn": ["^build"],
+      "outputs": ["build/production_firefox/**"]
     },
     "lint": {
       "dependsOn": ["^build"],

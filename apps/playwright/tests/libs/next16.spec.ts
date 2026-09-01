@@ -1,14 +1,10 @@
 import { test, expect, Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
+import { expectLocatorReady } from "../activateLocator";
+import { seedLocatorStorage } from "../locatorStorage";
 
 const ASYNC_TIMEOUT = 15_000;
-
-async function expectLocatorReady(page: Page) {
-  await expect(
-    page.getByRole("button", { name: "Settings", exact: true }).first()
-  ).toBeAttached({ timeout: ASYNC_TIMEOUT });
-}
 
 async function expectWelcome(page: Page) {
   await expect(
@@ -23,14 +19,47 @@ async function enableDebug(page: Page) {
   });
 }
 
-async function getLastResolvedFile(page: Page): Promise<string | null> {
+type ResolvedSource = {
+  fileName: string;
+  lineNumber: number;
+  columnNumber?: number;
+};
+
+async function configureEditor(page: Page) {
+  await seedLocatorStorage(
+    page,
+    { editor: { kind: "target", id: "vscode" } },
+    {
+      welcomeScreenDismissed: true,
+      onboarding: { dismissed: true, step: "done" },
+    }
+  );
+  await page.addInitScript(() => {
+    window.open = ((url?: string | URL) => {
+      (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl =
+        String(url);
+      return null;
+    }) as typeof window.open;
+  });
+}
+
+async function getLastResolvedSource(
+  page: Page
+): Promise<ResolvedSource | null> {
   const history = await page.evaluate(
     () => (window as any).__LOCATORJS_DEBUG_HISTORY__
   );
   if (!Array.isArray(history)) return null;
   const withSource = history.filter((h: any) => h?.source?.fileName);
   if (withSource.length === 0) return null;
-  return withSource[withSource.length - 1].source.fileName as string;
+  return withSource[withSource.length - 1].source as ResolvedSource;
+}
+
+async function expectNoSource(page: Page) {
+  await expect(
+    page.getByText("No source info found for this element!")
+  ).toBeVisible({ timeout: ASYNC_TIMEOUT });
+  expect(await getLastResolvedSource(page)).toBeNull();
 }
 
 // Permissive assertion: file is resolved to somewhere in the app's source tree
@@ -39,29 +68,82 @@ async function getLastResolvedFile(page: Page): Promise<string | null> {
 // verify the resolver stayed within the user's code.
 async function expectFileInAppSource(page: Page, appPath: RegExp) {
   await expect
-    .poll(() => getLastResolvedFile(page), { timeout: ASYNC_TIMEOUT })
+    .poll(
+      () => getLastResolvedSource(page).then((source) => source?.fileName),
+      {
+        timeout: ASYNC_TIMEOUT,
+      }
+    )
     .toMatch(appPath);
 }
 
+async function expectExactUserSource(
+  page: Page,
+  expected: { file: RegExp; line: number }
+) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (window as Window & { __locatorOpenedUrl?: string })
+              .__locatorOpenedUrl
+        ),
+      { timeout: ASYNC_TIMEOUT }
+    )
+    .toMatch(/\.tsx:\d+:\d+$/);
+
+  const openedUrl = await page.evaluate(
+    () =>
+      (window as Window & { __locatorOpenedUrl?: string }).__locatorOpenedUrl ??
+      ""
+  );
+  expect(openedUrl).not.toMatch(
+    /(?:node_modules|webpack-internal:|react-jsx-dev-runtime|\/_next\/|\/\.next\/)/
+  );
+  expect(decodeURIComponent(openedUrl).replace(/:\d+:\d+$/, "")).toMatch(
+    expected.file
+  );
+  expect(openedUrl).toMatch(new RegExp(`:${expected.line}:\\d+$`));
+}
+
 test.describe("Next.js 16 + Webpack (React 19)", () => {
-  test("heading", async ({ page }) => {
+  test("heading", async ({ page, browserName }) => {
+    await configureEditor(page);
     await page.goto(projects.next16);
     await expectLocatorReady(page);
     await enableDebug(page);
 
     await locateElement(page, "text=To get started");
 
-    await expectWelcome(page);
+    // JavaScriptCore omits the Page frame's location and exposes only
+    // framework frames. Refusing to open one is the only safe result.
+    if (browserName === "webkit") {
+      await expectNoSource(page);
+      return;
+    }
+    await expectExactUserSource(page, {
+      file: /(?:test-apps\/next-16)?\/app\/page\.tsx$/,
+      line: 8,
+    });
   });
 
-  test("anchor element", async ({ page }) => {
+  test("anchor element", async ({ page, browserName }) => {
+    await configureEditor(page);
     await page.goto(projects.next16);
     await expectLocatorReady(page);
     await enableDebug(page);
 
     await locateElement(page, "text=Deploy Now");
 
-    await expectWelcome(page);
+    if (browserName === "webkit") {
+      await expectNoSource(page);
+      return;
+    }
+    await expectExactUserSource(page, {
+      file: /(?:test-apps\/next-16)?\/app\/page\.tsx$/,
+      line: 30,
+    });
   });
 });
 
@@ -110,14 +192,21 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
     await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
-  test("server component heading", async ({ page }) => {
+  test("server component heading", async ({ page, browserName }) => {
     await page.goto(projects.next16Turbopack);
     await expectLocatorReady(page);
     await enableDebug(page);
 
     await locateElement(page, "text=React 19 + Turbopack");
 
+    // React's WebKit server-component owner record contains a name but no
+    // source location. It must not fall back to react-jsx-runtime.
+    if (browserName === "webkit") {
+      await expectNoSource(page);
+      return;
+    }
     await expectWelcome(page);
+    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
   });
 
   test("nested text element", async ({ page }) => {
@@ -133,6 +222,41 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
 });
 
 test.describe("Turbopack debug diagnostics", () => {
+  test("pointer movement does not cancel an accepted click", async ({
+    page,
+  }) => {
+    await configureEditor(page);
+    await page.goto(projects.next16Turbopack);
+    await expectLocatorReady(page);
+    await page.evaluate(() => {
+      window.open = ((url?: string | URL) => {
+        (
+          window as Window & { __locatorOpenedUrl?: string }
+        ).__locatorOpenedUrl = String(url);
+        return null;
+      }) as typeof window.open;
+    });
+
+    const target = page.getByRole("button", { name: "-", exact: true });
+    await target.dispatchEvent("mouseover", { altKey: true });
+    await target.dispatchEvent("click", { altKey: true });
+    await page
+      .getByText("Counter Component")
+      .dispatchEvent("mouseover", { altKey: true });
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              (window as Window & { __locatorOpenedUrl?: string })
+                .__locatorOpenedUrl
+          ),
+        { timeout: ASYNC_TIMEOUT }
+      )
+      .toMatch(/test-apps\/next-16-turbopack\/app\/.*\.tsx:\d+:\d+$/);
+  });
+
   test("debug history tracks async resolution", async ({ page }) => {
     await page.goto(projects.next16Turbopack);
     await expectLocatorReady(page);

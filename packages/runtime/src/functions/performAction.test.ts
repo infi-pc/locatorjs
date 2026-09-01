@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
+import { strictConfig } from "@locator/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { FullElementInfo } from "../adapters/adapterApi";
-import type { OptionsStore } from "./optionsStore";
-import { performAction } from "./performAction";
+import { performAction, type ActionContext } from "./performAction";
 
 const writeText = vi.fn();
 
@@ -26,33 +26,36 @@ function element(): FullElementInfo {
   };
 }
 
-function context() {
+function options(input: strictConfig.LocatorConfigInput = {}) {
+  const compiled = strictConfig.compileSetup(input);
+  if (!compiled.ok) throw new Error("Invalid action fixture.");
+  const effective = strictConfig.effectiveOptions(
+    strictConfig.resolveConfig(
+      { default: strictConfig.DEFAULT_LAYER, team: compiled.value.layer },
+      compiled.value.targets
+    )
+  );
+  return {
+    effective: () => effective,
+    targetRegistry: () => compiled.value.targets,
+  };
+}
+
+function action(
+  input: strictConfig.BindingAction
+): strictConfig.ConfiguredAction {
+  const parsed = strictConfig.parseAction(input);
+  if (!parsed.ok) throw new Error("Invalid action fixture.");
+  return parsed.value;
+}
+
+function context(): ActionContext {
   return {
     element: element(),
-    // Shaped like the shipped templates, which all join the root themselves.
-    targets: {
-      vscode: {
-        label: "VS Code",
-        url: "vscode://file/${projectPath}${filePath}:${line}:${column}",
-      },
-      cursor: {
-        label: "Cursor",
-        url: "cursor://file/${projectPath}${filePath}:${line}:${column}",
-      },
-    },
-    options: {
-      effective: () => ({
-        editor: { targetId: "vscode" },
-        bindings: [
-          {
-            trigger: { kind: "modifier-click" as const, modifiers: "alt" },
-            action: { kind: "open-editor" as const },
-          },
-        ],
-        projectPath: "/workspace",
-        hrefTarget: "_self" as const,
-      }),
-    } as OptionsStore,
+    options: options({
+      projectPath: "/workspace",
+      editor: { kind: "target", id: "vscode" },
+    }),
     showTree: vi.fn(),
     showParents: vi.fn(),
     requestEditorSetup: vi.fn(),
@@ -71,58 +74,81 @@ describe("performAction", () => {
 
   test("copies a resolved path with line and column", async () => {
     writeText.mockResolvedValue(undefined);
-    expect(await performAction({ kind: "copy-path" }, context())).toBe(true);
+    expect(await performAction(action({ kind: "copy-path" }), context())).toBe(
+      true
+    );
     expect(writeText).toHaveBeenCalledWith("/workspace/src/Button.tsx:7:3");
   });
 
-  test("opens a per-binding editor target", async () => {
+  test("opens an editor pinned on the action", async () => {
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
-    await performAction({ kind: "open-editor", targetId: "cursor" }, context());
-    expect(open).toHaveBeenCalledWith(
-      "cursor://file//workspace/src/Button.tsx:7:3",
-      "_self"
-    );
-  });
-
-  test("an action without a destination follows the Editor setting", async () => {
-    const ctx = context();
-    ctx.options = {
-      effective: () => ({
-        editor: { targetId: "cursor" },
-        projectPath: "/workspace",
-        hrefTarget: "_self",
+    await performAction(
+      action({
+        kind: "open-editor",
+        destination: { kind: "target", id: "cursor" },
       }),
-    } as OptionsStore;
-    const open = vi.spyOn(window, "open").mockImplementation(() => null);
-
-    expect(await performAction({ kind: "open-editor" }, ctx)).toBe(true);
+      context()
+    );
     expect(open).toHaveBeenCalledWith(
       "cursor://file//workspace/src/Button.tsx:7:3",
       "_self"
     );
   });
 
-  test("asks for an editor instead of opening a guessed destination", async () => {
+  test("an inherited action follows the global Editor setting", async () => {
     const ctx = context();
-    ctx.options = {
-      effective: () => ({ projectPath: "/workspace", hrefTarget: "_self" }),
-    } as OptionsStore;
+    ctx.options = options({
+      projectPath: "/workspace",
+      editor: { kind: "target", id: "cursor" },
+    });
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
 
-    expect(await performAction({ kind: "open-editor" }, ctx)).toBe(false);
+    expect(await performAction(action({ kind: "open-editor" }), ctx)).toBe(
+      true
+    );
+    expect(open).toHaveBeenCalledWith(
+      "cursor://file//workspace/src/Button.tsx:7:3",
+      "_self"
+    );
+  });
+
+  test("requests an editor instead of opening a guessed destination", async () => {
+    const ctx = context();
+    const custom = strictConfig.compileSetup({
+      targets: { github: "https://github.test${filePath}" },
+    });
+    if (!custom.ok) throw new Error("Invalid target fixture.");
+    const effective = strictConfig.effectiveOptions(
+      strictConfig.resolveConfig(
+        { default: strictConfig.DEFAULT_LAYER },
+        custom.value.targets
+      )
+    );
+    ctx.options = {
+      effective: () => effective,
+      targetRegistry: () => custom.value.targets,
+    };
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    expect(await performAction(action({ kind: "open-editor" }), ctx)).toBe(
+      false
+    );
     expect(open).not.toHaveBeenCalled();
     expect(ctx.requestEditorSetup).toHaveBeenCalledWith(
       ctx.element.thisElement.link
     );
   });
 
-  test("an editor pinned on the action overrides the Editor setting", async () => {
+  test("opens a custom template pinned on the action", async () => {
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     await performAction(
-      {
+      action({
         kind: "open-editor",
-        targetTemplate: "zed://file${projectPath}${filePath}",
-      },
+        destination: {
+          kind: "template",
+          template: "zed://file${projectPath}${filePath}",
+        },
+      }),
       context()
     );
     expect(open).toHaveBeenCalledWith(
@@ -131,16 +157,14 @@ describe("performAction", () => {
     );
   });
 
-  test("copy-path and the editor link agree on a project-relative path", async () => {
-    // babel-jsx emits `/src/Button.tsx`; the link template joins the root onto
-    // it, so the clipboard has to carry the root too or the two disagree.
+  test("copy-path and editor navigation resolve the same relative path", async () => {
     writeText.mockResolvedValue(undefined);
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     const ctx = context();
     ctx.element.thisElement.link!.filePath = "/src/Button.tsx";
 
-    await performAction({ kind: "copy-path" }, ctx);
-    await performAction({ kind: "open-editor" }, ctx);
+    await performAction(action({ kind: "copy-path" }), ctx);
+    await performAction(action({ kind: "open-editor" }), ctx);
 
     expect(writeText).toHaveBeenCalledWith("/workspace/src/Button.tsx:7:3");
     expect(open).toHaveBeenCalledWith(
@@ -151,8 +175,8 @@ describe("performAction", () => {
 
   test("routes tree and parents actions through UI callbacks", async () => {
     const ctx = context();
-    await performAction({ kind: "show-tree" }, ctx);
-    await performAction({ kind: "show-parents" }, ctx);
+    await performAction(action({ kind: "show-tree" }), ctx);
+    await performAction(action({ kind: "show-parents" }), ctx);
     expect(ctx.showTree).toHaveBeenCalledWith(ctx.element.htmlElement);
     expect(ctx.showParents).toHaveBeenCalledWith(
       ctx.element.htmlElement,

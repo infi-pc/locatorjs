@@ -1,4 +1,4 @@
-import { DEFAULT_LAYER, type Binding } from "@locator/shared";
+import { strictConfig } from "@locator/shared";
 import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -10,19 +10,24 @@ const targets = {
   vscode: { label: "VS Code", url: "vscode://file/${filePath}" },
 };
 
+type Binding = strictConfig.BindingInput;
+const DEFAULT_BINDINGS = strictConfig.encodeBindings(
+  strictConfig.DEFAULT_LAYER.bindings!
+);
+
 function Harness(props: {
   initial?: Binding[];
   onChange?: (next: Binding[] | undefined) => void;
 }) {
   // The harness intentionally captures its one-time seed value.
-  // eslint-disable-next-line solid/reactivity
+  // eslint-disable-next-line solid/reactivity -- the test harness intentionally captures its initial value.
   const initial = props.initial;
-  const [value, setValue] = createSignal(
-    initial ?? DEFAULT_LAYER.bindings ?? []
+  const [value, setValue] = createSignal<readonly Binding[]>(
+    initial ?? DEFAULT_BINDINGS
   );
   return (
     <BindingsEditor
-      value={value()}
+      value={[...value()]}
       targets={targets}
       onChange={(next) => {
         props.onChange?.(next);
@@ -62,7 +67,7 @@ describe("BindingsEditor", () => {
     expect(onChange).not.toHaveBeenCalled();
     await screen.getByRole("button", { name: "Confirm" }).click();
     expect(onChange.mock.calls.at(-1)?.[0][1]).toEqual({
-      trigger: { kind: "modifier-click", modifiers: "alt+shift" },
+      trigger: { kind: "modifier-click", modifiers: ["alt", "shift"] },
       action: { kind: "copy-prompt" },
     });
 
@@ -98,7 +103,7 @@ describe("BindingsEditor", () => {
       <Harness
         initial={[
           {
-            trigger: { kind: "modifier-click", modifiers: "alt" },
+            trigger: { kind: "modifier-click", modifiers: ["alt"] },
             action: { kind: "copy-path" },
           },
         ]}
@@ -143,7 +148,7 @@ describe("BindingsEditor row identity", () => {
   /** A single copy-prompt shortcut, so the customisable textarea is present. */
   const promptBinding: Binding[] = [
     {
-      trigger: { kind: "modifier-click", modifiers: "alt" },
+      trigger: { kind: "modifier-click", modifiers: ["alt"] },
       action: { kind: "copy-prompt" },
     },
   ];

@@ -6,6 +6,8 @@ export type ElementInfo = {
   box: SimpleDOMRect;
   label: string;
   link: LinkProps | null;
+  /** Whether React resolved this fiber itself or only found an owner fallback. */
+  sourceProvenance?: "own" | "ancestor";
 };
 
 export type FullElementInfo = {

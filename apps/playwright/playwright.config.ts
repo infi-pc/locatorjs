@@ -90,7 +90,8 @@ const config: PlaywrightTestConfig = {
   /**
    * One worker per job on CI. Not for isolation — that already holds without
    * it. Playwright gives every test a fresh BrowserContext, and the only thing
-   * the runtime persists is localStorage (`LOCATOR_USER_OPTIONS`), so
+   * the runtime persists is localStorage (`LOCATOR_USER_CONFIG` and
+   * `LOCATOR_UI_STATE`), so
    * settings.spec.ts gets the empty store it depends on and tree-parents.spec.ts
    * seeds its own through addInitScript. The dev servers hold no per-test state.
    *

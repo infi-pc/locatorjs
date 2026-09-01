@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Derive every dev-server port from one base, so parallel Conductor workspaces
-# stop fighting over 3342-3353.
+# stop fighting over 3342-3354.
 #
 # Source it, don't execute it -- it only exports:
 #
@@ -9,7 +9,7 @@
 #   PORT=45000 . ./scripts/dev-ports.sh && pnpm dev
 #
 # Every consumer (test-apps/*/package.json, apps/*/package.json,
-# apps/playwright/tests/consts.ts, playwright.config.ts) reads these with the
+# apps/playwright/tests/apps.ts, playwright.config.ts) reads these with the
 # historical port as its default, so NOT sourcing this file leaves behaviour
 # exactly as it was.
 #
@@ -29,3 +29,4 @@ export PORT_VUE=$((PORT + 8))         # vite-vue-project            (was 3350)
 export PORT_NEXT_14=$((PORT + 9))     # next-14                     (was 3351)
 export PORT_NEXT_16=$((PORT + 10))    # next-16                     (was 3352)
 export PORT_NEXT_16_TURBO=$((PORT + 11)) # next-16-turbopack        (was 3353)
+export PORT_EXTENSION=$((PORT + 12))  # apps/extension               (was 3300)

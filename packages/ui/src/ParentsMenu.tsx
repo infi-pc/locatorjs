@@ -2,6 +2,7 @@ import { css, cx } from "@locator/styled-system/css";
 import { Component, CornerLeftUp, ExternalLink } from "lucide-solid";
 import { For, Show, createEffect, createSignal } from "solid-js";
 import type { ParentRow } from "./treeModel";
+import { trapOverlayFocus } from "./focusTrap";
 
 const styles = {
   menu: css({
@@ -94,7 +95,9 @@ export function ParentsMenu(props: {
   /** Real href so the row supports open-in-new-tab and shows its target. */
   hrefFor?: (row: ParentRow) => string | undefined;
   autofocus?: boolean;
+  pending?: boolean;
 }) {
+  let menu: HTMLDivElement | undefined;
   let list: HTMLDivElement | undefined;
   const [focused, setFocused] = createSignal(-1);
   const [hovered, setHovered] = createSignal<string | null>(null);
@@ -142,22 +145,26 @@ export function ParentsMenu(props: {
         props.onOpen(row);
         break;
       }
-      case "Escape":
-        event.preventDefault();
-        event.stopPropagation();
-        props.onClose();
-        break;
     }
   };
 
   return (
     <div
-      ref={list}
+      ref={(element) => {
+        menu = element;
+        list = element;
+      }}
       class={styles.menu}
       role="menu"
       aria-label="Parents"
+      aria-activedescendant={
+        focused() >= 0 ? parentItemId(props.rows[focused()]!.id) : undefined
+      }
       tabIndex={0}
-      onKeyDown={handleKeyDown}
+      onKeyDown={(event) => {
+        handleKeyDown(event);
+        if (menu) trapOverlayFocus(event, menu, props.onClose);
+      }}
       onMouseLeave={() => {
         setHovered(null);
         props.onHover(null);
@@ -169,7 +176,11 @@ export function ParentsMenu(props: {
       <div class={styles.list}>
         <Show
           when={props.rows.length > 0}
-          fallback={<div class={styles.empty}>No parents with a source.</div>}
+          fallback={
+            <div class={styles.empty} role="status">
+              {props.pending ? "Finding sources…" : "No parents with a source."}
+            </div>
+          }
         >
           <For each={props.rows}>
             {(row, index) => {
@@ -177,7 +188,9 @@ export function ParentsMenu(props: {
               const clickable = () => Boolean(row.source);
               return (
                 <a
+                  id={parentItemId(row.id)}
                   role="menuitem"
+                  tabIndex={-1}
                   data-row-index={index()}
                   data-row-kind={row.kind}
                   href={href()}
@@ -242,4 +255,8 @@ export function ParentsMenu(props: {
       </div>
     </div>
   );
+}
+
+function parentItemId(rowId: string): string {
+  return `locator-parentitem-${encodeURIComponent(rowId)}`;
 }

@@ -1,4 +1,4 @@
-import { ReactDevtoolsHook } from "@locator/shared/src/types";
+import { ReactDevtoolsHook } from "@locator/shared";
 import { createReactDevtoolsHook } from "./createReactDevtoolsHook";
 
 export const MARKER = Symbol();

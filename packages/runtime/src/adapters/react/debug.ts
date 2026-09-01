@@ -6,7 +6,7 @@
  * 1. Browser console: window.__LOCATORJS_DEBUG__ = true
  * 2. Or call: enableLocatorDebug()
  */
-/* eslint-disable no-console */
+/* eslint-disable no-console -- this opt-in diagnostic module exists to report resolver traces. */
 
 // Source resolution method enum
 export const SourceMethod = {
@@ -58,7 +58,7 @@ const MAX_HISTORY = 50;
  */
 export function isDebugEnabled(): boolean {
   // Also check window global variable
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   if (typeof window !== "undefined" && (window as any).__LOCATORJS_DEBUG__) {
     return true;
   }
@@ -70,7 +70,7 @@ export function isDebugEnabled(): boolean {
  */
 export function enableLocatorDebug(): void {
   debugEnabled = true;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   if (typeof window !== "undefined") {
     (window as any).__LOCATORJS_DEBUG__ = true;
   }
@@ -89,7 +89,7 @@ export function enableLocatorDebug(): void {
  */
 export function disableLocatorDebug(): void {
   debugEnabled = false;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   if (typeof window !== "undefined") {
     (window as any).__LOCATORJS_DEBUG__ = false;
   }
@@ -104,7 +104,7 @@ export function disableLocatorDebug(): void {
  */
 export function setDebugMode(enabled: boolean): void {
   debugEnabled = enabled;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   if (typeof window !== "undefined") {
     (window as any).__LOCATORJS_DEBUG__ = enabled;
   }
@@ -114,7 +114,7 @@ export function setDebugMode(enabled: boolean): void {
  * Get a human-readable description of a Fiber's type
  */
 function getFiberTypeDesc(fiber: unknown): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   const f = fiber as any;
   if (!f) return "null";
 
@@ -149,7 +149,7 @@ export function logSourceFound(
 ): void {
   if (!isDebugEnabled()) return;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   const f = fiber as any;
   const fiberType = getFiberTypeDesc(fiber);
   const fiberTag = f?.tag ?? -1;
@@ -170,7 +170,7 @@ export function logSourceFound(
   }
 
   // Expose on window
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   if (typeof window !== "undefined") {
     (window as any).__LOCATORJS_DEBUG_HISTORY__ = debugHistory;
   }
@@ -206,7 +206,7 @@ export function logSourceStart(fiber: unknown, element?: HTMLElement): void {
   if (!isDebugEnabled()) return;
 
   const fiberType = getFiberTypeDesc(fiber);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   const fiberTag = (fiber as any)?.tag ?? -1;
 
   console.group(
@@ -266,7 +266,7 @@ export function logError(method: SourceMethodType, error: unknown): void {
  * Called from outside to avoid circular imports (debug.ts must not import resolution modules).
  */
 export function registerDiagnose(diagnoseFn: () => Promise<void>): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   if (typeof window !== "undefined") {
     (window as any).locatorDiagnose = diagnoseFn;
   }
@@ -274,7 +274,7 @@ export function registerDiagnose(diagnoseFn: () => Promise<void>): void {
 
 // Expose helpers on window at init
 if (typeof window !== "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- diagnostic metadata mirrors private React fiber fields.
   const w = window as any;
   w.__LOCATORJS_DEBUG_HISTORY__ = debugHistory;
   w.enableLocatorDebug = enableLocatorDebug;

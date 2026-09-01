@@ -1,18 +1,34 @@
-import type { BindingAction } from '@locator/shared';
+import {
+  decodeTryActionResult,
+  decodeWriteResult,
+  postMessageOrigin,
+} from '@locator/shared';
+import {
+  compileSetup,
+  configProvenance,
+  effectiveOptions,
+  effectiveOptionsView,
+  encodeLayer,
+  parseLayer,
+  resolveConfig,
+  targetRegistryView,
+} from '@locator/shared/strict-config';
+import type * as StrictConfig from '@locator/shared/strict-config';
 import browser from '../../browser';
 
 const REPLY_TIMEOUT_MS = 1000;
+const EXTENSION_PROTOCOL_VERSION = 3 as const;
 
 type PopupMessage =
   | { from: 'popup'; subject: 'requestSnapshot' }
   | {
       from: 'popup';
       subject: 'applySiteLocal';
-      patch: Record<string, unknown>;
+      set: Record<string, unknown>;
       unset?: string[];
     }
   | { from: 'popup'; subject: 'clearSiteLocal' }
-  | { from: 'popup'; subject: 'tryAction'; action: BindingAction };
+  | { from: 'popup'; subject: 'tryAction'; action: StrictConfig.BindingAction };
 
 export function mountSnapshotBridge() {
   browser.runtime.onMessage.addListener(
@@ -28,11 +44,23 @@ export function mountSnapshotBridge() {
           },
           'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
           validateSnapshot,
-          (payload) => {
+          (payload, rejectedValue) => {
             if (payload === null) {
-              sendResponse({ ok: false, reason: 'no-runtime' });
+              sendResponse({
+                ok: false,
+                protocolVersion: EXTENSION_PROTOCOL_VERSION,
+                extensionVersion: browser.runtime.getManifest().version,
+                reason: rejectedValue ? 'snapshot-rejected' : 'no-runtime',
+                siteLocalPresent: snapshotHasSiteLocal(rejectedValue),
+                diagnostic: hookDiagnostic(),
+              });
             } else {
-              sendResponse({ ok: true, snapshot: payload });
+              sendResponse({
+                ok: true,
+                protocolVersion: EXTENSION_PROTOCOL_VERSION,
+                extensionVersion: browser.runtime.getManifest().version,
+                snapshot: payload,
+              });
             }
           }
         );
@@ -43,11 +71,11 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           {
             type: 'LOCATOR_PAGE_SITE_LOCAL_WRITE',
-            patch: msg.patch,
+            set: msg.set,
             unset: msg.unset ?? [],
           },
           'LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT',
-          validateWriteResult,
+          decodeWriteResult,
           (payload) => {
             if (payload === null) {
               sendResponse({ ok: false, reason: 'no-runtime' });
@@ -63,7 +91,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           { type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' },
           'LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT',
-          validateWriteResult,
+          decodeWriteResult,
           (payload) =>
             sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
@@ -74,7 +102,7 @@ export function mountSnapshotBridge() {
         relayRequestToPage(
           { type: 'LOCATOR_PAGE_TRY_ACTION', action: msg.action },
           'LOCATOR_PAGE_TRY_ACTION_RESULT',
-          validateWriteResult,
+          decodeTryActionResult,
           (payload) =>
             sendResponse(payload ?? { ok: false, reason: 'no-runtime' })
         );
@@ -83,6 +111,13 @@ export function mountSnapshotBridge() {
 
       return false;
     }
+  );
+}
+
+function hookDiagnostic() {
+  return (
+    document.head?.dataset.locatorDisabled ||
+    document.head?.dataset.locatorHookStatusMessage
   );
 }
 
@@ -99,53 +134,80 @@ export function mountSnapshotBridge() {
  * The popup must therefore treat everything relayed here as untrusted display
  * data, and never persist it to `browser.storage` unvalidated.
  */
-type ValidatedPayload = Record<string, unknown>;
+export type ValidatedSnapshot = {
+  effective: StrictConfig.EffectiveOptionsView;
+  provenance: Readonly<
+    Record<StrictConfig.ConfigField, StrictConfig.LocatorLayerId>
+  >;
+  layers: Partial<
+    Record<StrictConfig.LocatorLayerId, StrictConfig.SerializedLayerV3>
+  >;
+  allTargets: StrictConfig.TargetViewMap;
+};
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** A `WriteResult`: `{ok: true}` or `{ok: false, reason: string}`. */
-function validateWriteResult(value: unknown): ValidatedPayload | null {
-  if (!isPlainObject(value) || typeof value.ok !== 'boolean') return null;
-  if (value.ok) return { ok: true };
+/** A `Snapshot`: four plain-object fields, rebuilt rather than passed through. */
+export function validateSnapshot(value: unknown): ValidatedSnapshot | null {
+  if (!isPlainObject(value)) return null;
+  if (!isPlainObject(value.layers) || !isPlainObject(value.allTargets)) {
+    return null;
+  }
+  const targetSetup = compileSetup({ targets: value.allTargets });
+  if (!targetSetup.ok) return null;
+
+  const strictLayers: Partial<
+    Record<StrictConfig.LocatorLayerId, StrictConfig.LocatorLayer>
+  > = {};
+  const safeLayers: Partial<
+    Record<StrictConfig.LocatorLayerId, StrictConfig.SerializedLayerV3>
+  > = {};
+  const knownLayers = new Set<StrictConfig.LocatorLayerId>([
+    'default',
+    'team',
+    'user-extension',
+    'user-origin',
+  ]);
+  for (const [rawId, rawLayer] of Object.entries(value.layers)) {
+    if (!knownLayers.has(rawId as StrictConfig.LocatorLayerId)) return null;
+    const parsed = parseLayer(rawLayer);
+    if (!parsed.ok) return null;
+    const id = rawId as StrictConfig.LocatorLayerId;
+    strictLayers[id] = parsed.value;
+    safeLayers[id] = encodeLayer(parsed.value);
+  }
+  const resolved = resolveConfig(strictLayers, targetSetup.value.targets);
   return {
-    ok: false,
-    reason: typeof value.reason === 'string' ? value.reason : 'unknown',
+    effective: effectiveOptionsView(effectiveOptions(resolved)),
+    provenance: configProvenance(resolved),
+    layers: safeLayers,
+    allTargets: targetRegistryView(targetSetup.value.targets),
   };
 }
 
-/** A `Snapshot`: four plain-object fields, rebuilt rather than passed through. */
-function validateSnapshot(value: unknown): ValidatedPayload | null {
-  if (!isPlainObject(value)) return null;
-  const { effective, provenance, layers, allTargets } = value;
-  if (
-    !isPlainObject(effective) ||
-    !isPlainObject(provenance) ||
-    !isPlainObject(layers) ||
-    !isPlainObject(allTargets)
-  ) {
-    return null;
-  }
-  return { effective, provenance, layers, allTargets };
+function snapshotHasSiteLocal(value: unknown): boolean {
+  if (!isPlainObject(value) || !isPlainObject(value.layers)) return false;
+  const siteLocal = value.layers['user-origin'];
+  return isPlainObject(siteLocal) && Object.keys(siteLocal).length > 0;
 }
 
-type Validator = (value: unknown) => ValidatedPayload | null;
-
-function relayRequestToPage(
+function relayRequestToPage<T extends object>(
   request: Record<string, unknown>,
   responseType: string,
-  validate: Validator,
-  done: (payload: ValidatedPayload | null) => void
+  validate: (value: unknown) => T | null,
+  done: (payload: T | null, rejectedValue?: unknown) => void
 ) {
   const requestId = generateRequestId();
   let settled = false;
+  let rejectedValue: unknown;
 
-  function finish(payload: ValidatedPayload | null) {
+  function finish(payload: T | null) {
     if (settled) return;
     settled = true;
     window.removeEventListener('message', handler);
-    done(payload);
+    done(payload, rejectedValue);
   }
 
   function handler(event: MessageEvent) {
@@ -158,13 +220,19 @@ function relayRequestToPage(
     // A malformed reply is treated as no reply, so a page cannot settle the
     // request early with junk and lock out the runtime's real answer.
     const payload = validate(data.snapshot ?? data.result);
-    if (payload === null) return;
+    if (payload === null) {
+      rejectedValue = data.snapshot ?? data.result;
+      return;
+    }
 
     finish(payload);
   }
 
   window.addEventListener('message', handler);
-  window.postMessage({ ...request, requestId }, window.location.origin);
+  window.postMessage(
+    { ...request, requestId },
+    postMessageOrigin(window.location)
+  );
 
   setTimeout(() => finish(null), REPLY_TIMEOUT_MS);
 }

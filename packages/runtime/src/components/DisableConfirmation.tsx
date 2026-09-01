@@ -1,10 +1,11 @@
 import { bannerClass } from "../functions/bannerClasses";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
 
 import LogoIcon from "./LogoIcon";
 import { OptionsCloseButton } from "./OptionsCloseButton";
 import { Button } from "@locator/ui";
 import { css, cx } from "@locator/styled-system/css";
+import { createSignal, Show } from "solid-js";
 
 const styles = {
   dialog: cx(bannerClass, css({ width: "96" })),
@@ -15,11 +16,15 @@ const styles = {
   }),
   title: css({ fontWeight: "medium", mt: "2" }),
   body: css({ color: "fg.muted", fontSize: "sm", mt: "1" }),
+  error: css({ color: "error", fontSize: "xs", mt: "2" }),
   actions: css({ display: "flex", justifyContent: "flex-end" }),
 };
 
 export function DisableConfirmation(props: { onClose: () => void }) {
   const options = useOptions();
+  const [saveState, setSaveState] = createSignal<"idle" | "saving" | "error">(
+    "idle"
+  );
 
   return (
     <div class={styles.dialog}>
@@ -32,15 +37,30 @@ export function DisableConfirmation(props: { onClose: () => void }) {
         You will be able to enable Locator again by running `enableLocator()` in
         DevTools console.
       </div>
+      <Show when={saveState() === "error"}>
+        <div class={styles.error} role="alert">
+          Could not disable Locator. Check browser storage permissions and try
+          again.
+        </div>
+      </Show>
       <div class={styles.actions}>
         <Button
           size="sm"
           variant="outline"
-          onClick={() => {
-            options.setUserOrigin({ disabled: true });
+          disabled={saveState() === "saving"}
+          onClick={async () => {
+            setSaveState("saving");
+            const result = await options.setUserOrigin({
+              set: { disabled: true },
+            });
+            if (result.ok) {
+              props.onClose();
+            } else {
+              setSaveState("error");
+            }
           }}
         >
-          Confirm
+          {saveState() === "saving" ? "Disabling…" : "Confirm"}
         </Button>
       </div>
     </div>

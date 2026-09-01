@@ -6,3 +6,4 @@
 **/test-results
 pnpm-lock.yaml
 test-apps
+packages/babel-jsx/tests/fixtures
