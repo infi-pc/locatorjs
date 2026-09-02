@@ -18,7 +18,6 @@ export function installReactDevtoolsHook() {
     )
   ) {
     if (existingHook[MARKER] === MARKER) {
-      // console.log("already installed!!!!!");
       return existingHook;
     }
   }

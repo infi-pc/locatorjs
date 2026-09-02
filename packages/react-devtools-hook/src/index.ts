@@ -1,2 +1,2 @@
 export * from "./installReactDevtoolsHook";
-export * from "@locator/shared";
+export { isValidRenderer } from "@locator/shared";
