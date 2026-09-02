@@ -1,4 +1,4 @@
-import { FiberRoot, ReactInternals, ReactDevtoolsHook } from "@locator/shared";
+import { ReactInternals, ReactDevtoolsHook } from "@locator/shared";
 import { isValidRenderer } from "@locator/shared";
 
 declare global {
@@ -8,8 +8,7 @@ declare global {
 }
 
 export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
-  const attachedRenderers = new Map<number, ReactInternals>();
-  const fiberRoots = new Map<number, Set<FiberRoot>>();
+  const attachedRenderers = new Set<ReactInternals>();
   let rendererSeedId = 0;
 
   // Not used. It is declared to follow React Devtools hook's behaviour
@@ -45,8 +44,7 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
 
       if (isValidRenderer(renderer)) {
         if (attachedRenderers.size === 0) {
-          attachedRenderers.set(id, renderer);
-          fiberRoots.set(id, new Set());
+          attachedRenderers.add(renderer);
         } else {
           console.warn(
             `[locator-js] Only one React instance per page is supported for now, but one more React instance (${renderer.rendererPackageName} v${renderer.version}) was detected`
@@ -61,51 +59,16 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
       return id;
     },
 
-    // onScheduleRoot(rendererId, root, children) {},
     onCommitFiberUnmount(rendererId, fiber) {
       if (typeof existing.onCommitFiberUnmount === "function") {
         existing.onCommitFiberUnmount(rendererId, fiber);
       }
-
-      //   const renderer = attachedRenderers.get(rendererId);
-      //   if (renderer) {
-      //     try {
-      //       // console.log("handleCommitFiberUnmount");
-      //       renderer.handleCommitFiberUnmount(fiber);
-      //     } catch (e) {
-      //       console.error('[locator-js]', e);
-      //       // debugger;
-      //     }
-      //   }
     },
 
     onCommitFiberRoot(rendererId, root, priorityLevel) {
       if (typeof existing.onCommitFiberRoot === "function") {
         existing.onCommitFiberRoot(rendererId, root, priorityLevel);
       }
-
-      //   const renderer = attachedRenderers.get(rendererId);
-      //   const mountedRoots = fiberRoots.get(rendererId);
-      //   if (!renderer || !mountedRoots) {
-      //     return;
-      //   }
-      //   const isKnownRoot = mountedRoots.has(root);
-      //   const current = root.current;
-      //   const isUnmounting =
-      //     current.memoizedState == null || current.memoizedState.element == null;
-      //   // Keep track of mounted roots so we can hydrate when DevTools connect.
-      //   if (!isKnownRoot && !isUnmounting) {
-      //     mountedRoots.add(root);
-      //   } else if (isKnownRoot && isUnmounting) {
-      //     mountedRoots.delete(root);
-      //   }
-      //   try {
-      //     // console.log("handleCommitFiberRoot");
-      //     renderer.handleCommitFiberRoot(root, priorityLevel);
-      //   } catch (e) {
-      //     console.error('[locator-js]', e);
-      //     // debugger;
-      //   }
     },
 
     /**
@@ -115,17 +78,6 @@ export function createReactDevtoolsHook(existing: ReactDevtoolsHook) {
       if (typeof existing.onPostCommitFiberRoot === "function") {
         existing.onPostCommitFiberRoot(rendererId, root);
       }
-
-      //   const renderer = attachedRenderers.get(rendererId);
-      //   if (renderer) {
-      //     try {
-      //       // console.log("handlePostCommitFiberRoot");
-      //       renderer.handlePostCommitFiberRoot(root);
-      //     } catch (e) {
-      //       console.error('[locator-js]', e);
-      //       // debugger;
-      //     }
-      //   }
     },
   };
 

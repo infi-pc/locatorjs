@@ -1,4 +1,3 @@
-import type { FileStorage } from "@locator/shared";
 import {
   parseDataId,
   parseDataPath,
@@ -21,62 +20,39 @@ import {
   getParentElementAcrossShadow,
 } from "../../functions/domTraversal";
 
+function getFileData(element: HTMLElement) {
+  const dataId = element.dataset.locatorjsId;
+  const dataPath = element.dataset.locatorjs;
+  let fileFullPath: string;
+
+  if (dataPath) {
+    const parsed = parseDataPath(dataPath);
+    if (!parsed) return null;
+    [fileFullPath] = parsed;
+  } else if (dataId) {
+    [fileFullPath] = parseDataId(dataId);
+  } else {
+    return null;
+  }
+
+  const locatorData = window.__LOCATOR_DATA__;
+  return {
+    fileFullPath,
+    fileData: locatorData?.[fileFullPath],
+    locatorData,
+  };
+}
+
 function getElementInfo(target: HTMLElement): FullElementInfo | null {
   const found = closestAcrossShadow(
     target,
     "[data-locatorjs-id], [data-locatorjs]"
   );
 
-  if (
-    found &&
-    found instanceof HTMLElement &&
-    found.dataset &&
-    (found.dataset.locatorjsId ||
-      found.dataset.locatorjs ||
-      found.dataset.locatorjsStyled)
-  ) {
-    const dataId = found.dataset.locatorjsId;
-    const dataPath = found.dataset.locatorjs;
-    const styledDataId = found.dataset.locatorjsStyled;
-
-    if (!dataId && !dataPath) {
-      return null;
-    }
-
-    let fileFullPath: string;
-
-    if (dataPath) {
-      const parsed = parseDataPath(dataPath);
-      if (!parsed) {
-        return null;
-      }
-      [fileFullPath] = parsed;
-    } else if (dataId) {
-      [fileFullPath] = parseDataId(dataId);
-    } else {
-      return null;
-    }
-
-    const locatorData = window.__LOCATOR_DATA__;
-    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
-
-    // Handle styled components (only when locatorData is available)
-    const [styledFileFullPath, styledId] = styledDataId
-      ? parseDataId(styledDataId)
-      : [null, null];
-    const styledFileData = styledFileFullPath
-      ? locatorData?.[styledFileFullPath]
-      : undefined;
-    const styledExpData =
-      styledFileData && styledFileData.styledDefinitions[Number(styledId)];
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- this adapter intentionally has no framework component model.
-    const styledLink = styledExpData && {
-      filePath: styledFileData.filePath,
-      projectPath: styledFileData.projectPath,
-      column: (styledExpData.loc?.start.column || 0) + 1,
-      line: styledExpData.loc?.start.line || 0,
-    };
+  if (found && found instanceof HTMLElement) {
+    const fileInfo = getFileData(found);
+    if (!fileInfo) return null;
+    const { fileFullPath, fileData, locatorData } = fileInfo;
 
     // Get expression data (works with or without locatorData)
     const expData = getExpressionData(found, fileData || null);
@@ -136,8 +112,6 @@ function getElementInfo(target: HTMLElement): FullElementInfo | null {
     };
   }
 
-  // return deduplicateLabels(labels);
-
   return null;
 }
 
@@ -146,29 +120,9 @@ class JSXTreeNodeElement extends HtmlElementTreeNode {
     return new JSXTreeNodeElement(element);
   }
   getSource(): Source | null {
-    const dataId = this.element.dataset.locatorjsId;
-    const dataPath = this.element.dataset.locatorjs;
-
-    if (!dataId && !dataPath) {
-      return null;
-    }
-
-    let fileFullPath: string;
-
-    if (dataPath) {
-      const parsed = parseDataPath(dataPath);
-      if (!parsed) {
-        return null;
-      }
-      [fileFullPath] = parsed;
-    } else if (dataId) {
-      [fileFullPath] = parseDataId(dataId);
-    } else {
-      return null;
-    }
-
-    const locatorData = window.__LOCATOR_DATA__;
-    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+    const fileInfo = getFileData(this.element);
+    if (!fileInfo) return null;
+    const { fileFullPath, fileData } = fileInfo;
 
     // Get expression data (works with or without locatorData)
     const expData = getExpressionData(this.element, fileData || null);
@@ -195,29 +149,9 @@ class JSXTreeNodeElement extends HtmlElementTreeNode {
     return null;
   }
   getComponent(): TreeNodeComponent | null {
-    const dataId = this.element.dataset.locatorjsId;
-    const dataPath = this.element.dataset.locatorjs;
-
-    if (!dataId && !dataPath) {
-      return null;
-    }
-
-    let fileFullPath: string;
-
-    if (dataPath) {
-      const parsed = parseDataPath(dataPath);
-      if (!parsed) {
-        return null;
-      }
-      [fileFullPath] = parsed;
-    } else if (dataId) {
-      [fileFullPath] = parseDataId(dataId);
-    } else {
-      return null;
-    }
-
-    const locatorData = window.__LOCATOR_DATA__;
-    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+    const fileInfo = getFileData(this.element);
+    if (!fileInfo) return null;
+    const { fileData } = fileInfo;
 
     // Component information is only available when we have fileData
     if (fileData) {

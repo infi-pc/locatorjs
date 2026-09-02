@@ -1,7 +1,6 @@
 import { For } from "solid-js";
 import { PADDING } from "../consts";
 import { LabelData } from "../types/LabelData";
-import { trackClickStats } from "../functions/trackClickStats";
 
 import { goTo } from "../functions/goTo";
 import { SimpleDOMRect } from "../types/types";
@@ -137,7 +136,6 @@ export function ComponentOutline(props: {
                   href={link}
                   target={options.effective().hrefTarget}
                   onClick={() => {
-                    trackClickStats();
                     goTo(link!, options);
                   }}
                 >

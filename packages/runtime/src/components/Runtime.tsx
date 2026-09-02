@@ -3,7 +3,6 @@ import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
 import { AdapterId } from "../consts";
-import { trackClickStats } from "../functions/trackClickStats";
 import { ContextMenuState, LinkProps } from "../types/types";
 import { MaybeOutline } from "./MaybeOutline";
 import { SimpleNodeOutline } from "./SimpleNodeOutline";
@@ -251,7 +250,6 @@ function Runtime(props: {
       return;
     }
 
-    if (action.kind === "open-editor") trackClickStats();
     const succeeded = await runAction(action, elementInfo);
     if (props.tryAction && succeeded) props.setTryAction(null);
   }

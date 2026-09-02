@@ -75,17 +75,6 @@ export function getDataForDataId(dataId: string) {
     line: expData.loc.start.line || 0,
   };
 
-  // let label;
-  // if (expData.type === "jsx") {
-  //   label =
-  //     (expData.wrappingComponent ? `${expData.wrappingComponent}: ` : "") +
-  //     expData.name;
-  // } else {
-  //   label = `${expData.htmlTag ? `styled.${expData.htmlTag}` : "styled"}${
-  //     expData.name ? `: ${expData.name}` : ""
-  //   }`;
-  // }
-
   return {
     link,
     label: expData.name,
