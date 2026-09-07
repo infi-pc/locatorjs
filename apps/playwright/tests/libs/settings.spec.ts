@@ -289,6 +289,10 @@ test("welcome dismissal survives resetting origin settings", async ({
   await expect(
     page.getByRole("heading", { name: "Pick your editor" })
   ).toBeVisible();
+  await page.getByRole("combobox", { name: "Editor" }).click();
+  await page
+    .getByRole("option", { name: "Visual Studio Code VSCode", exact: true })
+    .click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(
     page.getByRole("heading", { name: "Choose your controls" })

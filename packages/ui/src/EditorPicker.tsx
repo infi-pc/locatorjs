@@ -44,6 +44,8 @@ const styles = {
   }),
 };
 
+export type EditorPickerStatus = "idle" | "editing" | "saving";
+
 export function EditorPicker(props: {
   targets: strictConfig.TargetViewMap;
   value?: strictConfig.EditorDestination;
@@ -58,15 +60,17 @@ export function EditorPicker(props: {
   onChange: (
     destination: strictConfig.EditorDestination | undefined
   ) => strictConfigStorage.WriteResponse;
-  onPendingChange?: (pending: boolean) => void;
+  onStatusChange?: (status: EditorPickerStatus) => void;
 }) {
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
   const [saving, setSaving] = createSignal(false);
   const [validationError, setValidationError] = createSignal<string>();
   let input: HTMLInputElement | undefined;
-  createEffect(() => props.onPendingChange?.(editing() || saving()));
-  onCleanup(() => props.onPendingChange?.(false));
+  createEffect(() =>
+    props.onStatusChange?.(saving() ? "saving" : editing() ? "editing" : "idle")
+  );
+  onCleanup(() => props.onStatusChange?.("idle"));
   const items = createMemo<SelectItem[]>(() => [
     ...(props.inheritLabel
       ? [
@@ -222,7 +226,6 @@ export function EditorPicker(props: {
             setDraft(event.currentTarget.value);
             setValidationError(undefined);
           }}
-          onBlur={commitEditing}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();

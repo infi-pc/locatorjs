@@ -2,6 +2,8 @@
 
 Base: `master` · Created: 2026-09-03 · Source reviews: CR1
 
+**Latest bounded fix round:** ROUND-3 below implements and verifies the five CR2 findings against `origin/v2`. User authorization: “Ok, i think you can do all.” The earlier planning text and CR1 status table are preserved as historical scope; ROUND-3 owns CR2 status and does not claim closure of the entire original v2 review.
+
 Original PR size: +44,257/−16,553 · Cumulative fix rounds: +0/−0
 
 **Active plan:** ROUND-2 below supersedes the unimplemented ROUND-1 recommendations. ROUND-1 remains historical evidence, not the current default. On 2026-09-07 the user selected origin trust with an always-trusted `localhost:*` exception. ROUND-2 is still planning only; implementation and the other proposed residual limitations have not been approved.
@@ -555,3 +557,66 @@ source /Users/michaelmusil/.nvm/nvm.sh && nvm use --silent && pnpm check
 Result: failed only at `@locator/web#build` because the local darwin-arm64 `sharp` optional binary is unavailable. Formatting, dependency consistency, suppression/script checks, Knip and duplication checks completed; Turbo reported 40 successful tasks of 41, with 27 cached. This reproduces the previously recorded baseline failure. A separate diagnostic confirmed both shell `node` and `pnpm exec node` resolve to Node v22.23.2 after selecting `.nvmrc`.
 
 No implementation, post-fix verification, extension browser integration, or fresh package-contract run was performed in this planning turn. The missing optional binary should be repaired as a local environment task before the final implementation gate, without changing application behavior or dependency policy to hide it.
+
+## ROUND-3 — 2026-09-07 · Fix the five CR2 regressions with less production code
+
+**Authorization:** The user approved all five proposed small corrections, explicitly prioritizing low complexity and low LOC. One implementation round and one bounded verification repair were performed; no new whole-PR review was launched. No commit or push was made.
+
+**Scope:** Base `origin/v2` = `e425a23c51187ca8d0f8d213aa89417a5fb89f0e`; input HEAD `948643151929dbe9f081602c34daadadb5fddd62`. Input production/test tree was clean; `findings/CR2.md` was the existing review artifact. Guarantees are the five workflows in [CR2.md](CR2.md), with existing localhost trust and origin approval retained.
+
+| Plan      | Problem → implemented correction                                                                                                                     | Maintenance change                                                                                                 | Production +/−    | Tests +/−           |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------- | ------------------- |
+| FP8       | Popup actions fail → forward the validated origin for write, clear, and Try.                                                                         | Existing payload field; require the already-supplied access provider and remove the test-only permissive fallback. | +18/−25           | +121/−8             |
+| FP9       | Next links duplicate the root → preserve filename/provenance together.                                                                               | Reuses the existing resolver result; no new state or caller obligation.                                            | +5/−8             | +45/−1              |
+| FP10      | Revocation loses to stale responses → latest access request wins; withhold approval during refresh.                                                  | One local counter replaces duplicated initial/live completion logic; failures deny and later grants recover.       | +22/−35           | +108/−0             |
+| FP11      | Drafts block abandonment and the E2E skips editor selection → distinguish existing picker states, save with Enter, and select an editor in the test. | One status replaces the boolean callback; remove blur autosave rather than introduce navigation exceptions.        | +17/−11           | +80/−1              |
+| **Total** | **All five corrections implemented.**                                                                                                                | **No new dependencies or architecture.**                                                                           | **+62/−79 = −17** | **+354/−10 = +344** |
+
+The estimates discussed before implementation were small local corrections, with tests separately acknowledged. Final production size is below those estimates. Tests grew further because the startup entry needed its own browser mocks and the existing bridge tests now supply actual origins explicitly. Generated files and review records are excluded from these totals.
+
+| Finding | S/F → P    | Plan | Status          | Fixing commit              |
+| ------- | ---------- | ---- | --------------- | -------------------------- |
+| CR2-1   | S1/F0 → P1 | FP8  | verified-closed | Uncommitted snapshot below |
+| CR2-2   | S1/F2 → P1 | FP9  | verified-closed | Uncommitted snapshot below |
+| CR2-3   | S1/F3 → P2 | FP10 | verified-closed | Uncommitted snapshot below |
+| CR2-4   | S2/F2 → P2 | FP11 | verified-closed | Uncommitted snapshot below |
+| CR2-5   | S2/F0 → P2 | FP11 | verified-closed | Uncommitted snapshot below |
+
+### Keep the existing design and correct the missing connections
+
+These failures came from incomplete corrections or missing test integration in the hardening commit, not evidence that the design needs replacing. FP8 completes an existing protocol field at its relay boundary. FP9 removes a redundant, incorrect derivation. FP10 keeps ordering in the content script that already owns access publication. FP11 exposes existing picker state to its sole status consumer. A broker redesign, a separate lifecycle store, and per-navigation UI exceptions would add obligations without helping these demonstrated failures.
+
+An independent verifier found one incomplete correction: ordinary pointer navigation blurs the custom editor before clicking Back/Skip, and the existing blur handler started a save. Removing that implicit save makes Enter-save/Escape-cancel match the displayed help. The regression now transfers focus before clicking and also verifies that an active Enter save blocks navigation. This intentionally changes custom-editor blur behavior across its callers; Enter and Escape remain the explicit commit/cancel controls.
+
+The first integrated build also exceeded the content startup budget by 116 bytes. Requiring the access provider removed the permissive test fallback and brought the Chrome content script to 21,994 bytes, under the unchanged 22,000-byte policy. Production already supplied the provider, so no production caller migration or compatibility layer was needed.
+
+### Evidence and fresh verification
+
+All package commands used Node selected from `.nvmrc`. Red evidence was recorded before corrections: all three real bridge-pair operations returned blocked; the Next source kind/path reproduction failed; stale startup/refresh approval and failed-refresh cases failed; onboarding navigation regressions failed; and the existing completion E2E timed out without selection.
+
+- **CR2-1:** New permanent tests execute both production bridge endpoints and real runtime options. Writes, clears and Try succeed for the expected origin and reject a mismatch. Fresh independent probes additionally cover approved and localhost access, denied writes/Try, clearing without approval, and disabled Try.
+- **CR2-2:** Permanent tests cover successful root recovery and missing-map fallback. The original resolver → label → editor-link reproduction passes; independent probes verify both fiber caching and recovered-root caching. Direct absolute and cooldown branches were inspected.
+- **CR2-3:** Permanent production-entry tests cover revocation during initial and later approval reads, failed refresh denial, and recovery after a new grant. The verifier inspected synchronous withholding, pre-identity grant observation, and stale-response rejection; one counter owns ordering.
+- **CR2-4:** Real WelcomeScreen/Picker/Wizard tests verify idle draft abandonment through Back and Skip, focus transfer without saving, blocking during Enter persistence, and abandonment after a failed save. The fresh verifier's original blur-before-click repro now passes; existing EditorPicker tests remain green.
+- **CR2-5:** The completion test selects the actual accessible option name, `Visual Studio Code VSCode`, then retains all dismissal/reset assertions. Its final Chromium, Firefox and WebKit executions all pass. The first attempted selector used only the visible label and failed; the browser snapshot established the corrected accessible name.
+
+Fresh verifier: `/root/verify_fixes`, independent of the fixers. It ran 41 permanent tests and six scratch checks, assessed sibling entry points and maintenance cost, and explicitly returned `verified-closed` for every CR2 finding. Extension trust evidence is controlled integration testing, not a live browser-extension revocation session.
+
+**Exact tested snapshot:** HEAD above plus product/test patch SHA-256 `2c7238bda923e1c3fa38d788273a65de4f328096fc40915d586a5cdf781e0e64` (`git diff -- apps packages`, saved locally as `.context/CR2-fixed.patch`), plus newly added `apps/extension/src/pages/Content/index.test.ts` SHA-256 `f7acdc7b5b05b25c873f57db650fd375b0426c3b70e538acdfed510955468625`. Review/ledger edits are excluded. No product changes followed this verification.
+
+### Final gates and limits
+
+| Command / scope                                                                                                             | Result                                                                                                                |
+| --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Baseline `pnpm check`                                                                                                       | 40/41 tasks passed; only web build failed on missing local Sharp binary.                                              |
+| Final `pnpm check`                                                                                                          | Passed: 41/41 tasks.                                                                                                  |
+| `pnpm package-contract`                                                                                                     | Passed on the corrected product.                                                                                      |
+| Chrome extension build, included by the main gate                                                                           | Passed, including startup bundle limits.                                                                              |
+| `pnpm --dir apps/extension build:firefox`                                                                                   | Passed, including Firefox artifact checks.                                                                            |
+| `PORT=46000 . ./scripts/dev-ports.sh && E2E_GROUP=settings pnpm --dir apps/playwright exec playwright test`                 | 12 scenarios passed; three completion cases failed on the initial new selector.                                       |
+| Same isolated settings run with `tests/libs/settings.spec.ts --grep 'welcome dismissal survives'` after selector correction | 3/3 passed across Chromium/Firefox/WebKit, completing passing coverage of all 15 settings scenarios.                  |
+| Same isolated block with `E2E_GROUP=next ... playwright test --grep 'server component heading'`                             | 3/3 passed for the existing Turbopack server-component scenario, including WebKit's documented no-source expectation. |
+
+Local Sharp repair installed the two already-versioned macOS optional binaries into `.context/sharp-platform` and linked them into the local Sharp installation. No dependency manifest, lockfile, or dependency policy changed. Logs are `.context/CR2-fix-baseline.log`, `CR2-fix-check-delivery.log`, `CR2-fix-package-contract.log`, `CR2-firefox-build.log`, `CR2-settings-e2e.log`, `CR2-settings-e2e-final.log`, and `CR2-next-e2e.log`.
+
+Playwright owned its servers in a checked-free 13-port block; no manual dev server was started. The full ordinary E2E suite, real Chrome-extension grant/revoke flow, and Firefox extension identity spot-check were not run in this bounded round. This closes the five reviewed corrections at the stated snapshot, not every historical CR1 guarantee or every platform workflow. No findings were silently deferred or accepted as risk.

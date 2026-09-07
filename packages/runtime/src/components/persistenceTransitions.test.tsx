@@ -18,12 +18,13 @@ const mocks = vi.hoisted(() => ({
 const allTargets = strictConfig.targetRegistryView(
   strictConfig.BUILT_IN_TARGETS
 );
-const effective = strictConfig.effectiveOptions(
+const defaultEffective = strictConfig.effectiveOptions(
   strictConfig.resolveConfig(
     { default: strictConfig.DEFAULT_LAYER },
     strictConfig.BUILT_IN_TARGETS
   )
 );
+let effective = defaultEffective;
 const defaultLayer = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
 
 vi.mock("../functions/isExtension", () => ({ isExtension: () => true }));
@@ -62,6 +63,7 @@ function button(label: string): HTMLButtonElement {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  effective = defaultEffective;
   mocks.clearUserOrigin.mockResolvedValue({ ok: true });
   mocks.setUiState.mockResolvedValue({ ok: true });
   mocks.setUserOrigin.mockResolvedValue({ ok: true });
@@ -157,4 +159,77 @@ describe("persisted UI transitions", () => {
       );
     });
   });
+
+  test.each(["Back", "Skip setup"])(
+    "%s abandons an editor draft but waits for an active save",
+    async (action) => {
+      const setup = strictConfig.compileSetup({
+        editor: { kind: "target", id: "vscode" },
+      });
+      if (!setup.ok) throw new Error("Invalid editor fixture");
+      effective = strictConfig.effectiveOptions(
+        strictConfig.resolveConfig(
+          { default: strictConfig.DEFAULT_LAYER, team: setup.value.layer },
+          setup.value.targets
+        )
+      );
+      let finishSave!: (result: { ok: false; reason: "blocked" }) => void;
+      mocks.setUserOrigin.mockImplementation(
+        () => new Promise((resolve) => (finishSave = resolve))
+      );
+      const close = vi.fn();
+      mount(() => (
+        <WelcomeScreen
+          initialStep="editor"
+          originalLinkProps={null}
+          targets={allTargets}
+          onClose={close}
+          onTry={vi.fn()}
+          portalMount={document.createElement("div")}
+        />
+      ));
+      document
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="Customize link template"]'
+        )!
+        .click();
+      const input = document.querySelector<HTMLInputElement>(
+        '[aria-label="Custom link template"]'
+      )!;
+      await Promise.resolve();
+      expect(button("Continue").disabled).toBe(true);
+      expect(button(action).disabled).toBe(false);
+      input.focus();
+      button(action).focus();
+      expect(mocks.setUserOrigin).not.toHaveBeenCalled();
+
+      input.focus();
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+      expect(mocks.setUserOrigin).toHaveBeenCalledOnce();
+      expect(button(action).disabled).toBe(true);
+      button(action).click();
+      expect(mocks.setUiState).not.toHaveBeenCalled();
+
+      finishSave({ ok: false, reason: "blocked" });
+      await vi.waitFor(() => expect(button(action).disabled).toBe(false));
+      // A failed save leaves the draft open; abandonment must still work.
+      expect(document.contains(input)).toBe(true);
+      expect(button("Continue").disabled).toBe(true);
+      input.focus();
+      button(action).focus();
+      expect(mocks.setUserOrigin).toHaveBeenCalledOnce();
+      button(action).click();
+      await vi.waitFor(() => {
+        if (action === "Back") {
+          expect(document.querySelector("h1")?.textContent).toBe(
+            "Welcome to Locator"
+          );
+        } else {
+          expect(close).toHaveBeenCalledOnce();
+        }
+      });
+    }
+  );
 });

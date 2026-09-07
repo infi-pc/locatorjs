@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { Fiber } from "@locator/shared";
+import {
+  resetSourceResolutionCaches,
+  resolveSourceFromFiber,
+} from "./clickSourceResolver";
 import {
   clearSourceMapCache,
   resolveOriginalPosition,
@@ -40,8 +45,47 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  clearSourceMapCache();
+  resetSourceResolutionCaches();
 });
+
+test.each([true, false])(
+  "preserves Next dev-server path provenance (source map available: %s)",
+  async (hasMap) => {
+    mockFetch((url) => {
+      if (url === "/__nextjs_original-stack-frames") {
+        return new Response(
+          JSON.stringify([
+            {
+              status: "fulfilled",
+              value: {
+                originalStackFrame: {
+                  file: "src/Button.tsx",
+                  line1: 10,
+                  column1: 5,
+                },
+              },
+            },
+          ])
+        );
+      }
+      if (hasMap && url.startsWith("/__nextjs_source-map?")) return okMap();
+    });
+
+    const source = await resolveSourceFromFiber({
+      _debugStack: {
+        stack:
+          "Error\n    at Button (http://localhost:3342/_next/static/chunks/server.js:10:5)",
+      },
+    } as unknown as Fiber);
+
+    expect(source).toEqual({
+      fileName: hasMap ? "/repo/src/Button.tsx" : "src/Button.tsx",
+      pathKind: hasMap ? "absolute" : "project-relative",
+      lineNumber: 10,
+      columnNumber: 5,
+    });
+  }
+);
 
 describe("resolveOriginalPosition - failure is reported as failure", () => {
   test("returns null when the URL has no inferable map", async () => {

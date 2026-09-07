@@ -1,5 +1,8 @@
+import type {} from '../../../../../packages/runtime/src/global';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { strictConfig } from '@locator/shared';
+import { mountRuntimePopupBridge } from '../../../../../packages/runtime/src/functions/popupBridge';
+import { initOptions } from '../../../../../packages/runtime/src/functions/optionsStore';
 
 const mocks = vi.hoisted(() => ({
   addListener: vi.fn(),
@@ -47,14 +50,22 @@ describe('mountSnapshotBridge', () => {
     postMessage = vi
       .spyOn(window, 'postMessage')
       .mockImplementation(() => undefined);
-    mountSnapshotBridge();
+    mountSnapshotBridge(() => access);
     listener = mocks.addListener.mock.calls[0][0] as MessageListener;
   });
 
   test('relays a requestId-matched snapshot reply', () => {
     const sendResponse = vi.fn();
     expect(
-      listener({ from: 'popup', subject: 'requestSnapshot' }, {}, sendResponse)
+      listener(
+        {
+          from: 'popup',
+          expectedOrigin: access.origin,
+          subject: 'requestSnapshot',
+        },
+        {},
+        sendResponse
+      )
     ).toBe(true);
 
     const request = postMessage.mock.calls[0][0] as Record<string, unknown>;
@@ -80,7 +91,15 @@ describe('mountSnapshotBridge', () => {
 
   test('returns no-runtime after the page reply timeout', () => {
     const sendResponse = vi.fn();
-    listener({ from: 'popup', subject: 'requestSnapshot' }, {}, sendResponse);
+    listener(
+      {
+        from: 'popup',
+        expectedOrigin: access.origin,
+        subject: 'requestSnapshot',
+      },
+      {},
+      sendResponse
+    );
 
     vi.advanceTimersByTime(1000);
 
@@ -97,7 +116,15 @@ describe('mountSnapshotBridge', () => {
 
   test('ignores a reply with a mismatched requestId', () => {
     const sendResponse = vi.fn();
-    listener({ from: 'popup', subject: 'requestSnapshot' }, {}, sendResponse);
+    listener(
+      {
+        from: 'popup',
+        expectedOrigin: access.origin,
+        subject: 'requestSnapshot',
+      },
+      {},
+      sendResponse
+    );
 
     window.dispatchEvent(
       new MessageEvent('message', {
@@ -127,6 +154,7 @@ describe('mountSnapshotBridge', () => {
     listener(
       {
         from: 'popup',
+        expectedOrigin: access.origin,
         subject: 'applySiteLocal',
         set: { debugMode: true },
       },
@@ -149,6 +177,7 @@ describe('mountSnapshotBridge', () => {
     listener(
       {
         from: 'popup',
+        expectedOrigin: access.origin,
         subject: 'tryAction',
         action: { kind: 'copy-path' },
       },
@@ -177,7 +206,15 @@ describe('mountSnapshotBridge', () => {
   });
 
   test('relays site-local clear independently from patch writes', () => {
-    listener({ from: 'popup', subject: 'clearSiteLocal' }, {}, vi.fn());
+    listener(
+      {
+        from: 'popup',
+        expectedOrigin: access.origin,
+        subject: 'clearSiteLocal',
+      },
+      {},
+      vi.fn()
+    );
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' }),
       window.location.origin
@@ -197,13 +234,17 @@ describe('mountSnapshotBridge payload validation', () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     vi.spyOn(window, 'postMessage').mockImplementation(() => undefined);
-    mountSnapshotBridge();
+    mountSnapshotBridge(() => access);
     listener = mocks.addListener.mock.calls[0][0] as MessageListener;
   });
 
   function replyTo(subject: string, payloadKey: string, payload: unknown) {
     const sendResponse = vi.fn();
-    listener({ from: 'popup', subject }, {}, sendResponse);
+    listener(
+      { from: 'popup', expectedOrigin: access.origin, subject },
+      {},
+      sendResponse
+    );
     const request = (window.postMessage as unknown as ReturnType<typeof vi.fn>)
       .mock.calls[0][0] as Record<string, unknown>;
     window.dispatchEvent(
@@ -259,7 +300,15 @@ describe('mountSnapshotBridge payload validation', () => {
     // Settling on the first matching message let a page win the race and
     // suppress the runtime's answer entirely.
     const sendResponse = vi.fn();
-    listener({ from: 'popup', subject: 'applySiteLocal' }, {}, sendResponse);
+    listener(
+      {
+        from: 'popup',
+        expectedOrigin: access.origin,
+        subject: 'applySiteLocal',
+      },
+      {},
+      sendResponse
+    );
     const request = (window.postMessage as unknown as ReturnType<typeof vi.fn>)
       .mock.calls[0][0] as Record<string, unknown>;
 
@@ -302,4 +351,68 @@ describe('mountSnapshotBridge payload validation', () => {
       reason: 'unknown',
     });
   });
+});
+
+describe('content and runtime operation contract', () => {
+  test.each(['applySiteLocal', 'clearSiteLocal', 'tryAction'])(
+    '%s reaches the runtime only for the expected origin',
+    async (subject) => {
+      vi.useFakeTimers();
+      vi.clearAllMocks();
+      localStorage.clear();
+      const options = initOptions();
+      const unmount = mountRuntimePopupBridge(options);
+      const write = vi.spyOn(options, 'setUserOrigin');
+      const clear = vi.spyOn(options, 'clearUserOrigin');
+      const tried = vi.fn();
+      window.addEventListener('locatorjs:try-action', tried);
+      vi.spyOn(window, 'postMessage').mockImplementation((data) => {
+        window.dispatchEvent(
+          new MessageEvent('message', { source: window, data })
+        );
+      });
+      mountSnapshotBridge(() => access);
+      const listener = mocks.addListener.mock.calls[0][0] as MessageListener;
+      try {
+        for (const expectedOrigin of [
+          'https://different.test',
+          access.origin,
+        ]) {
+          const reply = vi.fn();
+          listener(
+            {
+              from: 'popup',
+              subject,
+              expectedOrigin,
+              set: { debugMode: true },
+              action: { kind: 'show-tree' },
+            },
+            {},
+            reply
+          );
+          await Promise.resolve();
+          await Promise.resolve();
+          expect(reply).toHaveBeenCalledWith(
+            expectedOrigin === access.origin
+              ? { ok: true }
+              : { ok: false, reason: 'blocked' }
+          );
+        }
+        expect(write).toHaveBeenCalledTimes(
+          subject === 'applySiteLocal' ? 1 : 0
+        );
+        expect(clear).toHaveBeenCalledTimes(
+          subject === 'clearSiteLocal' ? 1 : 0
+        );
+        expect(tried).toHaveBeenCalledTimes(subject === 'tryAction' ? 1 : 0);
+      } finally {
+        unmount();
+        options.dispose();
+        window.removeEventListener('locatorjs:try-action', tried);
+        vi.clearAllTimers();
+        vi.restoreAllMocks();
+        vi.useRealTimers();
+      }
+    }
+  );
 });

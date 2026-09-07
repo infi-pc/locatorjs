@@ -37,14 +37,7 @@ type PopupMessage =
       expectedOrigin?: string;
     };
 
-export function mountSnapshotBridge(getAccess?: () => OriginAccess) {
-  const suppliedAccess = getAccess;
-  const accessForRequest = () =>
-    suppliedAccess
-      ? suppliedAccess()
-      : ({ origin: window.location.origin, reason: 'localhost' } as const);
-  const expectedOrigin = (value: unknown, access: OriginAccess) =>
-    value ?? (suppliedAccess ? undefined : access.origin ?? undefined);
+export function mountSnapshotBridge(getAccess: () => OriginAccess) {
   const canShare = (access: OriginAccess) =>
     access.reason === 'localhost' || access.reason === 'approved';
   const matchesOrigin = (access: OriginAccess, value: unknown) => {
@@ -69,7 +62,7 @@ export function mountSnapshotBridge(getAccess?: () => OriginAccess) {
           'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
           validateSnapshot,
           (payload, rejectedValue) => {
-            const access = accessForRequest();
+            const access = getAccess();
             if (payload === null) {
               sendResponse({
                 ok: false,
@@ -95,17 +88,15 @@ export function mountSnapshotBridge(getAccess?: () => OriginAccess) {
       }
 
       if (msg.subject === 'applySiteLocal') {
-        const access = accessForRequest();
-        if (
-          !canShare(access) ||
-          !matchesOrigin(access, expectedOrigin(msg.expectedOrigin, access))
-        ) {
+        const access = getAccess();
+        if (!canShare(access) || !matchesOrigin(access, msg.expectedOrigin)) {
           sendResponse({ ok: false, reason: 'blocked' });
           return false;
         }
         relayRequestToPage(
           {
             type: 'LOCATOR_PAGE_SITE_LOCAL_WRITE',
+            expectedOrigin: access.origin,
             set: msg.set,
             unset: msg.unset ?? [],
           },
@@ -123,15 +114,16 @@ export function mountSnapshotBridge(getAccess?: () => OriginAccess) {
       }
 
       if (msg.subject === 'clearSiteLocal') {
-        const access = accessForRequest();
-        if (
-          !matchesOrigin(access, expectedOrigin(msg.expectedOrigin, access))
-        ) {
+        const access = getAccess();
+        if (!matchesOrigin(access, msg.expectedOrigin)) {
           sendResponse({ ok: false, reason: 'blocked' });
           return false;
         }
         relayRequestToPage(
-          { type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' },
+          {
+            type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR',
+            expectedOrigin: access.origin,
+          },
           'LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT',
           decodeWriteResult,
           (payload) =>
@@ -141,16 +133,17 @@ export function mountSnapshotBridge(getAccess?: () => OriginAccess) {
       }
 
       if (msg.subject === 'tryAction') {
-        const access = accessForRequest();
-        if (
-          !canShare(access) ||
-          !matchesOrigin(access, expectedOrigin(msg.expectedOrigin, access))
-        ) {
+        const access = getAccess();
+        if (!canShare(access) || !matchesOrigin(access, msg.expectedOrigin)) {
           sendResponse({ ok: false, reason: 'blocked' });
           return false;
         }
         relayRequestToPage(
-          { type: 'LOCATOR_PAGE_TRY_ACTION', action: msg.action },
+          {
+            type: 'LOCATOR_PAGE_TRY_ACTION',
+            action: msg.action,
+            expectedOrigin: access.origin,
+          },
           'LOCATOR_PAGE_TRY_ACTION_RESULT',
           decodeTryActionResult,
           (payload) =>

@@ -920,18 +920,15 @@ async function resolveViaNextDevServer(
 
     // The API returns relative paths (e.g. "app/page.tsx")
     // Resolve to absolute via SSR chunk source map
-    let fileName = sf.file;
-    if (!fileName.startsWith("/")) {
-      fileName = (
-        await resolveNextjsRelativePath(fileName, rawFileUrl, context)
-      ).fileName;
-    }
+    const resolvedPath = sf.file.startsWith("/")
+      ? { fileName: sf.file, pathKind: "absolute" as const }
+      : await resolveNextjsRelativePath(sf.file, rawFileUrl, context);
 
     return {
-      fileName,
+      fileName: resolvedPath.fileName,
       lineNumber: sf.line1 ?? 1,
       columnNumber: sf.column1 ?? 0,
-      pathKind: sf.file.startsWith("/") ? "absolute" : "project-relative",
+      pathKind: resolvedPath.pathKind ?? "project-relative",
     };
   } catch {
     return null;

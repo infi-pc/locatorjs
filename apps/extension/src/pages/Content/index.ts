@@ -19,6 +19,7 @@ let initialOptionsReady = false;
 let documentOriginReady = false;
 let pendingSettingsRequest = false;
 let currentAccess: OriginAccess = { origin: null, reason: 'unavailable' };
+let accessRequest = 0;
 
 browser.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') return;
@@ -27,49 +28,35 @@ browser.storage.onChanged.addListener((changes, areaName) => {
     publishUserExtensionLayer(layerFromRead(read));
   }
   if (
-    currentAccess.origin &&
-    `trustedOrigin:${currentAccess.origin}` in changes
+    currentAccess.origin
+      ? `trustedOrigin:${currentAccess.origin}` in changes
+      : Object.keys(changes).some((key) => key.startsWith('trustedOrigin:'))
   ) {
     void refreshOriginAccess();
   }
 });
 
-function refreshOriginAccess() {
-  return browser.runtime
+async function refreshOriginAccess() {
+  const request = ++accessRequest;
+  // Stop sharing while a changed grant is being checked.
+  if (currentAccess.reason === 'approved') {
+    currentAccess = {
+      origin: currentAccess.origin,
+      reason: 'approval-required',
+    };
+    injectUserExtensionGlobal(latestLayer);
+  }
+  const response: { access?: OriginAccess } | undefined = await browser.runtime
     .sendMessage({ from: 'content', subject: 'documentOrigin' })
-    .then(
-      (response: { origin?: unknown; access?: OriginAccess } | undefined) => {
-        return (
-          response?.access ?? { origin: null, reason: 'unavailable' as const }
-        );
-      }
-    )
-    .then((access) => {
-      currentAccess = access;
-      injectUserExtensionGlobal(latestLayer);
-      if (
-        documentOriginReady &&
-        initialOptionsReady &&
-        pendingSettingsRequest
-      ) {
-        respondToSettingsRequest();
-      }
-    });
+    .catch(() => undefined);
+  if (request !== accessRequest) return;
+  currentAccess = response?.access ?? { origin: null, reason: 'unavailable' };
+  documentOriginReady = true;
+  injectUserExtensionGlobal(latestLayer);
+  if (initialOptionsReady && pendingSettingsRequest) respondToSettingsRequest();
 }
 
-void refreshOriginAccess()
-  .then(() => {
-    documentOriginReady = true;
-  })
-  .catch(() => {
-    documentOriginReady = true;
-    currentAccess = { origin: null, reason: 'unavailable' };
-    injectUserExtensionGlobal(latestLayer);
-  })
-  .finally(() => {
-    if (initialOptionsReady && pendingSettingsRequest)
-      respondToSettingsRequest();
-  });
+void refreshOriginAccess();
 
 migrateLegacyExtensionStorage()
   .then(() => readExtensionConfig())
