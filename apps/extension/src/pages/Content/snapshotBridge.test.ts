@@ -32,6 +32,10 @@ const pageSnapshot = {
 };
 const validatedSnapshot = validateSnapshot(pageSnapshot);
 if (!validatedSnapshot) throw new Error('Invalid snapshot fixture.');
+const access = {
+  origin: 'http://localhost:3000',
+  reason: 'localhost' as const,
+};
 
 describe('mountSnapshotBridge', () => {
   let listener: MessageListener;
@@ -67,9 +71,10 @@ describe('mountSnapshotBridge', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: true,
-      protocolVersion: 3,
+      protocolVersion: 4,
       extensionVersion: '2.0.0',
       snapshot: validatedSnapshot,
+      access,
     });
   });
 
@@ -81,11 +86,12 @@ describe('mountSnapshotBridge', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
-      protocolVersion: 3,
+      protocolVersion: 4,
       extensionVersion: '2.0.0',
       reason: 'no-runtime',
       siteLocalPresent: false,
       diagnostic: undefined,
+      access,
     });
   });
 
@@ -108,11 +114,12 @@ describe('mountSnapshotBridge', () => {
     vi.advanceTimersByTime(1000);
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
-      protocolVersion: 3,
+      protocolVersion: 4,
       extensionVersion: '2.0.0',
       reason: 'no-runtime',
       siteLocalPresent: false,
       diagnostic: undefined,
+      access,
     });
   });
 
@@ -239,11 +246,12 @@ describe('mountSnapshotBridge payload validation', () => {
     vi.advanceTimersByTime(1000);
     expect(sendResponse).toHaveBeenCalledWith({
       ok: false,
-      protocolVersion: 3,
+      protocolVersion: 4,
       extensionVersion: '2.0.0',
       reason: 'snapshot-rejected',
       siteLocalPresent: false,
       diagnostic: undefined,
+      access,
     });
   });
 

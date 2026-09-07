@@ -21,6 +21,7 @@ function toSourceRef(source: Source | null | undefined) {
     line: source.lineNumber,
     column: source.columnNumber || 0,
     projectPath: source.projectPath,
+    pathKind: source.pathKind,
   };
 }
 
@@ -29,12 +30,14 @@ export function sourceRefToLinkProps(source: {
   line: number;
   column: number;
   projectPath?: string;
+  pathKind?: LinkProps["pathKind"];
 }): LinkProps {
   return {
     filePath: source.filePath,
     projectPath: source.projectPath || "",
     line: source.line,
     column: source.column,
+    pathKind: source.pathKind,
   };
 }
 
@@ -199,6 +202,7 @@ export function buildParentRows(items: ParentPathItem[]): ParentRow[] {
         line: link.line,
         column: link.column,
         projectPath: link.projectPath,
+        pathKind: link.pathKind,
       },
     });
   });

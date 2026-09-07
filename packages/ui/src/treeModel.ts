@@ -8,11 +8,14 @@
  * a change of UI.
  */
 
+import type { SourcePathKind } from "@locator/shared";
+
 export type TreeSourceRef = {
   filePath: string;
   line: number;
   column: number;
   projectPath?: string;
+  pathKind?: SourcePathKind;
 };
 
 export type TreeRowKind = "element" | "component";

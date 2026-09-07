@@ -481,7 +481,7 @@ function Runtime(props: {
   function requestEditorSetup(link: LinkProps) {
     if (options.editorWithheld()) {
       showActionNotice(
-        "Open in editor is not available inside a cross-origin frame."
+        "Open in editor requires approval for this page. Choose an editor or allow this origin in the extension popup."
       );
       return;
     }

@@ -1,4 +1,4 @@
-import { strictConfig } from "@locator/shared";
+import * as strictConfig from "@locator/shared/strict-config";
 import { reportSetupErrors } from "./functions/reportSetupErrors";
 
 export { MAX_ZINDEX } from "./consts";

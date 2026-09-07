@@ -71,6 +71,7 @@ export function getDataForDataId(dataId: string) {
   const link = {
     filePath,
     projectPath,
+    pathKind: "project-relative" as const,
     column: expData.loc.start.column || 0,
     line: expData.loc.start.line || 0,
   };

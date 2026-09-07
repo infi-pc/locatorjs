@@ -72,6 +72,10 @@ function validSnapshot(): Snapshot {
 }
 
 const snapshot = validSnapshot();
+const access = {
+  origin: 'http://localhost:3000',
+  reason: 'localhost' as const,
+};
 
 async function flushPromises() {
   for (let index = 0; index < 8; index += 1) await Promise.resolve();
@@ -99,9 +103,10 @@ describe('SyncedStateProvider', () => {
     mocks.tabsQuery.mockResolvedValue([{ id: 42 }]);
     mocks.tabsSendMessage.mockResolvedValue({
       ok: true,
-      protocolVersion: 3,
+      protocolVersion: 4,
       extensionVersion: '2.0.0',
       snapshot,
+      access,
     });
     render(() => (
       <SyncedStateProvider>
@@ -132,6 +137,7 @@ describe('SyncedStateProvider', () => {
         subject: 'applySiteLocal',
         set: { tmuxSession: 'work' },
         unset: ['projectPath'],
+        expectedOrigin: 'http://localhost:3000',
       },
       { frameId: 0 }
     );
@@ -199,6 +205,7 @@ describe('SyncedStateProvider', () => {
         from: 'popup',
         subject: 'tryAction',
         action: { kind: 'copy-path' },
+        expectedOrigin: 'http://localhost:3000',
       },
       { frameId: 0 }
     );
@@ -247,10 +254,11 @@ describe('SyncedStateProvider', () => {
   test('keeps site reset recoverable when its snapshot is rejected', async () => {
     mocks.tabsSendMessage.mockResolvedValue({
       ok: false,
-      protocolVersion: 3,
+      protocolVersion: 4,
       extensionVersion: '2.0.0',
       reason: 'snapshot-rejected',
       siteLocalPresent: true,
+      access,
     });
 
     vi.advanceTimersByTime(1500);

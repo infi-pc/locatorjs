@@ -75,6 +75,9 @@ export function Wizard(props: {
   error?: string;
   size?: "dialog" | "page";
   finishLabel?: string;
+  nextDisabled?: boolean;
+  finishDisabled?: boolean;
+  busy?: boolean;
 }) {
   const activeIndex = () => {
     const index = props.steps.findIndex((step) => step.id === props.activeId);
@@ -126,7 +129,14 @@ export function Wizard(props: {
       <footer class={styles.footer}>
         <div>
           <Show when={props.onSkip}>
-            <Button size="sm" variant="ghost" onClick={() => props.onSkip?.()}>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={props.busy}
+              onClick={() => {
+                if (!props.busy) props.onSkip?.();
+              }}
+            >
               Skip setup
             </Button>
           </Show>
@@ -140,8 +150,9 @@ export function Wizard(props: {
           <Button
             size="sm"
             variant="outline"
-            disabled={activeIndex() === 0 && !active()?.onBack}
+            disabled={props.busy || (activeIndex() === 0 && !active()?.onBack)}
             onClick={() => {
+              if (props.busy) return;
               const back = active()?.onBack;
               if (back) {
                 back();
@@ -158,7 +169,9 @@ export function Wizard(props: {
               <Button
                 size="sm"
                 variant="primary"
+                disabled={props.busy || props.nextDisabled}
                 onClick={() => {
+                  if (props.busy || props.nextDisabled) return;
                   const next = active()?.onNext;
                   if (next) {
                     next();
@@ -174,7 +187,10 @@ export function Wizard(props: {
             <Button
               size="sm"
               variant="primary"
-              onClick={() => props.onFinish()}
+              disabled={props.busy || props.finishDisabled}
+              onClick={() => {
+                if (!props.busy && !props.finishDisabled) props.onFinish();
+              }}
             >
               {props.finishLabel ?? "Finish"}
             </Button>

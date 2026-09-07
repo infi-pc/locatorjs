@@ -92,6 +92,7 @@ describe("resolveOriginalPosition - column bases line up", () => {
       fileName: "/repo/src/Button.tsx",
       lineNumber: 10,
       columnNumber: 5,
+      pathKind: "absolute",
     });
   });
 

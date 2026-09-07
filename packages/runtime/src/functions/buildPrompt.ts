@@ -20,7 +20,8 @@ export function buildPrompt(
   const source = link
     ? resolveSourcePath(
         link.filePath,
-        effective.projectPath || link.projectPath
+        effective.projectPath || link.projectPath,
+        link.pathKind
       )
     : { absolute: "", projectPath: effective.projectPath ?? "" };
   const componentLabels = element.componentsLabels

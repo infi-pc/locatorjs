@@ -531,10 +531,13 @@ export type ReactCommitData = {
   updaters: Array<SerializedElement> | null;
 };
 
+import type { SourcePathKind } from "./sourcePath";
+
 export type Source = {
   fileName: string;
   lineNumber: number;
   columnNumber?: number;
+  pathKind?: SourcePathKind;
 };
 
 export type InspectedElement = {

@@ -11,7 +11,8 @@ export function buildLink(
   const effective = options.effective();
   const source = resolveSourcePath(
     linkProps.filePath,
-    effective.projectPath || linkProps.projectPath
+    effective.projectPath || linkProps.projectPath,
+    linkProps.pathKind
   );
 
   const params = {

@@ -23,6 +23,12 @@ import {
   type SourceMethodType,
 } from "./debug";
 
+import type { SourcePathKind } from "@locator/shared";
+
+function pathKindForFile(fileName: string): SourcePathKind | undefined {
+  return fileName.startsWith("file:") ? "absolute" : undefined;
+}
+
 /**
  * Check if a fileName looks like a compiled chunk (not an original source file)
  */
@@ -79,15 +85,18 @@ function bestRoot(candidates: string[]): string | undefined {
 async function resolveProjectPrefix(
   fileName: string,
   context?: SourceResolutionContext
-): Promise<string> {
-  if (!fileName.startsWith("[project]/")) return fileName;
+): Promise<{ fileName: string; pathKind?: SourcePathKind }> {
+  if (!fileName.startsWith("[project]/")) return { fileName };
 
   const relativePath = fileName.slice("[project]/".length);
 
   if (turbopackProjectRoot !== undefined) {
-    return turbopackProjectRoot + "/" + relativePath;
+    return {
+      fileName: turbopackProjectRoot + "/" + relativePath,
+      pathKind: "absolute",
+    };
   }
-  if (Date.now() < turbopackRootRetryAfter) return fileName;
+  if (Date.now() < turbopackRootRetryAfter) return { fileName };
 
   const scripts = candidateChunkUrls(context);
 
@@ -115,10 +124,10 @@ async function resolveProjectPrefix(
   const root = bestRoot(candidates);
   if (root === undefined) {
     turbopackRootRetryAfter = Date.now() + ROOT_RETRY_COOLDOWN_MS;
-    return fileName;
+    return { fileName };
   }
   turbopackProjectRoot = root;
-  return root + "/" + relativePath;
+  return { fileName: root + "/" + relativePath, pathKind: "absolute" };
 }
 
 /**
@@ -452,9 +461,12 @@ function getFirstRendererInterface(): {
  * - Array: [componentName, fileName, lineNumber, columnNumber]
  * - Object: { fileName, lineNumber, columnNumber }
  */
-function parseInspectElementSource(
-  source: unknown
-): { fileName: string; lineNumber: number; columnNumber: number } | null {
+function parseInspectElementSource(source: unknown): {
+  fileName: string;
+  lineNumber: number;
+  columnNumber: number;
+  pathKind?: SourcePathKind;
+} | null {
   if (!source) return null;
 
   // Array format: [componentName, fileName, lineNumber, columnNumber]
@@ -465,6 +477,7 @@ function parseInspectElementSource(
         fileName,
         lineNumber,
         columnNumber: typeof columnNumber === "number" ? columnNumber : 0,
+        pathKind: pathKindForFile(fileName),
       };
     }
   }
@@ -481,6 +494,7 @@ function parseInspectElementSource(
         lineNumber: src.lineNumber,
         columnNumber:
           typeof src.columnNumber === "number" ? src.columnNumber : 0,
+        pathKind: pathKindForFile(src.fileName),
       };
     }
   }
@@ -538,6 +552,7 @@ function getSourceViaRendererInterface(domElement: HTMLElement): Source | null {
             fileName: funcAny.__source.fileName,
             lineNumber: funcAny.__source.lineNumber,
             columnNumber: funcAny.__source.columnNumber ?? 0,
+            pathKind: pathKindForFile(funcAny.__source.fileName),
           };
         }
         if (funcAny._source) {
@@ -545,6 +560,7 @@ function getSourceViaRendererInterface(domElement: HTMLElement): Source | null {
             fileName: funcAny._source.fileName,
             lineNumber: funcAny._source.lineNumber,
             columnNumber: funcAny._source.columnNumber ?? 0,
+            pathKind: pathKindForFile(funcAny._source.fileName),
           };
         }
       }
@@ -641,6 +657,7 @@ function extractSourceFromFunctionBody(funcStr: string): Source | null {
       fileName: fileMatch[1],
       lineNumber: parseInt(lineMatch[1], 10),
       columnNumber: colMatch?.[1] ? parseInt(colMatch[1], 10) : 0,
+      pathKind: "project-relative",
     };
   }
   return null;
@@ -666,6 +683,7 @@ function extractSourceFromDebugInfo(fiber: Fiber): Source | null {
           fileName: frame.fileName,
           lineNumber: frame.lineNumber,
           columnNumber: frame.columnNumber,
+          pathKind: frame.pathKind,
         };
       }
     }
@@ -711,6 +729,7 @@ function extractSourceFromFunctionMeta(type: unknown): Source | null {
           fileName: src.fileName,
           lineNumber: src.lineNumber,
           columnNumber: src.columnNumber,
+          pathKind: pathKindForFile(src.fileName),
         };
       }
     }
@@ -793,6 +812,7 @@ function parseDebugStack(fiber: Fiber): DebugStackResult | null {
       fileName: frame.fileName,
       lineNumber: frame.lineNumber,
       columnNumber: frame.columnNumber,
+      pathKind: frame.pathKind,
     },
     rawFileUrl: frame.rawFileName,
     methodName: frame.functionName,
@@ -807,11 +827,14 @@ async function resolveNextjsRelativePath(
   relativePath: string,
   rawChunkUrl: string,
   context?: SourceResolutionContext
-): Promise<string> {
+): Promise<{ fileName: string; pathKind?: SourcePathKind }> {
   if (nextjsAppRoot !== undefined) {
-    return nextjsAppRoot + "/" + relativePath;
+    return {
+      fileName: nextjsAppRoot + "/" + relativePath,
+      pathKind: "absolute",
+    };
   }
-  if (Date.now() < nextjsRootRetryAfter) return relativePath;
+  if (Date.now() < nextjsRootRetryAfter) return { fileName: relativePath };
 
   const candidates: string[] = [];
   try {
@@ -836,10 +859,10 @@ async function resolveNextjsRelativePath(
   const root = bestRoot(candidates);
   if (root === undefined) {
     nextjsRootRetryAfter = Date.now() + ROOT_RETRY_COOLDOWN_MS;
-    return relativePath;
+    return { fileName: relativePath, pathKind: "project-relative" };
   }
   nextjsAppRoot = root;
-  return root + "/" + relativePath;
+  return { fileName: root + "/" + relativePath, pathKind: "absolute" };
 }
 
 /**
@@ -899,13 +922,16 @@ async function resolveViaNextDevServer(
     // Resolve to absolute via SSR chunk source map
     let fileName = sf.file;
     if (!fileName.startsWith("/")) {
-      fileName = await resolveNextjsRelativePath(fileName, rawFileUrl, context);
+      fileName = (
+        await resolveNextjsRelativePath(fileName, rawFileUrl, context)
+      ).fileName;
     }
 
     return {
       fileName,
       lineNumber: sf.line1 ?? 1,
       columnNumber: sf.column1 ?? 0,
+      pathKind: sf.file.startsWith("/") ? "absolute" : "project-relative",
     };
   } catch {
     return null;
@@ -1098,10 +1124,12 @@ export async function resolveSourceFromFiber(
 
       const bodySource = extractSourceFromFunctionBody(funcStr);
       if (bodySource?.fileName) {
-        bodySource.fileName = await resolveProjectPrefix(
+        const resolvedPath = await resolveProjectPrefix(
           bodySource.fileName,
           operationContext()
         );
+        bodySource.fileName = resolvedPath.fileName;
+        bodySource.pathKind = resolvedPath.pathKind;
         const accepted = accept(bodySource, SourceMethod.FUNCTION_BODY_JSX);
         if (accepted) return accepted;
       }
@@ -1126,10 +1154,12 @@ export async function resolveSourceFromFiber(
         operationContext()
       );
       if (turbopackSource) {
-        turbopackSource.fileName = await resolveProjectPrefix(
+        const resolvedPath = await resolveProjectPrefix(
           turbopackSource.fileName,
           operationContext()
         );
+        turbopackSource.fileName = resolvedPath.fileName;
+        turbopackSource.pathKind = resolvedPath.pathKind;
         const accepted = accept(
           turbopackSource,
           SourceMethod.TURBOPACK_ELEMENT
@@ -1146,10 +1176,12 @@ export async function resolveSourceFromFiber(
         operationContext()
       );
       if (turbopackSource) {
-        turbopackSource.fileName = await resolveProjectPrefix(
+        const resolvedPath = await resolveProjectPrefix(
           turbopackSource.fileName,
           operationContext()
         );
+        turbopackSource.fileName = resolvedPath.fileName;
+        turbopackSource.pathKind = resolvedPath.pathKind;
         const accepted = accept(
           turbopackSource,
           SourceMethod.TURBOPACK_COMPONENT

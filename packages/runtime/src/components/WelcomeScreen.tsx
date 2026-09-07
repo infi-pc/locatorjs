@@ -58,28 +58,36 @@ export function WelcomeScreen(props: {
   );
   const [active, setActiveSignal] = createSignal(startingStep ?? "welcome");
   const [saveError, setSaveError] = createSignal(false);
+  const [pickerPending, setPickerPending] = createSignal(false);
+  const [writePending, setWritePending] = createSignal(false);
 
   const setActive = async (step: string) => {
+    if (writePending() || pickerPending()) return;
+    setWritePending(true);
     setSaveError(false);
-    const result = await options.setUiState({
-      onboarding: { ...(options.uiState().onboarding ?? {}), step },
-    });
-    if (result.ok) {
-      setActiveSignal(step);
-    } else {
-      setSaveError(true);
+    try {
+      const result = await options.setUiState({
+        onboarding: { ...(options.uiState().onboarding ?? {}), step },
+      });
+      if (result.ok) setActiveSignal(step);
+      else setSaveError(true);
+    } finally {
+      setWritePending(false);
     }
   };
   const dismiss = async () => {
+    if (writePending() || pickerPending()) return;
+    setWritePending(true);
     setSaveError(false);
-    const result = await options.setUiState({
-      welcomeScreenDismissed: true,
-      onboarding: { dismissed: true, step: "done" },
-    });
-    if (result.ok) {
-      props.onClose();
-    } else {
-      setSaveError(true);
+    try {
+      const result = await options.setUiState({
+        welcomeScreenDismissed: true,
+        onboarding: { dismissed: true, step: "done" },
+      });
+      if (result.ok) props.onClose();
+      else setSaveError(true);
+    } finally {
+      setWritePending(false);
     }
   };
   const currentLink = () => {
@@ -142,6 +150,7 @@ export function WelcomeScreen(props: {
           value={editor()}
           portalMount={props.portalMount}
           onChange={updateEditor}
+          onPendingChange={setPickerPending}
         />
       ),
     },
@@ -223,6 +232,11 @@ export function WelcomeScreen(props: {
       onStepChange={setActive}
       onFinish={dismiss}
       onSkip={dismiss}
+      busy={writePending()}
+      nextDisabled={
+        active() === "editor" && (pickerPending() || editor() === undefined)
+      }
+      finishDisabled={pickerPending() || editor() === undefined}
       error={
         saveError() ? "Could not save your progress. Try again." : undefined
       }

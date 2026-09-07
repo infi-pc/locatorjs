@@ -214,12 +214,76 @@ async function checkImports(consumer) {
   run("node", [nodeBundle], consumer);
 }
 
+function checkNativeConsumers(consumer) {
+  const esm = `
+    import runtime, { setup, MAX_ZINDEX, getDataForDataId } from "@locator/runtime";
+    import * as shared from "@locator/shared";
+    import * as strictConfig from "@locator/shared/strict-config";
+    import locator from "locatorjs";
+    const parsed = strictConfig.parseLayer({ replacePath: { from: "one", to: "two" } });
+    if (typeof runtime !== "function" || runtime !== setup || typeof locator !== "function" || typeof MAX_ZINDEX !== "number" || getDataForDataId("x") !== null || !parsed.ok || strictConfig.rewritePath(parsed.value.replacePath, "one") !== "two" || typeof shared.strictConfig.parseLayer !== "function") process.exit(1);
+    if (!setup({}).ok || setup({ editor: { kind: "template", template: "javascript:alert(1)" } }).ok) process.exit(1);
+  `;
+  run(process.execPath, ["--input-type=module", "-e", esm], consumer);
+
+  const cjs = `
+    const runtime = require("@locator/runtime");
+    const shared = require("@locator/shared");
+    const strictConfig = require("@locator/shared/strict-config");
+    const locator = require("locatorjs");
+    const parsed = strictConfig.parseLayer({ replacePath: { from: "one", to: "two" } });
+    if (typeof runtime.default !== "function" || runtime.default !== runtime.setup || typeof locator.default !== "function" || locator.default !== locator.setup || !parsed.ok || strictConfig.rewritePath(parsed.value.replacePath, "one") !== "two" || typeof shared.strictConfig.parseLayer !== "function") process.exit(1);
+    if (!runtime.setup({}).ok || runtime.setup({ editor: { kind: "template", template: "javascript:alert(1)" } }).ok) process.exit(1);
+  `;
+  run(process.execPath, ["-e", cjs], consumer);
+
+  const esmTypes = path.join(consumer, "native-consumer.mts");
+  const cjsTypes = path.join(consumer, "native-consumer.cts");
+  fs.writeFileSync(
+    esmTypes,
+    'import setup, { setup as named } from "@locator/runtime";\nimport * as config from "@locator/shared/strict-config";\nconst parsed = config.parseLayer({ replacePath: { from: "one", to: "two" } });\nif (parsed.ok && parsed.value.replacePath) { config.rewritePath(parsed.value.replacePath, "one"); }\nsetup({}); named({});\n'
+  );
+  fs.writeFileSync(
+    cjsTypes,
+    'import runtime = require("@locator/runtime");\nimport config = require("@locator/shared/strict-config");\nconst parsed = config.parseLayer({ replacePath: { from: "one", to: "two" } });\nif (parsed.ok && parsed.value.replacePath) config.rewritePath(parsed.value.replacePath, "one");\nruntime.default({}); runtime.setup({});\n'
+  );
+  const tsc = path.join(
+    path.dirname(
+      require.resolve("typescript/package.json", {
+        paths: [path.join(root, "packages", "runtime")],
+      })
+    ),
+    "bin",
+    "tsc"
+  );
+  run(
+    process.execPath,
+    [
+      tsc,
+      "--noEmit",
+      "--module",
+      "NodeNext",
+      "--moduleResolution",
+      "NodeNext",
+      "--target",
+      "ES2022",
+      "--strict",
+      "--skipLibCheck",
+      "false",
+      esmTypes,
+      cjsTypes,
+    ],
+    consumer
+  );
+}
+
 async function main() {
   try {
     run("pnpm", ["turbo", "run", "build", "--filter=./packages/*"]);
     const tarballs = publishedPackages.map(pack);
     const consumer = writeConsumer(tarballs);
     await checkImports(consumer);
+    checkNativeConsumers(consumer);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }

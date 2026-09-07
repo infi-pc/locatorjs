@@ -14,6 +14,19 @@ type RuntimeBridge = {
   clearSiteLocal: () => ReturnType<OptionsStore["clearUserOrigin"]>;
 };
 
+function expectedOriginMatches(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    const expected = new URL(value);
+    return (
+      (expected.protocol === "http:" || expected.protocol === "https:") &&
+      expected.origin === window.location.origin
+    );
+  } catch {
+    return false;
+  }
+}
+
 declare global {
   interface Window {
     __LOCATOR_RUNTIME__?: RuntimeBridge;
@@ -57,6 +70,17 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     }
 
     if (data.type === "LOCATOR_PAGE_SITE_LOCAL_WRITE") {
+      if (!expectedOriginMatches(data.expectedOrigin)) {
+        window.postMessage(
+          {
+            type: "LOCATOR_PAGE_SITE_LOCAL_WRITE_RESULT",
+            requestId: data.requestId,
+            result: { ok: false, reason: "blocked" },
+          },
+          postMessageOrigin(window.location)
+        );
+        return;
+      }
       const result = await bridge.applySiteLocal({
         set: data.set ?? {},
         unset: data.unset ?? [],
@@ -73,6 +97,17 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     }
 
     if (data.type === "LOCATOR_PAGE_SITE_LOCAL_CLEAR") {
+      if (!expectedOriginMatches(data.expectedOrigin)) {
+        window.postMessage(
+          {
+            type: "LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT",
+            requestId: data.requestId,
+            result: { ok: false, reason: "blocked" },
+          },
+          postMessageOrigin(window.location)
+        );
+        return;
+      }
       const result = await bridge.clearSiteLocal();
       window.postMessage(
         {
@@ -86,6 +121,17 @@ export function mountRuntimePopupBridge(options: OptionsStore) {
     }
 
     if (data.type === "LOCATOR_PAGE_TRY_ACTION") {
+      if (!expectedOriginMatches(data.expectedOrigin)) {
+        window.postMessage(
+          {
+            type: "LOCATOR_PAGE_TRY_ACTION_RESULT",
+            requestId: data.requestId,
+            result: { ok: false, reason: "blocked" },
+          },
+          postMessageOrigin(window.location)
+        );
+        return;
+      }
       const parsed = strictConfig.parseAction(data.action);
       const result = !parsed.ok
         ? { ok: false as const, reason: "invalid-action" }

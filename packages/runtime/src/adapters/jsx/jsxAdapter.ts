@@ -84,6 +84,7 @@ function getElementInfo(target: HTMLElement): FullElementInfo | null {
         link: {
           filePath,
           projectPath,
+          pathKind: "project-relative",
           column: (expData.loc.start.column || 0) + 1,
           line: expData.loc.start.line || 0,
         },
@@ -103,6 +104,7 @@ function getElementInfo(target: HTMLElement): FullElementInfo | null {
               link: {
                 filePath,
                 projectPath,
+                pathKind: "project-relative",
                 column: (wrappingComponent.loc?.start.column || 0) + 1,
                 line: wrappingComponent.loc?.start.line || 0,
               },

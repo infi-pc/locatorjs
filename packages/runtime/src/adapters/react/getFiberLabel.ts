@@ -13,6 +13,7 @@ export function getFiberLabel(fiber: Fiber, source?: Source): LabelData {
           projectPath: "",
           line: source.lineNumber,
           column: source.columnNumber || 0,
+          pathKind: source.pathKind,
         }
       : null,
   };

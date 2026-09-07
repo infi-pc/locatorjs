@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "turbo run build --filter=./packages/* --filter=./apps/*",
-    "dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
+    "dev": "pnpm turbo run build --filter=./packages/* && . ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
     "lint": "node scripts/check-eslint-suppressions.js && eslint scripts --ext .js && turbo run lint --filter=./packages/* --filter=./apps/*",
     "test": "turbo run test --filter=./packages/* --filter=./apps/*",
     "ts": "turbo run ts --filter=./packages/* --filter=./apps/*",
