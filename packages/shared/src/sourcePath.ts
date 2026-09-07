@@ -24,6 +24,8 @@ export type ResolvedSourcePath = {
   absolute: string;
 };
 
+export type SourcePathKind = "absolute" | "project-relative";
+
 const TURBOPACK_PREFIX = "[project]/";
 
 /**
@@ -61,7 +63,8 @@ function relativeToRoot(path: string, root: string): string | null {
 
 export function resolveSourcePath(
   filePath: string,
-  projectPath?: string
+  projectPath?: string,
+  pathKind?: SourcePathKind
 ): ResolvedSourcePath {
   const root = normalizeRoot(projectPath);
 
@@ -71,6 +74,23 @@ export function resolveSourcePath(
     if (!root) return { filePath, projectPath: "", absolute: filePath };
     const relative = "/" + filePath.slice(TURBOPACK_PREFIX.length);
     return { filePath: relative, projectPath: root, absolute: root + relative };
+  }
+
+  if (pathKind === "project-relative") {
+    const relative = filePath.startsWith("/") ? filePath : "/" + filePath;
+    return { filePath: relative, projectPath: root, absolute: root + relative };
+  }
+
+  if (pathKind === "absolute") {
+    const absoluteRelative = relativeToRoot(filePath, root);
+    if (absoluteRelative !== null) {
+      return {
+        filePath: absoluteRelative,
+        projectPath: root,
+        absolute: filePath,
+      };
+    }
+    return { filePath, projectPath: "", absolute: filePath };
   }
 
   // An absolute path inside the project: hand back the part below the root so

@@ -137,32 +137,20 @@ async function migrateLegacyStorage(
   return { kind: 'ready', revision: 0, layer };
 }
 
-let readinessPromise: Promise<StrictConfig.ConfigReadResult> | undefined;
+let pendingMutation: Promise<unknown> = Promise.resolve();
 
-export function ensureExtensionStorageReady(): Promise<StrictConfig.ConfigReadResult> {
-  if (!readinessPromise) {
-    readinessPromise = rawStorage()
-      .then(migrateLegacyStorage)
-      .catch((error) => {
-        readinessPromise = undefined;
-        throw error;
-      });
-  }
-  return readinessPromise;
+function enqueueStorageOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const run = pendingMutation.then(operation);
+  pendingMutation = run.catch(() => undefined);
+  return run;
 }
 
-export async function readExtensionConfig(): Promise<StrictConfig.ConfigReadResult> {
-  await ensureExtensionStorageReady();
-  const stored = await browser.storage.local.get([
-    USER_CONFIG_KEY,
-    PREVIEW_V2_USER_OPTIONS_KEY,
-  ]);
-  if (stored?.[USER_CONFIG_KEY] !== undefined) {
-    return decodeStoredExtensionConfig(stored[USER_CONFIG_KEY]);
-  }
-  return stored?.[PREVIEW_V2_USER_OPTIONS_KEY] !== undefined
-    ? { kind: 'reset-required' }
-    : { kind: 'empty' };
+export function ensureExtensionStorageReady(): Promise<StrictConfig.ConfigReadResult> {
+  return enqueueStorageOperation(() => rawStorage().then(migrateLegacyStorage));
+}
+
+export function readExtensionConfig(): Promise<StrictConfig.ConfigReadResult> {
+  return ensureExtensionStorageReady();
 }
 
 export function layerFromRead(
@@ -182,8 +170,6 @@ async function persist(snapshot: UserConfigSnapshot): Promise<WriteResult> {
   }
 }
 
-let pendingMutation: Promise<unknown> = Promise.resolve();
-
 function mutate(
   mutation: (
     current: UserConfigSnapshot
@@ -191,9 +177,9 @@ function mutate(
     | { ok: true; snapshot: UserConfigSnapshot }
     | Exclude<WriteResult, { ok: true }>
 ): Promise<WriteResult> {
-  const run = pendingMutation.then(async () => {
+  return enqueueStorageOperation(async () => {
     try {
-      const read = await readExtensionConfig();
+      const read = await migrateLegacyStorage(await rawStorage());
       const current = snapshotFromRead(read);
       if (!current) {
         return {
@@ -215,8 +201,6 @@ function mutate(
       return { ok: false as const, reason: 'blocked' as const };
     }
   });
-  pendingMutation = run.catch(() => undefined);
-  return run;
 }
 
 export function patchExtensionConfig(
@@ -244,23 +228,23 @@ export function patchExtensionConfig(
   });
 }
 
-export async function clearExtensionConfig(): Promise<WriteResult> {
-  try {
-    await browser.storage.local.remove([
-      USER_CONFIG_KEY,
-      PREVIEW_V2_USER_OPTIONS_KEY,
-      ...LEGACY_KEYS,
-      ...OBSOLETE_KEYS,
-    ]);
-    readinessPromise = Promise.resolve({ kind: 'empty' });
-    return { ok: true };
-  } catch {
-    return { ok: false, reason: 'blocked' };
-  }
+export function clearExtensionConfig(): Promise<WriteResult> {
+  return enqueueStorageOperation(async () => {
+    try {
+      await browser.storage.local.remove([
+        USER_CONFIG_KEY,
+        PREVIEW_V2_USER_OPTIONS_KEY,
+        ...LEGACY_KEYS,
+        ...OBSOLETE_KEYS,
+      ]);
+      return { ok: true };
+    } catch {
+      return { ok: false, reason: 'blocked' };
+    }
+  });
 }
 
 export function __resetStorageContractForTesting() {
-  readinessPromise = undefined;
   pendingMutation = Promise.resolve();
 }
 

@@ -6,8 +6,9 @@ import {
 } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { Power, RotateCcw } from 'lucide-solid';
-import { Show, createEffect, createSignal } from 'solid-js';
+import { Show, createSignal } from 'solid-js';
 import { useSyncedState } from './syncedState';
+import { canSharePrivateSettings } from '../../originAccess';
 
 type LocatorLayer = strictConfig.LocatorLayerId;
 const DEFAULT_LAYER = strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER);
@@ -49,6 +50,7 @@ const styles = {
 };
 
 export function Home() {
+  const synced = useSyncedState();
   const {
     setSiteLocal,
     setUserExtension,
@@ -60,7 +62,12 @@ export function Home() {
     status,
     siteLocalPresent,
     extensionConfigRead,
-  } = useSyncedState();
+  } = synced;
+  const originAccess =
+    synced.originAccess ??
+    (() => ({ origin: null, reason: 'unavailable' as const }));
+  const grantOrigin = synced.grantOrigin ?? (async () => undefined);
+  const revokeOrigin = synced.revokeOrigin ?? (async () => undefined);
   const extensionNeedsReset = () =>
     extensionConfigRead().kind === 'reset-required' ||
     extensionConfigRead().kind === 'future-version' ||
@@ -80,12 +87,8 @@ export function Home() {
       : chosenScope();
   const [saveStatus, setSaveStatus] =
     createSignal<ActionSettingsSaveStatus>('idle');
-  const [confirmReset, setConfirmReset] = createSignal(false);
+  const [confirmReset, setConfirmReset] = createSignal<LocatorLayer>();
   const [actionError, setActionError] = createSignal<string>();
-
-  createEffect(() => {
-    if (!connected()) setConfirmReset(false);
-  });
 
   const layers = () => {
     const connectedLayers = snapshot()?.layers;
@@ -106,22 +109,42 @@ export function Home() {
     !connected() && siteLocalPresent() && chosenScope() === 'user-origin'
       ? 'user-origin'
       : activeScope();
-  const resetLabel = () =>
-    resetLayer() === 'user-origin' ? 'This site' : 'All sites';
-  const resetPrompt = () =>
-    resetLayer() === 'user-origin'
+  const resetLabel = (layer: LocatorLayer = resetLayer()) =>
+    layer === 'user-origin' ? 'This site' : 'All sites';
+  const resetPrompt = (layer: LocatorLayer = resetLayer()) =>
+    layer === 'user-origin'
       ? 'Reset settings for this site?'
       : 'Reset your All sites defaults?';
 
   const reset = async () => {
+    const target = confirmReset();
+    if (!target || saveStatus() === 'saving') return;
     setSaveStatus('saving');
     const result =
-      resetLayer() === 'user-origin'
+      target === 'user-origin'
         ? await clearSiteLocal()
         : await clearUserExtension();
     setSaveStatus(result.ok ? 'saved' : 'error');
-    setActionError(result.ok ? undefined : `Could not reset ${resetLabel()}.`);
-    if (result.ok) setConfirmReset(false);
+    setActionError(
+      result.ok ? undefined : `Could not reset ${resetLabel(target)}.`
+    );
+    if (result.ok) setConfirmReset(undefined);
+  };
+  const changeOriginTrust = async (grant: boolean) => {
+    const origin = originAccess().origin;
+    if (!origin || saveStatus() === 'saving') return;
+    setSaveStatus('saving');
+    try {
+      if (grant) await grantOrigin(origin);
+      else await revokeOrigin(origin);
+      setSaveStatus('saved');
+      setActionError(undefined);
+    } catch {
+      setSaveStatus('error');
+      setActionError(
+        `Could not ${grant ? 'allow' : 'revoke access for'} ${origin}.`
+      );
+    }
   };
 
   return (
@@ -154,7 +177,7 @@ export function Home() {
         activeScope={activeScope()}
         onActiveScopeChange={(layer) => {
           setChosenScope(layer);
-          setConfirmReset(false);
+          setConfirmReset(undefined);
           setActionError(undefined);
         }}
         unavailableLayers={connected() ? [] : ['team', 'user-origin']}
@@ -222,9 +245,19 @@ export function Home() {
         </div>
       </Show>
       <Show when={extensionNeedsReset()}>
-        <div class={styles.footerText} role="alert">
-          These All sites settings use an incompatible preview format. Reset
-          them to continue.
+        <div class={styles.advancedHelp} role="alert">
+          These All sites settings use an incompatible format. Reset them to
+          continue.
+          <Button
+            size="xs"
+            variant="danger-ghost"
+            disabled={saveStatus() === 'saving'}
+            onClick={() => {
+              if (saveStatus() !== 'saving') setConfirmReset('user-extension');
+            }}
+          >
+            Reset All sites
+          </Button>
         </div>
       </Show>
       <div class={styles.footer}>
@@ -252,23 +285,68 @@ export function Home() {
         </span>
         <div class={styles.footerActions}>
           <Show when={confirmReset()}>
-            <span class={styles.footerText}>{resetPrompt()}</span>
+            <span class={styles.footerText}>{resetPrompt(confirmReset())}</span>
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => setConfirmReset(false)}
+              disabled={saveStatus() === 'saving'}
+              onClick={() => {
+                if (saveStatus() !== 'saving') setConfirmReset(undefined);
+              }}
             >
               Cancel
             </Button>
-            <Button size="xs" variant="danger-ghost" onClick={reset}>
-              Reset {resetLabel()}
+            <Button
+              size="xs"
+              variant="danger-ghost"
+              disabled={saveStatus() === 'saving'}
+              onClick={reset}
+            >
+              Reset {resetLabel(confirmReset())}
             </Button>
+          </Show>
+          <Show when={originAccess().origin}>
+            <div class={styles.advancedHelp}>
+              <div class={styles.footerText}>{originAccess().origin}</div>
+              <Show
+                when={canSharePrivateSettings(originAccess())}
+                fallback={
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={saveStatus() === 'saving'}
+                    onClick={() => void changeOriginTrust(true)}
+                  >
+                    Allow
+                  </Button>
+                }
+              >
+                <Show when={originAccess().reason === 'localhost'}>
+                  <div class={styles.footerText}>
+                    Localhost is always trusted
+                  </div>
+                </Show>
+                <Show when={originAccess().reason === 'approved'}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    disabled={saveStatus() === 'saving'}
+                    onClick={() => void changeOriginTrust(false)}
+                  >
+                    Revoke
+                  </Button>
+                </Show>
+              </Show>
+            </div>
           </Show>
           <Show when={!confirmReset()}>
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => setConfirmReset(true)}
+              disabled={saveStatus() === 'saving'}
+              onClick={() => {
+                if (saveStatus() !== 'saving') setConfirmReset(resetLayer());
+              }}
             >
               <RotateCcw size={14} /> Reset
             </Button>

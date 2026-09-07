@@ -44,7 +44,8 @@ export async function performAction(
       if (!link) return false;
       const { absolute } = resolveSourcePath(
         link.filePath,
-        options.effective().projectPath || link.projectPath
+        options.effective().projectPath || link.projectPath,
+        link.pathKind
       );
       return writeClipboard(`${absolute}:${link.line}:${link.column}`);
     }

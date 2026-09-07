@@ -80,6 +80,19 @@ describe("resolveSourcePath – absolute paths inside the project", () => {
 });
 
 describe("resolveSourcePath – project-relative paths", () => {
+  test("uses an explicit kind before the inside-root heuristic", () => {
+    expect(
+      resolveSourcePath(
+        "/repo-sibling/src/Button.tsx",
+        "/repo",
+        "project-relative"
+      )
+    ).toEqual({
+      filePath: "/repo-sibling/src/Button.tsx",
+      projectPath: "/repo",
+      absolute: "/repo/repo-sibling/src/Button.tsx",
+    });
+  });
   test("keeps babel-jsx's leading-slash path relative and joinable", () => {
     // babel-jsx emits `/src/Button.tsx` for a file at `<root>/src/Button.tsx`.
     expect(resolveSourcePath("/src/Button.tsx", "/repo")).toEqual({

@@ -91,6 +91,7 @@ function getSourceFromFiber(
               fileName: frame.fileName,
               lineNumber: frame.lineNumber,
               columnNumber: frame.columnNumber,
+              pathKind: frame.pathKind,
             },
             SourceMethod.DEBUG_INFO_STACK,
           ];

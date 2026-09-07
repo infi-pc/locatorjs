@@ -39,6 +39,7 @@ export function EditorCardPicker(props: {
   targets: strictConfig.TargetViewMap;
   value?: strictConfig.EditorDestination;
   onSelect: (value: string) => void;
+  disabled?: boolean;
 }) {
   const selected = () =>
     props.value?.kind === "template" ||
@@ -58,6 +59,7 @@ export function EditorCardPicker(props: {
           <button
             type="button"
             aria-pressed={selected() === value}
+            disabled={props.disabled}
             class={cx(styles.card, selected() === value && styles.cardSelected)}
             onClick={() => props.onSelect(value)}
           >
@@ -71,6 +73,7 @@ export function EditorCardPicker(props: {
       <button
         type="button"
         aria-pressed={selected() === CUSTOM_VALUE}
+        disabled={props.disabled}
         class={cx(
           styles.card,
           selected() === CUSTOM_VALUE && styles.cardSelected

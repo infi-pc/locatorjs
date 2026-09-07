@@ -19,6 +19,7 @@ export type StackFrame = {
   /** 1-based, as V8 and SpiderMonkey report it. */
   columnNumber: number;
   functionName: string;
+  pathKind?: "absolute" | "project-relative";
 };
 
 /**
@@ -117,12 +118,16 @@ function toFrame(
   if (!match) return undefined;
   const [, rawFileName, line, column] = match;
   if (!rawFileName || !line || !column) return undefined;
+  const unwrapped = rawFileName.startsWith("about://React/Server/")
+    ? rawFileName.slice("about://React/Server/".length)
+    : rawFileName;
   return {
-    fileName: cleanStackFileName(rawFileName),
+    fileName: cleanStackFileName(unwrapped),
     rawFileName,
     lineNumber: parseInt(line, 10),
     columnNumber: parseInt(column, 10),
     functionName: functionName.trim() || "<unknown>",
+    ...(unwrapped.startsWith("file:") ? { pathKind: "absolute" as const } : {}),
   };
 }
 

@@ -2,14 +2,27 @@
   "name": "locatorjs",
   "main": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    "import": {
+      "types": "./index.d.mts",
+      "default": "./index.mjs"
+    },
+    "require": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "default": "./index.js"
+  },
   "version": "2.0.0",
   "files": [
     "index.js",
+    "index.mjs",
     "index.d.ts",
+    "index.d.mts",
     "readme.md"
   ],
   "scripts": {
-    "lint": "eslint index.js",
+    "lint": "eslint index.js index.mjs",
     "ts": "tsc --allowJs --checkJs --noEmit --module commonjs --target es2020 index.js"
   },
   "dependencies": {

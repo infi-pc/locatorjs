@@ -15,9 +15,10 @@ import {
 } from '@locator/shared/strict-config';
 import type * as StrictConfig from '@locator/shared/strict-config';
 import browser from '../../browser';
+import type { OriginAccess } from '../../originAccess';
 
 const REPLY_TIMEOUT_MS = 1000;
-const EXTENSION_PROTOCOL_VERSION = 3 as const;
+const EXTENSION_PROTOCOL_VERSION = 4 as const;
 
 type PopupMessage =
   | { from: 'popup'; subject: 'requestSnapshot' }
@@ -26,11 +27,27 @@ type PopupMessage =
       subject: 'applySiteLocal';
       set: Record<string, unknown>;
       unset?: string[];
+      expectedOrigin?: string;
     }
-  | { from: 'popup'; subject: 'clearSiteLocal' }
-  | { from: 'popup'; subject: 'tryAction'; action: StrictConfig.BindingAction };
+  | { from: 'popup'; subject: 'clearSiteLocal'; expectedOrigin?: string }
+  | {
+      from: 'popup';
+      subject: 'tryAction';
+      action: StrictConfig.BindingAction;
+      expectedOrigin?: string;
+    };
 
-export function mountSnapshotBridge() {
+export function mountSnapshotBridge(getAccess: () => OriginAccess) {
+  const canShare = (access: OriginAccess) =>
+    access.reason === 'localhost' || access.reason === 'approved';
+  const matchesOrigin = (access: OriginAccess, value: unknown) => {
+    if (typeof value !== 'string' || access.origin === null) return false;
+    try {
+      return new URL(value).origin === access.origin;
+    } catch {
+      return false;
+    }
+  };
   browser.runtime.onMessage.addListener(
     (msg: PopupMessage, _sender, sendResponse) => {
       if (!msg || msg.from !== 'popup') {
@@ -45,6 +62,7 @@ export function mountSnapshotBridge() {
           'LOCATOR_PAGE_SNAPSHOT_RESPONSE',
           validateSnapshot,
           (payload, rejectedValue) => {
+            const access = getAccess();
             if (payload === null) {
               sendResponse({
                 ok: false,
@@ -53,6 +71,7 @@ export function mountSnapshotBridge() {
                 reason: rejectedValue ? 'snapshot-rejected' : 'no-runtime',
                 siteLocalPresent: snapshotHasSiteLocal(rejectedValue),
                 diagnostic: hookDiagnostic(),
+                access,
               });
             } else {
               sendResponse({
@@ -60,6 +79,7 @@ export function mountSnapshotBridge() {
                 protocolVersion: EXTENSION_PROTOCOL_VERSION,
                 extensionVersion: browser.runtime.getManifest().version,
                 snapshot: payload,
+                access,
               });
             }
           }
@@ -68,9 +88,15 @@ export function mountSnapshotBridge() {
       }
 
       if (msg.subject === 'applySiteLocal') {
+        const access = getAccess();
+        if (!canShare(access) || !matchesOrigin(access, msg.expectedOrigin)) {
+          sendResponse({ ok: false, reason: 'blocked' });
+          return false;
+        }
         relayRequestToPage(
           {
             type: 'LOCATOR_PAGE_SITE_LOCAL_WRITE',
+            expectedOrigin: access.origin,
             set: msg.set,
             unset: msg.unset ?? [],
           },
@@ -88,8 +114,16 @@ export function mountSnapshotBridge() {
       }
 
       if (msg.subject === 'clearSiteLocal') {
+        const access = getAccess();
+        if (!matchesOrigin(access, msg.expectedOrigin)) {
+          sendResponse({ ok: false, reason: 'blocked' });
+          return false;
+        }
         relayRequestToPage(
-          { type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR' },
+          {
+            type: 'LOCATOR_PAGE_SITE_LOCAL_CLEAR',
+            expectedOrigin: access.origin,
+          },
           'LOCATOR_PAGE_SITE_LOCAL_CLEAR_RESULT',
           decodeWriteResult,
           (payload) =>
@@ -99,8 +133,17 @@ export function mountSnapshotBridge() {
       }
 
       if (msg.subject === 'tryAction') {
+        const access = getAccess();
+        if (!canShare(access) || !matchesOrigin(access, msg.expectedOrigin)) {
+          sendResponse({ ok: false, reason: 'blocked' });
+          return false;
+        }
         relayRequestToPage(
-          { type: 'LOCATOR_PAGE_TRY_ACTION', action: msg.action },
+          {
+            type: 'LOCATOR_PAGE_TRY_ACTION',
+            action: msg.action,
+            expectedOrigin: access.origin,
+          },
           'LOCATOR_PAGE_TRY_ACTION_RESULT',
           decodeTryActionResult,
           (payload) =>

@@ -176,6 +176,7 @@ export function Onboarding() {
   const [showCustom, setShowCustom] = createSignal(false);
   const [customDraft, setCustomDraft] = createSignal('');
   const [customError, setCustomError] = createSignal<string>();
+  const [busy, setBusy] = createSignal(false);
   const effective = () => {
     const parsed = strictConfig.parseLayer(userExtension());
     if (!parsed.ok) {
@@ -211,21 +212,35 @@ export function Onboarding() {
   const setBindings = async (
     next: readonly strictConfig.BindingInput[] | undefined
   ) =>
-    (
-      await setUserExtension(
-        next ? { set: { bindings: next } } : { unset: ['bindings'] }
-      )
-    ).ok;
+    (async () => {
+      if (busy()) return false;
+      setBusy(true);
+      try {
+        return (
+          await setUserExtension(
+            next ? { set: { bindings: next } } : { unset: ['bindings'] }
+          )
+        ).ok;
+      } finally {
+        setBusy(false);
+      }
+    })();
 
   const updateEditor = async (destination: strictConfig.EditorDestination) => {
+    if (busy()) return false;
     const nextBindings = clearPrimaryEditorOverride(bindings());
-    const result = await setUserExtension({
-      set: {
-        editor: destination,
-        ...(nextBindings ? { bindings: nextBindings } : {}),
-      },
-    });
-    return result.ok;
+    setBusy(true);
+    try {
+      const result = await setUserExtension({
+        set: {
+          editor: destination,
+          ...(nextBindings ? { bindings: nextBindings } : {}),
+        },
+      });
+      return result.ok;
+    } finally {
+      setBusy(false);
+    }
   };
   const updateModifiers = (
     value:
@@ -271,11 +286,10 @@ export function Onboarding() {
   };
 
   const saveCustomTemplate = async () => {
+    if (busy()) return;
     const template = customDraft().trim();
     if (!template) {
-      setCustomError(undefined);
-      setShowCustom(false);
-      setActive('shortcut');
+      setCustomError('Enter a link template.');
       return;
     }
     const parsed = strictConfig.parseLayer({
@@ -313,6 +327,7 @@ export function Onboarding() {
               targets={ALL_TARGETS}
               value={editor()}
               onSelect={selectEditor}
+              disabled={busy()}
             />
           }
         >
@@ -321,6 +336,7 @@ export function Onboarding() {
               mono
               aria-label="Custom link template"
               value={customDraft()}
+              disabled={busy()}
               aria-invalid={customError() ? true : undefined}
               placeholder="editor://file/${projectPath}${filePath}:${line}:${column}"
               onInput={(event) => {
@@ -330,10 +346,10 @@ export function Onboarding() {
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
-                  saveCustomTemplate();
+                  void saveCustomTemplate();
                 } else if (event.key === 'Escape') {
                   event.preventDefault();
-                  setShowCustom(false);
+                  if (!busy()) setShowCustom(false);
                 }
               }}
             />
@@ -374,7 +390,16 @@ export function Onboarding() {
         steps={steps()}
         activeId={active()}
         onStepChange={setActive}
-        onFinish={() => window.close()}
+        onFinish={() => {
+          if (!busy() && editor() !== undefined && !showCustom())
+            window.close();
+        }}
+        onSkip={() => {
+          if (!busy()) window.close();
+        }}
+        busy={busy()}
+        nextDisabled={showCustom() ? busy() : editor() === undefined}
+        finishDisabled={busy() || editor() === undefined || showCustom()}
         finishLabel="Done"
       />
     </div>

@@ -6,6 +6,7 @@ import {
   PromoFooter,
   Wizard,
   type WizardStep,
+  type EditorPickerStatus,
 } from "@locator/ui";
 import { css, cx } from "@locator/styled-system/css";
 import { button } from "@locator/styled-system/recipes";
@@ -58,28 +59,37 @@ export function WelcomeScreen(props: {
   );
   const [active, setActiveSignal] = createSignal(startingStep ?? "welcome");
   const [saveError, setSaveError] = createSignal(false);
+  const [pickerStatus, setPickerStatus] =
+    createSignal<EditorPickerStatus>("idle");
+  const [writePending, setWritePending] = createSignal(false);
 
   const setActive = async (step: string) => {
+    if (writePending() || pickerStatus() === "saving") return;
+    setWritePending(true);
     setSaveError(false);
-    const result = await options.setUiState({
-      onboarding: { ...(options.uiState().onboarding ?? {}), step },
-    });
-    if (result.ok) {
-      setActiveSignal(step);
-    } else {
-      setSaveError(true);
+    try {
+      const result = await options.setUiState({
+        onboarding: { ...(options.uiState().onboarding ?? {}), step },
+      });
+      if (result.ok) setActiveSignal(step);
+      else setSaveError(true);
+    } finally {
+      setWritePending(false);
     }
   };
   const dismiss = async () => {
+    if (writePending() || pickerStatus() === "saving") return;
+    setWritePending(true);
     setSaveError(false);
-    const result = await options.setUiState({
-      welcomeScreenDismissed: true,
-      onboarding: { dismissed: true, step: "done" },
-    });
-    if (result.ok) {
-      props.onClose();
-    } else {
-      setSaveError(true);
+    try {
+      const result = await options.setUiState({
+        welcomeScreenDismissed: true,
+        onboarding: { dismissed: true, step: "done" },
+      });
+      if (result.ok) props.onClose();
+      else setSaveError(true);
+    } finally {
+      setWritePending(false);
     }
   };
   const currentLink = () => {
@@ -142,6 +152,7 @@ export function WelcomeScreen(props: {
           value={editor()}
           portalMount={props.portalMount}
           onChange={updateEditor}
+          onStatusChange={setPickerStatus}
         />
       ),
     },
@@ -223,6 +234,12 @@ export function WelcomeScreen(props: {
       onStepChange={setActive}
       onFinish={dismiss}
       onSkip={dismiss}
+      busy={writePending() || pickerStatus() === "saving"}
+      nextDisabled={
+        active() === "editor" &&
+        (pickerStatus() !== "idle" || editor() === undefined)
+      }
+      finishDisabled={pickerStatus() !== "idle" || editor() === undefined}
       error={
         saveError() ? "Could not save your progress. Try again." : undefined
       }

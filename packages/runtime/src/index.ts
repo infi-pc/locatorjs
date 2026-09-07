@@ -3,7 +3,6 @@ import { initRuntime } from "./initRuntime";
 import { isExtension } from "./functions/isExtension";
 import { replaceTeamConfig } from "./functions/teamLayerStore";
 import { installShadowRootTracking } from "./functions/shadowRoots";
-import { readEffectiveRuntimeOptions } from "./functions/runtimeOptionsSnapshot";
 import { reportSetupErrors } from "./functions/reportSetupErrors";
 export * from "./adapters/jsx/runtimeStore";
 export { MAX_ZINDEX } from "./consts";
@@ -24,7 +23,7 @@ export function setup(options: SetupOptions = {}): SetupResult {
 
   replaceTeamConfig(compiled.value);
 
-  if (!readEffectiveRuntimeOptions().disabled) installShadowRootTracking();
+  installShadowRootTracking();
 
   setTimeout(() => initRuntime(), 0);
   return Object.freeze({ ok: true });

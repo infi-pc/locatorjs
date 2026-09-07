@@ -473,6 +473,9 @@ export async function resolveOriginalPosition(
     fileName: fileUrlToPath(original.source),
     lineNumber: original.line,
     columnNumber: original.column === null ? undefined : original.column + 1,
+    ...(original.source.startsWith("file:")
+      ? { pathKind: "absolute" as const }
+      : {}),
   };
 }
 

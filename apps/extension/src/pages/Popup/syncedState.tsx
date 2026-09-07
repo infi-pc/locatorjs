@@ -28,6 +28,8 @@ import {
   clearTabReloadRequirement,
   tabRequiresReload,
 } from '../../extensionUpdateState';
+import { canonicalHttpOrigin, type OriginAccess } from '../../originAccess';
+import { grantOrigin, revokeOrigin } from '../../originTrust';
 /** The tab's main document. Content scripts also run in every iframe. */
 const TOP_FRAME_ID = 0;
 
@@ -43,6 +45,7 @@ type SyncedState = {
   userExtension: Accessor<strictConfig.SerializedLayerV3>;
   extensionConfigRead: Accessor<strictConfig.ConfigReadResult>;
   snapshot: Accessor<Snapshot | null>;
+  originAccess: Accessor<OriginAccess>;
   status: Accessor<ConnectivityStatus>;
   diagnostic: Accessor<string | undefined>;
   siteLocalPresent: Accessor<boolean>;
@@ -54,6 +57,8 @@ type SyncedState = {
   clearUserExtension: () => Promise<WriteResult>;
   reloadActiveTab: () => Promise<void>;
   tryAction: (action: strictConfig.BindingAction) => Promise<TryActionResult>;
+  grantOrigin: (origin: string) => Promise<void>;
+  revokeOrigin: (origin: string) => Promise<void>;
 };
 
 const SyncedStateContext = createContext<SyncedState>();
@@ -64,13 +69,22 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   const [extensionConfigRead, setExtensionConfigRead] =
     createSignal<strictConfig.ConfigReadResult>({ kind: 'empty' });
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
+  const [originAccess, setOriginAccess] = createSignal<OriginAccess>({
+    origin: null,
+    reason: 'unavailable',
+  });
   const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
   const [diagnostic, setDiagnostic] = createSignal<string>();
   const [siteLocalPresent, setSiteLocalPresent] = createSignal(false);
 
   let storageRevision = 0;
-  let reloadRequirementClearedForTab: number | undefined;
   const initialRevision = storageRevision;
+  let reloadRequirementClearedForTab: number | undefined;
+  let requestGeneration = 0;
+  const [displayedTarget, setDisplayedTarget] = createSignal<{
+    tabId: number;
+    origin: string | null;
+  }>();
   readExtensionConfig()
     .then((read) => {
       if (storageRevision === initialRevision) {
@@ -93,6 +107,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   });
 
   async function requestSnapshot() {
+    const generation = ++requestGeneration;
     try {
       const tabs = await browser.tabs.query({
         active: true,
@@ -116,26 +131,46 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       )) as
         | {
             ok: true;
-            protocolVersion: 3;
+            protocolVersion: 4;
             extensionVersion: string;
             snapshot: Snapshot;
+            access: OriginAccess;
           }
         | {
             ok: false;
-            protocolVersion: 3;
+            protocolVersion: 4;
             extensionVersion: string;
             reason: string;
             siteLocalPresent?: boolean;
             diagnostic?: string;
+            access?: OriginAccess;
           }
         | undefined;
+      if (generation !== requestGeneration) return;
       if (
         response?.extensionVersion &&
         response.extensionVersion !== browser.runtime.getManifest().version
       ) {
         markReloadRequired();
-      } else if (response?.protocolVersion !== 3) {
-        await classifyLegacyTab(currentTab.id);
+      } else if (
+        response?.ok === false &&
+        response.protocolVersion === 4 &&
+        isValidOriginAccess(response.access)
+      ) {
+        setStatus('no-runtime');
+        setSnapshot(null);
+        setSiteLocalPresent(response.siteLocalPresent ?? false);
+        setDiagnostic(response.diagnostic);
+        setOriginAccess(response.access);
+        setDisplayedTarget({
+          tabId: currentTab.id,
+          origin: response.access.origin,
+        });
+      } else if (
+        response?.protocolVersion !== 4 ||
+        !isValidOriginAccess(response?.access)
+      ) {
+        await classifyLegacyTab(currentTab.id, generation);
       } else if (response.ok) {
         if (reloadRequirementClearedForTab !== currentTab.id) {
           reloadRequirementClearedForTab = currentTab.id;
@@ -147,6 +182,11 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
           setSnapshot(response.snapshot);
         }
         setStatus('connected');
+        setOriginAccess(response.access);
+        setDisplayedTarget({
+          tabId: currentTab.id,
+          origin: response.access.origin,
+        });
         setSiteLocalPresent(
           Object.keys(response.snapshot.layers['user-origin'] ?? {}).length > 0
         );
@@ -154,25 +194,35 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       } else {
         setStatus('no-runtime');
         setSnapshot(null);
-        setSiteLocalPresent(response.siteLocalPresent ?? false);
         setDiagnostic(response.diagnostic);
+        setOriginAccess(response.access);
+        setDisplayedTarget({
+          tabId: currentTab.id,
+          origin: response.access.origin,
+        });
       }
     } catch {
-      markNoRuntime();
+      const hadContentIdentity = !!displayedTarget()?.origin;
+      markNoRuntime(undefined, hadContentIdentity);
       const tabs = await browser.tabs.query({
         active: true,
         currentWindow: true,
       });
       const currentTab = tabs[0];
-      if (currentTab?.id) await classifyLegacyTab(currentTab.id);
-      else markNoRuntime();
+      if (currentTab?.id)
+        await classifyLegacyTab(currentTab.id, generation, hadContentIdentity);
+      else if (!hadContentIdentity) markNoRuntime();
     }
   }
 
-  function markNoRuntime(message?: string) {
+  function markNoRuntime(message?: string, preserveAccess = false) {
     setStatus('no-runtime');
     setSnapshot(null);
     setSiteLocalPresent(false);
+    if (!preserveAccess) {
+      setOriginAccess({ origin: null, reason: 'unavailable' });
+      setDisplayedTarget(undefined);
+    }
     setDiagnostic(message);
   }
 
@@ -180,11 +230,18 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     setStatus('reload-required');
     setSnapshot(null);
     setSiteLocalPresent(false);
+    setOriginAccess({ origin: null, reason: 'unavailable' });
+    setDisplayedTarget(undefined);
     setDiagnostic(message);
   }
 
-  async function classifyLegacyTab(tabId: number) {
+  async function classifyLegacyTab(
+    tabId: number,
+    generation = requestGeneration,
+    preserveAccess = false
+  ) {
     if (await tabRequiresReload(tabId)) {
+      if (generation !== requestGeneration) return;
       markReloadRequired();
       return;
     }
@@ -195,13 +252,15 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         { frameId: TOP_FRAME_ID }
       );
       if (typeof legacyStatus === 'string') {
+        if (generation !== requestGeneration) return;
         markReloadRequired(legacyStatus);
         return;
       }
     } catch {
       // A missing content script is the normal case on restricted pages.
     }
-    markNoRuntime();
+    if (generation === requestGeneration)
+      markNoRuntime(undefined, preserveAccess);
   }
 
   requestSnapshot();
@@ -212,6 +271,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     userExtension,
     extensionConfigRead,
     snapshot,
+    originAccess,
     status,
     diagnostic,
     siteLocalPresent,
@@ -226,22 +286,19 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     },
     setSiteLocal: async (patch) => {
       try {
-        const tabs = await browser.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        const currentTab = tabs[0];
-        if (!currentTab?.id) {
+        const target = displayedTarget();
+        if (!target) {
           return { ok: false, reason: 'blocked' };
         }
         const response = decodeWriteResult(
           await browser.tabs.sendMessage(
-            currentTab.id,
+            target.tabId,
             {
               from: 'popup',
               subject: 'applySiteLocal',
               set: patch.set ?? {},
               unset: patch.unset ?? [],
+              expectedOrigin: target.origin ?? undefined,
             },
             { frameId: TOP_FRAME_ID }
           )
@@ -256,10 +313,13 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       }
     },
     clearSiteLocal: async () => {
+      const target = displayedTarget();
+      if (!target) return { ok: false, reason: 'blocked' };
       const response = decodeWriteResult(
-        await sendToActiveTab({
+        await sendToTab(target, {
           from: 'popup',
           subject: 'clearSiteLocal',
+          expectedOrigin: target.origin ?? undefined,
         })
       );
       if (response?.ok) await requestSnapshot();
@@ -287,11 +347,20 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       await requestSnapshot();
     },
     tryAction: async (action) => {
+      const target = displayedTarget();
+      if (!target) return { ok: false, reason: 'blocked' };
       const response = decodeTryActionResult(
-        await sendToActiveTab({ from: 'popup', subject: 'tryAction', action })
+        await sendToTab(target, {
+          from: 'popup',
+          subject: 'tryAction',
+          action,
+          expectedOrigin: target.origin ?? undefined,
+        })
       );
       return response ?? { ok: false, reason: 'blocked' };
     },
+    grantOrigin: async (origin) => grantOrigin(origin),
+    revokeOrigin: async (origin) => revokeOrigin(origin),
   };
 
   return (
@@ -301,20 +370,30 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
   );
 }
 
-async function sendToActiveTab(message: Record<string, unknown>) {
+async function sendToTab(
+  target: { tabId: number; origin: string | null },
+  message: Record<string, unknown>
+) {
   try {
-    const tabs = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    const currentTab = tabs[0];
-    if (!currentTab?.id) return undefined;
-    return await browser.tabs.sendMessage(currentTab.id, message, {
+    return await browser.tabs.sendMessage(target.tabId, message, {
       frameId: TOP_FRAME_ID,
     });
   } catch {
     return undefined;
   }
+}
+
+function isValidOriginAccess(value: unknown): value is OriginAccess {
+  if (!value || typeof value !== 'object') return false;
+  const access = value as Record<string, unknown>;
+  if (access.origin === null) return access.reason === 'unavailable';
+  return (
+    typeof access.origin === 'string' &&
+    canonicalHttpOrigin(access.origin) === access.origin &&
+    (access.reason === 'localhost' ||
+      access.reason === 'approved' ||
+      access.reason === 'approval-required')
+  );
 }
 
 export function useSyncedState() {

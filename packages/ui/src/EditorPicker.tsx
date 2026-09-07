@@ -1,4 +1,10 @@
-import { Show, createEffect, createMemo, createSignal } from "solid-js";
+import {
+  Show,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+} from "solid-js";
 import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
@@ -38,6 +44,8 @@ const styles = {
   }),
 };
 
+export type EditorPickerStatus = "idle" | "editing" | "saving";
+
 export function EditorPicker(props: {
   targets: strictConfig.TargetViewMap;
   value?: strictConfig.EditorDestination;
@@ -52,12 +60,17 @@ export function EditorPicker(props: {
   onChange: (
     destination: strictConfig.EditorDestination | undefined
   ) => strictConfigStorage.WriteResponse;
+  onStatusChange?: (status: EditorPickerStatus) => void;
 }) {
   const [editing, setEditing] = createSignal(false);
   const [draft, setDraft] = createSignal("");
   const [saving, setSaving] = createSignal(false);
   const [validationError, setValidationError] = createSignal<string>();
   let input: HTMLInputElement | undefined;
+  createEffect(() =>
+    props.onStatusChange?.(saving() ? "saving" : editing() ? "editing" : "idle")
+  );
+  onCleanup(() => props.onStatusChange?.("idle"));
   const items = createMemo<SelectItem[]>(() => [
     ...(props.inheritLabel
       ? [
@@ -113,6 +126,7 @@ export function EditorPicker(props: {
   }
 
   function cancelEditing() {
+    if (saving()) return;
     setDraft(selectedTemplate());
     setValidationError(undefined);
     setEditing(false);
@@ -167,6 +181,7 @@ export function EditorPicker(props: {
         disabled={props.disabled}
         portalMount={props.portalMount}
         onChange={(next) => {
+          if (props.disabled || saving()) return;
           if (next === CUSTOM_VALUE) {
             beginEditing();
           } else if (next === INHERIT_VALUE) {
@@ -211,17 +226,19 @@ export function EditorPicker(props: {
             setDraft(event.currentTarget.value);
             setValidationError(undefined);
           }}
-          onBlur={commitEditing}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              commitEditing();
+              if (!saving()) void commitEditing();
             } else if (event.key === "Escape") {
               event.preventDefault();
-              cancelEditing();
+              if (!saving()) cancelEditing();
             }
           }}
         />
+        <div class={styles.helper}>
+          Press Enter to save, or Escape to cancel.
+        </div>
         <div class={styles.helper}>
           Available variables: projectPath, filePath, line, column, tmuxSession
         </div>

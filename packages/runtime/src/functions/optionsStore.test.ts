@@ -258,6 +258,7 @@ describe("mountRuntimePopupBridge", () => {
         data: {
           type: "LOCATOR_PAGE_TRY_ACTION",
           requestId: "valid",
+          expectedOrigin: window.location.origin,
           action: { kind: "copy-path" },
         },
         source: window,
@@ -271,6 +272,7 @@ describe("mountRuntimePopupBridge", () => {
         data: {
           type: "LOCATOR_PAGE_TRY_ACTION",
           requestId: "unsafe",
+          expectedOrigin: window.location.origin,
           action: {
             kind: "open-editor",
             destination: {

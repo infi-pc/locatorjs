@@ -10,12 +10,44 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "browser": "./dist/index.js",
-      "worker": "./dist/index.server.js",
-      "node": "./dist/index.server.js",
-      "deno": "./dist/index.server.js",
-      "default": "./dist/index.js"
+      "browser": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "worker": {
+        "import": {
+          "types": "./dist/index.server.d.mts",
+          "default": "./dist/index.server.mjs"
+        },
+        "require": {
+          "types": "./dist/index.server.d.ts",
+          "default": "./dist/index.server.cjs"
+        }
+      },
+      "node": {
+        "import": {
+          "types": "./dist/index.server.d.mts",
+          "default": "./dist/index.server.mjs"
+        },
+        "require": {
+          "types": "./dist/index.server.d.ts",
+          "default": "./dist/index.server.cjs"
+        }
+      },
+      "deno": {
+        "import": {
+          "types": "./dist/index.server.d.mts",
+          "default": "./dist/index.server.mjs"
+        },
+        "require": {
+          "types": "./dist/index.server.d.ts",
+          "default": "./dist/index.server.cjs"
+        }
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     },
     "./dist/*": "./dist/*"
   },
@@ -25,13 +57,12 @@
     "test:dev": "vitest watch",
     "dev": "concurrently pnpm:dev:*",
     "dev:babel": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx",
-    "//dev:babel-cjs": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
+    "dev:native": "node ../../scripts/build-native.js runtime --watch",
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
     "dev:panda": "panda cssgen --outfile dist/panda.css --watch",
     "dev:wrapCSS": "WATCH=true node ./scripts/wrapCSS.js",
-    "build": "node ../../scripts/clean-package-dist.js && pnpm build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts",
+    "build": "node ../../scripts/clean-package-dist.js && pnpm build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts && node ../../scripts/build-native.js runtime",
     "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --ignore '**/*.test.ts,**/*.test.tsx'",
-    "//build:babel-cjs": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
     "build:ts": "tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist",
     "build:panda": "panda cssgen --clean --outfile dist/panda.css",
     "build:wrapCSS": "node ./scripts/wrapCSS.js",

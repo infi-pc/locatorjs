@@ -150,6 +150,7 @@ class ReactTreeNodeElement extends HtmlElementTreeNode {
             lineNumber: fiberLabel.link.line,
             columnNumber: fiberLabel.link.column,
             projectPath: fiberLabel.link.projectPath,
+            pathKind: fiberLabel.link.pathKind,
           }) ||
           undefined,
       };

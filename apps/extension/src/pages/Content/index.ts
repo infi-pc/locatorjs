@@ -12,31 +12,71 @@ import {
   type strictConfig as StrictConfig,
 } from '@locator/shared';
 import { safeFrameProjection } from './settingsProjection';
+import type { OriginAccess } from '../../originAccess';
 
 let latestLayer: StrictConfig.SerializedLayerV3 = {};
-let fullSettingsRequested = false;
 let initialOptionsReady = false;
+let documentOriginReady = false;
 let pendingSettingsRequest = false;
+let currentAccess: OriginAccess = { origin: null, reason: 'unavailable' };
+let accessRequest = 0;
+
+browser.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return;
+  if (USER_CONFIG_KEY in changes) {
+    const read = decodeStoredExtensionConfig(changes[USER_CONFIG_KEY].newValue);
+    publishUserExtensionLayer(layerFromRead(read));
+  }
+  if (
+    currentAccess.origin
+      ? `trustedOrigin:${currentAccess.origin}` in changes
+      : Object.keys(changes).some((key) => key.startsWith('trustedOrigin:'))
+  ) {
+    void refreshOriginAccess();
+  }
+});
+
+async function refreshOriginAccess() {
+  const request = ++accessRequest;
+  // Stop sharing while a changed grant is being checked.
+  if (currentAccess.reason === 'approved') {
+    currentAccess = {
+      origin: currentAccess.origin,
+      reason: 'approval-required',
+    };
+    injectUserExtensionGlobal(latestLayer);
+  }
+  const response: { access?: OriginAccess } | undefined = await browser.runtime
+    .sendMessage({ from: 'content', subject: 'documentOrigin' })
+    .catch(() => undefined);
+  if (request !== accessRequest) return;
+  currentAccess = response?.access ?? { origin: null, reason: 'unavailable' };
+  documentOriginReady = true;
+  injectUserExtensionGlobal(latestLayer);
+  if (initialOptionsReady && pendingSettingsRequest) respondToSettingsRequest();
+}
+
+void refreshOriginAccess();
 
 migrateLegacyExtensionStorage()
   .then(() => readExtensionConfig())
   .then((read) => {
     initialOptionsReady = true;
     publishUserExtensionLayer(layerFromRead(read));
-    if (pendingSettingsRequest) respondToSettingsRequest();
+    if (pendingSettingsRequest && documentOriginReady)
+      respondToSettingsRequest();
   })
-  .catch(() => undefined);
-
-browser.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== 'local' || !(USER_CONFIG_KEY in changes)) return;
-  const read = decodeStoredExtensionConfig(changes[USER_CONFIG_KEY].newValue);
-  publishUserExtensionLayer(layerFromRead(read));
-});
+  .catch(() => {
+    initialOptionsReady = true;
+    publishUserExtensionLayer({});
+    if (pendingSettingsRequest && documentOriginReady)
+      respondToSettingsRequest();
+  });
 
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_REQUEST') return;
-  if (!initialOptionsReady) {
+  if (!initialOptionsReady || !documentOriginReady) {
     pendingSettingsRequest = true;
     return;
   }
@@ -45,7 +85,6 @@ window.addEventListener('message', (event) => {
 
 function respondToSettingsRequest() {
   pendingSettingsRequest = false;
-  if (!latestLayer.disabled) fullSettingsRequested = true;
   injectUserExtensionGlobal(latestLayer);
   window.postMessage(
     {
@@ -63,23 +102,17 @@ function publishUserExtensionLayer(layer: StrictConfig.SerializedLayerV3) {
 
 function injectUserExtensionGlobal(layer: StrictConfig.SerializedLayerV3) {
   withDocumentElement((element) => {
-    const canReceiveEditor = canReceiveFullSettings();
-    element.dataset.locatorEditorWithheld = canReceiveEditor ? 'false' : 'true';
+    const canReceivePrivate =
+      (currentAccess.reason === 'localhost' ||
+        currentAccess.reason === 'approved') &&
+      !layer.disabled;
+    element.dataset.locatorEditorWithheld = canReceivePrivate
+      ? 'false'
+      : 'true';
     element.dataset.locatorUserExtensionOptions = JSON.stringify(
-      fullSettingsRequested && canReceiveEditor && !layer.disabled
-        ? layer
-        : safeFrameProjection(layer)
+      canReceivePrivate ? layer : safeFrameProjection(layer)
     );
   });
-}
-
-function canReceiveFullSettings(): boolean {
-  if (window === window.top) return true;
-  try {
-    return window.top?.location.origin === window.location.origin;
-  } catch {
-    return false;
-  }
 }
 
 function withDocumentElement(callback: (element: HTMLElement) => void) {
@@ -113,4 +146,4 @@ switch (document.contentType) {
   }
 }
 
-mountSnapshotBridge();
+mountSnapshotBridge(() => currentAccess);
