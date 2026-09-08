@@ -168,9 +168,12 @@ export function Home() {
             disabled: extensionNeedsReset(),
             disabledReason:
               'Reset the preview settings before editing All sites.',
-            editLayers: {
-              default: DEFAULT_LAYER,
-              'user-extension': userExtension(),
+            editContext: {
+              layers: {
+                default: DEFAULT_LAYER,
+                'user-extension': userExtension(),
+              },
+              targets: ALL_TARGETS,
             },
           },
         ]}

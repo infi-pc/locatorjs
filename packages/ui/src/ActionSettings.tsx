@@ -49,11 +49,14 @@ export type ActionSettingsScope = {
   label: string;
   write: (patch: strictConfig.LayerPatchInput) => Promise<WriteResult>;
   /**
-   * Optional trusted layer set used while editing this scope. This lets an
+   * Optional trusted context used while editing this scope. This lets an
    * extension keep page-provided team/site layers visible in SettingsSources
-   * without ever using those untrusted values as the base of a global write.
+   * without using their layers or editor targets as the base of a global write.
    */
-  editLayers?: LayerViews;
+  editContext?: {
+    layers: LayerViews;
+    targets: strictConfig.TargetViewMap;
+  };
   disabled?: boolean;
   disabledReason?: string;
   note?: string;
@@ -198,10 +201,16 @@ export function ActionSettings(props: {
   const activeScope = () =>
     props.scopes.find((scope) => scope.layer === currentLayer()) ??
     props.scopes[0];
-  const editableLayers = () => activeScope()?.editLayers ?? props.layers;
+  const editingContext = () =>
+    activeScope()?.editContext ?? {
+      layers: props.layers,
+      targets: props.targets,
+    };
+  const editableLayers = () => editingContext().layers;
+  const editableTargets = () => editingContext().targets;
   const scopedLayers = () =>
     layersThroughScope(editableLayers(), currentLayer());
-  const snapshot = () => resolveLayerViews(scopedLayers(), props.targets);
+  const snapshot = () => resolveLayerViews(scopedLayers(), editableTargets());
   const effective = () => strictConfig.effectiveOptions(snapshot());
   const bindings = () => strictConfig.encodeBindings(effective().bindings);
   const canInherit = () =>
@@ -364,7 +373,7 @@ export function ActionSettings(props: {
         {(draftBinding) => (
           <ActionInspector
             binding={draftBinding()}
-            targets={props.targets}
+            targets={editableTargets()}
             editor={effectiveEditorDestination(effective().editor)}
             portalMount={props.inspectorMount ?? props.portalMount}
             draft
@@ -384,7 +393,7 @@ export function ActionSettings(props: {
         {(binding) => (
           <ActionInspector
             binding={binding()}
-            targets={props.targets}
+            targets={editableTargets()}
             editor={effectiveEditorDestination(effective().editor)}
             portalMount={props.inspectorMount ?? props.portalMount}
             duplicate={selectedDuplicate()}
@@ -481,16 +490,21 @@ export function ActionSettings(props: {
 
       <Switch>
         <Match when={route() === "studio"}>
-          <EditorSetting
-            layers={scopedLayers()}
-            layer={currentLayer()}
-            targets={props.targets}
-            portalMount={props.portalMount}
-            write={write}
-          />
+          {/* Discard uncommitted editor drafts when their write scope changes. */}
+          <Show when={currentLayer()} keyed>
+            {(layer) => (
+              <EditorSetting
+                layers={scopedLayers()}
+                layer={layer}
+                targets={editableTargets()}
+                portalMount={props.portalMount}
+                write={write}
+              />
+            )}
+          </Show>
           <InteractionStudio
             bindings={bindings()}
-            targets={props.targets}
+            targets={editableTargets()}
             editor={effectiveEditorDestination(effective().editor)}
             selection={selection()}
             onSelect={(next) => {
@@ -515,7 +529,7 @@ export function ActionSettings(props: {
             <AdvancedSettings
               scope={advancedScope()!}
               layers={scopedLayers()}
-              targets={props.targets}
+              targets={editableTargets()}
               portalMount={props.portalMount}
             />
             <SettingsSources
