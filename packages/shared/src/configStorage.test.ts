@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { encodeLayer } from "./config";
 import {
   LEGACY_SITE_STORAGE_KEY,
@@ -142,6 +142,162 @@ describe("strict configuration storage", () => {
       version: 1,
       state: { welcomeScreenDismissed: true },
     });
+  });
+
+  test("retains usable legacy choices during quota failure and retries later", () => {
+    const legacy = JSON.stringify({
+      disabled: true,
+      templateOrTemplateId: "webstorm",
+      welcomeScreenDismissed: true,
+    });
+    localStorage.setItem(LEGACY_SITE_STORAGE_KEY, legacy);
+    const write = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new DOMException("Full", "QuotaExceededError");
+    });
+
+    expect(readUserConfig()).toMatchObject({
+      kind: "ready",
+      revision: 0,
+      layer: { disabled: true, editor: { kind: "target", id: "webstorm" } },
+    });
+    expect(readUiState()).toEqual({ welcomeScreenDismissed: true });
+    expect(patchUserConfig({ set: { disabled: false } })).toEqual({
+      ok: false,
+      reason: "quota",
+    });
+    expect(patchUiState({ welcomeScreenDismissed: false })).toEqual({
+      ok: false,
+      reason: "quota",
+    });
+    expect(localStorage.getItem(LEGACY_SITE_STORAGE_KEY)).toBe(legacy);
+
+    write.mockRestore();
+    expect(readUserConfig()).toMatchObject({
+      kind: "ready",
+      revision: 0,
+      layer: { disabled: true },
+    });
+    expect(readUiState()).toEqual({ welcomeScreenDismissed: true });
+    expect(localStorage.getItem(LEGACY_SITE_STORAGE_KEY)).toBeNull();
+    expect(storedJson(USER_CONFIG_STORAGE_KEY)).toMatchObject({
+      version: 3,
+      layer: { disabled: true },
+    });
+  });
+
+  test("reset cannot resurrect config after a partial migration", () => {
+    localStorage.setItem(
+      LEGACY_SITE_STORAGE_KEY,
+      JSON.stringify({ disabled: true, welcomeScreenDismissed: true })
+    );
+    const setItem = localStorage.setItem.bind(localStorage);
+    vi.spyOn(localStorage, "setItem").mockImplementation((key, value) => {
+      if (key === UI_STATE_STORAGE_KEY) throw new Error("Blocked");
+      setItem(key, value);
+    });
+    expect(readUserConfig()).toMatchObject({
+      kind: "ready",
+      layer: { disabled: true },
+    });
+    expect(readUiState()).toEqual({ welcomeScreenDismissed: true });
+    expect(localStorage.getItem(LEGACY_SITE_STORAGE_KEY)).not.toBeNull();
+
+    expect(clearUserConfig().ok).toBe(true);
+    expect(localStorage.getItem(LEGACY_SITE_STORAGE_KEY)).toBeNull();
+    expect(readUserConfig()).toEqual({ kind: "empty" });
+  });
+
+  test("a blocked legacy deletion fails reset before deleting current config", () => {
+    patchUserConfig({ set: { disabled: false } });
+    localStorage.setItem(
+      LEGACY_SITE_STORAGE_KEY,
+      JSON.stringify({ disabled: true })
+    );
+    const current = localStorage.getItem(USER_CONFIG_STORAGE_KEY);
+    const removeItem = localStorage.removeItem.bind(localStorage);
+    vi.spyOn(localStorage, "removeItem").mockImplementation((key) => {
+      if (key === LEGACY_SITE_STORAGE_KEY) throw new Error("Blocked");
+      removeItem(key);
+    });
+
+    expect(clearUserConfig()).toEqual({ ok: false, reason: "blocked" });
+    expect(localStorage.getItem(USER_CONFIG_STORAGE_KEY)).toBe(current);
+    expect(readUserConfig()).toMatchObject({
+      kind: "ready",
+      layer: { disabled: false },
+    });
+  });
+
+  test.each(["{broken", "null", '{"adapterId":"unknown"}'])(
+    "discards unusable legacy data %s and allows fresh settings",
+    (legacy) => {
+      localStorage.setItem(LEGACY_SITE_STORAGE_KEY, legacy);
+      expect(readUserConfig()).toEqual({ kind: "empty" });
+      expect(readUiState()).toEqual({});
+      expect(localStorage.getItem(LEGACY_SITE_STORAGE_KEY)).toBeNull();
+      expect(patchUserConfig({ set: { disabled: true } }).ok).toBe(true);
+    }
+  );
+
+  test.each([
+    ['{"version":3,"revision":2,"layer":{"disabled":false}}', "ready"],
+    ["{broken", "corrupt"],
+    ['{"version":99}', "future-version"],
+  ])(
+    "current config %s remains authoritative when legacy writes fail",
+    (current, kind) => {
+      localStorage.setItem(USER_CONFIG_STORAGE_KEY, current);
+      localStorage.setItem(
+        LEGACY_SITE_STORAGE_KEY,
+        JSON.stringify({ disabled: true, welcomeScreenDismissed: true })
+      );
+      vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+        throw new Error("Blocked");
+      });
+      const read = readUserConfig();
+      expect(read.kind).toBe(kind);
+      if (read.kind === "ready")
+        expect(encodeLayer(read.layer)).toEqual({ disabled: false });
+      expect(localStorage.getItem(USER_CONFIG_STORAGE_KEY)).toBe(current);
+      expect(readUiState()).toEqual({ welcomeScreenDismissed: true });
+    }
+  );
+
+  test.each([
+    [
+      '{"version":1,"state":{"welcomeScreenDismissed":false}}',
+      { welcomeScreenDismissed: false },
+    ],
+    ["{broken", {}],
+    ['{"version":99,"state":{}}', {}],
+  ])(
+    "current UI %s remains authoritative and survives config reset",
+    (current, state) => {
+      localStorage.setItem(UI_STATE_STORAGE_KEY, current);
+      localStorage.setItem(
+        LEGACY_SITE_STORAGE_KEY,
+        JSON.stringify({ disabled: true, welcomeScreenDismissed: true })
+      );
+      vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+        throw new Error("Blocked");
+      });
+      expect(readUiState()).toEqual(state);
+      expect(clearUserConfig().ok).toBe(true);
+      expect(localStorage.getItem(UI_STATE_STORAGE_KEY)).toBe(current);
+      expect(readUiState()).toEqual(state);
+    }
+  );
+
+  test("failed v1 migration does not bypass the v2 preview reset requirement", () => {
+    localStorage.setItem(PREVIEW_V2_SITE_STORAGE_KEY, "{}");
+    localStorage.setItem(
+      LEGACY_SITE_STORAGE_KEY,
+      JSON.stringify({ disabled: true })
+    );
+    vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("Blocked");
+    });
+    expect(readUserConfig()).toEqual({ kind: "reset-required" });
   });
 
   test("strict current data is all-or-nothing", () => {

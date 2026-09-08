@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { strictConfig, strictConfigStorage } from "@locator/shared";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { initOptions, type OptionsStore } from "./optionsStore";
 import { mountRuntimePopupBridge } from "./popupBridge";
 import {
@@ -56,8 +56,36 @@ function resetState() {
 }
 
 beforeEach(resetState);
+afterEach(() => vi.restoreAllMocks());
 
 describe("optionsStore integration", () => {
+  test("legacy opt-out and UI choices stay effective when migration cannot write", async () => {
+    localStorage.setItem(
+      strictConfigStorage.LEGACY_SITE_STORAGE_KEY,
+      JSON.stringify({
+        disabled: true,
+        templateOrTemplateId: "webstorm",
+        welcomeScreenDismissed: true,
+      })
+    );
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Full", "QuotaExceededError");
+    });
+    const options = withStore(() => initOptions());
+
+    expect(options.effective().disabled).toBe(true);
+    expect(options.provenance().disabled).toBe("user-origin");
+    expect(options.effective().editor).toMatchObject({
+      kind: "selected",
+      destination: { kind: "target", id: "webstorm" },
+    });
+    expect(options.uiState()).toEqual({ welcomeScreenDismissed: true });
+    await expect(
+      options.setUserOrigin({ set: { disabled: false } })
+    ).resolves.toEqual({ ok: false, reason: "quota" });
+    expect(options.effective().disabled).toBe(true);
+  });
+
   test("a late setup snapshot atomically re-drives resolution", () => {
     const options = withStore(() => initOptions());
     expect(options.effective().projectPath).toBeNull();

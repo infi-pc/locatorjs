@@ -210,12 +210,10 @@ export function migrateLegacySiteConfig(
     : null;
 }
 
-function migrateLegacyStorage(store: Storage) {
+function migrateLegacyStorage(store: Storage): LegacyMigration | null {
   const rawLegacy = store.getItem(LEGACY_SITE_STORAGE_KEY);
-  if (rawLegacy === null) return;
-  const parsedLegacy = parseJson(rawLegacy);
-  if (parsedLegacy === undefined) return;
-  const migration = migrateLegacySiteConfig(parsedLegacy);
+  if (rawLegacy === null) return null;
+  const migration = migrateLegacySiteConfig(parseJson(rawLegacy));
 
   try {
     if (migration && store.getItem(USER_CONFIG_STORAGE_KEY) === null) {
@@ -236,15 +234,16 @@ function migrateLegacyStorage(store: Storage) {
     }
     store.removeItem(LEGACY_SITE_STORAGE_KEY);
   } catch {
-    // Preserve the source when any migration write is blocked or interrupted.
+    // Keep usable legacy values available until all migration writes succeed.
   }
+  return migration;
 }
 
 export function readUserConfig(): ConfigReadResult {
   const store = storage();
   if (!store) return Object.freeze({ kind: "empty" });
   try {
-    migrateLegacyStorage(store);
+    const migration = migrateLegacyStorage(store);
     const raw = store.getItem(USER_CONFIG_STORAGE_KEY);
     if (raw !== null) {
       const parsed = parseJson(raw);
@@ -264,7 +263,9 @@ export function readUserConfig(): ConfigReadResult {
     if (store.getItem(PREVIEW_V2_SITE_STORAGE_KEY) !== null) {
       return Object.freeze({ kind: "reset-required" });
     }
-    return Object.freeze({ kind: "empty" });
+    return migration
+      ? Object.freeze({ kind: "ready", revision: 0, layer: migration.layer })
+      : Object.freeze({ kind: "empty" });
   } catch {
     reportNoStorage();
     return Object.freeze({ kind: "empty" });
@@ -363,6 +364,8 @@ export function clearUserConfig(): ConfigMutationResult {
   const store = storage();
   if (!store) return Object.freeze({ ok: false, reason: "blocked" });
   try {
+    // Remove the migration source first so a partial reset cannot restore it.
+    store.removeItem(LEGACY_SITE_STORAGE_KEY);
     store.removeItem(USER_CONFIG_STORAGE_KEY);
     store.removeItem(PREVIEW_V2_SITE_STORAGE_KEY);
     return Object.freeze({
@@ -378,9 +381,9 @@ export function readUiState(): UiState {
   const store = storage();
   if (!store) return Object.freeze({});
   try {
-    migrateLegacyStorage(store);
+    const migration = migrateLegacyStorage(store);
     const raw = store.getItem(UI_STATE_STORAGE_KEY);
-    if (raw === null) return Object.freeze({});
+    if (raw === null) return migration?.uiState ?? Object.freeze({});
     const parsed = parseJson(raw);
     return parsed === undefined
       ? Object.freeze({})
