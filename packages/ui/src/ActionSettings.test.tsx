@@ -62,6 +62,106 @@ async function chooseDraftAction(arrowDowns: number) {
 }
 
 describe("ActionSettings", () => {
+  test.each(["selected", "draft"] as const)(
+    "uses the scope's trusted targets for a %s action",
+    async (mode) => {
+      const write = vi.fn(async (patch: strictConfig.LayerPatchInput) => {
+        void patch;
+        return { ok: true as const };
+      });
+      const globalLayer: LayerView = {
+        editor: { kind: "target", id: "vscode" },
+        bindings: [
+          {
+            trigger: { kind: "modifier-click", modifiers: ["alt"] },
+            action: {
+              kind: "open-editor",
+              destination: { kind: "target", id: "vscode" },
+            },
+          },
+        ],
+      };
+      render(() => (
+        <ActionSettings
+          layers={{
+            default: DEFAULT_LAYER,
+            team: { editor: { kind: "target", id: "page-editor" } },
+            "user-extension": globalLayer,
+          }}
+          targets={{
+            vscode: {
+              label: "Page override",
+              url: "https://page.example/${filePath}",
+            },
+            "page-editor": {
+              label: "Page editor",
+              url: "page://file/${filePath}",
+            },
+          }}
+          scopes={[
+            {
+              layer: "user-extension",
+              label: "All sites",
+              write,
+              editContext: {
+                layers: {
+                  default: DEFAULT_LAYER,
+                  "user-extension": globalLayer,
+                },
+                targets,
+              },
+            },
+          ]}
+        />
+      ));
+
+      await screen
+        .getByRole("button", {
+          name:
+            mode === "selected"
+              ? "Edit action 1: Open in VS Code"
+              : "Add hover toolbar action",
+        })
+        .click();
+      const dialog = within(screen.getByRole("dialog"));
+      await dialog.getByRole("combobox", { name: "Editor" }).click();
+      expect(
+        await screen.findByRole("option", { name: "Editor setting (VS Code)" })
+      ).toBeTruthy();
+      expect(screen.queryByRole("option", { name: "Page editor" })).toBeNull();
+      await fireEvent.click(screen.getByRole("option", { name: /VS Code$/ }));
+      await dialog
+        .getByRole("button", { name: "Customize link template" })
+        .click();
+      await fireEvent.keyDown(
+        dialog.getByRole("textbox", { name: "Custom link template" }),
+        {
+          key: "Enter",
+        }
+      );
+      if (mode === "draft")
+        await dialog.getByRole("button", { name: "Add" }).click();
+
+      await waitFor(() =>
+        expect(write).toHaveBeenLastCalledWith({
+          set: {
+            bindings: expect.arrayContaining([
+              expect.objectContaining({
+                action: {
+                  kind: "open-editor",
+                  destination: {
+                    kind: "template",
+                    template: targets.vscode.url,
+                  },
+                },
+              }),
+            ]),
+          },
+        })
+      );
+    }
+  );
+
   test("opens the selected interaction in a dismissible dialog", async () => {
     render(() => <Harness />);
 

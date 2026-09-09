@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { Fiber } from "@locator/shared";
+import { strictConfig, type Fiber } from "@locator/shared";
+import { buildLink } from "../../functions/buildLink";
 import {
   resetSourceResolutionCaches,
   resolveSourceFromFiber,
@@ -84,6 +85,60 @@ test.each([true, false])(
       lineNumber: 10,
       columnNumber: 5,
     });
+  }
+);
+
+test.each(["Server", "Prerender", "Prefetch", "Prefetchable", "FutureStage"])(
+  "opens the exact original file from a React %s stack",
+  async (environment) => {
+    mockFetch(() => undefined);
+    const compiled = strictConfig.compileSetup({
+      projectPath: "/repo",
+      editor: { kind: "target", id: "vscode" },
+    });
+    if (!compiled.ok) throw new Error("Invalid editor fixture.");
+    const effective = strictConfig.effectiveOptions(
+      strictConfig.resolveConfig(
+        { default: strictConfig.DEFAULT_LAYER, team: compiled.value.layer },
+        compiled.value.targets
+      )
+    );
+    if (effective.editor.kind !== "selected") {
+      throw new Error("Editor fixture needs a selected editor.");
+    }
+    const source = await resolveSourceFromFiber({
+      _debugStack: {
+        stack: `Error\n    at Page (about://React/${environment}/file:///repo/app/page.tsx?42:8:3)`,
+      },
+    } as unknown as Fiber);
+    expect(source).not.toBeNull();
+    if (!source) throw new Error("Expected original source.");
+    expect(
+      buildLink(
+        {
+          filePath: source.fileName,
+          line: source.lineNumber,
+          column: source.columnNumber ?? 1,
+          pathKind: source.pathKind,
+          projectPath: "",
+        },
+        { effective: () => effective },
+        effective.editor
+      )
+    ).toBe("vscode://file//repo/app/page.tsx:8:3");
+    expect(source.pathKind).toBe("absolute");
+  }
+);
+
+test.each(["about://React//file:///repo/app/page.tsx", "about://React/Server"])(
+  "does not resolve malformed wrapper %s as original source",
+  async (fileName) => {
+    mockFetch(() => undefined);
+    expect(
+      await resolveSourceFromFiber({
+        _debugStack: { stack: `Error\n    at Page (${fileName}:8:3)` },
+      } as unknown as Fiber)
+    ).toBeNull();
   }
 );
 

@@ -74,7 +74,7 @@ export function isLocatorFrame(fileName: string): boolean {
 export function isCompiledSourceLocation(fileName: string): boolean {
   const normalized = fileName.replace(/\\/g, "/");
   return (
-    /^(?:https?:|webpack(?:-internal)?:|blob:)/i.test(normalized) ||
+    /^(?:https?:|webpack(?:-internal)?:|blob:|about:)/i.test(normalized) ||
     normalized.includes("/_next/") ||
     normalized.includes("/.next/")
   );
@@ -89,18 +89,17 @@ export function isOriginalUserSource(fileName: string): boolean {
   );
 }
 
+/** React names the render environment in its virtual URL, e.g. Prerender. */
+function unwrapReactFileName(fileName: string): string {
+  return fileName.replace(/^about:\/\/React\/[^/]+\/(.+)$/, "$1");
+}
+
 /**
  * Clean up a stack frame file path.
  * `about://React/Server/file:///path` -> `/path`, and chunk query params go.
  */
 export function cleanStackFileName(fileName: string): string {
-  let cleaned = fileName;
-
-  if (cleaned.startsWith("about://React/Server/")) {
-    cleaned = cleaned.slice("about://React/Server/".length);
-  }
-
-  cleaned = fileUrlToPath(cleaned);
+  let cleaned = fileUrlToPath(unwrapReactFileName(fileName));
 
   const queryIndex = cleaned.indexOf("?");
   if (queryIndex !== -1) {
@@ -118,11 +117,9 @@ function toFrame(
   if (!match) return undefined;
   const [, rawFileName, line, column] = match;
   if (!rawFileName || !line || !column) return undefined;
-  const unwrapped = rawFileName.startsWith("about://React/Server/")
-    ? rawFileName.slice("about://React/Server/".length)
-    : rawFileName;
+  const unwrapped = unwrapReactFileName(rawFileName);
   return {
-    fileName: cleanStackFileName(unwrapped),
+    fileName: cleanStackFileName(rawFileName),
     rawFileName,
     lineNumber: parseInt(line, 10),
     columnNumber: parseInt(column, 10),

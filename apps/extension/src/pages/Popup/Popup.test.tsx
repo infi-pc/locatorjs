@@ -1,5 +1,11 @@
 import { strictConfig } from '@locator/shared';
-import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ConnectivityStatus, Snapshot } from './syncedState';
 
@@ -84,6 +90,32 @@ function connectedSnapshot(): Snapshot {
   };
 }
 
+const PAGE_TEMPLATE = 'https://page.example/source?file=${filePath}';
+
+function pageTargetSnapshot(): Snapshot {
+  const snapshot = connectedSnapshot();
+  return {
+    ...snapshot,
+    layers: {
+      ...snapshot.layers,
+      team: { editor: { kind: 'target', id: 'page-editor' } },
+      'user-origin': {
+        editor: { kind: 'target', id: 'page-editor' },
+        projectPath: '/this-site',
+      },
+    },
+    allTargets: {
+      vscode: { label: 'VSCode', url: PAGE_TEMPLATE },
+      'page-editor': { label: 'Page editor', url: PAGE_TEMPLATE },
+    },
+  };
+}
+
+async function chooseScope(label: 'This site' | 'All sites') {
+  await screen.getByRole('combobox', { name: 'Settings scope' }).click();
+  await fireEvent.click(await screen.findByRole('option', { name: label }));
+}
+
 describe('Popup settings navigation', () => {
   beforeEach(() => {
     mocks.setStatus('connected');
@@ -95,6 +127,119 @@ describe('Popup settings navigation', () => {
   });
 
   afterEach(cleanup);
+
+  test('All sites customizes its trusted editor instead of the page target', async () => {
+    mocks.userExtension = { editor: { kind: 'target', id: 'vscode' } };
+    mocks.setSnapshot(pageTargetSnapshot());
+    render(() => <Popup />);
+
+    await chooseScope('All sites');
+    await screen
+      .getByRole('button', { name: 'Customize link template' })
+      .click();
+    await fireEvent.keyDown(
+      screen.getByRole('textbox', { name: 'Custom link template' }),
+      { key: 'Enter' }
+    );
+
+    await waitFor(() =>
+      expect(mocks.setUserExtension).toHaveBeenCalledWith({
+        set: {
+          editor: {
+            kind: 'template',
+            template: strictConfig.targetRegistryView(
+              strictConfig.BUILT_IN_TARGETS
+            ).vscode.url,
+          },
+        },
+      })
+    );
+    expect(mocks.setSiteLocal).not.toHaveBeenCalled();
+  });
+
+  test('switching to All sites discards the page-seeded custom editor draft', async () => {
+    mocks.userExtension = { editor: { kind: 'target', id: 'vscode' } };
+    mocks.setSnapshot(pageTargetSnapshot());
+    render(() => <Popup />);
+
+    await screen
+      .getByRole('button', { name: 'Customize link template' })
+      .click();
+    expect(
+      (
+        screen.getByRole('textbox', {
+          name: 'Custom link template',
+        }) as HTMLInputElement
+      ).value
+    ).toBe(PAGE_TEMPLATE);
+    await chooseScope('All sites');
+
+    expect(
+      screen.queryByRole('textbox', { name: 'Custom link template' })
+    ).toBeNull();
+    expect(mocks.setUserExtension).not.toHaveBeenCalled();
+    expect(mocks.setSiteLocal).not.toHaveBeenCalled();
+
+    await screen
+      .getByRole('button', { name: 'Customize link template' })
+      .click();
+    const input = screen.getByRole('textbox', { name: 'Custom link template' });
+    const manualTemplate = 'https://my-editor.example/open?file=${filePath}';
+    await fireEvent.input(input, { target: { value: manualTemplate } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() =>
+      expect(mocks.setUserExtension).toHaveBeenCalledWith({
+        set: { editor: { kind: 'template', template: manualTemplate } },
+      })
+    );
+  });
+
+  test('an unset All sites editor stays unset while This site keeps its custom target', async () => {
+    mocks.userExtension = {};
+    mocks.setSnapshot(pageTargetSnapshot());
+    render(() => <Popup />);
+
+    expect(
+      screen.getByRole('combobox', { name: 'Editor' }).textContent
+    ).toContain('Page editor');
+    await chooseScope('All sites');
+    expect(
+      screen.getByRole('combobox', { name: 'Editor' }).textContent
+    ).toContain('Select editor');
+    expect(
+      screen.getByText('Pick an editor so source links can open.')
+    ).toBeTruthy();
+    expect(mocks.setUserExtension).not.toHaveBeenCalled();
+
+    await screen.getByRole('button', { name: 'Advanced settings' }).click();
+    expect(
+      (
+        screen.getByRole('textbox', {
+          name: 'Project path',
+        }) as HTMLInputElement
+      ).value
+    ).toBe('');
+    expect(screen.getByText(/Project path: \/this-site/)).toBeTruthy();
+    await screen.getByRole('button', { name: 'Back to interactions' }).click();
+    await chooseScope('This site');
+    await screen.getByRole('combobox', { name: 'Editor' }).click();
+    await fireEvent.click(
+      await screen.findByRole('option', { name: 'Page editor' })
+    );
+    await screen
+      .getByRole('button', { name: 'Customize link template' })
+      .click();
+    await fireEvent.keyDown(
+      screen.getByRole('textbox', { name: 'Custom link template' }),
+      { key: 'Enter' }
+    );
+    await waitFor(() =>
+      expect(mocks.setSiteLocal).toHaveBeenCalledWith({
+        set: { editor: { kind: 'template', template: PAGE_TEMPLATE } },
+      })
+    );
+    expect(mocks.setUserExtension).not.toHaveBeenCalled();
+  });
 
   test('selects interactions in place and preserves the selected site scope', async () => {
     render(() => <Popup />);

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { test, expect, Page } from "@playwright/test";
 import { projects } from "../consts";
 import { locateElement } from "../locateElement";
@@ -25,10 +26,16 @@ type ResolvedSource = {
   columnNumber?: number;
 };
 
-async function configureEditor(page: Page) {
+type NextApp = "next-16" | "next-16-turbopack";
+
+async function configureEditor(page: Page, app: NextApp) {
   await seedLocatorStorage(
     page,
-    { editor: { kind: "target", id: "vscode" } },
+    {
+      editor: { kind: "target", id: "vscode" },
+      // Webpack can supply a project-relative source; configure its local root.
+      projectPath: resolve(__dirname, "../../../../test-apps", app),
+    },
     {
       welcomeScreenDismissed: true,
       onboarding: { dismissed: true, step: "done" },
@@ -79,7 +86,7 @@ async function expectFileInAppSource(page: Page, appPath: RegExp) {
 
 async function expectExactUserSource(
   page: Page,
-  expected: { file: RegExp; line: number }
+  expected: { app: NextApp; line: number }
 ) {
   await expect
     .poll(
@@ -101,15 +108,19 @@ async function expectExactUserSource(
   expect(openedUrl).not.toMatch(
     /(?:node_modules|webpack-internal:|react-jsx-dev-runtime|\/_next\/|\/\.next\/)/
   );
-  expect(decodeURIComponent(openedUrl).replace(/:\d+:\d+$/, "")).toMatch(
-    expected.file
+  expect(openedUrl).toMatch(/^vscode:\/\/file\//);
+  const openedFile = decodeURIComponent(openedUrl)
+    .replace(/^vscode:\/\/file\//, "")
+    .replace(/:\d+:\d+$/, "");
+  expect(openedFile).toBe(
+    resolve(__dirname, "../../../../test-apps", expected.app, "app/page.tsx")
   );
   expect(openedUrl).toMatch(new RegExp(`:${expected.line}:\\d+$`));
 }
 
 test.describe("Next.js 16 + Webpack (React 19)", () => {
   test("heading", async ({ page, browserName }) => {
-    await configureEditor(page);
+    await configureEditor(page, "next-16");
     await page.goto(projects.next16);
     await expectLocatorReady(page);
     await enableDebug(page);
@@ -123,13 +134,13 @@ test.describe("Next.js 16 + Webpack (React 19)", () => {
       return;
     }
     await expectExactUserSource(page, {
-      file: /(?:test-apps\/next-16)?\/app\/page\.tsx$/,
+      app: "next-16",
       line: 8,
     });
   });
 
   test("anchor element", async ({ page, browserName }) => {
-    await configureEditor(page);
+    await configureEditor(page, "next-16");
     await page.goto(projects.next16);
     await expectLocatorReady(page);
     await enableDebug(page);
@@ -141,7 +152,7 @@ test.describe("Next.js 16 + Webpack (React 19)", () => {
       return;
     }
     await expectExactUserSource(page, {
-      file: /(?:test-apps\/next-16)?\/app\/page\.tsx$/,
+      app: "next-16",
       line: 30,
     });
   });
@@ -193,6 +204,7 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
   });
 
   test("server component heading", async ({ page, browserName }) => {
+    await configureEditor(page, "next-16-turbopack");
     await page.goto(projects.next16Turbopack);
     await expectLocatorReady(page);
     await enableDebug(page);
@@ -205,8 +217,10 @@ test.describe("Next.js 16 + Turbopack (React 19, no webpack-loader)", () => {
       await expectNoSource(page);
       return;
     }
-    await expectWelcome(page);
-    await expectFileInAppSource(page, /test-apps\/next-16-turbopack\/app\//);
+    await expectExactUserSource(page, {
+      app: "next-16-turbopack",
+      line: 7,
+    });
   });
 
   test("nested text element", async ({ page }) => {
@@ -225,7 +239,7 @@ test.describe("Turbopack debug diagnostics", () => {
   test("pointer movement does not cancel an accepted click", async ({
     page,
   }) => {
-    await configureEditor(page);
+    await configureEditor(page, "next-16-turbopack");
     await page.goto(projects.next16Turbopack);
     await expectLocatorReady(page);
     await page.evaluate(() => {

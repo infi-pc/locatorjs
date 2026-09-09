@@ -11,6 +11,9 @@ import {
 
 describe("isCompiledSourceLocation", () => {
   test.each([
+    "about://React//file:///repo/app/page.tsx",
+    "about://React/Server",
+    "about:blank",
     "webpack-internal:///app/page.js",
     "webpack:///app/page.js",
     "blob:http://localhost/id",
@@ -27,6 +30,9 @@ describe("isCompiledSourceLocation", () => {
 
 describe("isOriginalUserSource", () => {
   test.each([
+    "about://React//file:///repo/app/page.tsx",
+    "about://React/Server",
+    "about:blank",
     "webpack-internal:///app/page.js",
     "/repo/node_modules/react/jsx-runtime.js",
     "/repo/node_modules/@locator/runtime/dist/index.js",
@@ -43,18 +49,22 @@ describe("parseStackFrame - forms that used to fail entirely", () => {
   // The old regexes matched the filename with `([^:]+)`, which cannot match a
   // scheme-prefixed name. Every one of these returned null, so the React 19
   // Server Components strategy was dead code for real input.
-  test("React Server Components frame", () => {
-    expect(
-      parseStackFrame(
-        "    at Page (about://React/Server/file:///Users/me/app/page.tsx:5:3)"
-      )
-    ).toMatchObject({
-      fileName: "/Users/me/app/page.tsx",
-      lineNumber: 5,
-      columnNumber: 3,
-      functionName: "Page",
-    });
-  });
+  test.each(["Server", "Prerender", "Prefetch", "Prefetchable", "FutureStage"])(
+    "React %s Components frame",
+    (environment) => {
+      const rawFileName = `about://React/${environment}/file:///Users/me/app/page.tsx?42`;
+      expect(parseStackFrame(`    at Page (${rawFileName}:5:3)`)).toMatchObject(
+        {
+          rawFileName,
+          pathKind: "absolute",
+          fileName: "/Users/me/app/page.tsx",
+          lineNumber: 5,
+          columnNumber: 3,
+          functionName: "Page",
+        }
+      );
+    }
+  );
 
   test("http chunk URL", () => {
     expect(
@@ -132,10 +142,25 @@ describe("parseStackFrame - other shapes", () => {
 });
 
 describe("cleanStackFileName", () => {
-  test("strips the RSC scheme and the file:// prefix", () => {
-    expect(
-      cleanStackFileName("about://React/Server/file:///Users/me/a.tsx")
-    ).toBe("/Users/me/a.tsx");
+  test.each(["Server", "Prerender", "Prefetch", "Prefetchable", "FutureStage"])(
+    "strips the React %s wrapper and the file:// prefix",
+    (environment) => {
+      expect(
+        cleanStackFileName(
+          `about://React/${environment}/file:///Users/me/a.tsx?42`
+        )
+      ).toBe("/Users/me/a.tsx");
+    }
+  );
+
+  test.each([
+    "about://React//file:///repo/app/page.tsx",
+    "about://React/Server",
+  ])("leaves malformed wrapper %s unsupported", (fileName) => {
+    expect(cleanStackFileName(fileName)).toBe(fileName);
+    const frame = parseStackFrame(`    at Page (${fileName}:5:3)`);
+    expect(frame?.pathKind).toBeUndefined();
+    expect(isOriginalUserSource(frame!.fileName)).toBe(false);
   });
 
   test("drops a Turbopack chunk query", () => {

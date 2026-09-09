@@ -18,24 +18,28 @@ browser.runtime.onInstalled.addListener((details) => {
 // This listener is deliberately registered before any storage initialization.
 // The browser supplies the authenticated document origin; page-world fields
 // and sender URLs are never used as fallbacks.
-browser.runtime.onMessage.addListener((message, sender) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.from !== 'content' || message.subject !== 'documentOrigin') {
     return false;
   }
   const senderId = (sender as { id?: string }).id;
   if (senderId !== browser.runtime.id) {
-    return { origin: null };
+    sendResponse({ origin: null });
+    return false;
   }
   if (
     typeof sender.tab?.id !== 'number' ||
     typeof sender.frameId !== 'number'
   ) {
-    return { origin: null };
+    sendResponse({ origin: null });
+    return false;
   }
-  return getOriginAccess(sender.origin).then((access) => ({
-    origin: access.origin,
-    access,
-  }));
+  void getOriginAccess(sender.origin).then(
+    (access) => sendResponse({ origin: access.origin, access }),
+    () => sendResponse({ origin: null })
+  );
+  // Keep the response channel open in Chromium versions that ignore Promises.
+  return true;
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
