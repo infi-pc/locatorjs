@@ -3,6 +3,10 @@
   "exclude": ["dist", "build", "node_modules"],
   "compilerOptions": {
     "moduleResolution": "Node",
-    "target": "ESNext"
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true
   }
 }

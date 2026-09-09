@@ -1,174 +1,107 @@
-import type { Targets } from "@locator/shared";
-import { createSignal, For, onMount } from "solid-js";
-import { getParentsPaths } from "../adapters/getParentsPath";
+import { ParentsMenu, type ParentRow } from "@locator/ui";
+import { css } from "@locator/styled-system/css";
+import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import {
+  getParentsPaths,
+  getParentsPathsAsync,
+} from "../adapters/getParentsPath";
 import type { AdapterId } from "../consts";
 import { buildLink } from "../functions/buildLink";
-import getUsableFileName from "../functions/getUsableFileName";
-import { goToLinkProps } from "../functions/goTo";
-import { useOptions } from "../functions/optionsStore";
-import type { TreeNode } from "../types/TreeNode";
-import type { ContextMenuState } from "../types/types";
+import { useOptions } from "../functions/optionsContext";
+import {
+  buildParentRows,
+  sourceRefToLinkProps,
+} from "../functions/treeViewModel";
+import type { ContextMenuState, LinkProps } from "../types/types";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
+
+const styles = {
+  backdrop: css({
+    bg: "black/10",
+    height: "100vh",
+    left: "0",
+    pointerEvents: "auto",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+    zIndex: "popover",
+  }),
+  anchor: css({ position: "absolute" }),
+};
 
 export function ContextView(props: {
   contextMenuState: ContextMenuState;
   close: () => void;
   adapterId?: AdapterId | undefined;
-  targets: Targets;
-  setHighlightedNode: (node: null | TreeNode) => void;
+  /** Opens the link, or asks the user to pick an editor first. */
+  openLink: (link: LinkProps) => void;
 }) {
   const options = useOptions();
-  let contentRef: HTMLDivElement | undefined;
-  let list: HTMLDivElement | undefined;
-  let root: HTMLDivElement | undefined;
-
-  onMount(() => {
-    if (root) {
-      root.focus();
-    }
+  const rows = createMemo(() =>
+    buildParentRows(
+      getParentsPaths(props.contextMenuState.target, props.adapterId)
+    )
+  );
+  const [asyncRows, setAsyncRows] = createSignal<ParentRow[]>();
+  const [pending, setPending] = createSignal(false);
+  createEffect(() => {
+    const target = props.contextMenuState.target;
+    const adapter = props.adapterId;
+    if (rows().length > 1 || (adapter && adapter !== "react")) return;
+    const controller = new AbortController();
+    setPending(true);
+    void getParentsPathsAsync(
+      target,
+      adapter,
+      createSourceResolutionContext(controller.signal)
+    )
+      .then((items) => {
+        if (!controller.signal.aborted) setAsyncRows(buildParentRows(items));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setPending(false);
+      });
+    onCleanup(() => controller.abort());
   });
-
-  const [focusedIndex, setFocusedIndex] = createSignal<number | null>(null);
-  const paths = () =>
-    getParentsPaths(props.contextMenuState.target, props.adapterId);
-
-  function focusOnElementInDirection(direction: "up" | "down") {
-    if (focusedIndex == null) {
-      setFocusedIndex(0);
-      return;
-    }
-
-    let newFocused = focusedIndex() ?? -1;
-    if (direction === "down") {
-      newFocused += 1;
-    }
-    if (direction === "up") {
-      newFocused -= 1;
-    }
-    if (newFocused < 0) {
-      newFocused = paths().length - 1;
-    }
-    if (newFocused > paths().length - 1) {
-      newFocused = 0;
-    }
-    setFocusedIndex(newFocused);
-    window.setTimeout(() => {
-      scrollActiveOptionIntoView();
-    }, 0);
-  }
-
-  function scrollActiveOptionIntoView() {
-    if (focusedIndex == null) {
-      return;
-    }
-    list
-      ?.querySelector(`:nth-child(${(focusedIndex() || 0) + 1})`)
-      ?.scrollIntoView({ block: "nearest" });
-  }
-
-  function handleKeyDown(e: KeyboardEvent) {
-    switch (e.key) {
-      case "Escape": {
-        e.preventDefault();
-        e.stopPropagation();
-        props.close();
-
-        break;
-      }
-      case "ArrowDown": {
-        e.preventDefault();
-        focusOnElementInDirection("down");
-        break;
-      }
-      case "ArrowUp": {
-        e.preventDefault();
-        focusOnElementInDirection("up");
-        break;
-      }
-      case "Enter":
-      case " ": {
-        e.preventDefault();
-        if (focusedIndex() !== null) {
-          const path = paths()[focusedIndex()!];
-          if (path) {
-            goToLinkProps(path.link!, props.targets, options);
-          }
-
-          setFocusedIndex(null);
-        }
-
-        props.close();
-        break;
-      }
-    }
-  }
+  const displayedRows = () => asyncRows() ?? rows();
+  const hrefFor = (row: ParentRow) => {
+    const editor = options.effective().editor;
+    return row.source && editor.kind === "selected"
+      ? buildLink(sourceRefToLinkProps(row.source), options, editor)
+      : undefined;
+  };
 
   return (
     <div
-      ref={root}
-      style={{
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100vw",
-        height: "100vh",
-        "pointer-events": "auto",
-        "background-color": "rgba(0,0,0,0.1)",
-        "z-index": 1001,
-      }}
-      tabIndex={0}
+      class={styles.backdrop}
       onClick={(e) => {
-        if (e.currentTarget === e.target) {
-          props.close();
-        }
+        if (e.currentTarget === e.target) props.close();
       }}
-      onKeyDown={handleKeyDown}
     >
       <div
+        class={styles.anchor}
         style={{
-          position: "absolute",
           top: `${props.contextMenuState.y || 0}px`,
           left: `${props.contextMenuState.x || 0}px`,
         }}
-        ref={contentRef}
       >
-        <div
-          class={
-            "bg-white rounded-md py-2 shadow-xl text-xs overflow-auto flex flex-col"
-          }
-          style={{
-            "max-height": "calc(100vh - 16px)",
+        <ParentsMenu
+          rows={displayedRows()}
+          pending={pending()}
+          autofocus
+          hrefFor={hrefFor}
+          onHover={() => {
+            // Highlighting a parent needs a live node; the parents path only
+            // carries source locations, so there is nothing to outline yet.
           }}
-          ref={list}
-        >
-          <For each={paths()}>
-            {(path, index) => {
-              const link = path.link;
-              if (!link) {
-                return null;
-              }
-              return (
-                <a
-                  class={
-                    "px-4 py-2 w-60 hover:bg-slate-50 text-left text-sm font-medium " +
-                    (index() === focusedIndex() ? "bg-slate-100" : "")
-                  }
-                  href={buildLink(link, props.targets, options)}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    goToLinkProps(link, props.targets, options);
-                    props.close();
-                  }}
-                >
-                  {path.title}
-                  <div class="text-xs text-gray-500">
-                    {getUsableFileName(link.filePath || "")}
-                  </div>
-                </a>
-              );
-            }}
-          </For>
-        </div>
+          onOpen={(row: ParentRow) => {
+            if (!row.source) return;
+            props.openLink(sourceRefToLinkProps(row.source));
+            props.close();
+          }}
+          onClose={() => props.close()}
+        />
       </div>
     </div>
   );

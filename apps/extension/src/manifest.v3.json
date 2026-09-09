@@ -8,11 +8,24 @@
     "default_popup": "popup.html",
     "default_icon": "icon-34.png"
   },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "js": ["hook.bundle.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["contentScript.bundle.js"],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true
     }
   ],
   "permissions": ["storage"],
@@ -20,10 +33,18 @@
     {
       "resources": [
         "client.bundle.js",
-        "hook.bundle.js",
+        "locator-runtime-ui.chunk.js",
         "content.styles.css",
+        "icon-32.png",
+        "icon-48.png",
         "icon-128.png",
-        "icon-34.png"
+        "icon-34.png",
+        "vscode.svg",
+        "cursor.svg",
+        "windsurf.svg",
+        "zed.svg",
+        "neovim.svg",
+        "webstorm.png"
       ],
       "matches": ["<all_urls>"]
     }

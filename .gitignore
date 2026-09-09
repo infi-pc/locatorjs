@@ -33,5 +33,23 @@ yarn-error.log*
 .turbo
 .DS_Store
 
-# ignore vite config timestamp like apps/vite-preact-project/vite.config.js.timestamp-1689332089031.mjs
+# ignore vite config timestamp like test-apps/vite-preact-project/vite.config.js.timestamp-1689332089031.mjs
 vite.config.js.timestamp-*.mjs
+
+# typescript incremental build info
+*.tsbuildinfo
+
+# playwright output
+test-results/
+playwright-report/
+blob-report/
+all-blob-reports/
+
+# agent scratch space (screenshots, repros, plans) - never committed
+.context/
+
+# personal Claude Code overrides - keep local
+.claude/settings.local.json
+
+# Code-review findings are process artifacts, not product. Keep them local.
+findings/

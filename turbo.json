@@ -1,10 +1,31 @@
 {
   "ui": "tui",
   "concurrency": "20",
+  "globalEnv": [
+    "PORT",
+    "PORT_WEB",
+    "PORT_REACT",
+    "PORT_UI_LAB",
+    "PORT_SOLID",
+    "PORT_PREACT",
+    "PORT_SVELTE",
+    "PORT_REACT_CLEAN",
+    "PORT_SVELTE_CLEAN",
+    "PORT_VUE",
+    "PORT_NEXT_14",
+    "PORT_NEXT_16",
+    "PORT_NEXT_16_TURBO",
+    "PORT_EXTENSION",
+    "E2E_GROUP"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**", ".next/**", "build/**"]
+    },
+    "build:firefox": {
+      "dependsOn": ["^build"],
+      "outputs": ["build/production_firefox/**"]
     },
     "lint": {
       "dependsOn": ["^build"],
@@ -21,6 +42,7 @@
       "cache": false
     },
     "ts": {
+      "dependsOn": ["^build"],
       "cache": false
     }
   }

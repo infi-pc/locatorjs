@@ -1,96 +1,149 @@
-import { getStoredOptions, setStoredOptions } from '@locator/shared';
 import browser from '../../browser';
+import { migrateLegacyExtensionStorage } from './migrateLegacyExtensionStorage';
+import { mountSnapshotBridge } from './snapshotBridge';
+import {
+  USER_CONFIG_KEY,
+  decodeStoredExtensionConfig,
+  layerFromRead,
+  readExtensionConfig,
+} from '../../storageContract';
+import {
+  postMessageOrigin,
+  type strictConfig as StrictConfig,
+} from '@locator/shared';
+import { safeFrameProjection } from './settingsProjection';
+import type { OriginAccess } from '../../originAccess';
 
-browser.storage.local.get(['target'], function (result) {
-  if (typeof result?.target === 'string') {
-    document.documentElement.dataset.locatorTarget = result.target;
+let latestLayer: StrictConfig.SerializedLayerV3 = {};
+let initialOptionsReady = false;
+let documentOriginReady = false;
+let pendingSettingsRequest = false;
+let currentAccess: OriginAccess = { origin: null, reason: 'unavailable' };
+let accessRequest = 0;
+
+browser.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return;
+  if (USER_CONFIG_KEY in changes) {
+    const read = decodeStoredExtensionConfig(changes[USER_CONFIG_KEY].newValue);
+    publishUserExtensionLayer(layerFromRead(read));
+  }
+  if (
+    currentAccess.origin
+      ? `trustedOrigin:${currentAccess.origin}` in changes
+      : Object.keys(changes).some((key) => key.startsWith('trustedOrigin:'))
+  ) {
+    void refreshOriginAccess();
   }
 });
 
-browser.storage.local.get(['enableExperimentalFeatures'], function (result) {
-  if (result?.enableExperimentalFeatures === true) {
-    document.documentElement.dataset.locatorExperimentalFeatures = 'true';
+async function refreshOriginAccess() {
+  const request = ++accessRequest;
+  // Stop sharing while a changed grant is being checked.
+  if (currentAccess.reason === 'approved') {
+    currentAccess = {
+      origin: currentAccess.origin,
+      reason: 'approval-required',
+    };
+    injectUserExtensionGlobal(latestLayer);
   }
-});
-
-browser.storage.onChanged.addListener(function (changes) {
-  for (const [key, { newValue }] of Object.entries(changes)) {
-    if (key === 'target') {
-      document.documentElement.dataset.locatorTarget = newValue;
-    }
-  }
-});
-
-browser.storage.local.get(['controls'], function (result) {
-  if (typeof result?.controls === 'string') {
-    document.documentElement.dataset.locatorMouseModifiers = result.controls;
-  }
-});
-
-browser.storage.onChanged.addListener(function (changes) {
-  for (const [key, { newValue }] of Object.entries(changes)) {
-    if (key === 'controls') {
-      document.documentElement.dataset.locatorMouseModifiers = newValue;
-    }
-  }
-});
-
-function injectScript() {
-  const script = document.createElement('script');
-  // script.textContent = code.default;
-  script.src = browser.runtime.getURL('/hook.bundle.js');
-
-  document.documentElement.dataset.locatorClientUrl =
-    browser.runtime.getURL('/client.bundle.js');
-
-  // This script runs before the <head> element is created,
-  // so we add the script to <html> instead.
-  if (document.documentElement) {
-    document.documentElement.appendChild(script);
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-    }
-  }
+  const response: { access?: OriginAccess } | undefined = await browser.runtime
+    .sendMessage({ from: 'content', subject: 'documentOrigin' })
+    .catch(() => undefined);
+  if (request !== accessRequest) return;
+  currentAccess = response?.access ?? { origin: null, reason: 'unavailable' };
+  documentOriginReady = true;
+  injectUserExtensionGlobal(latestLayer);
+  if (initialOptionsReady && pendingSettingsRequest) respondToSettingsRequest();
 }
 
-// Inject a __REACT_DEVTOOLS_GLOBAL_HOOK__ global for React to interact with.
-// Only do this for HTML documents though, to avoid e.g. breaking syntax highlighting for XML docs.
-// We need to inject this code because content scripts (ie injectGlobalHook.js) don't have access
-// to the webpage's window, so in order to access front end settings
-// and communicate with React, we must inject this code into the webpage
+void refreshOriginAccess();
+
+migrateLegacyExtensionStorage()
+  .then(() => readExtensionConfig())
+  .then((read) => {
+    initialOptionsReady = true;
+    publishUserExtensionLayer(layerFromRead(read));
+    if (pendingSettingsRequest && documentOriginReady)
+      respondToSettingsRequest();
+  })
+  .catch(() => {
+    initialOptionsReady = true;
+    publishUserExtensionLayer({});
+    if (pendingSettingsRequest && documentOriginReady)
+      respondToSettingsRequest();
+  });
+
+window.addEventListener('message', (event) => {
+  if (event.source !== window) return;
+  if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_REQUEST') return;
+  if (!initialOptionsReady || !documentOriginReady) {
+    pendingSettingsRequest = true;
+    return;
+  }
+  respondToSettingsRequest();
+});
+
+function respondToSettingsRequest() {
+  pendingSettingsRequest = false;
+  injectUserExtensionGlobal(latestLayer);
+  window.postMessage(
+    {
+      type: 'LOCATOR_RUNTIME_SETTINGS_READY',
+      disabled: latestLayer.disabled === true,
+    },
+    postMessageOrigin(window.location)
+  );
+}
+
+function publishUserExtensionLayer(layer: StrictConfig.SerializedLayerV3) {
+  latestLayer = layer;
+  injectUserExtensionGlobal(layer);
+}
+
+function injectUserExtensionGlobal(layer: StrictConfig.SerializedLayerV3) {
+  withDocumentElement((element) => {
+    const canReceivePrivate =
+      (currentAccess.reason === 'localhost' ||
+        currentAccess.reason === 'approved') &&
+      !layer.disabled;
+    element.dataset.locatorEditorWithheld = canReceivePrivate
+      ? 'false'
+      : 'true';
+    element.dataset.locatorUserExtensionOptions = JSON.stringify(
+      canReceivePrivate ? layer : safeFrameProjection(layer)
+    );
+  });
+}
+
+function withDocumentElement(callback: (element: HTMLElement) => void) {
+  const element = document.documentElement;
+  if (element) {
+    callback(element);
+    return;
+  }
+
+  const observer = new MutationObserver(() => {
+    const nextElement = document.documentElement;
+    if (!nextElement) return;
+    observer.disconnect();
+    callback(nextElement);
+  });
+  observer.observe(document, { childList: true });
+}
+
+function publishClientUrl() {
+  withDocumentElement((element) => {
+    element.dataset.locatorClientUrl =
+      browser.runtime.getURL('/client.bundle.js');
+  });
+}
+
 switch (document.contentType) {
   case 'text/html':
   case 'application/xhtml+xml': {
-    injectScript();
+    publishClientUrl();
     break;
   }
 }
 
-function getHookStatusMessage() {
-  return (
-    // we combine the two messages to make it easier to handle in popup
-    document.head.dataset.locatorDisabled ||
-    document.head.dataset.locatorHookStatusMessage ||
-    `loading: waiting for hook`
-  );
-}
-
-browser.runtime.onMessage.addListener((msg, sender, response) => {
-  if (msg.from === 'popup' && msg.subject === 'requestStatusMessage') {
-    response(getHookStatusMessage());
-  }
-});
-
-browser.runtime.onMessage.addListener((msg) => {
-  if (msg.from === 'popup' && msg.subject === 'requestEnable') {
-    const savedOptions = getStoredOptions();
-    const optionsToSave = {
-      ...savedOptions,
-      disabled: typeof msg.value === 'boolean' ? !msg.value : false,
-    };
-
-    setStoredOptions(optionsToSave);
-
-    postMessage({ type: 'LOCATOR_EXTENSION_UPDATED_OPTIONS' }, '*');
-  }
-});
+mountSnapshotBridge(() => currentAccess);

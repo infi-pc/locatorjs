@@ -1,0 +1,12 @@
+@layer reset, base, tokens, recipes, utilities;
+
+html,
+body,
+#app-container {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--colors-bg-subtle);
+}

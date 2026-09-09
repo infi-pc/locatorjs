@@ -1,20 +1,41 @@
 import { For } from "solid-js";
-import { baseColor, HREF_TARGET, PADDING } from "../consts";
+import { PADDING } from "../consts";
 import { LabelData } from "../types/LabelData";
-import { trackClickStats } from "../functions/trackClickStats";
 
 import { goTo } from "../functions/goTo";
 import { SimpleDOMRect } from "../types/types";
 import { buildLink } from "../functions/buildLink";
-import { Targets } from "@locator/shared";
-import { useOptions } from "../functions/optionsStore";
+import { useOptions } from "../functions/optionsContext";
+import { css } from "@locator/styled-system/css";
+
+const styles = {
+  outline: css({
+    borderColor: "violet.9",
+    borderWidth: "1px",
+  }),
+  label: css({
+    bg: "violet.solid.bg",
+    borderRadius: "l1",
+    color: "violet.solid.fg",
+    cursor: "pointer",
+    display: "block",
+    fontSize: "xs",
+    fontWeight: "bold",
+    lineHeight: "18px",
+    pointerEvents: "auto",
+    px: "1",
+    py: "0.5",
+    textAlign: "center",
+    whiteSpace: "nowrap",
+    _hover: { bg: "violet.solid.bg.hover" },
+  }),
+};
 
 export function ComponentOutline(props: {
   bbox: SimpleDOMRect;
   labels: LabelData[];
   element: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  targets: Targets;
 }) {
   const options = useOptions();
 
@@ -37,7 +58,7 @@ export function ComponentOutline(props: {
 
   return (
     <div
-      class="border border-purple-500"
+      class={styles.outline}
       style={{
         "z-index": 1,
         position: "fixed",
@@ -104,32 +125,24 @@ export function ComponentOutline(props: {
 
           <For each={props.labels}>
             {(label) => {
-              const link = label.link
-                ? buildLink(label.link, props.targets, options)
-                : null;
-              const labelClass =
-                "cursor-pointer bg-purple-500 block text-white text-xs font-bold text-center px-1 py-0.5 rounded whitespace-nowrap pointer-events-auto hover:bg-purple-600";
-              const labelStyles = {
-                "line-height": "18px",
-              };
-
+              const editor = options.effective().editor;
+              const link =
+                label.link && editor.kind === "selected"
+                  ? buildLink(label.link, options, editor)
+                  : null;
               return link ? (
                 <a
-                  class={labelClass}
-                  style={labelStyles}
+                  class={styles.label}
                   href={link}
-                  target={options.getOptions().hrefTarget || HREF_TARGET}
+                  target={options.effective().hrefTarget}
                   onClick={() => {
-                    trackClickStats();
                     goTo(link!, options);
                   }}
                 >
                   {label.label}
                 </a>
               ) : (
-                <div class={labelClass} style={labelStyles}>
-                  {label.label}
-                </div>
+                <div class={styles.label}>{label.label}</div>
               );
             }}
           </For>

@@ -1,4 +1,32 @@
 import { AllBoxes } from "./Outline";
+import { css } from "@locator/styled-system/css";
+
+const boxBase = {
+  alignItems: "center",
+  display: "flex",
+  fontSize: "xs",
+  fontWeight: "bold",
+  justifyContent: "center",
+  position: "fixed",
+} as const;
+
+const styles = {
+  margin: css({
+    ...boxBase,
+    bg: "amber.9/30",
+    color: "amber.9",
+  }),
+  padding: css({
+    ...boxBase,
+    bg: "violet.9/30",
+    color: "violet.9",
+  }),
+  inner: css({
+    ...boxBase,
+    bg: "blue.9/30",
+    color: "blue.9",
+  }),
+};
 
 export function RenderBoxes(props: { allBoxes: AllBoxes }) {
   return (
@@ -6,7 +34,7 @@ export function RenderBoxes(props: { allBoxes: AllBoxes }) {
       {Object.entries(props.allBoxes.margin).map(([, box]) => {
         return (
           <div
-            class="fixed flex text-xs font-bold items-center justify-center text-orange-500 bg-orange-500/30"
+            class={styles.margin}
             style={{
               left: box.left + "px",
               top: box.top + "px",
@@ -23,7 +51,7 @@ export function RenderBoxes(props: { allBoxes: AllBoxes }) {
       {Object.entries(props.allBoxes.padding).map(([, box]) => {
         return (
           <div
-            class="fixed flex text-xs font-bold items-center justify-center text-green-500 bg-green-500/30"
+            class={styles.padding}
             style={{
               left: box.left + "px",
               top: box.top + "px",
@@ -39,7 +67,7 @@ export function RenderBoxes(props: { allBoxes: AllBoxes }) {
       })}
 
       <div
-        class="fixed flex text-xs font-bold items-center justify-center text-blue-500 bg-blue-500/30"
+        class={styles.inner}
         style={{
           left: props.allBoxes.innerBox.left + "px",
           top: props.allBoxes.innerBox.top + "px",

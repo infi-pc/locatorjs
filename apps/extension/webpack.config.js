@@ -48,6 +48,7 @@ const options = {
     // newtab: path.join(__dirname, 'src', 'pages', 'Newtab', 'index.jsx'),
     // options: path.join(__dirname, 'src', 'pages', 'Options', 'index.jsx'),
     popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.jsx'),
+    onboarding: path.join(__dirname, 'src', 'pages', 'Onboarding', 'index.jsx'),
     background: path.join(__dirname, 'src', 'pages', 'Background', 'index.ts'),
     contentScript: path.join(__dirname, 'src', 'pages', 'Content', 'index.ts'),
     // devtools: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.js'),
@@ -61,6 +62,7 @@ const options = {
   output: {
     path: path.resolve(__dirname, BUILD_FOLDER),
     filename: '[name].bundle.js',
+    chunkFilename: '[name].chunk.js',
     clean: true,
     publicPath: ASSET_PATH,
   },
@@ -133,9 +135,9 @@ const options = {
             // generates the manifest file using the package.json informations
             return Buffer.from(
               JSON.stringify({
+                ...JSON.parse(content.toString()),
                 description: process.env.npm_package_description,
                 version: process.env.npm_package_version,
-                ...JSON.parse(content.toString()),
               })
             );
           },
@@ -183,6 +185,18 @@ const options = {
       chunks: ['popup'],
       cache: false,
     }),
+    new HtmlWebpackPlugin({
+      template: path.join(
+        __dirname,
+        'src',
+        'pages',
+        'Onboarding',
+        'index.html'
+      ),
+      filename: 'onboarding.html',
+      chunks: ['onboarding'],
+      cache: false,
+    }),
     // new HtmlWebpackPlugin({
     //   template: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.html'),
     //   filename: 'devtools.html',
@@ -206,6 +220,9 @@ if (env.NODE_ENV === 'development') {
 } else {
   options.optimization = {
     minimize: true,
+    // Keep the injected runtime's lazy graph in its explicitly named chunk so
+    // the manifest can enumerate every executable web-accessible resource.
+    splitChunks: false,
     minimizer: [
       new TerserPlugin({
         extractComments: false,

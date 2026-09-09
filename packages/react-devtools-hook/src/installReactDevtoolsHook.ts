@@ -1,4 +1,4 @@
-import { ReactDevtoolsHook } from "@locator/shared/src/types";
+import { ReactDevtoolsHook } from "@locator/shared";
 import { createReactDevtoolsHook } from "./createReactDevtoolsHook";
 
 export const MARKER = Symbol();
@@ -11,9 +11,13 @@ export function installReactDevtoolsHook() {
   const existingHook: ReactDevtoolsHookWithMarker =
     window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 
-  if (window.hasOwnProperty("__REACT_DEVTOOLS_GLOBAL_HOOK__")) {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      window,
+      "__REACT_DEVTOOLS_GLOBAL_HOOK__"
+    )
+  ) {
     if (existingHook[MARKER] === MARKER) {
-      // console.log("already installed!!!!!");
       return existingHook;
     }
   }
@@ -25,9 +29,9 @@ export function installReactDevtoolsHook() {
 
     for (const [key, value] of Object.entries(hook)) {
       if (typeof value === "function") {
-        // @ts-ignore
+        // @ts-expect-error indexing the hook by an arbitrary key
         delete existingHook[key];
-        // @ts-ignore
+        // @ts-expect-error indexing the hook by an arbitrary key
         existingHook[key] = value;
       }
     }

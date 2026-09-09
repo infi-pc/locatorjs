@@ -1,0 +1,24 @@
+@layer reset, base, tokens, recipes, utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/*
+ * Layered on purpose. Unlayered rules beat every @layer, so an unlayered
+ * `font: inherit` here would override the font-size utilities on every button
+ * in the lab — and the runtime, whose own reset lives in @layer reset, would
+ * render the same component differently.
+ */
+@layer reset {
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}

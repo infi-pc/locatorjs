@@ -1,12 +1,8 @@
 import { Page } from "@playwright/test";
 
 export async function locateElement(page: Page, selector: string) {
-  await page.keyboard.down("Alt");
-
-  // await page.mouse.move(100, 100);
-  const headline = page.locator(selector);
-
-  await headline.hover();
-
-  await headline.click();
+  const element = page.locator(selector);
+  await element.dispatchEvent("mouseover", { altKey: true });
+  await element.dispatchEvent("click", { altKey: true });
+  await page.locator("body").dispatchEvent("keyup", { key: "Alt" });
 }

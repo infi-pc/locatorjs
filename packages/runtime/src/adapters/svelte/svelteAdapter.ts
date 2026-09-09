@@ -8,6 +8,7 @@ import {
 } from "../adapterApi";
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
+import { getParentElementAcrossShadow } from "../../functions/domTraversal";
 
 type SvelteLoc = {
   char: number;
@@ -18,7 +19,7 @@ type SvelteLoc = {
 
 type SvelteElement = HTMLElement & { __svelte_meta?: { loc: SvelteLoc } };
 
-export function getElementInfo(found: SvelteElement): FullElementInfo | null {
+function getElementInfo(found: SvelteElement): FullElementInfo | null {
   if (found.__svelte_meta) {
     const { loc } = found.__svelte_meta;
     return {
@@ -41,7 +42,10 @@ export function getElementInfo(found: SvelteElement): FullElementInfo | null {
   return null;
 }
 
-export class SvelteTreeNodeElement extends HtmlElementTreeNode {
+class SvelteTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): SvelteTreeNodeElement {
+    return new SvelteTreeNodeElement(element);
+  }
   getSource(): Source | null {
     const element = this.element as SvelteElement;
     if (element.__svelte_meta) {
@@ -92,7 +96,7 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
       }
     }
 
-    currentElement = currentElement.parentElement;
+    currentElement = getParentElementAcrossShadow(currentElement);
     maxDepth--;
     if (maxDepth < 0) {
       break;

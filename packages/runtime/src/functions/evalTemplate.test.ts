@@ -9,4 +9,10 @@ describe("evalTemplate", () => {
     });
     expect(res).toBe("https://example.com/test.js");
   });
+
+  test("replaces every occurrence of a variable", () => {
+    expect(evalTemplate("${name}/${name}/${name}", { name: "button" })).toBe(
+      "button/button/button"
+    );
+  });
 });

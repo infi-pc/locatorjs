@@ -1,22 +1,54 @@
-import { isValidRenderer } from '@locator/shared/dist/isValidRenderer';
-import { detectSvelte, detectVue } from '@locator/shared';
+import {
+  detectSvelte,
+  detectVue,
+  isValidRenderer,
+  postMessageOrigin,
+} from '@locator/shared';
 
 type Renderer = any;
 
 export function insertRuntimeScript() {
   let scriptLoaded = false;
+  let scriptLoading = false;
+  let settingsRequested = false;
+  let pendingClientUrl: string | undefined;
   let attemptsNecessaryToShowError = 4; // but not necessarily all attempts, we want to show loading for a while
 
-  const locatorClientUrl = document.documentElement.dataset.locatorClientUrl;
-  delete document.documentElement.dataset.locatorClientUrl;
-
   function sendStatusMessage(message: string) {
-    document.head.dataset.locatorHookStatusMessage = message;
-    // eslint-disable-next-line no-console
+    if (document.head) {
+      document.head.dataset.locatorHookStatusMessage = message;
+    }
+    // eslint-disable-next-line no-console -- injection failure must be diagnosable from the page console.
     console.warn(`[locatorjs]: ${message}`);
   }
 
   document.addEventListener('DOMContentLoaded', loadedHandler);
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    if (event.data?.type !== 'LOCATOR_RUNTIME_SETTINGS_READY') return;
+    if (!pendingClientUrl || scriptLoaded || scriptLoading) return;
+    if (event.data.disabled === true) {
+      sendStatusMessage('Locator is disabled on this page.');
+      pendingClientUrl = undefined;
+      settingsRequested = false;
+      return;
+    }
+    scriptLoading = insertScript(
+      pendingClientUrl,
+      () => {
+        delete document.documentElement.dataset.locatorClientUrl;
+        scriptLoading = false;
+        scriptLoaded = true;
+        pendingClientUrl = undefined;
+        sendStatusMessage('ok');
+      },
+      () => {
+        scriptLoading = false;
+        settingsRequested = false;
+        sendStatusMessage('Locator client failed to load. Retrying…');
+      }
+    );
+  });
   setTimeout(loadedHandler, 1000);
   setTimeout(loadedHandler, 2000);
   setTimeout(loadedHandler, 5000);
@@ -24,7 +56,7 @@ export function insertRuntimeScript() {
   setTimeout(loadedHandler, 12000);
 
   function loadedHandler() {
-    if (scriptLoaded) {
+    if (scriptLoaded || scriptLoading) {
       return;
     }
     attemptsNecessaryToShowError--;
@@ -38,25 +70,18 @@ export function insertRuntimeScript() {
   }
 
   function tryToInsertScript(): string {
+    const locatorClientUrl = document.documentElement?.dataset.locatorClientUrl;
     if (!locatorClientUrl) {
       return 'Locator client url not found';
     }
 
     if (detectSvelte() || detectVue()) {
-      const inserted = insertScript(locatorClientUrl);
-      if (inserted) {
-        scriptLoaded = true;
-        return 'ok';
-      }
+      return requestSettings(locatorClientUrl);
     }
 
     // JSX adapter
     if (document.querySelector('[data-locatorjs-id]')) {
-      const inserted = insertScript(locatorClientUrl);
-      if (inserted) {
-        scriptLoaded = true;
-        return 'ok';
-      }
+      return requestSettings(locatorClientUrl);
     }
 
     // React Devtools hook
@@ -71,13 +96,7 @@ export function insertRuntimeScript() {
         }
       );
       if (renderers.length) {
-        const inserted = insertScript(locatorClientUrl);
-        if (inserted) {
-          scriptLoaded = true;
-          return 'ok';
-        } else {
-          return `Could not insert script`;
-        }
+        return requestSettings(locatorClientUrl);
       } else {
         if (problematicRenderers.length) {
           return problematicRenderers.join('\n');
@@ -89,33 +108,48 @@ export function insertRuntimeScript() {
       return 'React devtools hook was not found. It can be caused by collision with other extension using devtools hook.';
     }
   }
+
+  function requestSettings(locatorClientUrl: string): string {
+    pendingClientUrl = locatorClientUrl;
+    if (!settingsRequested) {
+      settingsRequested = true;
+      window.postMessage(
+        { type: 'LOCATOR_RUNTIME_SETTINGS_REQUEST' },
+        postMessageOrigin(window.location)
+      );
+      setTimeout(() => {
+        if (!scriptLoaded) settingsRequested = false;
+      }, 500);
+    }
+    return 'Waiting for extension settings';
+  }
 }
 
-function insertScript(locatorClientUrl: string) {
+function insertScript(
+  locatorClientUrl: string,
+  onLoad: () => void,
+  onError: () => void
+) {
   const script = document.createElement('script');
   script.className = 'locatorjs-extension-script';
   script.src = locatorClientUrl;
+  script.addEventListener('load', onLoad, { once: true });
+  script.addEventListener(
+    'error',
+    () => {
+      script.remove();
+      onError();
+    },
+    { once: true }
+  );
 
   if (document.head) {
     document.head.appendChild(script);
-    // TODO: cleanup would be nice, but cuttently we need to keep the script to check it it was loaded from extension
-    // if (script.parentNode) {
-    //   script.parentNode.removeChild(script);
-    //   // TODO maybe add back
-    //   // delete document.documentElement.dataset.locatorClientUrl;
-    // }
-    const foundIFrames = document.getElementsByTagName('iframe');
-
-    for (const iframe of foundIFrames) {
-      try {
-        const script = document.createElement('script');
-        script.src = locatorClientUrl;
-        script.className = 'locatorjs-extension-script';
-        iframe.contentWindow?.document.head.appendChild(script);
-      } catch (e) {
-        // Fail silently, in most cases it will be cross-origin, and we don't need Locator there.
-      }
-    }
+    // Keep the loaded marker script: isExtension() uses it to identify this
+    // runtime without exposing another page-global flag.
+    // Iframes are handled by the content script itself: the manifest declares
+    // `all_frames`, so every frame - cross-origin ones included - runs the hook
+    // and inserts the client with the same retry logic as the top document.
     return true;
   }
   return false;
