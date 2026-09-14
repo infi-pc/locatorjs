@@ -1,5 +1,6 @@
 import type { Targets } from "@locator/shared";
-import { createSignal, For, onMount } from "solid-js";
+import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { createEffect, createSignal, For, onMount } from "solid-js";
 import { getParentsPaths } from "../adapters/getParentsPath";
 import type { AdapterId } from "../consts";
 import { buildLink } from "../functions/buildLink";
@@ -28,8 +29,44 @@ export function ContextView(props: {
   });
 
   const [focusedIndex, setFocusedIndex] = createSignal<number | null>(null);
+  const [pos, setPos] = createSignal<{ x: number; y: number }>({
+    x: props.contextMenuState.x || 0,
+    y: props.contextMenuState.y || 0,
+  });
   const paths = () =>
     getParentsPaths(props.contextMenuState.target, props.adapterId);
+
+  createEffect(() => {
+    if (!contentRef) {
+      return;
+    }
+
+    const clickX = props.contextMenuState.x || 0;
+    const clickY = props.contextMenuState.y || 0;
+
+    computePosition(
+      {
+        getBoundingClientRect: () =>
+          ({
+            x: clickX,
+            y: clickY,
+            top: clickY,
+            left: clickX,
+            bottom: clickY,
+            right: clickX,
+            width: 0,
+            height: 0,
+          }) as DOMRect,
+      },
+      contentRef,
+      {
+        placement: "bottom-start",
+        middleware: [offset(4), flip(), shift({ padding: 8 })],
+      }
+    ).then(({ x, y }) => {
+      setPos({ x, y });
+    });
+  });
 
   function focusOnElementInDirection(direction: "up" | "down") {
     if (focusedIndex == null) {
@@ -126,8 +163,8 @@ export function ContextView(props: {
       <div
         style={{
           position: "absolute",
-          top: `${props.contextMenuState.y || 0}px`,
-          left: `${props.contextMenuState.x || 0}px`,
+          top: `${pos().y}px`,
+          left: `${pos().x}px`,
         }}
         ref={contentRef}
       >
