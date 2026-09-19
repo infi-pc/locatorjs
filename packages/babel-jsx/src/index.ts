@@ -290,9 +290,9 @@ export default function transformLocatorJsComponents(babel: Babel): {
           const insertCode = `(() => {
             if (typeof window !== "undefined") {
               window.__LOCATOR_DATA__ = window.__LOCATOR_DATA__ || {};
-              window.__LOCATOR_DATA__["${createFullPath(
-                fileStorage
-              )}"] = ${dataCode};
+              window.__LOCATOR_DATA__[${JSON.stringify(
+                createFullPath(fileStorage)
+              )}] = ${dataCode};
             }
           })()`;
 
