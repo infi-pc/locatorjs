@@ -3,6 +3,7 @@ export { isValidRenderer };
 export * from "./types";
 export * from "./modifiers";
 export * from "./environmentDetection";
+export * from "./pageProbe";
 export * from "./shadowRootRegistry";
 
 export type SourceLocation = {

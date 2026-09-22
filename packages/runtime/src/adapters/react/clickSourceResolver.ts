@@ -147,7 +147,6 @@ async function resolveProjectPrefix(
  */
 type DevToolsHookWithInterfaces = {
   rendererInterfaces?: Map<number, RendererInterface>;
-  renderers?: Map<number, unknown>;
 };
 
 /**
@@ -738,37 +737,6 @@ function extractSourceFromFunctionMeta(type: unknown): Source | null {
   return null;
 }
 
-/**
- * Try to get source info from React DevTools hook
- */
-function getSourceFromDevTools(fiber: Fiber): Source | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private metadata without a stable public type.
-  const hook = (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__;
-  if (!hook) {
-    return null;
-  }
-
-  try {
-    // React DevTools may provide inspectElement API
-    const renderers = hook.renderers;
-    if (renderers) {
-      for (const renderer of renderers.values()) {
-        // Some React DevTools versions provide source retrieval methods
-        if (renderer.getSourceForFiber) {
-          const source = renderer.getSourceForFiber(fiber);
-          if (source) {
-            return source;
-          }
-        }
-      }
-    }
-  } catch {
-    // Ignore errors
-  }
-
-  return null;
-}
-
 interface DebugStackResult {
   source: Source;
   /** Raw file URL from the stack frame (before cleaning), needed for Next.js API */
@@ -782,7 +750,7 @@ interface DebugStackResult {
  * captured at the JSX call site.
  */
 function parseDebugStack(fiber: Fiber): DebugStackResult | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React DevTools renderers are version-specific private APIs.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React fibers expose private debug fields without a stable type.
   const fiberAny = fiber as any;
 
   const rawStack = fiberAny._debugStack || fiberAny.__debugStack;
@@ -1088,25 +1056,7 @@ export async function resolveSourceFromFiber(
     if (debug) logError(SourceMethod.FUNCTION_META, e);
   }
 
-  // 6. React DevTools renderers (legacy API).
-  try {
-    const devToolsSource = getSourceFromDevTools(fiber);
-    if (devToolsSource?.fileName) {
-      const resolved =
-        (await resolveOriginalPosition(
-          devToolsSource.fileName,
-          devToolsSource.lineNumber,
-          devToolsSource.columnNumber ?? 1,
-          operationContext()
-        )) ?? devToolsSource;
-      const accepted = accept(resolved, SourceMethod.DEVTOOLS_RENDERERS);
-      if (accepted) return accepted;
-    }
-  } catch (e) {
-    if (debug) logError(SourceMethod.DEVTOOLS_RENDERERS, e);
-  }
-
-  // 7. sourceURL comment, then JSX literals, in the function's own text.
+  // 6. sourceURL comment, then JSX literals, in the function's own text.
   if (typeof fiberAny.type === "function") {
     try {
       const funcStr = fiberAny.type.toString();
@@ -1135,7 +1085,7 @@ export async function resolveSourceFromFiber(
     }
   }
 
-  // 8. [Turbopack] Scrape the chunk text. Last resort: see the caveats on
+  // 7. [Turbopack] Scrape the chunk text. Last resort: see the caveats on
   //    `extractSourceFromTurbopackChunks`.
   const isNativeElement = typeof fiberAny.type === "string";
   const componentName =
