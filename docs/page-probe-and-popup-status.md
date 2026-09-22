@@ -246,7 +246,7 @@ Each phase is one commit; the PR targets `v2`.
 - `Popup.tsx`: `NoRuntimeView` → `PageStatusCard`; footer shows
   `Connected · <Framework> · <origin>`.
 
-### Phase 4 — docs, e2e, verification
+### Phase 4 — docs, e2e, verification (done)
 
 - `apps/extension/README.md` Requirements/Troubleshooting: remove babel
   jsx-source guidance that predates React 19; describe the states above.
@@ -257,6 +257,36 @@ Each phase is one commit; the PR targets `v2`.
 - `pnpm check`, `pnpm -C apps/extension build` and `build:firefox`, then load
   the unpacked build next to React DevTools and confirm the Components panel
   populates on `test-apps/vite-react-clean-project`.
+
+## Verification record
+
+What was run on 2026-09-22, on the branch `infi-pc/page-probe-status`:
+
+- `pnpm check`: green across all 13 packages after each phase.
+- Probe unit tests render the real frameworks into jsdom: `react-dom@18.3.1`
+  dev and production bundles, Vue dev and the self-contained production IIFE,
+  Svelte 3 compiled with `dev` on and off. React 19.2's `_debugOwner` and
+  `__reactFiber$` behaviour was verified by reading its shipped bundles.
+- `pnpm e2e` on port block 45000: 170 passed, 1 failed — Next 16 Turbopack
+  "native element with className" on Firefox, which then passed 4/4 on
+  `--repeat-each=4`. A flake, not a regression.
+- `E2E_GROUP=extension`, headed, against the production Chrome build: 3/3.
+- **React DevTools coexistence**, the actual bug. LocatorJS and React DevTools
+  8.0.0 loaded into one Chromium (`launchPersistentContext` with both
+  `--load-extension`s), `vite-react-clean-project` opened, five launches each:
+  - this branch: DevTools owns `__REACT_DEVTOOLS_GLOBAL_HOOK__` in **5/5**
+    (20 keys, `rendererInterfaces` present, `renderers.size === 1`), and
+    Locator's status is `ready · react` with the client loaded.
+  - `origin/v2`: DevTools owns it in **0/5**; a non-configurable 7-key shim
+    holds the global every time.
+    DevTools registers its MAIN-world hook script from its service worker on
+    install, so a harness must wait for both workers and load the page twice
+    before measuring — the first page after launch races that registration.
+- ui-lab **Page status** section screenshotted in light and dark at popup
+  width; every screen fits without wrapping the action row.
+
+Not automated: opening the DevTools Components panel and watching it fill.
+The hook-ownership check above is the exact precondition it fails on.
 
 ## Decisions taken
 
