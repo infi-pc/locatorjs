@@ -11,6 +11,7 @@ import {
   Kbd,
   LocatorBrand,
   ModifierChips,
+  PageStatusCard,
   ParentsMenu,
   PromoFooter,
   ProvenanceBadge,
@@ -27,6 +28,7 @@ import {
   actionIconFor,
   actionLabel,
   editorIconFor,
+  type PageStatusScreen,
   type ParentRow,
   type TreeRow,
   type TreeViewModel,
@@ -191,6 +193,7 @@ const styles = {
     overflow: "hidden",
   }),
   wide: css({ gridColumn: { xl: "1 / -1" } }),
+  popupWidth: css({ maxW: "426px", width: "100%" }),
   specimenHeader: css({
     alignItems: "flex-start",
     borderBottomColor: "border",
@@ -312,8 +315,46 @@ const navItems = [
   ["composites", "Composites"],
   ["panels", "Inspector panels"],
   ["settings", "Settings surface"],
+  ["status", "Page status"],
   ["flows", "Flows"],
 ] as const;
+
+/**
+ * Every card the popup can show above the settings, at the popup's inner width.
+ * A connected page shows none of these.
+ */
+const pageStatusScreens: Array<{ title: string; screen: PageStatusScreen }> = [
+  { title: "Probing", screen: { kind: "probing" } },
+  {
+    title: "No framework",
+    screen: { kind: "no-framework", unsupported: [] },
+  },
+  {
+    title: "No framework · unsupported one recognised",
+    screen: { kind: "no-framework", unsupported: ["Angular"] },
+  },
+  {
+    title: "No source info · React",
+    screen: { kind: "no-source-info", frameworks: ["react"] },
+  },
+  {
+    title: "No source info · Vue and Svelte",
+    screen: { kind: "no-source-info", frameworks: ["vue", "svelte"] },
+  },
+  {
+    title: "Client failed",
+    screen: {
+      kind: "client-failed",
+      detail:
+        "The page did not run chrome-extension://abc/client.bundle.js. A strict Content-Security-Policy is the usual cause.",
+    },
+  },
+  { title: "Disabled everywhere", screen: { kind: "disabled-everywhere" } },
+  { title: "Disabled here", screen: { kind: "disabled-here" } },
+  { title: "Restricted page", screen: { kind: "restricted-page" } },
+  { title: "Reload required", screen: { kind: "reload-required" } },
+  { title: "Runtime unreachable", screen: { kind: "runtime-unreachable" } },
+];
 
 /**
  * Stands in for what the runtime maps out of an adapter: a component boundary
@@ -1104,6 +1145,32 @@ export function App() {
                 </div>
               </div>
             </Specimen>
+          </LabSection>
+
+          <LabSection
+            id="status"
+            title="Page status"
+            description="The one card the extension popup shows above the settings when a page is not simply connected: a diagnosis, a next step, at most one button. Rendered at the popup's 426px inner width."
+          >
+            <For each={pageStatusScreens}>
+              {(entry) => (
+                <Specimen
+                  title={entry.title}
+                  description={`screen.kind = "${entry.screen.kind}"`}
+                  provenance="local"
+                  mutedCanvas
+                >
+                  <div class={styles.popupWidth}>
+                    <PageStatusCard
+                      screen={entry.screen}
+                      onCheckAgain={() => undefined}
+                      onEnable={() => undefined}
+                      onReload={() => undefined}
+                    />
+                  </div>
+                </Specimen>
+              )}
+            </For>
           </LabSection>
 
           <LabSection

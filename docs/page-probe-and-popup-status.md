@@ -233,7 +233,7 @@ Each phase is one commit; the PR targets `v2`.
   `Object.prototype.hasOwnProperty.call(window, "__REACT_DEVTOOLS_GLOBAL_HOOK__")`
   is `false` — the exact check React DevTools makes.
 
-### Phase 3 — protocol and popup
+### Phase 3 — protocol and popup (done)
 
 - `snapshotBridge.ts`: read and validate `locatorPageStatus`; include
   `pageStatus` in both the `ok: true` and `ok: false` responses; drop

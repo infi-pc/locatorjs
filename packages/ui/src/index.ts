@@ -23,6 +23,7 @@ export * from "./editorIcons";
 export * from "./actionIcons";
 export * from "./BindingsEditor";
 export * from "./PromoFooter";
+export * from "./PageStatusCard";
 export * from "./Wizard";
 export * from "./treeModel";
 export * from "./TreePanel";

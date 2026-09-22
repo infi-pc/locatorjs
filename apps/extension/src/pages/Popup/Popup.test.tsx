@@ -7,22 +7,25 @@ import {
   waitFor,
 } from '@solidjs/testing-library';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { PageStatus, WriteResult } from '@locator/shared';
 import type { ConnectivityStatus, Snapshot } from './syncedState';
 
 const mocks = vi.hoisted(() => ({
   userExtension: {},
   setUserExtension: vi.fn(async () => ({ ok: true as const })),
-  setSiteLocal: vi.fn(async () => ({ ok: true as const })),
+  setSiteLocal: vi.fn(async (): Promise<WriteResult> => ({ ok: true })),
   clearSiteLocal: vi.fn(async () => ({ ok: true as const })),
   clearUserExtension: vi.fn(async () => ({ ok: true as const })),
   tryAction: vi.fn(async () => ({ ok: true as const })),
   reloadActiveTab: vi.fn(async () => undefined),
+  requestProbe: vi.fn(async () => undefined),
   createTab: vi.fn(),
   // Assigned by the mock factory below. Connectivity is a signal so a test can
   // flip it mid-session, which is the only way to observe a remount.
   setStatus: undefined as unknown as (value: ConnectivityStatus) => void,
   setSnapshot: undefined as unknown as (value: Snapshot | null) => void,
-  setDiagnostic: undefined as unknown as (value: string | undefined) => void,
+  setPageStatus: undefined as unknown as (value: PageStatus | null) => void,
+  setContentReachable: undefined as unknown as (value: boolean) => void,
   setSiteLocalPresent: undefined as unknown as (value: boolean) => void,
 }));
 
@@ -30,16 +33,19 @@ vi.mock('./syncedState', async () => {
   const { createSignal } = await import('solid-js');
   const [status, setStatus] = createSignal<ConnectivityStatus>('connected');
   const [snapshot, setSnapshot] = createSignal<Snapshot | null>(null);
-  const [diagnostic, setDiagnostic] = createSignal<string>();
+  const [pageStatus, setPageStatus] = createSignal<PageStatus | null>(null);
+  const [contentReachable, setContentReachable] = createSignal(false);
   const [siteLocalPresent, setSiteLocalPresent] = createSignal(false);
   mocks.setStatus = setStatus;
   mocks.setSnapshot = (value) => setSnapshot(value);
-  mocks.setDiagnostic = setDiagnostic;
+  mocks.setPageStatus = setPageStatus;
+  mocks.setContentReachable = setContentReachable;
   mocks.setSiteLocalPresent = setSiteLocalPresent;
   return {
     useSyncedState: () => ({
       status,
-      diagnostic,
+      pageStatus,
+      contentReachable,
       siteLocalPresent,
       snapshot,
       extensionConfigRead: () => ({ kind: 'empty' as const }),
@@ -50,6 +56,7 @@ vi.mock('./syncedState', async () => {
       clearUserExtension: mocks.clearUserExtension,
       tryAction: mocks.tryAction,
       reloadActiveTab: mocks.reloadActiveTab,
+      requestProbe: mocks.requestProbe,
     }),
   };
 });
@@ -121,7 +128,8 @@ describe('Popup settings navigation', () => {
     mocks.setStatus('connected');
     mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
-    mocks.setDiagnostic(undefined);
+    mocks.setPageStatus(null);
+    mocks.setContentReachable(false);
     mocks.setSiteLocalPresent(false);
     vi.clearAllMocks();
   });
@@ -280,9 +288,7 @@ describe('Popup settings navigation', () => {
     mocks.setSnapshot(null);
     render(() => <Popup />);
 
-    expect(
-      screen.getByText('Page not connected — editing All sites.')
-    ).toBeTruthy();
+    expect(screen.getByText("Locator can't run here")).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Edit action 2: Tree view' })
     ).toBeTruthy();
@@ -316,23 +322,80 @@ describe('Popup settings navigation', () => {
     expect(mocks.reloadActiveTab).toHaveBeenCalledTimes(1);
   });
 
-  test('translates startup diagnostics and hides internals behind Details', () => {
+  test('shows the page agent status while the client is not running', () => {
     mocks.setStatus('no-runtime');
     mocks.setSnapshot(null);
-    mocks.setDiagnostic('ok');
+    mocks.setContentReachable(true);
     const view = render(() => <Popup />);
 
-    expect(screen.getByText(/still starting on this page/)).toBeTruthy();
-    expect(screen.queryByText('ok')).toBeNull();
+    expect(screen.getByText('Looking for your app…')).toBeTruthy();
 
-    view.unmount();
-    mocks.setDiagnostic('React hook collision diagnostic');
-    render(() => <Popup />);
+    mocks.setPageStatus({ kind: 'no-framework', unsupported: ['Angular'] });
     expect(
-      screen.getByText('Page not connected — editing All sites.')
+      screen.getByText('No supported framework on this page')
     ).toBeTruthy();
-    expect(screen.getByText('Details')).toBeTruthy();
-    expect(screen.getByText('React hook collision diagnostic')).toBeTruthy();
+    expect(screen.getByText(/This looks like an Angular app/)).toBeTruthy();
+    screen.getByRole('button', { name: 'Check again' }).click();
+    expect(mocks.requestProbe).toHaveBeenCalledTimes(1);
+
+    mocks.setPageStatus({ kind: 'no-source-info', frameworks: ['react'] });
+    expect(
+      screen.getByText('React is here, but without source locations')
+    ).toBeTruthy();
+
+    mocks.setPageStatus({ kind: 'client-failed', detail: 'CSP said no' });
+    expect(
+      screen.getByText("Locator couldn't start on this page")
+    ).toBeTruthy();
+    expect(screen.getByText('CSP said no')).toBeTruthy();
+
+    mocks.setPageStatus({ kind: 'ready', adapter: 'react', frameworks: [] });
+    expect(screen.getByText("The page didn't answer")).toBeTruthy();
+    view.unmount();
+  });
+
+  test('turns Locator back on for all sites from the disabled screen', async () => {
+    mocks.setStatus('no-runtime');
+    mocks.setSnapshot(null);
+    mocks.setContentReachable(true);
+    mocks.setPageStatus({ kind: 'disabled' });
+    render(() => <Popup />);
+
+    expect(
+      screen.getByText('Locator is turned off for all sites')
+    ).toBeTruthy();
+    await screen.getByRole('button', { name: 'Turn on' }).click();
+    expect(mocks.setUserExtension).toHaveBeenCalledWith({
+      set: { disabled: false },
+    });
+    expect(mocks.setSiteLocal).not.toHaveBeenCalled();
+  });
+
+  test('turns Locator back on for this site and reports a failed write', async () => {
+    mocks.setSiteLocal.mockResolvedValueOnce({ ok: false, reason: 'quota' });
+    const snapshot = connectedSnapshot();
+    mocks.setSnapshot({
+      ...snapshot,
+      effective: { ...snapshot.effective, disabled: true },
+    });
+    render(() => <Popup />);
+
+    expect(screen.getByText('Disabled on this page')).toBeTruthy();
+    await screen.getByRole('button', { name: 'Turn on' }).click();
+    expect(mocks.setSiteLocal).toHaveBeenCalledWith({
+      set: { disabled: false },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain(
+        'Could not enable LocatorJS on this page.'
+      )
+    );
+  });
+
+  test('names the framework in the footer when connected', () => {
+    mocks.setPageStatus({ kind: 'ready', adapter: 'vue', frameworks: ['vue'] });
+    render(() => <Popup />);
+    expect(screen.getByText('Connected · Vue')).toBeTruthy();
   });
 
   test('keeps recovery for rejected site settings available', async () => {
@@ -375,7 +438,8 @@ describe('Popup connectivity changes', () => {
     mocks.setStatus('connected');
     mocks.setSnapshot(connectedSnapshot());
     mocks.userExtension = { projectPath: '/all-sites' };
-    mocks.setDiagnostic(undefined);
+    mocks.setPageStatus(null);
+    mocks.setContentReachable(false);
     mocks.setSiteLocalPresent(false);
     vi.clearAllMocks();
   });
