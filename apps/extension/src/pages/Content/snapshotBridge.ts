@@ -2,6 +2,7 @@ import {
   decodeTryActionResult,
   decodeWriteResult,
   postMessageOrigin,
+  readPageStatus,
 } from '@locator/shared';
 import {
   compileSetup,
@@ -22,6 +23,7 @@ const EXTENSION_PROTOCOL_VERSION = 4 as const;
 
 type PopupMessage =
   | { from: 'popup'; subject: 'requestSnapshot' }
+  | { from: 'popup'; subject: 'requestProbe' }
   | {
       from: 'popup';
       subject: 'applySiteLocal';
@@ -70,7 +72,7 @@ export function mountSnapshotBridge(getAccess: () => OriginAccess) {
                 extensionVersion: browser.runtime.getManifest().version,
                 reason: rejectedValue ? 'snapshot-rejected' : 'no-runtime',
                 siteLocalPresent: snapshotHasSiteLocal(rejectedValue),
-                diagnostic: hookDiagnostic(),
+                pageStatus: readPageStatus(document),
                 access,
               });
             } else {
@@ -79,12 +81,23 @@ export function mountSnapshotBridge(getAccess: () => OriginAccess) {
                 protocolVersion: EXTENSION_PROTOCOL_VERSION,
                 extensionVersion: browser.runtime.getManifest().version,
                 snapshot: payload,
+                pageStatus: readPageStatus(document),
                 access,
               });
             }
           }
         );
         return true;
+      }
+
+      if (msg.subject === 'requestProbe') {
+        // The agent in the MAIN world re-samples the page and republishes.
+        window.postMessage(
+          { type: 'LOCATOR_PAGE_PROBE_REQUEST' },
+          postMessageOrigin(window.location)
+        );
+        sendResponse({ ok: true });
+        return false;
       }
 
       if (msg.subject === 'applySiteLocal') {
@@ -154,13 +167,6 @@ export function mountSnapshotBridge(getAccess: () => OriginAccess) {
 
       return false;
     }
-  );
-}
-
-function hookDiagnostic() {
-  return (
-    document.head?.dataset.locatorDisabled ||
-    document.head?.dataset.locatorHookStatusMessage
   );
 }
 

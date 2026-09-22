@@ -18,6 +18,9 @@ let latestLayer: StrictConfig.SerializedLayerV3 = {};
 let initialOptionsReady = false;
 let documentOriginReady = false;
 let pendingSettingsRequest = false;
+// Once the page agent has asked for settings, later changes are pushed to it so
+// enabling Locator for all sites takes effect without a reload.
+let settingsAnswered = false;
 let currentAccess: OriginAccess = { origin: null, reason: 'unavailable' };
 let accessRequest = 0;
 
@@ -85,6 +88,7 @@ window.addEventListener('message', (event) => {
 
 function respondToSettingsRequest() {
   pendingSettingsRequest = false;
+  settingsAnswered = true;
   injectUserExtensionGlobal(latestLayer);
   window.postMessage(
     {
@@ -97,7 +101,11 @@ function respondToSettingsRequest() {
 
 function publishUserExtensionLayer(layer: StrictConfig.SerializedLayerV3) {
   latestLayer = layer;
-  injectUserExtensionGlobal(layer);
+  if (settingsAnswered && initialOptionsReady && documentOriginReady) {
+    respondToSettingsRequest();
+  } else {
+    injectUserExtensionGlobal(layer);
+  }
 }
 
 function injectUserExtensionGlobal(layer: StrictConfig.SerializedLayerV3) {

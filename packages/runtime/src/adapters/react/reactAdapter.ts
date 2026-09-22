@@ -54,7 +54,7 @@ function getElementInfo(found: HTMLElement): FullElementInfo | null {
   // Instead of labels, return this element, parent elements leading to closest component, its component labels, all wrapping components labels.
   const labels: LabelData[] = [];
 
-  const fiber = findFiberByHtmlElement(found, false);
+  const fiber = findFiberByHtmlElement(found);
   if (fiber) {
     const { component, componentBox, parentElements } =
       getAllParentsElementsAndRootComponent(fiber);
@@ -106,7 +106,7 @@ class ReactTreeNodeElement extends HtmlElementTreeNode {
   getSource(): Source | null {
     const resolved = readCached(asyncElementSources, this.element);
     if (resolved) return resolved;
-    const fiber = findFiberByHtmlElement(this.element, false);
+    const fiber = findFiberByHtmlElement(this.element);
     if (fiber) {
       const result = findDebugSource(fiber);
       if (result) {
@@ -118,7 +118,7 @@ class ReactTreeNodeElement extends HtmlElementTreeNode {
   async getSourceAsync(
     context?: SourceResolutionContext
   ): Promise<Source | null> {
-    const fiber = findFiberByHtmlElement(this.element, false);
+    const fiber = findFiberByHtmlElement(this.element);
     const source = fiber
       ? (await findDebugSourceAsync(fiber, context))?.source ?? null
       : null;
@@ -133,7 +133,7 @@ class ReactTreeNodeElement extends HtmlElementTreeNode {
   getComponent(): TreeNodeComponent | null {
     const resolved = readCached(asyncComponents, this.element);
     if (resolved) return resolved;
-    const fiber = findFiberByHtmlElement(this.element, false);
+    const fiber = findFiberByHtmlElement(this.element);
     const componentFiber = fiber?._debugOwner;
 
     if (componentFiber) {
@@ -160,7 +160,7 @@ class ReactTreeNodeElement extends HtmlElementTreeNode {
   async getComponentAsync(
     context?: SourceResolutionContext
   ): Promise<TreeNodeComponent | null> {
-    const fiber = findFiberByHtmlElement(this.element, false)?._debugOwner;
+    const fiber = findFiberByHtmlElement(this.element)?._debugOwner;
     if (!fiber) return null;
     const source =
       findOwnDebugSource(fiber) ??
@@ -192,7 +192,7 @@ function getTree(element: HTMLElement): TreeState | null {
  * claim the same file and line.
  */
 function getParentsPaths(element: HTMLElement): ParentPathItem[] {
-  const fiber = findFiberByHtmlElement(element, false);
+  const fiber = findFiberByHtmlElement(element);
   if (!fiber) return [];
 
   const pathItems: ParentPathItem[] = [];
@@ -222,7 +222,7 @@ export async function getParentsPathsAsync(
   element: HTMLElement,
   context?: SourceResolutionContext
 ): Promise<ParentPathItem[]> {
-  const fiber = findFiberByHtmlElement(element, false);
+  const fiber = findFiberByHtmlElement(element);
   if (!fiber) return [];
   const items: ParentPathItem[] = [];
   const seen = new Set<Fiber>();
@@ -259,7 +259,7 @@ export async function getElementInfoAsync(
 ): Promise<FullElementInfo | null> {
   const labels: LabelData[] = [];
 
-  const fiber = findFiberByHtmlElement(found, false);
+  const fiber = findFiberByHtmlElement(found);
   if (fiber) {
     const { component, componentBox, parentElements } =
       getAllParentsElementsAndRootComponent(fiber);
@@ -347,7 +347,7 @@ async function diagnoseAllElements(): Promise<void> {
 
     const textContent = el.textContent?.trim().slice(0, 40) || "";
 
-    const fiber = findFiberByHtmlElement(el, false);
+    const fiber = findFiberByHtmlElement(el);
     if (!fiber) {
       rows.push({
         element: label,

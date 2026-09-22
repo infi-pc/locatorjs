@@ -1,4 +1,4 @@
-import { strictConfig } from '@locator/shared';
+import { FRAMEWORK_LABELS, strictConfig } from '@locator/shared';
 import {
   ActionSettings,
   Button,
@@ -62,6 +62,7 @@ export function Home() {
     status,
     siteLocalPresent,
     extensionConfigRead,
+    pageStatus,
   } = synced;
   const originAccess =
     synced.originAccess ??
@@ -73,6 +74,12 @@ export function Home() {
     extensionConfigRead().kind === 'future-version' ||
     extensionConfigRead().kind === 'corrupt';
   const connected = () => status() === 'connected' && !!snapshot();
+  const connectedLabel = () => {
+    const page = pageStatus();
+    return page?.kind === 'ready'
+      ? `Connected · ${FRAMEWORK_LABELS[page.adapter]}`
+      : 'Connected';
+  };
   /**
    * What the user picked, kept apart from what is currently writable. "This
    * site" is not editable while the page is disconnected, but a transient poll
@@ -283,7 +290,7 @@ export function Home() {
             : saveStatus() === 'error'
             ? 'Could not save'
             : connected()
-            ? 'Connected'
+            ? connectedLabel()
             : 'Editing All sites offline'}
         </span>
         <div class={styles.footerActions}>

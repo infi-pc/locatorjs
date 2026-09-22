@@ -1,15 +1,14 @@
 import { Show, createSignal } from 'solid-js';
-import { Button, SectionHeadline, Spinner } from '@locator/ui';
-import { Power } from 'lucide-solid';
+import { PageStatusCard, Spinner, type PageStatusScreen } from '@locator/ui';
 import { css } from '@locator/styled-system/css';
 import { Home } from './Home';
 import { Header } from './Header';
-import { useSyncedState } from './syncedState';
+import { useSyncedState, type ConnectivityStatus } from './syncedState';
+import type { PageStatus } from '@locator/shared';
 
 const styles = {
   shell: css({ p: '3' }),
   stack: css({ display: 'flex', flexDirection: 'column', gap: '2' }),
-  card: css({ layerStyle: 'card', p: '3' }),
   loading: css({
     alignItems: 'center',
     display: 'flex',
@@ -20,45 +19,78 @@ const styles = {
     textAlign: 'center',
   }),
   loadingText: css({ fontSize: 'lg' }),
-  bodyText: css({ color: 'fg.muted', fontSize: 'sm', mt: '1' }),
-  actionRow: css({ display: 'flex', justifyContent: 'flex-end', mt: '3' }),
-  notice: css({ color: 'fg.muted', fontSize: 'xs', px: '1' }),
-  diagnostic: css({ mt: '1.5' }),
-  diagnosticSummary: css({ color: 'fg.default', cursor: 'pointer' }),
-  diagnosticText: css({
-    overflowWrap: 'anywhere',
-    pt: '1',
-    whiteSpace: 'pre-wrap',
-  }),
-  error: css({ color: 'red.plain.fg', fontSize: 'xs', mt: '2' }),
-  disabledIcon: css({
-    alignItems: 'center',
-    bg: 'red.subtle.bg',
-    borderColor: 'red.surface.border',
-    borderRadius: 'l2',
-    borderWidth: '1px',
-    color: 'red.subtle.fg',
-    display: 'inline-flex',
-    height: '8',
-    justifyContent: 'center',
-    mb: '2',
-    width: '8',
-  }),
 };
 
-const Popup = () => {
-  const { status, snapshot, setSiteLocal, diagnostic, reloadActiveTab } =
-    useSyncedState();
-  const [enableError, setEnableError] = createSignal<string>();
+/**
+ * The one card above the settings, or none when the page is simply connected.
+ *
+ * The page agent's status explains why the client is not running; the popup
+ * adds what only it can know — whether a content script answered at all, and
+ * whether the extension updated under the tab.
+ */
+function pageStatusScreen(input: {
+  status: ConnectivityStatus;
+  pageStatus: PageStatus | null;
+  contentReachable: boolean;
+  siteDisabled: boolean;
+}): PageStatusScreen | null {
+  if (input.status === 'loading') return null;
+  if (input.status === 'reload-required') return { kind: 'reload-required' };
+  if (input.status === 'connected') {
+    return input.siteDisabled ? { kind: 'disabled-here' } : null;
+  }
+  const page = input.pageStatus;
+  if (!page) {
+    return input.contentReachable
+      ? { kind: 'probing' }
+      : { kind: 'restricted-page' };
+  }
+  switch (page.kind) {
+    case 'ready':
+      return { kind: 'runtime-unreachable' };
+    case 'disabled':
+      return { kind: 'disabled-everywhere' };
+    case 'probing':
+    case 'no-framework':
+    case 'no-source-info':
+    case 'client-failed':
+      return page;
+  }
+}
 
-  const siteDisabled = () => !!snapshot()?.effective.disabled;
+const Popup = () => {
+  const {
+    status,
+    snapshot,
+    pageStatus,
+    contentReachable,
+    setSiteLocal,
+    setUserExtension,
+    reloadActiveTab,
+    requestProbe,
+  } = useSyncedState();
+  const [actionError, setActionError] = createSignal<string>();
+  const [busy, setBusy] = createSignal(false);
+
+  const screen = () =>
+    pageStatusScreen({
+      status: status(),
+      pageStatus: pageStatus(),
+      contentReachable: contentReachable(),
+      siteDisabled: !!snapshot()?.effective.disabled,
+    });
 
   // A page with third-party storage blocked, or storage at quota, resolves this
   // write to `{ ok: false }`. Dropping it left the button looking like it had
   // worked while the overlay stayed disabled.
-  const enableHere = async () => {
-    const result = await setSiteLocal({ set: { disabled: false } });
-    setEnableError(
+  const enable = async () => {
+    setBusy(true);
+    const result =
+      screen()?.kind === 'disabled-everywhere'
+        ? await setUserExtension({ set: { disabled: false } })
+        : await setSiteLocal({ set: { disabled: false } });
+    setBusy(false);
+    setActionError(
       result.ok ? undefined : 'Could not enable LocatorJS on this page.'
     );
   };
@@ -76,41 +108,25 @@ const Popup = () => {
         }
       >
         {/*
-          `<Home/>` is mounted once, outside the connectivity branches. Having
-          it in both branches of a `<Show>` made any transient poll failure --
-          an HMR reload, a page that misses the 1s reply timeout -- dispose and
-          rebuild the whole settings UI: open dialogs closed, in-flight edits
-          were discarded, and the write scope silently reset from "This site"
-          to "All sites" so the next save landed in the wrong layer.
+          `<Home/>` is mounted once, outside the status branches. Having it in
+          both branches of a `<Show>` made any transient poll failure -- an HMR
+          reload, a page that misses the 1s reply timeout -- dispose and rebuild
+          the whole settings UI: open dialogs closed, in-flight edits were
+          discarded, and the write scope silently reset from "This site" to
+          "All sites" so the next save landed in the wrong layer.
         */}
         <div class={styles.stack}>
-          <Show when={status() !== 'connected'}>
-            <NoRuntimeView
-              reloadRequired={status() === 'reload-required'}
-              diagnostic={diagnostic()}
-              onReload={reloadActiveTab}
-            />
-          </Show>
-          <Show when={status() === 'connected' && siteDisabled()}>
-            <div class={styles.card}>
-              <span class={styles.disabledIcon}>
-                <Power size={16} />
-              </span>
-              <SectionHeadline>Disabled</SectionHeadline>
-              <div class={styles.bodyText}>
-                LocatorJS is disabled on this page.
-              </div>
-              <div class={styles.actionRow}>
-                <Button variant="primary" onClick={enableHere}>
-                  Enable
-                </Button>
-              </div>
-              <Show when={enableError()}>
-                <div class={styles.error} role="alert">
-                  {enableError()}
-                </div>
-              </Show>
-            </div>
+          <Show when={screen()}>
+            {(current) => (
+              <PageStatusCard
+                screen={current()}
+                busy={busy()}
+                error={actionError()}
+                onCheckAgain={() => void requestProbe()}
+                onEnable={() => void enable()}
+                onReload={() => void reloadActiveTab()}
+              />
+            )}
           </Show>
           <Home />
         </div>
@@ -118,36 +134,5 @@ const Popup = () => {
     </div>
   );
 };
-
-function NoRuntimeView(props: {
-  reloadRequired: boolean;
-  diagnostic?: string;
-  onReload: () => Promise<void>;
-}) {
-  const stillStarting = () =>
-    props.diagnostic === 'ok' || props.diagnostic?.startsWith('loading:');
-  const showDiagnostic = () =>
-    !!props.diagnostic && !props.reloadRequired && !stillStarting();
-  return (
-    <div class={styles.notice}>
-      {props.reloadRequired
-        ? 'Reload this page to finish updating LocatorJS.'
-        : stillStarting()
-        ? 'LocatorJS is still starting on this page. You can edit All sites while it connects.'
-        : 'Page not connected — editing All sites.'}
-      <Show when={props.reloadRequired}>
-        <Button variant="outline" onClick={() => void props.onReload()}>
-          Reload page
-        </Button>
-      </Show>
-      <Show when={showDiagnostic()}>
-        <details class={styles.diagnostic}>
-          <summary class={styles.diagnosticSummary}>Details</summary>
-          <div class={styles.diagnosticText}>{props.diagnostic}</div>
-        </details>
-      </Show>
-    </div>
-  );
-}
 
 export default Popup;

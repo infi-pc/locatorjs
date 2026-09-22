@@ -195,7 +195,6 @@ async function checkImports(consumer) {
     "@locator/runtime",
     "@locator/shared",
     "@locator/ui",
-    "@locator/react-devtools-hook",
     "@locator/styled-system/css",
     "@locator/styled-system/jsx",
     "@locator/styled-system/patterns",

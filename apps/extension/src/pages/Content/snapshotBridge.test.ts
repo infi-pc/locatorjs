@@ -85,6 +85,7 @@ describe('mountSnapshotBridge', () => {
       protocolVersion: 4,
       extensionVersion: '2.0.0',
       snapshot: validatedSnapshot,
+      pageStatus: null,
       access,
     });
   });
@@ -109,7 +110,7 @@ describe('mountSnapshotBridge', () => {
       extensionVersion: '2.0.0',
       reason: 'no-runtime',
       siteLocalPresent: false,
-      diagnostic: undefined,
+      pageStatus: null,
       access,
     });
   });
@@ -145,7 +146,7 @@ describe('mountSnapshotBridge', () => {
       extensionVersion: '2.0.0',
       reason: 'no-runtime',
       siteLocalPresent: false,
-      diagnostic: undefined,
+      pageStatus: null,
       access,
     });
   });
@@ -291,7 +292,7 @@ describe('mountSnapshotBridge payload validation', () => {
       extensionVersion: '2.0.0',
       reason: 'snapshot-rejected',
       siteLocalPresent: false,
-      diagnostic: undefined,
+      pageStatus: null,
       access,
     });
   });

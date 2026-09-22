@@ -10,6 +10,7 @@ import {
 import {
   decodeTryActionResult,
   decodeWriteResult,
+  type PageStatus,
   type TryActionResult,
   strictConfig,
   type WriteResult,
@@ -47,7 +48,10 @@ type SyncedState = {
   snapshot: Accessor<Snapshot | null>;
   originAccess: Accessor<OriginAccess>;
   status: Accessor<ConnectivityStatus>;
-  diagnostic: Accessor<string | undefined>;
+  /** What the page agent published, already decoded by the content script. */
+  pageStatus: Accessor<PageStatus | null>;
+  /** False when no content script answered: browser pages, the store, PDFs. */
+  contentReachable: Accessor<boolean>;
   siteLocalPresent: Accessor<boolean>;
   setUserExtension: (
     patch: strictConfig.LayerPatchInput
@@ -56,6 +60,8 @@ type SyncedState = {
   clearSiteLocal: () => Promise<WriteResult>;
   clearUserExtension: () => Promise<WriteResult>;
   reloadActiveTab: () => Promise<void>;
+  /** Ask the page agent to sample the page again and refresh the snapshot. */
+  requestProbe: () => Promise<void>;
   tryAction: (action: strictConfig.BindingAction) => Promise<TryActionResult>;
   grantOrigin: (origin: string) => Promise<void>;
   revokeOrigin: (origin: string) => Promise<void>;
@@ -74,7 +80,8 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     reason: 'unavailable',
   });
   const [status, setStatus] = createSignal<ConnectivityStatus>('loading');
-  const [diagnostic, setDiagnostic] = createSignal<string>();
+  const [pageStatus, setPageStatus] = createSignal<PageStatus | null>(null);
+  const [contentReachable, setContentReachable] = createSignal(false);
   const [siteLocalPresent, setSiteLocalPresent] = createSignal(false);
 
   let storageRevision = 0;
@@ -92,7 +99,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         setUserExtensionSignal(layerFromRead(read));
       }
     })
-    .catch(() => markNoRuntime('Could not read extension settings.'));
+    .catch(() => markNoRuntime());
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
@@ -134,6 +141,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
             protocolVersion: 4;
             extensionVersion: string;
             snapshot: Snapshot;
+            pageStatus?: PageStatus | null;
             access: OriginAccess;
           }
         | {
@@ -142,7 +150,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
             extensionVersion: string;
             reason: string;
             siteLocalPresent?: boolean;
-            diagnostic?: string;
+            pageStatus?: PageStatus | null;
             access?: OriginAccess;
           }
         | undefined;
@@ -160,7 +168,8 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         setStatus('no-runtime');
         setSnapshot(null);
         setSiteLocalPresent(response.siteLocalPresent ?? false);
-        setDiagnostic(response.diagnostic);
+        setPageStatus(pageStatusOf(response.pageStatus));
+        setContentReachable(true);
         setOriginAccess(response.access);
         setDisplayedTarget({
           tabId: currentTab.id,
@@ -190,11 +199,13 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
         setSiteLocalPresent(
           Object.keys(response.snapshot.layers['user-origin'] ?? {}).length > 0
         );
-        setDiagnostic(undefined);
+        setPageStatus(pageStatusOf(response.pageStatus));
+        setContentReachable(true);
       } else {
         setStatus('no-runtime');
         setSnapshot(null);
-        setDiagnostic(response.diagnostic);
+        setPageStatus(pageStatusOf(response.pageStatus));
+        setContentReachable(true);
         setOriginAccess(response.access);
         setDisplayedTarget({
           tabId: currentTab.id,
@@ -203,7 +214,7 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       }
     } catch {
       const hadContentIdentity = !!displayedTarget()?.origin;
-      markNoRuntime(undefined, hadContentIdentity);
+      markNoRuntime(hadContentIdentity);
       const tabs = await browser.tabs.query({
         active: true,
         currentWindow: true,
@@ -215,24 +226,25 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     }
   }
 
-  function markNoRuntime(message?: string, preserveAccess = false) {
+  function markNoRuntime(preserveAccess = false) {
     setStatus('no-runtime');
     setSnapshot(null);
     setSiteLocalPresent(false);
+    setPageStatus(null);
     if (!preserveAccess) {
       setOriginAccess({ origin: null, reason: 'unavailable' });
       setDisplayedTarget(undefined);
+      setContentReachable(false);
     }
-    setDiagnostic(message);
   }
 
-  function markReloadRequired(message?: string) {
+  function markReloadRequired() {
     setStatus('reload-required');
     setSnapshot(null);
     setSiteLocalPresent(false);
+    setPageStatus(null);
     setOriginAccess({ origin: null, reason: 'unavailable' });
     setDisplayedTarget(undefined);
-    setDiagnostic(message);
   }
 
   async function classifyLegacyTab(
@@ -253,14 +265,13 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       );
       if (typeof legacyStatus === 'string') {
         if (generation !== requestGeneration) return;
-        markReloadRequired(legacyStatus);
+        markReloadRequired();
         return;
       }
     } catch {
       // A missing content script is the normal case on restricted pages.
     }
-    if (generation === requestGeneration)
-      markNoRuntime(undefined, preserveAccess);
+    if (generation === requestGeneration) markNoRuntime(preserveAccess);
   }
 
   requestSnapshot();
@@ -273,7 +284,8 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
     snapshot,
     originAccess,
     status,
-    diagnostic,
+    pageStatus,
+    contentReachable,
     siteLocalPresent,
     setUserExtension: async (patch) => {
       const result = await patchExtensionConfig(patch);
@@ -346,6 +358,26 @@ export function SyncedStateProvider(props: { children: JSX.Element }) {
       setStatus('loading');
       await requestSnapshot();
     },
+    requestProbe: async () => {
+      const tabs = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const tabId = tabs[0]?.id;
+      if (tabId) {
+        await sendToTab(
+          { tabId, origin: null },
+          {
+            from: 'popup',
+            subject: 'requestProbe',
+          }
+        );
+        // The agent republishes synchronously; give the client a moment to
+        // load before the next poll would pick it up anyway.
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
+      await requestSnapshot();
+    },
     tryAction: async (action) => {
       const target = displayedTarget();
       if (!target) return { ok: false, reason: 'blocked' };
@@ -381,6 +413,13 @@ async function sendToTab(
   } catch {
     return undefined;
   }
+}
+
+/** The content script already decoded this; only guard against a missing field. */
+function pageStatusOf(value: unknown): PageStatus | null {
+  return value && typeof value === 'object' && 'kind' in value
+    ? (value as PageStatus)
+    : null;
 }
 
 function isValidOriginAccess(value: unknown): value is OriginAccess {

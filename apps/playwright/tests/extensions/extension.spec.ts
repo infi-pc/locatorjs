@@ -70,8 +70,8 @@ async function activateLocator(page: Page, target: Locator) {
     await expect
       .poll(
         async () => {
-          // The extension may still be waiting for the framework hook when the
-          // page first renders. Replay the real activation gesture so a keydown
+          // The extension may still be probing the page for a framework when
+          // it first renders. Replay the real activation gesture so a keydown
           // that predates content-script setup does not make this test flaky.
           await page.keyboard.up("Alt");
           await page.keyboard.down("Alt");
@@ -82,10 +82,10 @@ async function activateLocator(page: Page, target: Locator) {
       )
       .toBe(true);
   } catch (error) {
-    const hookStatus = await page.evaluate(
-      () => document.head.dataset.locatorHookStatusMessage ?? "not reported"
+    const pageStatus = await page.evaluate(
+      () => document.documentElement.dataset.locatorPageStatus ?? "not reported"
     );
-    throw new Error(`Locator did not activate. Hook status: ${hookStatus}`, {
+    throw new Error(`Locator did not activate. Page status: ${pageStatus}`, {
       cause: error,
     });
   }

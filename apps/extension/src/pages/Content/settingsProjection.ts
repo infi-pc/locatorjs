@@ -1,6 +1,6 @@
 import type { strictConfig as StrictConfig } from '@locator/shared';
 
-/** Settings safe to expose before the hook has identified a dev surface. */
+/** Settings safe to expose before the page agent has identified a dev surface. */
 export function safeFrameProjection(
   layer: StrictConfig.SerializedLayerV3
 ): StrictConfig.SerializedLayerV3 {
