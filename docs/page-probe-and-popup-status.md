@@ -130,12 +130,21 @@ text.
 type PageStatus =
   | { kind: "probing" } // before first render / grace period
   | { kind: "ready"; adapter: FrameworkId; frameworks: FrameworkId[] }
-  | { kind: "disabled"; adapter: FrameworkId } // user disabled Locator here
+  | { kind: "disabled" } // Locator is off for all sites; client not loaded
   | { kind: "no-framework"; unsupported: string[] }
-  | { kind: "production-build"; frameworks: FrameworkId[] }
-  | { kind: "missing-source-info"; frameworks: FrameworkId[] }
-  | { kind: "client-failed"; detail: string }; // client.bundle.js did not load
+  | { kind: "no-source-info"; frameworks: FrameworkId[] }
+  | { kind: "client-failed"; detail: string }; // client.bundle.js did not run
 ```
+
+`no-source-info` covers both production builds and dev builds compiled
+without source metadata: the DOM cannot tell them apart for Svelte (a scoped
+class hash is all either leaves), so one state carries both with per-framework
+copy. Site-level "disabled" is not a page status — it lives in the runtime's
+settings and the popup reads it from the snapshot, as today.
+
+Implemented in `packages/shared/src/pageStatus.ts` (with `encode`/`decode`
+for the untrusted attribute boundary) and
+`apps/extension/src/pages/MainWorld/pageAgent.ts` (the state machine).
 
 The popup adds the states it can only know itself:
 
@@ -153,7 +162,7 @@ server that compiles for 15 s lands on a stale "not found". Replace with:
 1. Probe on `DOMContentLoaded` and on `load`.
 2. A `MutationObserver` on `documentElement` (`childList`, `subtree`),
    debounced to at most one probe per 500 ms, disconnected once the status is
-   `ready`/`production-build`/`missing-source-info` or after 90 s.
+   `ready` or after 90 s.
 3. The popup's **Check again** button requests a fresh probe: popup →
    content script → `postMessage` → MAIN world → re-probe and republish.
 4. `probing` turns into `no-framework` only after `rendered` is true and at
@@ -168,18 +177,17 @@ with one sentence of diagnosis, one sentence of next step, and at most one
 button. All copy lives in one place (`packages/ui/src/PageStatusCard.tsx`) so
 it can be reviewed in ui-lab.
 
-| State                 | Headline                                   | Body / action                                                                                                                                                                                     |
-| --------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ready`               | _(no card)_                                | Footer: `Connected · React · localhost:3000`. Settings editor as today.                                                                                                                           |
-| `disabled`            | Disabled on this page                      | **Enable** (exists today).                                                                                                                                                                        |
-| `probing`             | Looking for your app…                      | Subtle, no spinner. "Locator checks the page once it renders." Settings for **All sites** remain editable underneath.                                                                             |
-| `no-framework`        | No supported framework on this page        | "Locator works with React, Preact, Solid, Vue and Svelte apps running in development." If `unsupported` has a name: "This looks like an Angular app." **Check again** · link _Setup guides_.      |
-| `production-build`    | React is here, but it's a production build | "Source locations only exist in development builds. Start the dev server (for example `npm run dev`) and open that URL." **Check again**.                                                         |
-| `missing-source-info` | Svelte is running without source locations | Per framework: Svelte → enable `dev: true`; React → dev build without `_debugOwner` is not expected, point at setup guide; Vue → `__file` missing, mention SFC/dev. Link to the exact guide page. |
-| `client-failed`       | Locator couldn't start on this page        | "The page blocked Locator's script (usually a strict Content-Security-Policy)." **Retry** · _Details_ disclosure with the raw error.                                                              |
-| `restricted-page`     | Locator can't run here                     | "Browsers block extensions on this kind of page." No button. Settings for **All sites** remain editable.                                                                                          |
-| `reload-required`     | Reload to finish updating Locator          | **Reload page** (exists today).                                                                                                                                                                   |
-| `runtime-unreachable` | Page didn't answer                         | Footer-level warning: "Locator is on this page but didn't answer. Editing All sites until it does." Auto-clears on the next successful poll.                                                      |
+| State                 | Headline                                    | Body / action                                                                                                                                                                                                               |
+| --------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`               | _(no card)_                                 | Footer: `Connected · React · localhost:3000`. Settings editor as today.                                                                                                                                                     |
+| `disabled`            | Disabled on this page                       | **Enable** (exists today).                                                                                                                                                                                                  |
+| `probing`             | Looking for your app…                       | Subtle, no spinner. "Locator checks the page once it renders." Settings for **All sites** remain editable underneath.                                                                                                       |
+| `no-framework`        | No supported framework on this page         | "Locator works with React, Preact, Solid, Vue and Svelte apps running in development." If `unsupported` has a name: "This looks like an Angular app." **Check again** · link _Setup guides_.                                |
+| `no-source-info`      | React is here, but without source locations | "That usually means a production build. Start the dev server (for example `npm run dev`) and open that URL." Svelte adds "or the compiler runs without `dev: true`." **Check again** · link to the framework's setup guide. |
+| `client-failed`       | Locator couldn't start on this page         | "The page blocked Locator's script (usually a strict Content-Security-Policy)." **Retry** · _Details_ disclosure with the raw error.                                                                                        |
+| `restricted-page`     | Locator can't run here                      | "Browsers block extensions on this kind of page." No button. Settings for **All sites** remain editable.                                                                                                                    |
+| `reload-required`     | Reload to finish updating Locator           | **Reload page** (exists today).                                                                                                                                                                                             |
+| `runtime-unreachable` | Page didn't answer                          | Footer-level warning: "Locator is on this page but didn't answer. Editing All sites until it does." Auto-clears on the next successful poll.                                                                                |
 
 The "Editing All sites offline" behaviour stays: the settings editor is always
 mounted (see the comment in `Popup.tsx` about why it must not remount), and the
@@ -189,7 +197,7 @@ status card only explains why **This site** is not writable right now.
 
 Each phase is one commit; the PR targets `v2`.
 
-### Phase 1 — shared probe, runtime consumes it
+### Phase 1 — shared probe, runtime consumes it (done)
 
 - Add `packages/shared/src/pageProbe.ts`: `probePage(document, shadowRoots?)`
   and `chooseAdapter(probe)`. Unit tests in jsdom with synthetic markers:
@@ -208,7 +216,7 @@ Each phase is one commit; the PR targets `v2`.
 - `shared/types.ts`: remove `ReactDevtoolsHook`, `ReactInternals`, `Renderer`;
   keep `RendererInterface`. Delete `isValidRenderer.ts` and its test.
 
-### Phase 2 — extension MAIN-world script without the hook
+### Phase 2 — extension MAIN-world script without the hook (done)
 
 - Delete `packages/react-devtools-hook` and its references
   (`apps/extension/package.json`, `scripts/check-package-contract.js`).
@@ -216,9 +224,11 @@ Each phase is one commit; the PR targets `v2`.
   `hook.bundle.js` → `main.bundle.js` (manifest v2 + v3, `webpack.config.js`,
   `utils/build.js` startup-bundle policy). The name stops describing something
   that no longer exists.
-- Rewrite `insertRuntimeScript.ts` as `pageStatus.ts` (probe → status →
-  publish, observer/debounce/re-check) and `injectClient.ts` (unchanged
-  settings handshake, load/error → `client-failed`).
+- Rewrite `insertRuntimeScript.ts` as `pageAgent.ts`: probe → status →
+  publish, observer/debounce/re-check, the unchanged settings handshake, and
+  client injection with load/error → `client-failed`. The content script now
+  pushes a fresh `LOCATOR_RUNTIME_SETTINGS_READY` whenever the All-sites layer
+  changes, so enabling Locator no longer needs a reload.
 - Add a regression test that runs the MAIN-world entry and asserts
   `Object.prototype.hasOwnProperty.call(window, "__REACT_DEVTOOLS_GLOBAL_HOOK__")`
   is `false` — the exact check React DevTools makes.

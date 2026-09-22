@@ -29,7 +29,6 @@
     "ts": "tsc --noEmit"
   },
   "dependencies": {
-    "@locator/react-devtools-hook": "workspace:^",
     "@locator/runtime": "workspace:^",
     "@locator/shared": "workspace:^",
     "@locator/styled-system": "workspace:^",
