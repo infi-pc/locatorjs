@@ -55,10 +55,16 @@
   },
   "devDependencies": {
     "@locator/dev-config": "workspace:^",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
     "fast-check": "4.9.0",
     "jsdom": "^20.0.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "svelte": "^3.59.2",
     "typescript": "^5.9.3",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "vue": "^3.5.32"
   },
   "gitHead": "64d49c931e745b61713e3349b9f872c115632c94",
   "files": [

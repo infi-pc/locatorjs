@@ -44,8 +44,10 @@ export default function InstallReact() {
             .{" "}
           </p>
           <Alert>
-            Both browser extension and library require either working devtools
-            with sources or Locator{"'"}s Babel plugin.
+            Both the browser extension and the library read React{"'"}s
+            development-mode source metadata directly from the page, so you need
+            a development build (or Locator{"'"}s Babel plugin). React DevTools
+            is not required.
           </Alert>
 
           <StepsBody>

@@ -1,8 +1,7 @@
 import { getParentsPathsAsync as getReactParentsPathsAsync } from "./react/reactAdapter";
-import { detectReact } from "@locator/shared";
 import type { SourceResolutionContext } from "./react/sourceMapResolver";
 import { ParentPathItem } from "./adapterApi";
-import { getAdapter } from "./adapterSelection";
+import { getAdapter, resolveAdapterId } from "./adapterSelection";
 
 export function getParentsPaths(
   target: HTMLElement,
@@ -16,7 +15,7 @@ export async function getParentsPathsAsync(
   adapterId?: string,
   context?: SourceResolutionContext
 ): Promise<ParentPathItem[]> {
-  if (adapterId === "react" || (!adapterId && detectReact())) {
+  if (resolveAdapterId(adapterId) === "react") {
     return getReactParentsPathsAsync(target, context);
   }
   return getParentsPaths(target, adapterId);

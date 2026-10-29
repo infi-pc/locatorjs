@@ -90,9 +90,12 @@ function assertStartupBundles(outputPath) {
   const policies = {
     'client.bundle.js': 50_000,
     // The isolated content boundary owns v1/v3 storage migration and rebuilds
-    // untrusted page snapshots through the strict parser before forwarding.
-    'contentScript.bundle.js': 22_000,
-    'hook.bundle.js': 10_000,
+    // untrusted page snapshots and the page status through strict decoders
+    // before forwarding them to the popup.
+    'contentScript.bundle.js': 24_000,
+    // The MAIN-world agent: shadow-root tracking, the page probe and client
+    // injection. It runs on every page at document_start, so it stays small.
+    'main.bundle.js': 10_000,
   };
   const forbiddenMarkers = ['lucide', '--colors-', 'SEMVER_SPEC_VERSION'];
 

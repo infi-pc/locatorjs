@@ -26,7 +26,6 @@ export const SourceMethod = {
   DEBUG_INFO: "_debugInfo (React 19 Server Components)",
   DEBUG_STACK: "_debugStack (React 19)",
   FUNCTION_META: "function metadata (__source/_source)",
-  DEVTOOLS_RENDERERS: "React DevTools renderers (legacy API)",
   SOURCE_URL: "function toString() sourceURL",
   FUNCTION_BODY_JSX: "function toString() JSX source info",
   TURBOPACK_ELEMENT: "Turbopack chunk (native element)",

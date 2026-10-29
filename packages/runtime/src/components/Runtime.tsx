@@ -1,4 +1,4 @@
-import { detectSvelte, actionLabel, strictConfig } from "@locator/shared";
+import { actionLabel, strictConfig } from "@locator/shared";
 import { EnvironmentProvider } from "@ark-ui/solid/environment";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { render } from "solid-js/web";
@@ -20,6 +20,7 @@ import {
   getElementInfoAsync,
 } from "../adapters/getElementInfo";
 import { getTree } from "../adapters/getTree";
+import { resolveAdapterId } from "../adapters/adapterSelection";
 import { TreeNode } from "../types/TreeNode";
 import { TreeState } from "../adapters/adapterApi";
 import { TreeView } from "./TreeView";
@@ -240,7 +241,7 @@ function Runtime(props: {
   ) {
     if (
       action.kind === "open-editor" &&
-      (!isExtension() || detectSvelte()) &&
+      (!isExtension() || resolveAdapterId(adapterId()) === "svelte") &&
       !onboardingDismissed() &&
       !props.tryAction
     ) {
