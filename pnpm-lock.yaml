@@ -53,9 +53,6 @@ importers:
 
   apps/extension:
     dependencies:
-      '@locator/react-devtools-hook':
-        specifier: workspace:^
-        version: link:../../packages/react-devtools-hook
       '@locator/runtime':
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -353,22 +350,6 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
-  packages/react-devtools-hook:
-    dependencies:
-      '@locator/shared':
-        specifier: workspace:^
-        version: link:../shared
-    devDependencies:
-      '@locator/dev-config':
-        specifier: workspace:^
-        version: link:../dev-config
-      '@types/node':
-        specifier: ^22.19.17
-        version: 22.19.17
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
