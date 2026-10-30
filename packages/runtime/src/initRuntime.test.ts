@@ -71,6 +71,27 @@ describe("runtime activation shell", () => {
     expect(mocks.initRender).not.toHaveBeenCalled();
   });
 
+  test("independent runtime copies share one shell before activation", async () => {
+    resetRuntime = await loadShell();
+    const firstReset = resetRuntime;
+    vi.resetModules();
+    const second = await import("./initRuntime");
+    second.initRuntime();
+    resetRuntime = () => {
+      second.__resetRuntimeForTesting();
+      firstReset();
+    };
+
+    expect(document.getElementById("locatorjs-wrapper")).toBeNull();
+    expect(mocks.mountRuntimePopupBridge).toHaveBeenCalledOnce();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { altKey: true }));
+    await flushImport();
+
+    expect(document.querySelectorAll("#locatorjs-wrapper")).toHaveLength(1);
+    expect(mocks.initRender).toHaveBeenCalledOnce();
+  });
+
   test("loads the UI on a configured activation gesture", async () => {
     resetRuntime = await loadShell();
     const target = document.getElementById("target")!;

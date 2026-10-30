@@ -303,6 +303,22 @@ describe("configuration properties", () => {
     showIntro: fc.option(fc.boolean(), { nil: undefined }),
   });
 
+  test.each([
+    ["! /", "!"],
+    ["/ /", "/"],
+    ["C:\\ /", "C:\\"],
+  ])(
+    "normalizes exposed whitespace in %s in one parse",
+    (projectPath, expected) => {
+      const first = parseLayer({ projectPath });
+      expect(first.ok).toBe(true);
+      if (!first.ok) return;
+      expect(encodeLayer(first.value)).toEqual({ projectPath: expected });
+      const second = parseLayer(encodeLayer(first.value));
+      expect(second).toEqual(first);
+    }
+  );
+
   test("valid layers have a canonical parse/encode round trip", () => {
     fc.assert(
       fc.property(layerArbitrary, (input) => {

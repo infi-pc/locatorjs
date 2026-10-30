@@ -159,10 +159,7 @@ function webpackConsumer(consumer, target, imports) {
     entry: entryPath,
     output: { path: outputPath, filename: "contract.js" },
     module: {
-      rules: [
-        { test: /\.(css|scss)$/, type: "asset/source" },
-        { test: /\.(png|svg)$/, type: "asset/resource" },
-      ],
+      rules: [{ test: /\.(css|scss)$/, type: "asset/source" }],
     },
     resolve: {
       conditionNames: ["browser", "import", "module", "require", "default"],

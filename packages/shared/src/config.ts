@@ -878,12 +878,18 @@ function parseLayerRecord(
       errors
     );
     if (projectPath) {
-      const isRoot = /^[\\/]+$/.test(projectPath);
-      const isWindowsDriveRoot = /^[a-z]:[\\/]$/i.test(projectPath);
-      layer.projectPath =
-        isRoot || isWindowsDriveRoot
-          ? projectPath
-          : projectPath.replace(/[\\/]+$/, "");
+      let normalized = projectPath;
+      // Removing a separator can expose whitespace that the next parse would
+      // trim. Finish normalization now so encoded layers round-trip unchanged.
+      while (
+        !/^[\\/]+$/.test(normalized) &&
+        !/^[a-z]:[\\/]$/i.test(normalized)
+      ) {
+        const next = normalized.replace(/[\\/]+$/, "").trimEnd();
+        if (next === normalized) break;
+        normalized = next;
+      }
+      layer.projectPath = normalized;
     }
   }
   if (record.replacePath !== undefined) {

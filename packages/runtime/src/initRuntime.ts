@@ -9,6 +9,10 @@ import { installShadowRootTracking } from "./functions/shadowRoots";
 
 let shellInstalled = false;
 let cleanupShell: (() => void) | undefined;
+// Module state is private to each bundle; the document claim is shared by the
+// library and extension even before the lazy wrapper exists.
+const runtimeClaim = Symbol.for("locatorjs.runtime");
+type RuntimeDocument = Document & { [runtimeClaim]?: boolean };
 
 export function __resetRuntimeForTesting() {
   cleanupShell?.();
@@ -21,11 +25,14 @@ export function initRuntime() {
     shellInstalled ||
     typeof window === "undefined" ||
     typeof document === "undefined" ||
+    (document as RuntimeDocument)[runtimeClaim] ||
     document.getElementById("locatorjs-wrapper")
   ) {
     return;
   }
   shellInstalled = true;
+  const runtimeDocument = document as RuntimeDocument;
+  runtimeDocument[runtimeClaim] = true;
 
   // The settings bridge stays in the startup shell so the popup can inspect,
   // edit and enable a page without paying for the visual runtime.
@@ -116,6 +123,7 @@ export function initRuntime() {
     options.dispose();
     document.getElementById("locatorjs-wrapper")?.remove();
     document.getElementById("locatorjs-global-style")?.remove();
+    delete runtimeDocument[runtimeClaim];
   };
 }
 
