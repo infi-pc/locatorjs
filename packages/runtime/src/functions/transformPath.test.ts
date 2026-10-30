@@ -25,4 +25,8 @@ describe("transformPath", () => {
       "/app/src/myFile.js"
     );
   });
+
+  test('relacing global pattern', () => {
+    expect(transformPath("vscode://file/</app/src/myFile.js>:27:7", "</|>", "")).toBe("vscode://file/app/src/myFile.js:27:7");
+  })
 });
