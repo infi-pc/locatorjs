@@ -1,0 +1,27 @@
+{
+  "threshold": 0.5,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/coverage/**",
+    "**/playwright-report/**",
+    "**/test-results/**"
+  ],
+  "absolute": true,
+  "noSymlinks": true,
+  "skipLocal": false,
+  "format": ["typescript", "tsx", "javascript", "jsx", "json", "yaml", "md"],
+  "minLines": 5,
+  "minTokens": 100,
+  "blame": false,
+  "noTips": true,
+  "silent": false,
+  "verbose": false
+}

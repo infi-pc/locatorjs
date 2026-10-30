@@ -29,7 +29,7 @@ export function getVueComponentBoundingBox(
   return composedRect;
 }
 
-export function getVNodeBoundingBox(vnode: VNode): SimpleDOMRect | null {
+function getVNodeBoundingBox(vnode: VNode): SimpleDOMRect | null {
   if (vnode.el instanceof HTMLElement) {
     return vnode.el.getBoundingClientRect();
   }

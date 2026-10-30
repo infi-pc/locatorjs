@@ -1,82 +1,255 @@
-import { cleanOptions, Targets } from "@locator/shared";
-import { createMemo } from "solid-js";
-import { bannerClasses } from "../functions/bannerClasses";
+import { strictConfig } from "@locator/shared";
+import { Show, createSignal } from "solid-js";
+import {
+  ActionSettings,
+  type ActionSettingsSaveStatus,
+  Button,
+  IconButton,
+  LocatorBrand,
+  PromoFooter,
+} from "@locator/ui";
+import { css } from "@locator/styled-system/css";
+import { Power, RotateCcw, X } from "lucide-solid";
 import { isExtension } from "../functions/isExtension";
-import LogoIcon from "./LogoIcon";
-import { OptionsCloseButton } from "./OptionsCloseButton";
-import { useOptions } from "../functions/optionsStore";
-import { AdapterId } from "../consts";
-import { LinkOptions } from "./LinkOptions";
-import { getElementInfo } from "../adapters/getElementInfo";
+import { useOptions } from "../functions/optionsContext";
+import { NvimSetupGuide } from "./NvimSetupGuide";
+
+const styles = {
+  panel: css({
+    bg: "bg.default",
+    borderColor: "border",
+    borderRadius: "l3",
+    borderWidth: "1px",
+    bottom: "3",
+    boxShadow: "xl",
+    color: "fg.default",
+    left: "3",
+    maxH: "calc(100vh - 24px)",
+    maxW: "calc(100vw - 24px)",
+    overflow: "clip",
+    pointerEvents: "auto",
+    position: "fixed",
+    width: "560px",
+  }),
+  inner: css({
+    display: "flex",
+    flexDirection: "column",
+    maxH: "calc(100vh - 24px)",
+    overflowY: "auto",
+    overscrollBehavior: "contain",
+  }),
+  header: css({
+    alignItems: "center",
+    bg: "bg.default",
+    borderBottomColor: "border",
+    borderBottomWidth: "1px",
+    display: "flex",
+    justifyContent: "space-between",
+    px: "4",
+    py: "3",
+    position: "sticky",
+    top: "0",
+    zIndex: "sticky",
+  }),
+  body: css({ display: "flex", flexDirection: "column", gap: "3", p: "4" }),
+  footer: css({
+    alignItems: "center",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "2",
+    justifyContent: "space-between",
+    pt: "3",
+  }),
+  footerStatus: css({ color: "fg.muted", fontSize: "xs" }),
+  footerActions: css({
+    alignItems: "center",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "1",
+  }),
+  confirm: css({ color: "fg.muted", fontSize: "xs" }),
+};
 
 export function Options(props: {
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
   onClose: () => void;
   showDisableDialog: () => void;
-  adapterId?: AdapterId;
-  currentElement: HTMLElement | null;
+  portalMount: HTMLDivElement;
+  onTryAction: (action: strictConfig.BindingAction) => void;
 }) {
   const options = useOptions();
+  const [saveStatus, setSaveStatus] =
+    createSignal<ActionSettingsSaveStatus>("idle");
+  const [confirmReset, setConfirmReset] = createSignal(false);
+  const [inspectorMount, setInspectorMount] = createSignal<HTMLDivElement>();
+  /**
+   * True when anything would open Neovim, so the one-time `nvim://` handler
+   * guide is shown. Resolved rather than read off the raw action: picking
+   * Neovim in the editor picker records it on the global `editor` setting and
+   * deliberately removes the binding's destination override, so the action's
+   * own fields say nothing about where it opens.
+   */
+  const isNvimTarget = () => {
+    const editor = options.effective().editor;
+    const opensNvim = (resolved: strictConfig.EffectiveEditor) =>
+      resolved.kind === "selected" &&
+      ((resolved.destination.kind === "target" &&
+        resolved.destination.id === "nvim") ||
+        resolved.template.includes("nvim://"));
 
-  const elLinkProps = createMemo(() =>
-    props.currentElement
-      ? getElementInfo(props.currentElement, props.adapterId)?.thisElement
-          .link || null
-      : null
-  );
+    if (opensNvim(editor)) return true;
+
+    return strictConfig
+      .configuredBindings(options.effective().bindings)
+      .some((binding) => {
+        if (binding.action.kind !== "open-editor") return false;
+        return opensNvim(
+          strictConfig.resolveActionEditor(
+            binding.action,
+            editor,
+            options.targetRegistry()
+          )
+        );
+      });
+  };
+
+  const promos = () => [
+    ...(!isExtension()
+      ? [
+          {
+            text: "Keep these settings on every site.",
+            href: "https://www.locatorjs.com/install",
+            linkLabel: "Install the browser extension",
+          },
+        ]
+      : []),
+    ...(!options.layers().team ||
+    Object.keys(options.layers().team ?? {}).length === 0
+      ? [
+          {
+            text: "Share Locator defaults with your team.",
+            href: "https://www.locatorjs.com/docs",
+            linkLabel: "Set up Locator via setup()",
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div
-      class={bannerClasses() + " w-[560px] max-w-full"}
-      style={{
-        "max-height": "calc(100vh - 32px)",
-        "overflow-y": "auto",
-        "overflow-x": "hidden",
-        "overscroll-behavior": "contain",
-      }}
+      ref={setInspectorMount}
+      class={styles.panel}
+      style={{ "--locator-settings-tabs-top": "49px" }}
       onWheel={(e) => e.stopPropagation()}
     >
-      <div class="p-1">
-        <div class="flex justify-between items-center">
-          <LogoIcon />
-          <OptionsCloseButton onClick={() => props.onClose()} />
+      <div class={styles.inner}>
+        <div class={styles.header}>
+          <LocatorBrand />
+          <IconButton
+            aria-label="Close settings"
+            onClick={() => props.onClose()}
+          >
+            <X size={16} />
+          </IconButton>
         </div>
 
-        <LinkOptions
-          linkProps={elLinkProps()}
-          adapterId={props.adapterId}
-          targets={props.targets}
-        />
+        <div class={styles.body}>
+          <ActionSettings
+            layers={{
+              ...options.layers(),
+              default:
+                options.layers().default ??
+                strictConfig.encodeLayer(strictConfig.DEFAULT_LAYER),
+            }}
+            scopes={[
+              {
+                layer: "user-origin",
+                label: "This origin",
+                write: options.setUserOrigin,
+                note: "Changes are stored for this site in your browser profile.",
+              },
+            ]}
+            defaultScope="user-origin"
+            targets={options.allTargets()}
+            portalMount={props.portalMount}
+            inspectorMount={inspectorMount()}
+            onTryAction={(action) => props.onTryAction?.(action)}
+            onSaveStatusChange={setSaveStatus}
+            advancedExtras={
+              <>
+                <Show when={isNvimTarget()}>
+                  <NvimSetupGuide />
+                </Show>
+                <Show when={promos().length > 0}>
+                  <PromoFooter promos={promos()} />
+                </Show>
+              </>
+            }
+          />
 
-        <div class="flex gap-2 justify-between mt-4">
-          <button
-            class="bg-slate-100 py-1 px-2 rounded hover:bg-slate-300 active:bg-slate-200 cursor-pointer text-xs"
-            onClick={() => {
-              cleanOptions();
-              props.onClose();
-            }}
-          >
-            Reset settings
-          </button>
-          <button
-            class="bg-red-50 py-1 px-2 rounded hover:bg-red-200 active:bg-red-100 cursor-pointer text-xs text-red-800 flex gap-1"
-            onClick={() => {
-              if (isExtension()) {
-                options.setOptions({ disabled: true });
-                props.onClose();
-              } else {
-                props.showDisableDialog();
-              }
-            }}
-          >
-            <svg style={{ width: "16px", height: "16px" }} viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"
-              />
-            </svg>{" "}
-            Disable Locator
-          </button>
+          <div class={styles.footer}>
+            <span class={styles.footerStatus} role="status">
+              {saveStatus() === "saving"
+                ? "Saving…"
+                : saveStatus() === "saved"
+                ? "Saved"
+                : saveStatus() === "error"
+                ? "Could not save"
+                : "Changes save automatically"}
+            </span>
+            <div class={styles.footerActions}>
+              <Show when={confirmReset()}>
+                <span class={styles.confirm}>
+                  Reset settings for this site?
+                </span>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setConfirmReset(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="xs"
+                  variant="danger-ghost"
+                  onClick={async () => {
+                    const result = await options.clearUserOrigin();
+                    setSaveStatus(result.ok ? "saved" : "error");
+                    if (result.ok) setConfirmReset(false);
+                  }}
+                >
+                  Reset
+                </Button>
+              </Show>
+              <Show when={!confirmReset()}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setConfirmReset(true)}
+                >
+                  <RotateCcw size={14} /> Reset
+                </Button>
+              </Show>
+              <Button
+                size="xs"
+                variant="danger-ghost"
+                onClick={async () => {
+                  if (isExtension()) {
+                    setSaveStatus("saving");
+                    const result = await options.setUserOrigin({
+                      set: { disabled: true },
+                    });
+                    setSaveStatus(result.ok ? "saved" : "error");
+                    if (result.ok) props.onClose();
+                  } else {
+                    props.showDisableDialog();
+                  }
+                }}
+              >
+                <Power size={14} /> Disable
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

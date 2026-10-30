@@ -4,38 +4,57 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "test-apps/*"
   ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "ts": "turbo run ts",
-    "e2e": "turbo run e2e",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "build": "turbo run build --filter=./packages/* --filter=./apps/*",
+    "dev": "pnpm turbo run build --filter=./packages/* && . ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./packages/* --filter=./apps/*",
+    "lint": "node scripts/check-eslint-suppressions.js && eslint scripts --ext .js && turbo run lint --filter=./packages/* --filter=./apps/*",
+    "test": "turbo run test --filter=./packages/* --filter=./apps/*",
+    "ts": "turbo run ts --filter=./packages/* --filter=./apps/*",
+    "knip": "knip",
+    "dup": "jscpd apps packages --reporters console",
+    "e2e": "turbo run e2e --filter=./apps/playwright",
+    "typecheck": "pnpm ts",
+    "check": "pnpm format:check && pnpm dependency-versions && node scripts/check-eslint-suppressions.js && eslint scripts --ext .js && pnpm knip && pnpm dup && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
+    "check:fix": "pnpm format && pnpm dependency-versions:fix",
+    "test-apps:dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./test-apps/*",
+    "test-apps:build": "turbo run build --filter=./test-apps/*",
+    "ui:lab": "pnpm --dir apps/ui-lab dev",
+    "ui:lab:build": "pnpm --dir apps/ui-lab build",
+    "format": "prettier --write \"{packages,apps,scripts}/**/*.{js,ts,tsx,md}\" \"*.{js,md}\"",
+    "format:check": "prettier --check \"{packages,apps,scripts}/**/*.{js,ts,tsx,md}\" \"*.{js,md}\"",
+    "prepare": "husky",
     "publishPackages": "lerna publish",
     "clean": "concurrently pnpm:clean:*",
     "clean:node_modules": "rm -rf node_modules && rm -rf */*/node_modules",
     "clean:dist": "rm -rf */*/dist",
     "clean:turbo": "rm -rf */*/.turbo",
     "clean:next": "rm -rf */*/.next",
-    "dependency-versions": "check-dependency-version-consistency . --ignore-package-pattern='(vite|next)-.*'",
-    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-package-pattern='(vite|next)-.*'"
+    "dependency-versions": "check-dependency-version-consistency . --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
+    "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
+    "package-contract": "node scripts/check-package-contract.js"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-typescript": "^7.28.5",
     "check-dependency-version-consistency": "5.0.1",
-    "lerna": "^7.3.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "jscpd": "^4.0.8",
+    "knip": "^5.88.1",
+    "lerna": "^7.4.2",
+    "lint-staged": "^16.4.0",
     "prettier": "^2.8.8",
-    "turbo": "^2.5.8",
-    "vitest": "^2.1.4",
-    "@babel/preset-env": "^7.26.0",
-    "@babel/preset-typescript": "^7.26.0"
+    "turbo": "^2.9.6",
+    "vitest": "^2.1.9",
+    "webpack": "^5.106.2"
   },
   "engines": {
-    "npm": ">=7.0.0",
-    "node": ">=22.0.0"
+    "node": ">=22.0.0",
+    "pnpm": ">=8.7.5"
   },
-  "packageManager": "pnpm@8.7.5",
-  "dependencies": {}
+  "packageManager": "pnpm@8.7.5"
 }

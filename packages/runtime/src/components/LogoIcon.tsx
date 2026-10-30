@@ -1,10 +1,16 @@
 import { mergeProps } from "solid-js";
+import { css } from "@locator/styled-system/css";
+
+const link = css({
+  borderRadius: "l2",
+  _hover: { bg: "gray.subtle.bg" },
+});
 
 export default function LogoIcon(_props: { width?: number }) {
   const props = mergeProps({ width: 90 }, _props);
   return (
     <a
-      class="hover:bg-slate-50 rounded"
+      class={link}
       title="LocatorJS"
       href="https://www.locatorjs.com"
       target="_blank"

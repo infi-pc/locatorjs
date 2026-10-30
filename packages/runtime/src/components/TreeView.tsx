@@ -1,122 +1,217 @@
-import { Targets } from "@locator/shared";
-import { AdapterId } from "../consts";
-import { TreeNode, TreeNodeElement } from "../types/TreeNode";
+import { TreePanel, visibleTreeRows, type TreeRow } from "@locator/ui";
+import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { css } from "@locator/styled-system/css";
+import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import { TreeState } from "../adapters/adapterApi";
-import { TreeNodeElementView } from "./TreeNodeElementView";
-import { createEffect, createSignal } from "solid-js";
-import { computePosition, flip, shift, offset } from "@floating-ui/dom";
+import { useOptions } from "../functions/optionsContext";
+import {
+  buildTreeViewModel,
+  componentRowId,
+  nodeIdFromRowId,
+  sourceRefToLinkProps,
+} from "../functions/treeViewModel";
+import { TreeNode } from "../types/TreeNode";
+import { LinkProps } from "../types/types";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
+
+const styles = {
+  backdrop: css({
+    bg: "black/10",
+    height: "100vh",
+    left: "0",
+    pointerEvents: "auto",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+    zIndex: "popover",
+  }),
+  anchor: css({ m: "2", position: "absolute" }),
+};
 
 export function TreeView(props: {
   treeState: TreeState;
   setTreeState: (state: TreeState) => void;
   close: () => void;
-  adapterId?: AdapterId | undefined;
-  targets: Targets;
   setHighlightedNode: (node: null | TreeNode) => void;
+  /** Opens the link, or asks the user to pick an editor first. */
+  openLink: (link: LinkProps) => void;
 }) {
+  const options = useOptions();
   let contentRef: HTMLDivElement | undefined;
 
   const [pos, setPos] = createSignal<{ x: number; y: number }>();
-  createEffect(() => {
-    if (contentRef) {
-      const originalBox = props.treeState.originalNode.getBox();
-      computePosition(
-        {
-          getBoundingClientRect: () => {
-            return {
-              top: originalBox?.y || 0,
-              left: originalBox?.x || 0,
-              width: 16,
-              height: 16,
-            } as DOMRect;
-          },
-        },
-        contentRef,
-        {
-          placement: "left-start",
-          middleware: [offset(10), shift(), flip()],
-        }
-      ).then(({ x, y }) => {
-        setPos({ x, y });
-      });
-    }
+  const [resolutionRevision, setResolutionRevision] = createSignal(0);
+  const [pendingIds, setPendingIds] = createSignal<ReadonlySet<string>>(
+    new Set()
+  );
+  const attemptedNodeIds = new Set<string>();
+  const activeControllers = new Set<AbortController>();
+  onCleanup(() => {
+    activeControllers.forEach((controller) => controller.abort());
+    activeControllers.clear();
   });
+
+  createEffect(() => {
+    if (!contentRef) return;
+    const originalBox = props.treeState.originalNode.getBox();
+    computePosition(
+      {
+        getBoundingClientRect: () =>
+          ({
+            top: originalBox?.y || 0,
+            left: originalBox?.x || 0,
+            width: 16,
+            height: 16,
+          } as DOMRect),
+      },
+      contentRef,
+      {
+        placement: "left-start",
+        middleware: [offset(10), shift(), flip()],
+      }
+    ).then(({ x, y }) => setPos({ x, y }));
+  });
+
+  const model = createMemo(
+    () => (
+      resolutionRevision(),
+      buildTreeViewModel(props.treeState, props.treeState.expandedIds)
+    )
+  );
+
+  /** Nodes are keyed by id, so find the live node a row was mapped from. */
+  function findNode(id: string): TreeNode | null {
+    const nodeId = nodeIdFromRowId(id);
+    const walk = (node: TreeNode): TreeNode | null => {
+      if (node.uniqueId === nodeId) return node;
+      for (const child of node.getChildren()) {
+        const found = walk(child);
+        if (found) return found;
+      }
+      return null;
+    };
+    return walk(props.treeState.root);
+  }
+
+  createEffect(() => {
+    const visible = visibleTreeRows(model().rows, props.treeState.expandedIds);
+    const nodes = [
+      ...new Map(
+        visible
+          .filter(
+            (item) =>
+              !item.row.source &&
+              !attemptedNodeIds.has(nodeIdFromRowId(item.row.id))
+          )
+          .map((item) => {
+            const node = findNode(item.row.id);
+            return [node?.uniqueId, node] as const;
+          })
+          .filter(
+            (entry): entry is readonly [string, TreeNode] =>
+              !!entry[0] && !!entry[1]
+          )
+      ).values(),
+    ];
+    if (!nodes.some((node) => node.getSourceAsync || node.getComponentAsync)) {
+      setPendingIds(new Set<string>());
+      return;
+    }
+    const controller = new AbortController();
+    activeControllers.add(controller);
+    onCleanup(() => controller.abort());
+    setPendingIds(
+      new Set(
+        nodes.flatMap((node) => [node.uniqueId, componentRowId(node.uniqueId)])
+      )
+    );
+    let nextNode = 0;
+    const resolveNext = async () => {
+      while (!controller.signal.aborted) {
+        const node = nodes[nextNode++];
+        if (!node) return;
+        const context = createSourceResolutionContext(controller.signal);
+        await Promise.allSettled([
+          node.getSourceAsync?.(context),
+          node.getComponentAsync?.(context),
+        ]);
+        if (!controller.signal.aborted) {
+          attemptedNodeIds.add(node.uniqueId);
+        }
+      }
+    };
+    void Promise.allSettled(
+      Array.from({ length: Math.min(4, nodes.length) }, resolveNext)
+    ).finally(() => {
+      activeControllers.delete(controller);
+      if (!controller.signal.aborted) {
+        setPendingIds(new Set<string>());
+        setResolutionRevision((value) => value + 1);
+      }
+    });
+  });
+
   return (
     <div
-      style={{
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100vw",
-        height: "100vh",
-        "pointer-events": "auto",
-        "background-color": "rgba(0,0,0,0.1)",
-        "z-index": 1001,
-      }}
+      class={styles.backdrop}
       onClick={(e) => {
-        if (e.currentTarget === e.target) {
-          props.close();
-        }
+        if (e.currentTarget === e.target) props.close();
       }}
     >
       <div
-        style={{
-          position: "absolute",
-          // top: `${(props.treeState?.originalNode.getBox()?.y || 0) + 24}px`,
-          top: `${pos()?.y || 0}px`,
-          left: `${pos()?.x || 0}px`,
-        }}
         ref={contentRef}
+        class={styles.anchor}
+        style={{ top: `${pos()?.y || 0}px`, left: `${pos()?.x || 0}px` }}
       >
-        <div
-          class={"m-2 bg-white rounded-md p-4 shadow-xl text-xs overflow-auto"}
-          style={{
-            "max-height": "calc(100vh - 16px)",
+        <TreePanel
+          model={model()}
+          expandedIds={props.treeState.expandedIds}
+          pendingIds={pendingIds()}
+          autofocus
+          hint={
+            options.effective().debugMode
+              ? "↑↓ move · ←→ collapse/expand · Enter opens · Esc closes"
+              : undefined
+          }
+          onToggle={(id) => {
+            const state = props.treeState;
+            const expandedIds = new Set(state.expandedIds);
+            const nodeId = nodeIdFromRowId(id);
+            if (expandedIds.has(id)) {
+              expandedIds.delete(id);
+              expandedIds.delete(nodeId);
+            } else {
+              expandedIds.add(id);
+              expandedIds.add(nodeId);
+            }
+            props.setTreeState({ ...state, expandedIds });
           }}
-        >
-          {props.treeState ? (
-            <div>
-              {props.treeState?.root.getParent() ? (
-                <div class="mb-2">
-                  <button
-                    class="inline-flex cursor-pointer bg-gray-100 rounded-full hover:bg-gray-200 py-0 px-2 "
-                    onClick={() => {
-                      const state = props.treeState;
-                      const parent = state.root.getParent();
-                      if (parent) {
-                        state.expandedIds.add(parent.uniqueId);
-                        props.setTreeState({ ...state, root: parent });
-                      }
-                    }}
-                  >
-                    ...
-                  </button>
-                </div>
-              ) : null}
-              <TreeNodeElementView
-                node={props.treeState!.root as TreeNodeElement}
-                expandedIds={props.treeState!.expandedIds}
-                highlightedId={props.treeState!.highlightedId}
-                expandId={(id: string) => {
-                  const state = props.treeState;
-                  state.expandedIds.add(id);
-                  props.setTreeState(state);
-                }}
-                targets={props.targets}
-                setHighlightedBoundingBox={props.setHighlightedNode}
-                parentComponent={null}
-              />
-            </div>
-          ) : (
-            <>no tree</>
-          )}
-        </div>
+          onGoUp={() => {
+            const state = props.treeState;
+            const parent = state.root.getParent();
+            if (!parent) return;
+            const expandedIds = new Set(state.expandedIds);
+            expandedIds.add(parent.uniqueId);
+            expandedIds.add(componentRowId(parent.uniqueId));
+            props.setTreeState({ ...state, root: parent, expandedIds });
+          }}
+          onHover={(id) => {
+            props.setHighlightedNode(id ? findNode(id) : null);
+          }}
+          onOpen={(row: TreeRow) => {
+            if (!row.source) return;
+            props.setHighlightedNode(null);
+            // The panel closes either way: the row has been acted on, and
+            // leaving it up would put its backdrop over whatever comes next.
+            props.openLink(sourceRefToLinkProps(row.source));
+            props.close();
+          }}
+          onClose={() => {
+            props.setHighlightedNode(null);
+            props.close();
+          }}
+        />
       </div>
-      {/* <For each={getAllNodes()}>
-                {(node, i) => (
-                  <RenderXrayNode node={node} parentIsHovered={false} />
-                )}
-              </For> */}
     </div>
   );
 }

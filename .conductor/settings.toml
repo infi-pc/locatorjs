@@ -1,0 +1,18 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+setup = "pnpm install --frozen-lockfile"
+
+# $CONDUCTOR_PORT gives each workspace its own port block, which
+# scripts/dev-ports.sh then derives every app's port from. Without it, parallel
+# workspaces fight over 3342-3353.
+[scripts.run.run]
+available_in = "local"
+command = "PORT=$CONDUCTOR_PORT pnpm dev"
+default = true
+icon = "play"
+
+[scripts.run.check]
+available_in = "local"
+command = "pnpm check"
+icon = "checkmark"

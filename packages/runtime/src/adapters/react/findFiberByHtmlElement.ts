@@ -1,27 +1,18 @@
-import { Fiber, Renderer } from "@locator/shared";
-import { findDebugSource } from "./findDebugSource";
+import { Fiber, getReactFiber } from "@locator/shared";
+import { getParentElementAcrossShadow } from "../../functions/domTraversal";
 
-export function findFiberByHtmlElement(
-  target: HTMLElement,
-  shouldHaveDebugSource: boolean
-): Fiber | null {
-  const renderers = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers;
-  // console.log("RENDERERS: ", renderers);
-  const renderersValues = renderers?.values();
-  if (renderersValues) {
-    for (const renderer of Array.from(renderersValues) as Renderer[]) {
-      if (renderer.findFiberByHostInstance) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const found = renderer.findFiberByHostInstance(target as any);
-        if (found) {
-          if (shouldHaveDebugSource) {
-            return findDebugSource(found)?.fiber || null;
-          } else {
-            return found;
-          }
-        }
-      }
-    }
+/**
+ * The fiber for the nearest host node react-dom owns, walking up from the
+ * target. This is what react-dom's own `getClosestInstanceFromNode` does: the
+ * clicked node may be inside `dangerouslySetInnerHTML` or a third-party widget
+ * that React never rendered, and the owning host component is the answer.
+ */
+export function findFiberByHtmlElement(target: HTMLElement): Fiber | null {
+  let node: Element | null = target;
+  while (node) {
+    const fiber = getReactFiber(node);
+    if (fiber) return fiber as unknown as Fiber;
+    node = getParentElementAcrossShadow(node);
   }
   return null;
 }

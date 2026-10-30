@@ -10,12 +10,12 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "noEmit": false,
     "jsx": "preserve",
     "jsxImportSource": "solid-js"
   },
-  "include": ["src", "../../packages/devtoolsHook"],
+  "include": ["src"],
   "exclude": ["build", "node_modules"]
 }

@@ -1,4 +1,3 @@
-import type { FileStorage } from "@locator/shared";
 import {
   parseDataId,
   parseDataPath,
@@ -16,59 +15,44 @@ import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { getExpressionData } from "./getExpressionData";
 import { getJSXComponentBoundingBox } from "./getJSXComponentBoundingBox";
+import {
+  closestAcrossShadow,
+  getParentElementAcrossShadow,
+} from "../../functions/domTraversal";
 
-export function getElementInfo(target: HTMLElement): FullElementInfo | null {
-  const found = target.closest("[data-locatorjs-id], [data-locatorjs]");
+function getFileData(element: HTMLElement) {
+  const dataId = element.dataset.locatorjsId;
+  const dataPath = element.dataset.locatorjs;
+  let fileFullPath: string;
 
-  if (
-    found &&
-    found instanceof HTMLElement &&
-    found.dataset &&
-    (found.dataset.locatorjsId ||
-      found.dataset.locatorjs ||
-      found.dataset.locatorjsStyled)
-  ) {
-    const dataId = found.dataset.locatorjsId;
-    const dataPath = found.dataset.locatorjs;
-    const styledDataId = found.dataset.locatorjsStyled;
+  if (dataPath) {
+    const parsed = parseDataPath(dataPath);
+    if (!parsed) return null;
+    [fileFullPath] = parsed;
+  } else if (dataId) {
+    [fileFullPath] = parseDataId(dataId);
+  } else {
+    return null;
+  }
 
-    if (!dataId && !dataPath) {
-      return null;
-    }
+  const locatorData = window.__LOCATOR_DATA__;
+  return {
+    fileFullPath,
+    fileData: locatorData?.[fileFullPath],
+    locatorData,
+  };
+}
 
-    let fileFullPath: string;
+function getElementInfo(target: HTMLElement): FullElementInfo | null {
+  const found = closestAcrossShadow(
+    target,
+    "[data-locatorjs-id], [data-locatorjs]"
+  );
 
-    if (dataPath) {
-      const parsed = parseDataPath(dataPath);
-      if (!parsed) {
-        return null;
-      }
-      [fileFullPath] = parsed;
-    } else if (dataId) {
-      [fileFullPath] = parseDataId(dataId);
-    } else {
-      return null;
-    }
-
-    const locatorData = window.__LOCATOR_DATA__;
-    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
-
-    // Handle styled components (only when locatorData is available)
-    const [styledFileFullPath, styledId] = styledDataId
-      ? parseDataId(styledDataId)
-      : [null, null];
-    const styledFileData: FileStorage | undefined =
-      styledFileFullPath && locatorData?.[styledFileFullPath];
-    const styledExpData =
-      styledFileData && styledFileData.styledDefinitions[Number(styledId)];
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const styledLink = styledExpData && {
-      filePath: styledFileData.filePath,
-      projectPath: styledFileData.projectPath,
-      column: (styledExpData.loc?.start.column || 0) + 1,
-      line: styledExpData.loc?.start.line || 0,
-    };
+  if (found && found instanceof HTMLElement) {
+    const fileInfo = getFileData(found);
+    if (!fileInfo) return null;
+    const { fileFullPath, fileData, locatorData } = fileInfo;
 
     // Get expression data (works with or without locatorData)
     const expData = getExpressionData(found, fileData || null);
@@ -100,6 +84,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
         link: {
           filePath,
           projectPath,
+          pathKind: "project-relative",
           column: (expData.loc.start.column || 0) + 1,
           line: expData.loc.start.line || 0,
         },
@@ -119,6 +104,7 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
               link: {
                 filePath,
                 projectPath,
+                pathKind: "project-relative",
                 column: (wrappingComponent.loc?.start.column || 0) + 1,
                 line: wrappingComponent.loc?.start.line || 0,
               },
@@ -128,36 +114,17 @@ export function getElementInfo(target: HTMLElement): FullElementInfo | null {
     };
   }
 
-  // return deduplicateLabels(labels);
-
   return null;
 }
 
-export class JSXTreeNodeElement extends HtmlElementTreeNode {
+class JSXTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): JSXTreeNodeElement {
+    return new JSXTreeNodeElement(element);
+  }
   getSource(): Source | null {
-    const dataId = this.element.dataset.locatorjsId;
-    const dataPath = this.element.dataset.locatorjs;
-
-    if (!dataId && !dataPath) {
-      return null;
-    }
-
-    let fileFullPath: string;
-
-    if (dataPath) {
-      const parsed = parseDataPath(dataPath);
-      if (!parsed) {
-        return null;
-      }
-      [fileFullPath] = parsed;
-    } else if (dataId) {
-      [fileFullPath] = parseDataId(dataId);
-    } else {
-      return null;
-    }
-
-    const locatorData = window.__LOCATOR_DATA__;
-    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+    const fileInfo = getFileData(this.element);
+    if (!fileInfo) return null;
+    const { fileFullPath, fileData } = fileInfo;
 
     // Get expression data (works with or without locatorData)
     const expData = getExpressionData(this.element, fileData || null);
@@ -184,29 +151,9 @@ export class JSXTreeNodeElement extends HtmlElementTreeNode {
     return null;
   }
   getComponent(): TreeNodeComponent | null {
-    const dataId = this.element.dataset.locatorjsId;
-    const dataPath = this.element.dataset.locatorjs;
-
-    if (!dataId && !dataPath) {
-      return null;
-    }
-
-    let fileFullPath: string;
-
-    if (dataPath) {
-      const parsed = parseDataPath(dataPath);
-      if (!parsed) {
-        return null;
-      }
-      [fileFullPath] = parsed;
-    } else if (dataId) {
-      [fileFullPath] = parseDataId(dataId);
-    } else {
-      return null;
-    }
-
-    const locatorData = window.__LOCATOR_DATA__;
-    const fileData: FileStorage | undefined = locatorData?.[fileFullPath];
+    const fileInfo = getFileData(this.element);
+    if (!fileInfo) return null;
+    const { fileData } = fileInfo;
 
     // Component information is only available when we have fileData
     if (fileData) {
@@ -256,12 +203,16 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
           path.push({
             title: label,
             link: link,
+            // The component whose JSX contains this element. Without it the
+            // menu reads as a column of identical `<div>` entries.
+            component: info.componentsLabels[0]?.label,
+            kind: "call-site",
           });
         }
       }
     }
 
-    currentElement = currentElement.parentElement;
+    currentElement = getParentElementAcrossShadow(currentElement);
   } while (currentElement);
 
   return path;

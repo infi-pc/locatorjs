@@ -1,3 +1,4 @@
 {
-  "extends": ["../../packages/dev-config/eslint-react-preset.js"]
+  "extends": ["../../packages/dev-config/eslint-react-preset.js"],
+  "ignorePatterns": ["next-env.d.ts"]
 }

@@ -135,8 +135,7 @@ export default function SetupLinks() {
                 Does not work with Next.js <br />
                 If you use the Browser extension, you don{"'"}t need to install
                 any packages. <br />
-                You might need to have React DevTools to make it working
-                properly.
+                Works alongside React DevTools; it does not depend on it.
               </span>
             }
             id="react"

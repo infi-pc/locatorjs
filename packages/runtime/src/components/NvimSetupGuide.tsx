@@ -1,4 +1,5 @@
-import { createSignal, For } from "solid-js";
+import { For, createSignal } from "solid-js";
+import { css } from "@locator/styled-system/css";
 
 const SCRIPT_URL =
   "https://raw.githubusercontent.com/infi-pc/locatorjs/master/scripts/setup-nvim-handler.sh";
@@ -11,58 +12,100 @@ const TERMINALS = [
   { id: "terminal", label: "Default Terminal" },
 ] as const;
 
+const styles = {
+  root: css({
+    bg: "amber.subtle.bg",
+    borderColor: "amber.outline.border",
+    borderRadius: "l3",
+    borderWidth: "1px",
+    colorPalette: "amber",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2",
+    p: "3",
+  }),
+  title: css({
+    color: "amber.subtle.fg",
+    fontSize: "sm",
+    fontWeight: "semibold",
+  }),
+  text: css({ color: "amber.subtle.fg", textStyle: "caption" }),
+  label: css({ color: "fg.default", fontSize: "xs", fontWeight: "semibold" }),
+  options: css({ display: "flex", flexWrap: "wrap", gap: "1.5" }),
+  option: css({
+    alignItems: "center",
+    bg: "bg.default",
+    borderColor: "amber.outline.border",
+    borderRadius: "l2",
+    borderWidth: "1px",
+    cursor: "pointer",
+    display: "inline-flex",
+    fontSize: "xs",
+    gap: "1.5",
+    minH: "7",
+    px: "2",
+    _focusWithin: { focusVisibleRing: "outside" },
+  }),
+  radio: css({ accentColor: "amber.9", height: "3.5", width: "3.5" }),
+  command: css({
+    bg: "amber.surface.bg",
+    borderRadius: "l2",
+    color: "fg.default",
+    display: "block",
+    fontFamily: "mono",
+    fontSize: "xs",
+    overflowWrap: "anywhere",
+    p: "2",
+  }),
+  inlineCode: css({
+    bg: "amber.surface.bg",
+    borderRadius: "l1",
+    fontFamily: "mono",
+    px: "1",
+  }),
+};
+
 export function NvimSetupGuide() {
   const [terminal, setTerminal] = createSignal("auto");
-
   const curlCommand = () => {
-    const t = terminal();
-    if (t === "auto") {
-      return `curl -fsSL ${SCRIPT_URL} | bash`;
-    }
-    return `curl -fsSL ${SCRIPT_URL} | bash -s -- --terminal=${t}`;
+    const selected = terminal();
+    return selected === "auto"
+      ? `curl -fsSL ${SCRIPT_URL} | bash`
+      : `curl -fsSL ${SCRIPT_URL} | bash -s -- --terminal=${selected}`;
   };
 
   return (
-    <div class="mt-2 border border-amber-200 bg-amber-50 rounded p-4 flex flex-col gap-1">
-      <div class="text-sm font-medium text-amber-800">Setup required</div>
-      <div class="text-xs text-amber-700">
-        The <code class="bg-amber-100 rounded px-1">nvim://</code> URL scheme
-        requires a one-time handler setup on macOS.
+    <section class={styles.root} aria-labelledby="locatorjs-nvim-setup-title">
+      <div id="locatorjs-nvim-setup-title" class={styles.title}>
+        Neovim setup required
       </div>
-
-      <div class="mt-2 flex flex-col gap-1">
-        <div class="text-xs font-medium text-amber-800">Terminal</div>
-        <div class="flex flex-col gap-1 py-1">
-          <For each={[...TERMINALS]}>
-            {(t) => (
-              <div class="flex items-center">
-                <input
-                  id={`nvim-terminal-${t.id}`}
-                  type="radio"
-                  checked={terminal() === t.id}
-                  onClick={() => setTerminal(t.id)}
-                  class="focus:ring-indigo-200 h-4 w-4 text-indigo-600 border-slate-300 hover:border-slate-400"
-                />
-                <label
-                  for={`nvim-terminal-${t.id}`}
-                  class="ml-2 block text-sm font-medium text-slate-700 hover:text-slate-800"
-                >
-                  {t.label}
-                </label>
-              </div>
-            )}
-          </For>
-        </div>
+      <div class={styles.text}>
+        The <code class={styles.inlineCode}>nvim://</code> URL scheme needs a
+        one-time handler setup on macOS.
       </div>
-
-      <code class="text-xs bg-amber-100 rounded p-2 mt-2 block break-all text-amber-900">
-        {curlCommand()}
-      </code>
-      <div class="text-xs text-amber-700 mt-1">
-        This creates a macOS app that handles{" "}
-        <code class="bg-amber-100 rounded px-1">nvim://</code> URLs and opens
-        files in Neovim.
+      <div class={styles.label}>Terminal</div>
+      <div class={styles.options}>
+        <For each={[...TERMINALS]}>
+          {(item) => (
+            <label class={styles.option}>
+              <input
+                class={styles.radio}
+                type="radio"
+                name="locatorjs-nvim-terminal"
+                value={item.id}
+                checked={terminal() === item.id}
+                onChange={() => setTerminal(item.id)}
+              />
+              {item.label}
+            </label>
+          )}
+        </For>
       </div>
-    </div>
+      <code class={styles.command}>{curlCommand()}</code>
+      <div class={styles.text}>
+        This creates a macOS app that handles Neovim links and opens files in
+        the selected terminal.
+      </div>
+    </section>
   );
 }

@@ -30,6 +30,9 @@ go to [www.locatorjs.com](https://www.locatorjs.com) for more info
 - [Svelte](https://www.locatorjs.com/install/svelte)
 - [Vue](https://www.locatorjs.com/install/vue)
 
+Upgrading configuration to v2? See the
+[bindings migration guide](./docs/v2-bindings-migration.md).
+
 ## Contributing
 
 Feel free to create issue or pull request.

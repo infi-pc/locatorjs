@@ -1,0 +1,9 @@
+**/dist
+**/node_modules
+**/.next
+**/build
+**/playwright-report
+**/test-results
+pnpm-lock.yaml
+test-apps
+packages/babel-jsx/tests/fixtures

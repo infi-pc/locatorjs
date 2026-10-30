@@ -1,44 +1,98 @@
 {
   "name": "@locator/runtime",
   "main": "dist/index.js",
-  "version": "0.5.1",
+  "sideEffects": [
+    "./dist/index.js"
+  ],
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "worker": {
+        "import": {
+          "types": "./dist/index.server.d.mts",
+          "default": "./dist/index.server.mjs"
+        },
+        "require": {
+          "types": "./dist/index.server.d.ts",
+          "default": "./dist/index.server.cjs"
+        }
+      },
+      "node": {
+        "import": {
+          "types": "./dist/index.server.d.mts",
+          "default": "./dist/index.server.mjs"
+        },
+        "require": {
+          "types": "./dist/index.server.d.ts",
+          "default": "./dist/index.server.cjs"
+        }
+      },
+      "deno": {
+        "import": {
+          "types": "./dist/index.server.d.mts",
+          "default": "./dist/index.server.mjs"
+        },
+        "require": {
+          "types": "./dist/index.server.d.ts",
+          "default": "./dist/index.server.cjs"
+        }
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./dist/*": "./dist/*"
+  },
+  "version": "2.0.0",
   "scripts": {
     "test": "vitest run",
     "test:dev": "vitest watch",
     "dev": "concurrently pnpm:dev:*",
     "dev:babel": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx",
-    "//dev:babel-cjs": "babel src --watch --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
+    "dev:native": "node ../../scripts/build-native.js runtime --watch",
     "dev:ts": "tsc --watch --declaration --emitDeclarationOnly --noEmit false --outDir dist --preserveWatchOutput",
-    "dev:tailwind": "tailwindcss -i ./src/main.css -o ./dist/output.css --watch",
+    "dev:panda": "panda cssgen --outfile dist/panda.css --watch",
     "dev:wrapCSS": "WATCH=true node ./scripts/wrapCSS.js",
-    "build": "concurrently pnpm:build:*",
-    "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx",
-    "//build:babel-cjs": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --out-file-extension .cjs --plugins @babel/plugin-transform-modules-commonjs",
-    "build:ts": "tsc --declaration --emitDeclarationOnly --noEmit false --outDir dist",
-    "build:tailwind": "tailwindcss -i ./src/main.css -o ./dist/output.css",
+    "build": "node ../../scripts/clean-package-dist.js && pnpm build:panda && pnpm build:wrapCSS && concurrently pnpm:build:babel pnpm:build:ts && node ../../scripts/build-native.js runtime",
+    "build:babel": "babel src --out-dir dist --extensions .js,.jsx,.ts,.tsx --ignore '**/*.test.ts,**/*.test.tsx'",
+    "build:ts": "tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist",
+    "build:panda": "panda cssgen --clean --outfile dist/panda.css",
+    "build:wrapCSS": "node ./scripts/wrapCSS.js",
     "ts": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "pnpm build"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.6.12",
+    "@ark-ui/solid": "^5.37.1",
+    "@floating-ui/dom": "^1.7.6",
     "@locator/shared": "workspace:^",
-    "solid-js": "^1.9.11",
-    "tailwindcss": "^3.4.14"
+    "@locator/styled-system": "workspace:^",
+    "@locator/ui": "workspace:^",
+    "lucide-solid": "^1.14.0",
+    "solid-js": "^1.9.12"
   },
   "devDependencies": {
-    "@babel/cli": "^7.25.9",
-    "@babel/core": "^7.26.0",
     "@locator/dev-config": "workspace:^",
+    "@babel/cli": "^7.28.6",
+    "@babel/core": "^7.29.0",
+    "@pandacss/dev": "^1.11.4",
     "@types/jsdom": "^21.1.7",
-    "babel-preset-solid": "^1.9.2",
-    "concurrently": "^9.1.0",
-    "fs-extra": "^11.2.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.4",
-    "vue": "^3.5.12"
+    "babel-preset-solid": "^1.9.12",
+    "concurrently": "^9.2.1",
+    "fs-extra": "^11.3.4",
+    "jsdom": "^20.0.3",
+    "typescript": "^5.9.3",
+    "vite-plugin-solid": "^2.11.12",
+    "vitest": "^2.1.9",
+    "vue": "^3.5.32"
   },
   "author": "Michael Musil",
   "repository": {

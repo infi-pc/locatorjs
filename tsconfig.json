@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@locator/styled-system/*": ["packages/styled-system/dist/*"],
+      "@locator/ui/*": ["packages/ui/src/*"]
+    }
+  }
+}

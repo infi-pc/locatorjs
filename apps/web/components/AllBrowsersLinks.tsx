@@ -2,7 +2,7 @@ import React from "react";
 import { extensionLink } from "../blocks/shared";
 import { StandardLink } from "./Styled";
 
-export function getAllExtensionsLinks(): { link: string; title: string }[] {
+function getAllExtensionsLinks(): { link: string; title: string }[] {
   return [
     { link: extensionLink.chrome, title: "Chrome" },
     { link: extensionLink.chrome, title: "Edge" },

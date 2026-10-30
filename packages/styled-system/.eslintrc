@@ -1,0 +1,4 @@
+{
+  "extends": ["../dev-config/eslint-base-preset.js"],
+  "ignorePatterns": ["dist"]
+}

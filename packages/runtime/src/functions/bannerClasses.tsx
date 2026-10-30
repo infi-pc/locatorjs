@@ -1,3 +1,16 @@
-export function bannerClasses() {
-  return "fixed left-3 bottom-3 bg-white shadow-lg rounded-lg py-3 px-3 border-2 border-red-500 transition-all pointer-events-auto";
-}
+import { css } from "@locator/styled-system/css";
+
+export const bannerClass = css({
+  bg: "bg.default",
+  borderColor: "red.9",
+  borderRadius: "l3",
+  borderWidth: "2px",
+  bottom: "3",
+  boxShadow: "lg",
+  left: "3",
+  pointerEvents: "auto",
+  position: "fixed",
+  px: "3",
+  py: "3",
+  transition: "all",
+});

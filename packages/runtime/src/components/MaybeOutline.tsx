@@ -1,35 +1,91 @@
-import { Targets } from "@locator/shared";
-import { createMemo } from "solid-js";
+import { strictConfig } from "@locator/shared";
+import { createMemo, createEffect, createSignal, onCleanup } from "solid-js";
 import { AdapterId } from "../consts";
-import { getElementInfo } from "../adapters/getElementInfo";
+import {
+  getElementInfo,
+  getElementInfoAsync,
+} from "../adapters/getElementInfo";
 import { Outline } from "./Outline";
+import { css } from "@locator/styled-system/css";
+import { createSourceResolutionContext } from "../adapters/react/sourceMapResolver";
+
+const styles = {
+  viewport: css({
+    alignItems: "center",
+    display: "flex",
+    height: "100vh",
+    justifyContent: "center",
+    left: "0",
+    position: "fixed",
+    top: "0",
+    width: "100vw",
+  }),
+  missing: css({
+    alignItems: "center",
+    display: "flex",
+    justifyContent: "center",
+  }),
+};
 
 export function MaybeOutline(props: {
   currentElement: HTMLElement;
   showTreeFromElement: (element: HTMLElement) => void;
-  showParentsPath: (element: HTMLElement, x: number, y: number) => void;
-  copyToClipboard: (element: HTMLElement) => void;
+  bindings: readonly strictConfig.ConfiguredBinding[];
+  performAction: (
+    action: strictConfig.ConfiguredAction,
+    element: import("../adapters/adapterApi").FullElementInfo,
+    position: { x: number; y: number }
+  ) => Promise<boolean>;
   adapterId?: AdapterId;
-  targets: Targets;
+  targets: strictConfig.TargetViewMap;
 }) {
   const elInfo = createMemo(() =>
     getElementInfo(props.currentElement, props.adapterId)
   );
+  const [asyncInfo, setAsyncInfo] = createSignal<
+    import("../adapters/adapterApi").FullElementInfo | null
+  >(null);
+  const [pending, setPending] = createSignal(false);
+  createEffect(() => {
+    const element = props.currentElement;
+    const adapter = props.adapterId;
+    const sync = elInfo();
+    setAsyncInfo(null);
+    if (sync?.thisElement.link || (adapter && adapter !== "react")) return;
+    const controller = new AbortController();
+    setPending(true);
+    void getElementInfoAsync(
+      element,
+      adapter,
+      createSourceResolutionContext(controller.signal)
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) setAsyncInfo(result);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!controller.signal.aborted) setPending(false);
+      });
+    onCleanup(() => controller.abort());
+  });
+  const resolvedInfo = () => asyncInfo() ?? elInfo();
   const box = () => props.currentElement.getBoundingClientRect();
   return (
     <>
-      {elInfo() ? (
+      {resolvedInfo() ? (
         <Outline
-          element={elInfo()!}
+          element={resolvedInfo()!}
           showTreeFromElement={props.showTreeFromElement}
-          showParentsPath={props.showParentsPath}
-          copyToClipboard={props.copyToClipboard}
+          bindings={props.bindings}
+          performAction={props.performAction}
           targets={props.targets}
+          adapterId={props.adapterId}
         />
       ) : (
-        <div class="fixed top-0 left-0 w-screen h-screen flex items-center justify-center">
+        <div class={styles.viewport}>
           <div
-            class="flex items-center justify-center"
+            class={styles.missing}
+            data-locatorjs-outline="no-source"
             style={{
               position: "absolute",
               left: box().x + "px",
@@ -46,7 +102,7 @@ export function MaybeOutline(props: {
               "text-overflow": "ellipsis",
             }}
           >
-            No source found
+            {pending() ? "Finding source…" : "No source found"}
           </div>
         </div>
       )}

@@ -10,12 +10,13 @@ import {
 import { goUpByTheTree } from "../goUpByTheTree";
 import { HtmlElementTreeNode } from "../HtmlElementTreeNode";
 import { getVueComponentBoundingBox } from "./getVNodeBoundingBox";
+import { getParentElementAcrossShadow } from "../../functions/domTraversal";
 
 type VueElement = HTMLElement & {
   __vueParentComponent?: ComponentInternalInstance;
 };
 
-export function getElementInfo(found: VueElement): FullElementInfo | null {
+function getElementInfo(found: VueElement): FullElementInfo | null {
   const parentComponent = found.__vueParentComponent;
   if (parentComponent) {
     if (!parentComponent.type) {
@@ -57,7 +58,10 @@ export function getElementInfo(found: VueElement): FullElementInfo | null {
   return null;
 }
 
-export class VueTreeNodeElement extends HtmlElementTreeNode {
+class VueTreeNodeElement extends HtmlElementTreeNode {
+  protected createNode(element: HTMLElement): VueTreeNodeElement {
+    return new VueTreeNodeElement(element);
+  }
   getSource(): Source | null {
     const element = this.element as VueElement;
     const parentComponent = element.__vueParentComponent;
@@ -76,20 +80,6 @@ export class VueTreeNodeElement extends HtmlElementTreeNode {
   getComponent(): TreeNodeComponent | null {
     return null;
   }
-  // getComponent(): TreeNodeComponent | null {
-  //   const element = this.element as VueElement;
-  //   const parentComponent = element.__vueParentComponent;
-  //   if (parentComponent && parentComponent.type) {
-  //     const { __name } = parentComponent.type;
-  //     if (__name) {
-  //       return {
-  //         label: __name,
-  //         definitionLink: this.getSource() || undefined,
-  //       };
-  //     }
-  //   }
-  //   return null;
-  // }
 }
 
 function getTree(element: HTMLElement): TreeState | null {
@@ -124,7 +114,7 @@ function getParentsPaths(element: HTMLElement): ParentPathItem[] {
       }
     }
 
-    currentElement = currentElement.parentElement;
+    currentElement = getParentElementAcrossShadow(currentElement);
   } while (currentElement);
 
   return path;

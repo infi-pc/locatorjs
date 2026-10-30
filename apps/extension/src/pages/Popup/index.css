@@ -1,14 +1,20 @@
-/* @tailwind base; */
-/* @tailwind components; */
-@tailwind utilities;
+@layer reset, base, tokens, recipes, utilities;
 
 body {
   width: 450px;
-  height: 260px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  min-height: 260px;
+  max-height: 580px;
   position: relative;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
+body::-webkit-scrollbar {
+  width: 8px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--colors-gray-a7);
+  border-radius: 999px;
+}

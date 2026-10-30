@@ -1,12 +1,14 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Source } from "@locator/shared";
 import { getReferenceId } from "../functions/getReferenceId";
-import nonNullable from "../functions/nonNullable";
 import { TreeNode, TreeNodeComponent } from "../types/TreeNode";
 import { SimpleDOMRect } from "../types/types";
+import {
+  getChildElementsAcrossShadow,
+  getParentElementAcrossShadow,
+} from "../functions/domTraversal";
 
 export class HtmlElementTreeNode implements TreeNode {
-  type: "element" = "element";
+  type = "element" as const;
   element: HTMLElement;
   name: string;
   uniqueId: string;
@@ -21,23 +23,18 @@ export class HtmlElementTreeNode implements TreeNode {
   getElement(): Element | Text {
     return this.element;
   }
+  protected createNode(element: HTMLElement): HtmlElementTreeNode {
+    return new HtmlElementTreeNode(element);
+  }
   getChildren(): TreeNode[] {
-    const children = Array.from(this.element.children);
-    return children
-      .map((child) => {
-        if (child instanceof HTMLElement) {
-          // @ts-ignore
-          return new this.constructor(child);
-        } else {
-          return null;
-        }
-      })
-      .filter(nonNullable);
+    return getChildElementsAcrossShadow(this.element).map((child) =>
+      this.createNode(child)
+    );
   }
   getParent(): TreeNode | null {
-    if (this.element.parentElement) {
-      // @ts-ignore
-      return new this.constructor(this.element.parentElement);
+    const parent = getParentElementAcrossShadow(this.element);
+    if (parent) {
+      return this.createNode(parent);
     } else {
       return null;
     }

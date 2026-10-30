@@ -1,28 +1,6 @@
 export type FiberType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 export type FiberRootMode = 0 | 1 | 2;
 
-export type ReactDevtoolsHook = {
-  supportsFiber: boolean;
-  inject: (renderer: ReactInternals) => number;
-  // onScheduleRoot(rendererId: number, root: FiberRoot, children: any[]) {},
-  onCommitFiberUnmount: (rendererId: number, fiber: Fiber) => void;
-  onCommitFiberRoot: (
-    rendererId: number,
-    root: FiberRoot,
-    priorityLevel: any
-  ) => void;
-  onPostCommitFiberRoot: (rendererId: number, root: FiberRoot) => void;
-
-  // Not used. It is declared to follow React Devtools hook's behaviour
-  // in order for other tools like react-render to work
-  renderers?: Map<number, ReactInternals>;
-
-  // Marker is here but we can ignore it
-  // [MARKER]?: typeof MARKER;
-};
-
-export type Renderer = ReactInternals;
-
 export type TransferFiber = {
   id: number;
   type: FiberType;
@@ -213,16 +191,6 @@ export type Message =
 export type DistributiveOmit<T, K extends keyof T> = T extends any
   ? Omit<T, K>
   : never;
-
-export type ReactInternals = {
-  bundleType?: number;
-  reconcilerVersion?: string;
-  version?: string;
-  currentDispatcherRef: any;
-  getCurrentFiber: () => Fiber | null;
-  rendererPackageName?: string;
-  findFiberByHostInstance: (hostInstance: NativeType) => Fiber | null;
-};
 
 // TODO maybe add HTMLElement to this type
 export type NativeType = Record<string, unknown>;
@@ -550,10 +518,13 @@ export type ReactCommitData = {
   updaters: Array<SerializedElement> | null;
 };
 
+import type { SourcePathKind } from "./sourcePath";
+
 export type Source = {
   fileName: string;
   lineNumber: number;
   columnNumber?: number;
+  pathKind?: SourcePathKind;
 };
 
 export type InspectedElement = {
@@ -683,3 +654,32 @@ export type ReactIntegration = ReactDevtoolsHookHandlers & ReactInterationApi;
 export type RecordEventHandler = (
   payload: DistributiveOmit<Message, "id">
 ) => number;
+
+/**
+ * React DevTools 7.0.1+ RendererInterface API
+ * Interface exposed by each renderer for getting component info and source locations
+ */
+export type RendererInterface = {
+  // Get React internal element ID from a DOM element
+  getElementIDForHostInstance: (hostInstance: NativeType) => number | null;
+  // Get component's source function/class by ID
+  getElementSourceFunctionById?: (
+    id: number
+  ) => ((...args: any[]) => any) | null;
+  // Inspect element, returns detailed info including source
+  inspectElement: (
+    requestID: number,
+    id: number,
+    path: Array<string | number> | null,
+    forceFullData?: boolean
+  ) => InspectElementResult | null;
+  // Get the element's path in the tree
+  getPathForElement?: (id: number) => Array<PathFrame> | null;
+  // Find Fiber (available in some versions)
+  findFiberByHostInstance?: (hostInstance: NativeType) => Fiber | null;
+};
+
+export type InspectElementResult = {
+  type: "full-data" | "hydrated-path" | "no-change" | "not-found";
+  value?: InspectedElement;
+};

@@ -65,7 +65,8 @@ function locatorLoader(
   const options = this.getOptions();
 
   try {
-    // Use babel to transform the source with the locator plugin
+    // Use babel to transform the source with the locator plugin.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- loaded lazily inside the try so a missing or broken plugin degrades to passing the source through rather than failing the whole build
     const locatorPlugin = require("@locator/babel-jsx");
 
     const result = transformSync(source, {
