@@ -12,6 +12,56 @@ const targets = {
 afterEach(cleanup);
 
 describe("EditorPicker", () => {
+  test("saves a Paseo link with the visible button and waits for persistence", async () => {
+    const template =
+      "paseo://compose?cwd=${projectPath}&file=${filePath}&line=${line}&column=${column}";
+    let finishSave!: (result: { ok: true }) => void;
+    const onChange = vi.fn(
+      () => new Promise<{ ok: true }>((resolve) => (finishSave = resolve))
+    );
+    const onStatusChange = vi.fn();
+    render(() => (
+      <EditorPicker
+        targets={targets}
+        value={{ kind: "target", id: "cursor" }}
+        onChange={onChange}
+        onStatusChange={onStatusChange}
+      />
+    ));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Customize link template" })
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Custom link template",
+    });
+    await fireEvent.input(input, { target: { value: template } });
+    expect(onStatusChange).toHaveBeenLastCalledWith("editing");
+    await fireEvent.click(screen.getByRole("button", { name: "Save link" }));
+
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange).toHaveBeenCalledWith({
+      kind: "template",
+      template,
+    });
+    expect(onStatusChange).toHaveBeenLastCalledWith("saving");
+    expect((input as HTMLInputElement).disabled).toBe(true);
+    expect(
+      (screen.getByRole("button", { name: "Saving…" }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true);
+    expect(
+      (screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true);
+
+    finishSave({ ok: true });
+    await vi.waitFor(() => {
+      expect(onStatusChange).toHaveBeenLastCalledWith("idle");
+      expect(screen.queryByRole("textbox")).toBeNull();
+    });
+  });
+
   test("customizes a selected editor template only after the draft is committed", async () => {
     const onChange = vi.fn(() => ({ ok: true } as const));
     render(() => (
@@ -44,31 +94,37 @@ describe("EditorPicker", () => {
     });
   });
 
-  test("cancels a custom template draft with Escape", async () => {
-    const onChange = vi.fn(() => ({ ok: true } as const));
-    render(() => (
-      <EditorPicker
-        targets={targets}
-        value={{ kind: "target", id: "cursor" }}
-        onChange={onChange}
-      />
-    ));
+  test.each(["Escape", "Cancel"])(
+    "cancels a custom template draft with %s",
+    async (action) => {
+      const onChange = vi.fn(() => ({ ok: true } as const));
+      render(() => (
+        <EditorPicker
+          targets={targets}
+          value={{ kind: "target", id: "cursor" }}
+          onChange={onChange}
+        />
+      ));
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Customize link template" })
-    );
-    const input = screen.getByRole("textbox", {
-      name: "Custom link template",
-    });
-    await fireEvent.input(input, { target: { value: "changed://template" } });
-    await fireEvent.keyDown(input, { key: "Escape" });
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Customize link template" })
+      );
+      const input = screen.getByRole("textbox", {
+        name: "Custom link template",
+      });
+      await fireEvent.input(input, { target: { value: "changed://template" } });
+      if (action === "Escape")
+        await fireEvent.keyDown(input, { key: "Escape" });
+      else
+        await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(onChange).not.toHaveBeenCalled();
-    expect(
-      screen.queryByRole("textbox", { name: "Custom link template" })
-    ).toBeNull();
-    expect(screen.getByText(targets.cursor.url)).toBeTruthy();
-  });
+      expect(onChange).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole("textbox", { name: "Custom link template" })
+      ).toBeNull();
+      expect(screen.getByText(targets.cursor.url)).toBeTruthy();
+    }
+  );
 
   test("confirming the pre-filled custom link pins it", async () => {
     // The draft is seeded from the selected editor's built-in template, so
@@ -141,40 +197,50 @@ describe("EditorPicker", () => {
     ).toBeNull();
   });
 
-  test("keeps the custom template draft open when saving fails", async () => {
-    // A `WriteResult`, which is what every real caller injects. The previous
-    // `false` fixture is what let `EditorSetting`'s `!== false` check pass this
-    // test while reading every real failure as success.
-    const onChange = vi.fn(
-      async () => ({ ok: false, reason: "quota" } as const)
-    );
-    render(() => (
-      <EditorPicker
-        targets={targets}
-        value={{ kind: "target", id: "cursor" }}
-        onChange={onChange}
-      />
-    ));
+  test.each(["failure", "rejection"])(
+    "keeps the draft and explains a save %s",
+    async (failure) => {
+      // A `WriteResult`, which is what every real caller injects. The previous
+      // `false` fixture is what let `EditorSetting`'s `!== false` check pass this
+      // test while reading every real failure as success.
+      const onChange = vi.fn(
+        async () => ({ ok: false, reason: "quota" } as const)
+      );
+      if (failure === "rejection")
+        onChange.mockRejectedValue(new Error("Storage unavailable"));
+      render(() => (
+        <EditorPicker
+          targets={targets}
+          value={{ kind: "target", id: "cursor" }}
+          onChange={onChange}
+        />
+      ));
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Customize link template" })
-    );
-    const input = screen.getByRole("textbox", {
-      name: "Custom link template",
-    });
-    await fireEvent.input(input, {
-      target: { value: "cursor://failed/${filePath}" },
-    });
-    await fireEvent.keyDown(input, { key: "Enter" });
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Customize link template" })
+      );
+      const input = screen.getByRole("textbox", {
+        name: "Custom link template",
+      });
+      await fireEvent.input(input, {
+        target: { value: "cursor://failed/${filePath}" },
+      });
+      await fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(
-      (
-        (await screen.findByRole("textbox", {
-          name: "Custom link template",
-        })) as HTMLInputElement
-      ).value
-    ).toBe("cursor://failed/${filePath}");
-  });
+      expect(
+        (
+          (await screen.findByRole("textbox", {
+            name: "Custom link template",
+          })) as HTMLInputElement
+        ).value
+      ).toBe("cursor://failed/${filePath}");
+      expect(screen.getByRole("alert").textContent).toContain("Could not save");
+      expect(
+        (screen.getByRole("button", { name: "Save link" }) as HTMLButtonElement)
+          .disabled
+      ).toBe(false);
+    }
+  );
 
   test("rejects a custom template without a URL scheme", async () => {
     const onChange = vi.fn(() => ({ ok: true } as const));

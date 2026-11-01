@@ -8,6 +8,7 @@ import {
 import { strictConfig, strictConfigStorage } from "@locator/shared";
 import { css } from "@locator/styled-system/css";
 import { Pencil } from "lucide-solid";
+import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import { TextInput } from "./TextInput";
 import { Select, SelectItem } from "./Select";
@@ -19,6 +20,7 @@ const INHERIT_VALUE = "__inherit__";
 
 const styles = {
   stack: css({ display: "flex", flexDirection: "column", gap: "2" }),
+  actions: css({ display: "flex", gap: "2" }),
   helper: css({ color: "fg.muted", textStyle: "caption" }),
   error: css({ color: "error", textStyle: "caption" }),
   templateRow: css({
@@ -66,6 +68,7 @@ export function EditorPicker(props: {
   const [draft, setDraft] = createSignal("");
   const [saving, setSaving] = createSignal(false);
   const [validationError, setValidationError] = createSignal<string>();
+  const [saveError, setSaveError] = createSignal<string>();
   let input: HTMLInputElement | undefined;
   createEffect(() =>
     props.onStatusChange?.(saving() ? "saving" : editing() ? "editing" : "idle")
@@ -122,18 +125,20 @@ export function EditorPicker(props: {
   function beginEditing() {
     setDraft(selectedTemplate());
     setValidationError(undefined);
+    setSaveError(undefined);
     setEditing(true);
   }
 
   function cancelEditing() {
-    if (saving()) return;
+    if (props.disabled || saving()) return;
     setDraft(selectedTemplate());
     setValidationError(undefined);
+    setSaveError(undefined);
     setEditing(false);
   }
 
   async function commitEditing() {
-    if (!editing() || saving()) return;
+    if (!editing() || props.disabled || saving()) return;
     const next = draft().trim();
     if (!next) {
       cancelEditing();
@@ -157,6 +162,7 @@ export function EditorPicker(props: {
       return;
     }
     setSaving(true);
+    setSaveError(undefined);
     try {
       const result = await props.onChange({
         kind: "template",
@@ -165,6 +171,9 @@ export function EditorPicker(props: {
       // A failed write keeps the draft on screen, so the typed template is not
       // silently discarded and re-seeded from props on the next open.
       if (result.ok) setEditing(false);
+      else setSaveError("Could not save your custom link. Try again.");
+    } catch {
+      setSaveError("Could not save your custom link. Try again.");
     } finally {
       setSaving(false);
     }
@@ -178,7 +187,7 @@ export function EditorPicker(props: {
         items={items()}
         value={value()}
         placeholder="Select editor"
-        disabled={props.disabled}
+        disabled={props.disabled || saving()}
         portalMount={props.portalMount}
         onChange={(next) => {
           if (props.disabled || saving()) return;
@@ -218,13 +227,14 @@ export function EditorPicker(props: {
           mono
           aria-label="Custom link template"
           value={draft()}
-          disabled={props.disabled}
+          disabled={props.disabled || saving()}
           aria-busy={saving() || undefined}
           aria-invalid={validationError() ? true : undefined}
           placeholder="editor://file/${projectPath}${filePath}:${line}:${column}"
           onInput={(event) => {
             setDraft(event.currentTarget.value);
             setValidationError(undefined);
+            setSaveError(undefined);
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -237,14 +247,23 @@ export function EditorPicker(props: {
           }}
         />
         <div class={styles.helper}>
-          Press Enter to save, or Escape to cancel.
-        </div>
-        <div class={styles.helper}>
           Available variables: projectPath, filePath, line, column, tmuxSession
         </div>
-        <Show when={validationError()}>
+        <div class={styles.actions}>
+          <Button
+            variant="primary"
+            disabled={props.disabled || saving() || !draft().trim()}
+            onClick={() => void commitEditing()}
+          >
+            {saving() ? "Saving…" : "Save link"}
+          </Button>
+          <Button disabled={props.disabled || saving()} onClick={cancelEditing}>
+            Cancel
+          </Button>
+        </div>
+        <Show when={validationError() || saveError()}>
           <div class={styles.error} role="alert">
-            {validationError()}
+            {validationError() || saveError()}
           </div>
         </Show>
       </Show>
