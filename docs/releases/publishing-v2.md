@@ -1,104 +1,98 @@
-# Publish LocatorJS v2
+# Publish npm when a GitHub release is published
 
-Prepare npm packages and both browser extensions from the same reviewed commit.
-Keep the version at 2.0.0: the merged branch already contains the version bump.
-Do not run bare `lerna publish`, which starts another versioning flow.
+Publishing a stable GitHub release triggers `.github/workflows/npm-release.yml`.
+The workflow builds the tagged source, validates it and publishes every public
+package in dependency order with npm's `latest` tag and provenance. Browser
+extensions still have a separate store submission process.
 
-## Build and check
+## Make a release
 
-Use the Node version in `.nvmrc` and pnpm from `package.json`:
+1. Start from current master and run `pnpm release:version 2.0.1` (replace the
+   version with the intended release). Lerna updates the synchronized public
+   package versions, `lerna.json` and pnpm lockfile without committing or tagging.
+2. Commit the version changes and release notes through a pull request. All CI
+   gates, including the six e2e groups, must pass. Merge the PR into master.
+3. On GitHub, create a release with a tag matching the version, such as
+   `v2.0.1`, pointing to that merged commit. Add the release notes and publish it.
+4. Watch **Publish npm release** in Actions. It first runs `pnpm build`,
+   `pnpm check` (including release tests), `pnpm package-contract`, and pnpm pack.
+   A separate job publishes the verified artifacts using OIDC authentication.
+5. Confirm the workflow succeeds and npm shows the intended versions. Store
+   submission and the announcement of extension availability are separate.
 
-```bash
-nvm use
-corepack pnpm install --frozen-lockfile
-corepack pnpm build
-corepack pnpm check
-corepack pnpm package-contract
-corepack pnpm --dir apps/extension release
-corepack pnpm --dir apps/extension exec web-ext lint --source-dir build/production_firefox
-```
+Draft releases do not publish npm packages. Prereleases are deliberately ignored
+by this workflow; they need a separate channel such as `next` before enabling
+prerelease automation. The workflow checks that the tag matches `lerna.json` and
+all public package versions, and that the tagged source is merged into master.
 
-Ensure subprocesses also resolve the pinned pnpm version. With Corepack,
-`corepack enable` installs the shims. The package contract builds the packages,
-checks their actual packed manifests, and installs them into an isolated consumer
-to test browser bundling, native ESM/CommonJS imports and TypeScript declarations.
+The first v2.0.0 release was published manually before this workflow existed.
+It will not be republished. The automation applies to future tagged releases
+that include the workflow.
 
-Confirm the build, check, package-contract, firefox-build and all six e2e group
-jobs pass for the release commit. The merged e2e report job alone is not a gate.
+## Configure npm trusted publishing
 
-## Prepare npm artifacts
+The workflow has no npm publishing secret. Configure this trusted publisher on
+**each** of the eight npm packages:
 
-From the repository root, set an absolute output directory and use pnpm to
-rewrite workspace dependency ranges:
+- GitHub repository: `infi-pc/locatorjs`.
+- Workflow filename: `npm-release.yml` (no directory prefix).
+- Environment: leave empty; the workflow does not use a deployment environment.
+- Permission: allow direct `npm publish`.
 
-```bash
-RELEASE_DIR="$PWD/.context/release/v2"
-mkdir -p "$RELEASE_DIR/npm"
-corepack pnpm --recursive --filter './packages/*' --workspace-concurrency=1 exec pnpm pack --pack-destination "$RELEASE_DIR/npm"
-```
+The packages are `@locator/shared`, `@locator/styled-system`, `@locator/ui`,
+`@locator/runtime`, `@locator/babel-jsx`, `@locator/webpack-loader`,
+`@locator/dev-config` and `locatorjs`. Their repository metadata must match this
+repository. New packages must be published once manually before adding trust.
 
-There are eight public packages: `@locator/shared`, `@locator/styled-system`,
-`@locator/ui`, `@locator/runtime`, `@locator/babel-jsx`,
-`@locator/webpack-loader`, `@locator/dev-config` and `locatorjs`.
-`@locator/styled-system` is a new npm package. It must be public because runtime
-and UI depend on it. Pack with pnpm; `npm pack` on a source package leaves
-`workspace:` dependencies unresolved.
-
-## Publish npm artifacts
-
-Restore npm authentication with `npm login`, then check `npm whoami` and publishing
-rights for the `@locator` scope and `locatorjs`. Account permissions and any 2FA
-challenge must be verified with a valid login before publishing.
-
-Publish the prepared tarballs in dependency order. These commands publish to
-`latest`; run them only when the release is approved:
+Use the package settings on npmjs.com or a compatible npm CLI (11.15.0 or later):
 
 ```bash
-npm publish "$RELEASE_DIR/npm/locator-shared-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locator-styled-system-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locator-ui-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locator-runtime-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locator-babel-jsx-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locator-webpack-loader-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locator-dev-config-2.0.0.tgz" --access public --tag latest
-npm publish "$RELEASE_DIR/npm/locatorjs-2.0.0.tgz" --access public --tag latest
+npm trust list @locator/runtime
+npm trust github @locator/runtime --repo infi-pc/locatorjs --file npm-release.yml --allow-publish --yes
 ```
 
-Confirm each registry version and dist-tag after publishing. If a command fails,
-check what reached the registry and continue only with unpublished packages;
-published npm versions cannot be overwritten. Install the packages into a fresh
-consumer without local overrides before announcing the release.
+Repeat for all eight packages. Inspect existing configurations before adding
+anything; do not replace an unrelated publisher. npm may require browser 2FA.
+The workflow installs npm 11.21.0 because Node 22's bundled npm is too old for
+OIDC publishing; Node itself remains pinned in `.nvmrc`.
 
-## Submit browser extensions
+A newly created trusted publisher must complete its first successful publish
+within **two days**, otherwise npm requires recreating it. Configure publishers
+close to the first automatic release. A dry run or a run that only skips existing
+versions does not validate a new publisher. See
+[npm's trusted publisher documentation](https://docs.npmjs.com/trusted-publishers/)
+and [the npm trust command](https://docs.npmjs.com/cli/v11/commands/npm-trust/).
 
-The release script builds dependencies and writes both unsigned submission ZIPs:
+## Test without publishing
 
-- Chrome: `apps/extension/build/chrome.zip`.
-- Firefox: `apps/extension/build/firefox.zip`.
+Run **Publish npm release** manually from Actions on the intended branch. Manual
+runs execute the build, checks, packaging and `npm publish --dry-run`; the real
+publish job only runs for a published stable release. No npm package is changed.
+Dry runs bypass npm's client-side duplicate-version check so the current
+published version can be exercised. Real publishes always check existing
+versions and never use that bypass.
 
-Both manifests must declare 2.0.0. Upload to the existing
-[Chrome listing](https://chromewebstore.google.com/detail/locatorjs/npbfdllefekhdplbkdigpncggmojpefi)
-and [Firefox listing](https://addons.mozilla.org/en-US/firefox/addon/locatorjs/).
-Dashboard access and submission status need a publisher session; building ZIPs
-does not submit them.
+The same packaging steps can be exercised locally after `pnpm build`:
 
-Firefox's current MV2 manifest does not include an ID. When updating through the
-AMO API, supply the existing add-on ID; do not create a separate listing. See
-[Mozilla's add-on ID guidance](https://extensionworkshop.com/documentation/develop/extensions-and-the-add-on-id/).
-Its new data-consent manifest requirement currently applies to new add-ons,
-not updates to listings created before November 3, 2025; confirm this remains
-true at submission time in the
-[Mozilla guidance](https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/).
+```bash
+pnpm check
+pnpm package-contract
+pnpm release:pack
+pnpm release:dry-run
+```
 
-Include source code and build instructions for Firefox review if requested:
-use the exact release commit, `pnpm install --frozen-lockfile`, then
-`pnpm --dir apps/extension release:firefox` under the pinned Node/pnpm versions.
-Review the linter output alongside the source rather than treating warnings as
-proof of a vulnerability or as approval from the store.
+The artifacts and their integrity plan are written to `.context/npm-release/`.
+The workflow saves them as an Actions artifact before granting the separate
+publish job OIDC access. Release jobs do not restore dependency or build caches.
 
-## Tag and announce
+## Recover a partial publication
 
-Create the `v2.0.0` tag on the reviewed release commit and create a GitHub release
-using [the release notes](v2.0.0.md). Attach the extension ZIPs, source archive and
-artifact checksums. State any pending store review clearly; do not announce an
-extension as available until its listing serves 2.0.0.
+Re-run the failed workflow in Actions. It checks **every** package before making
+any new publishes, skips a version only if its registry integrity matches the
+prepared tarball, and fails on a conflicting version. It also refuses to move
+`latest` to an older stable version. Existing versions cannot be overwritten.
+
+If a rebuilt tarball differs from an already published version, investigate the
+build difference and prepare a new version rather than unpublishing packages.
+`pnpm publishPackages` now invokes the guarded CI publisher; it no longer starts
+an interactive Lerna version bump.

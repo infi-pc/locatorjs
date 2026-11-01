@@ -69,5 +69,9 @@
   "files": [
     "dist",
     "src"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/infi-pc/locatorjs"
+  }
 }
