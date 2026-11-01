@@ -246,6 +246,9 @@ export function EditorPicker(props: {
             }
           }}
         />
+        <div class={styles.helper}>
+          Available variables: projectPath, filePath, line, column, tmuxSession
+        </div>
         <div class={styles.actions}>
           <Button
             variant="primary"
@@ -257,12 +260,6 @@ export function EditorPicker(props: {
           <Button disabled={props.disabled || saving()} onClick={cancelEditing}>
             Cancel
           </Button>
-        </div>
-        <div class={styles.helper}>
-          Press Enter to save, or Escape to cancel.
-        </div>
-        <div class={styles.helper}>
-          Available variables: projectPath, filePath, line, column, tmuxSession
         </div>
         <Show when={validationError() || saveError()}>
           <div class={styles.error} role="alert">
