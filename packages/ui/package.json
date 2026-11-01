@@ -51,5 +51,9 @@
     "typescript": "^5.9.3",
     "vite-plugin-solid": "^2.11.12",
     "vitest": "^2.1.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/infi-pc/locatorjs"
   }
 }

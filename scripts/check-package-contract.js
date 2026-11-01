@@ -4,6 +4,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
+const { packageManager } = require(path.join(root, "package.json"));
 const packagesRoot = path.join(root, "packages");
 const releaseVersion = require(path.join(root, "lerna.json")).version;
 const packageDirectories = fs
@@ -63,6 +64,20 @@ function packedPathExists(packedFiles, entryPath) {
 
 function validateManifest(packageInfo, packedFiles) {
   const { directory, manifest } = packageInfo;
+  for (const field of [
+    "dependencies",
+    "devDependencies",
+    "optionalDependencies",
+    "peerDependencies",
+  ]) {
+    for (const [name, spec] of Object.entries(manifest[field] || {})) {
+      if (spec.startsWith("workspace:")) {
+        throw new Error(
+          `${manifest.name} tarball contains unpublished ${field}.${name}: ${spec}`
+        );
+      }
+    }
+  }
   if (manifest.version !== releaseVersion) {
     throw new Error(
       `${manifest.name} has version ${manifest.version}; expected ${releaseVersion}`
@@ -104,22 +119,30 @@ function validateManifest(packageInfo, packedFiles) {
 }
 
 function pack(packageInfo) {
-  const output = JSON.parse(
-    run(
-      "npm",
-      ["pack", "--ignore-scripts", "--json", "--pack-destination", temporary],
-      packageInfo.directory
-    )
-  )[0];
-  if (!output?.filename || !Array.isArray(output.files)) {
-    throw new Error(`${packageInfo.directory} did not produce pack metadata`);
-  }
-
-  const packedFiles = new Set(output.files.map((file) => file.path));
-  validateManifest(packageInfo, packedFiles);
+  // pnpm rewrites workspace: ranges for consumers; npm pack leaves them in
+  // place, where the consumer overrides below used to hide broken tarballs.
+  run(
+    "pnpm",
+    ["--config.ignore-scripts=true", "pack", "--pack-destination", temporary],
+    packageInfo.directory
+  );
+  const filename = `${packageInfo.manifest.name
+    .replace(/^@/, "")
+    .replace("/", "-")}-${packageInfo.manifest.version}.tgz`;
+  const tarball = path.join(temporary, filename);
+  const packedFiles = new Set(
+    run("tar", ["-tzf", tarball])
+      .trim()
+      .split("\n")
+      .map((file) => file.replace(/^package\//, ""))
+  );
+  const manifest = JSON.parse(
+    run("tar", ["-xOf", tarball, "package/package.json"])
+  );
+  validateManifest({ ...packageInfo, manifest }, packedFiles);
   return {
-    name: packageInfo.manifest.name,
-    path: path.join(temporary, output.filename),
+    name: manifest.name,
+    path: tarball,
   };
 }
 
@@ -133,6 +156,7 @@ function writeConsumer(tarballs) {
     path.join(consumer, "package.json"),
     JSON.stringify({
       private: true,
+      packageManager,
       dependencies: localPackages,
       pnpm: { overrides: localPackages },
     })

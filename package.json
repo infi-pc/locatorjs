@@ -17,7 +17,7 @@
     "dup": "jscpd apps packages --reporters console",
     "e2e": "turbo run e2e --filter=./apps/playwright",
     "typecheck": "pnpm ts",
-    "check": "pnpm format:check && pnpm dependency-versions && node scripts/check-eslint-suppressions.js && eslint scripts --ext .js && pnpm knip && pnpm dup && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
+    "check": "pnpm format:check && pnpm dependency-versions && node scripts/check-eslint-suppressions.js && eslint scripts --ext .js && pnpm test:release && pnpm knip && pnpm dup && turbo run lint ts test --filter=./packages/* --filter=./apps/* --ui=stream --log-order=grouped --output-logs=errors-only --continue=always",
     "check:fix": "pnpm format && pnpm dependency-versions:fix",
     "test-apps:dev": ". ./scripts/dev-ports.sh && turbo run dev --parallel --filter=./test-apps/*",
     "test-apps:build": "turbo run build --filter=./test-apps/*",
@@ -26,7 +26,7 @@
     "format": "prettier --write \"{packages,apps,scripts}/**/*.{js,ts,tsx,md}\" \"*.{js,md}\"",
     "format:check": "prettier --check \"{packages,apps,scripts}/**/*.{js,ts,tsx,md}\" \"*.{js,md}\"",
     "prepare": "husky",
-    "publishPackages": "lerna publish",
+    "publishPackages": "node scripts/npm-release.js --publish",
     "clean": "concurrently pnpm:clean:*",
     "clean:node_modules": "rm -rf node_modules && rm -rf */*/node_modules",
     "clean:dist": "rm -rf */*/dist",
@@ -34,7 +34,11 @@
     "clean:next": "rm -rf */*/.next",
     "dependency-versions": "check-dependency-version-consistency . --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
     "dependency-versions:fix": "check-dependency-version-consistency . --fix --ignore-path-pattern='^test-apps/' --ignore-dep=prettier",
-    "package-contract": "node scripts/check-package-contract.js"
+    "package-contract": "node scripts/check-package-contract.js",
+    "release:pack": "node scripts/npm-release.js --pack",
+    "release:dry-run": "node scripts/npm-release.js --dry-run",
+    "test:release": "node --test scripts/npm-release.test.js",
+    "release:version": "lerna version --no-git-tag-version --no-push"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",
