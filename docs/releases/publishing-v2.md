@@ -1,6 +1,7 @@
-# Publish npm when a GitHub release is published
+# Publish npm by manually creating a version tag
 
-Publishing a stable GitHub release triggers `.github/workflows/npm-release.yml`.
+Merging into master does not publish npm packages. Manually creating and pushing
+a stable version tag such as `v2.0.1` triggers `.github/workflows/npm-release.yml`.
 The workflow builds the tagged source, validates it and publishes every public
 package in dependency order with npm's `latest` tag and provenance. Browser
 extensions still have a separate store submission process.
@@ -12,18 +13,32 @@ extensions still have a separate store submission process.
    package versions, `lerna.json` and pnpm lockfile without committing or tagging.
 2. Commit the version changes and release notes through a pull request. All CI
    gates, including the six e2e groups, must pass. Merge the PR into master.
-3. On GitHub, create a release with a tag matching the version, such as
-   `v2.0.1`, pointing to that merged commit. Add the release notes and publish it.
+3. Once ready to publish, create and push a tag matching the version on that
+   merged commit. For example, if it is the current master tip:
+
+   ```bash
+   git fetch origin master
+   git tag -a v2.0.1 origin/master -m "LocatorJS 2.0.1"
+   git push origin v2.0.1
+   ```
+
+   Pushing the tag is the explicit release action. Creating it only locally
+   does not publish anything.
+
 4. Watch **Publish npm release** in Actions. It first runs `pnpm build`,
    `pnpm check` (including release tests), `pnpm package-contract`, and pnpm pack.
    A separate job publishes the verified artifacts using OIDC authentication.
-5. Confirm the workflow succeeds and npm shows the intended versions. Store
-   submission and the announcement of extension availability are separate.
+5. Confirm the workflow succeeds and npm shows the intended versions. Create a
+   GitHub release using the **existing tag** to share release notes and assets.
+   This does not trigger another npm publication. Store submission and the
+   announcement of extension availability are separate.
 
-Draft releases do not publish npm packages. Prereleases are deliberately ignored
-by this workflow; they need a separate channel such as `next` before enabling
-prerelease automation. The workflow checks that the tag matches `lerna.json` and
-all public package versions, and that the tagged source is merged into master.
+Only newly created tags can publish; tag updates and deletions are ignored.
+The workflow rejects prerelease or malformed version tags. Prereleases need a
+separate channel such as `next` before enabling prerelease automation. The tag
+must match `lerna.json` and all public package versions, and the tagged source
+must already be merged into master. Do not move or recreate published tags.
+See [GitHub's tag push trigger documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push).
 
 The first v2.0.0 release was published manually before this workflow existed.
 It will not be republished. The automation applies to future tagged releases
@@ -67,7 +82,8 @@ and [the npm trust command](https://docs.npmjs.com/cli/v11/commands/npm-trust/).
 
 Run **Publish npm release** manually from Actions on the intended branch. Manual
 runs execute the build, checks, packaging and `npm publish --dry-run`; the real
-publish job only runs for a published stable release. No npm package is changed.
+publish job only runs for a newly pushed stable version tag. No npm package is
+changed by a manual workflow run.
 Dry runs bypass npm's client-side duplicate-version check so the current
 published version can be exercised. Real publishes always check existing
 versions and never use that bypass.

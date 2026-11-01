@@ -77,43 +77,42 @@ test("release rejects a private runtime dependency, cycles and missing internal 
   }
 });
 
-test("only a published stable release in this repository can publish", () => {
+test("only a newly pushed version tag in this repository can publish", () => {
   const env = {
     GITHUB_ACTIONS: "true",
     GITHUB_REPOSITORY: "infi-pc/locatorjs",
-    GITHUB_EVENT_NAME: "release",
+    GITHUB_EVENT_NAME: "push",
     GITHUB_REF: "refs/tags/v2.1.0",
   };
   const event = {
-    action: "published",
-    release: { tag_name: "v2.1.0", draft: false, prerelease: false },
+    ref: "refs/tags/v2.1.0",
+    created: true,
+    deleted: false,
+    forced: false,
   };
   assert.doesNotThrow(() => assertPublishEvent(env, event, "v2.1.0"));
   for (const change of [
     { GITHUB_ACTIONS: "false" },
     { GITHUB_REPOSITORY: "someone/locatorjs" },
     { GITHUB_EVENT_NAME: "workflow_dispatch" },
+    { GITHUB_EVENT_NAME: "release" },
     { GITHUB_REF: "refs/heads/master" },
   ])
     assert.throws(() =>
       assertPublishEvent({ ...env, ...change }, event, "v2.1.0")
     );
   for (const change of [
-    { draft: true },
-    { prerelease: true },
-    { tag_name: "v2.0.0" },
+    { created: false },
+    { deleted: true },
+    { forced: true },
+    { ref: "refs/tags/v2.0.0" },
+    { ref: "refs/heads/master" },
   ]) {
     assert.throws(() =>
-      assertPublishEvent(
-        env,
-        { ...event, release: { ...event.release, ...change } },
-        "v2.1.0"
-      )
+      assertPublishEvent(env, { ...event, ...change }, "v2.1.0")
     );
   }
-  assert.throws(() =>
-    assertPublishEvent(env, { ...event, action: "edited" }, "v2.1.0")
-  );
+  assert.throws(() => assertPublishEvent(env, {}, "v2.1.0"));
 });
 
 test("retries skip only byte-identical existing versions", () => {

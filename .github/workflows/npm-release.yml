@@ -1,8 +1,8 @@
 name: Publish npm release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
   # Exercise the build and npm dry-run without publishing a new version.
   workflow_dispatch:
 
@@ -15,11 +15,11 @@ concurrency:
 
 env:
   TURBO_UI: false
-  RELEASE_TAG: ${{ github.event.release.tag_name }}
+  RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
 
 jobs:
   prepare:
-    if: github.event_name != 'release' || !github.event.release.prerelease
+    if: github.event_name != 'push' || (github.event.created && !github.event.deleted && !github.event.forced)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Require released source to be merged into master
-        if: github.event_name == 'release'
+        if: github.event_name == 'push'
         run: git merge-base --is-ancestor HEAD origin/master
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -54,7 +54,7 @@ jobs:
           retention-days: 14
 
   publish:
-    if: github.event_name == 'release'
+    if: github.event_name == 'push' && github.event.created && !github.event.deleted && !github.event.forced
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 20

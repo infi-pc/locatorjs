@@ -71,14 +71,16 @@ function assertPublishEvent(env, event, tag) {
   if (
     env.GITHUB_ACTIONS !== "true" ||
     env.GITHUB_REPOSITORY !== "infi-pc/locatorjs" ||
-    env.GITHUB_EVENT_NAME !== "release" ||
+    env.GITHUB_EVENT_NAME !== "push" ||
     env.GITHUB_REF !== `refs/tags/${tag}` ||
-    event.action !== "published" ||
-    event.release?.tag_name !== tag ||
-    event.release?.draft !== false ||
-    event.release?.prerelease !== false
+    event.ref !== `refs/tags/${tag}` ||
+    event.created !== true ||
+    event.deleted !== false ||
+    event.forced !== false
   ) {
-    throw new Error("Publishing requires a published stable GitHub release");
+    throw new Error(
+      "Publishing requires a newly created version tag on GitHub"
+    );
   }
 }
 
