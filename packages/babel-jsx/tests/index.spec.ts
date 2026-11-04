@@ -16,3 +16,25 @@ pluginTester({
     return prettierFormatter(result, op);
   },
 });
+
+pluginTester({
+  plugin,
+  formatResult: (result, op) => {
+    const escapedCwd = JSON.stringify(process.cwd()).slice(1, -1);
+    return prettierFormatter(result.replaceAll(escapedCwd, "<cwd>"), op);
+  },
+  tests: [
+    {
+      title: "supports Windows file paths",
+      code: `
+        export default () => {
+          return <div>Hello</div>;
+        };
+      `,
+      babelOptions: {
+        filename: String.raw`D:\code\locatorjs\src\ui\App.jsx`,
+      },
+      snapshot: true,
+    },
+  ],
+});
